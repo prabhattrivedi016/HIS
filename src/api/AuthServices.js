@@ -4,7 +4,7 @@ import { ENDPOINTS } from "./endPoints";
 // User Login
 export const userLogin = async (loginData) => {
   try {
-    console.log("Login Payload:", JSON.stringify(loginData, null, 2));
+    // console.log("Login Payload:", JSON.stringify(loginData, null, 2));
 
     const response = await axiosInstance.post(ENDPOINTS.LOGIN, loginData);
 
@@ -14,23 +14,29 @@ export const userLogin = async (loginData) => {
   }
 };
 
-//  User Signup
+// User Signup
 export const userSignup = async (signupData) => {
   try {
-    const payload = {
-      ...signupData,
-      userId: 0,
-      isActive: true,
-      employeeID: "",
-    };
+    // console.log("userSignup Payload:", JSON.stringify(signupData, null, 2));
 
-    const response = await axiosInstance.post(ENDPOINTS.SIGNUP, payload);
+    const response = await axiosInstance.post(
+      ENDPOINTS.USER_SIGNUP,
+      signupData
+    );
 
-    return response ?? []; //TODO: check response type for fallback
+    return response; //TODO: fallback
   } catch (err) {
     throw err;
   }
 };
+
+// const payload = {
+//   ...signupData,
+// userId: 0,
+// isActive: true,
+// employeeID: "",
+// };
+//
 
 // Get Active Branch List
 export const getActiveBranchList = async () => {
@@ -45,11 +51,6 @@ export const getActiveBranchList = async () => {
 //send otp
 export const sendOtpApi = async (forgotPasswordData) => {
   try {
-    console.log(
-      "forgot password otp:",
-      JSON.stringify(forgotPasswordData, null, 2)
-    );
-
     const response = await axiosInstance.post(
       ENDPOINTS.SEND_OTP,
       forgotPasswordData
@@ -63,8 +64,6 @@ export const sendOtpApi = async (forgotPasswordData) => {
 //verify sms otp
 export const verifySmsOtp = async (otpData) => {
   try {
-    console.log("varify opt and password", JSON.stringify(otpData, null, 2));
-
     const response = await axiosInstance.post(
       ENDPOINTS.VERIFY_SMS_OTP,
       otpData
@@ -77,11 +76,23 @@ export const verifySmsOtp = async (otpData) => {
 
 // reset password by userId
 export const resetPasswordByUserId = async (resetData) => {
-  console.log("varify opt and password", JSON.stringify(resetData, null, 2));
   try {
     const response = await axiosInstance.post(
       ENDPOINTS.RESET_PASSWORD_BY_USERID,
       resetData
+    );
+    return response;
+  } catch (err) {
+    throw err;
+  }
+};
+
+//send email otp
+export const sendEmailOtp = async (emailOtp) => {
+  try {
+    const response = await axiosInstance.post(
+      ENDPOINTS.SEND_EMAIL_OTP,
+      emailOtp
     );
     return response;
   } catch (err) {
