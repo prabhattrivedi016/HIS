@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "../Atomic/Button";
 import InputField from "../Atomic/InputField";
 import { ChevronDown, User } from "lucide-react";
@@ -8,8 +8,10 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import signupSchema from "../../validation/signupSchema";
 import { genderOptions } from "../../constants/constants";
 import { stopPropagationHandler } from "../../utils/utilities";
+import UsePickMaster from "../../Hook/UsePickMaster";
 
 const Signup = ({ onLoginClick }) => {
+  const { pickMasterValue, getPickMasterValue } = UsePickMaster();
   const {
     register,
     handleSubmit,
@@ -35,26 +37,25 @@ const Signup = ({ onLoginClick }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Handle submit (uses react-hook-form)
+  //picMaster Values for gender
+  useEffect(() => {
+    getPickMasterValue("gender");
+  }, []);
+
+  // Handle submit
   const onSubmit = async (data) => {
     try {
       const response = await userSignup(data);
       setSuccessMessage(response?.data?.message);
-      console.log(response?.data?.message);
       setErrorMessage("");
+
       setTimeout(() => {
         onLoginClick();
       }, 2000);
     } catch (err) {
       const apiMessage = err?.response?.data?.message;
 
-      if (apiMessage) {
-        setErrorMessage(apiMessage);
-        console.log("API Error:", apiMessage);
-      } else {
-        setErrorMessage("Something went wrong. Please try again.");
-        console.log("Unexpected Error:", err);
-      }
+      setErrorMessage(apiMessage || "Something went wrong. Please try again.");
     }
   };
 
@@ -129,12 +130,15 @@ const Signup = ({ onLoginClick }) => {
                     {...register("gender")}
                     className="appearance-none w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                   >
-                    {genderOptions.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
+                    <option value="">Select</option>
+
+                    {pickMasterValue?.data?.map((item) => (
+                      <option key={item.id} value={item.value}>
+                        {item.value}
                       </option>
                     ))}
                   </select>
+
                   <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
               </InputField>
