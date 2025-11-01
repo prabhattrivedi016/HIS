@@ -65,7 +65,7 @@ const ForgotPassword = ({ onClose }) => {
         contact: data.contact,
       });
 
-      console.log("otp sent successfully", response);
+      // console.log("otp sent successfully", response);
       setOtpSent(true);
       setUserId(response?.data?.userId);
       setHintMessage(response?.data?.message);
@@ -93,7 +93,7 @@ const ForgotPassword = ({ onClose }) => {
         userId: userId,
       });
 
-      console.log("OTP Verified:", response);
+      // console.log("OTP Verified:", response);
       setOtpVerified(true);
       setErrorMessage("");
       setVerifiedOtp(response?.data?.otp);

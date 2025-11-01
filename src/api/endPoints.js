@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   RESET_PASSWORD_BY_USERID: "User/resetPasswordByUserId",
   GET_PICKLIST_MASTER: "Home/getPickListMaster",
   SEND_EMAIL_OTP: "User/sendEmailOtp",
+  VERIFY_EMAIL_OTP: "User/verifyEmailOtp",
 };
 
 // http://103.217.247.236/HISWEBAPI/api/User/sendSmsOtp

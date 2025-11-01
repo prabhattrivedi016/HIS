@@ -145,6 +145,10 @@ const Login = () => {
     }
   };
 
+  const onClose = () => {
+    setShowOtpModal(false);
+  };
+
   return (
     <AuthBackground>
       <motion.div
@@ -321,7 +325,7 @@ const Login = () => {
           setIsEmail={setIsEmail}
           isContact={isContact}
           isEmail={isEmail}
-          onClose={() => setShowOtpModal(false)}
+          onClose={onClose}
         />
       )}
     </AuthBackground>

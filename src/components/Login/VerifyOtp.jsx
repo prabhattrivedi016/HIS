@@ -1,11 +1,19 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "../Atomic/Button";
 import InputField from "../Atomic/InputField";
 import { stopPropagationHandler } from "../../utils/utilities";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { emailOtp, mobileOtp } from "../../validation/verifyOtpSchema";
-import { sendOtpApi, sendEmailOtp } from "../../api/AuthServices";
+import {
+  emailOtpSchema,
+  mobileOtpSchema,
+} from "../../validation/verifyOtpSchema";
+import {
+  sendOtpApi,
+  verifySmsOtp,
+  sendEmailOtp,
+  verifyEmailOtp,
+} from "../../api/AuthServices";
 
 const VerifyOtp = ({
   userId,
@@ -18,68 +26,150 @@ const VerifyOtp = ({
   isContact,
   isEmail,
 }) => {
-  //  sending automatic email and mobile otp when user mounts on this page
-  useEffect(() => {
-    sendEmailOtp();
-    sendEmailOtp();
-  }, []);
+  // HINT / ERROR / SUCCESS STATES
+  const [mobileHint, setMobileHint] = useState("");
+  const [mobileOtpError, setMobileOtpError] = useState("");
+  const [mobileVerifySuccess, setMobileVerifySuccess] = useState("");
 
-  //send mobile otp  function
-  const sendMobileOtp = async (data) => {
+  const [emailHint, setEmailHint] = useState("");
+  const [emailOtpError, setEmailOtpError] = useState("");
+  const [emailVerifySuccess, setEmailVerifySuccess] = useState("");
+
+  // STOP PROPAGATION HANDLER
+  const stopPropagationHandler = (e) => {
+    e.stopPropagation();
+  };
+
+  // SEND MOBILE OTP
+  const sendMobileOtp = async () => {
     try {
-      const response = await sendOtpApi({
-        userName: data.userName,
-        contact: data.contact,
-      });
-
-      console.log("otp sent successfully", response);
-      setOtpSent(true);
-      setHintMessage(response?.data?.message);
-      setErrorMessage("");
+      const response = await sendOtpApi({ userName, contact });
+      setMobileHint(response?.data?.message || "OTP Sent");
+      setMobileOtpError("");
     } catch (err) {
-      const apiMessage = err?.response?.data;
-
-      if (apiMessage) {
-        setErrorMessage(apiMessage?.message);
-        setContactHint(apiMessage?.contactHint);
-      }
+      setMobileOtpError(err?.response?.data?.message || "Failed to send OTP");
     }
   };
 
-  // send email otp
-  const sendEmailOtp = async (data) => {
+  // SEND EMAIL OTP
+  const sendEmailOtpVerify = async () => {
     try {
-      const response = await sendEmailOtp({
-        userId: userId,
-        email: email,
-      });
-      console.log(response);
+      const response = await sendEmailOtp({ userName, email });
+      setEmailHint(response?.data?.message || "OTP Sent");
+      setEmailOtpError("");
     } catch (error) {
-      console.log(error);
+      setEmailOtpError(error?.response?.data?.message || "Failed to send OTP");
     }
   };
-  // 1) Send Mobile Otp
+
+  // AUTO SEND OTP DEPENDING ON VERIFY STATUS
+  useEffect(() => {
+    if (!isContact && !isEmail) {
+      sendMobileOtp();
+      sendEmailOtpVerify();
+    } else if (!isContact) {
+      sendMobileOtp();
+    } else if (!isEmail) {
+      sendEmailOtpVerify();
+    }
+  }, [isContact, isEmail, contact, email]);
+
+  // AUTO CLOSE MODAL WHEN BOTH VERIFIED
+  useEffect(() => {
+    if (isContact && isEmail) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isContact, isEmail, onClose]);
+
+  // VERIFY MOBILE OTP
+  const verifyMobile = async (data) => {
+    try {
+      const response = await verifySmsOtp({
+        otp: data.otp,
+        userId: userId,
+      });
+
+      setMobileVerifySuccess(response?.data?.message);
+      setIsContact(true);
+      setMobileOtpError("");
+      setMobileHint("");
+    } catch (err) {
+      setMobileOtpError(err?.response?.data?.message);
+    }
+  };
+
+  // VERIFY EMAIL OTP
+  const verifyEmail = async (data) => {
+    try {
+      const response = await verifyEmailOtp({ userId, otp: data.otp });
+
+      setEmailVerifySuccess(response?.data?.message);
+      setIsEmail(true);
+      setEmailOtpError("");
+      setEmailHint("");
+    } catch (err) {
+      setEmailOtpError(err?.response?.data?.message);
+    }
+  };
+
+  // MOBILE OTP FORM
   const {
     register: registerMobileOtp,
     handleSubmit: handleMobileOtpSubmit,
-    formState: { errors: sendMobileOtpError },
+    formState: { errors: mobileErrors },
   } = useForm({
-    resolver: yupResolver(mobileOtp),
-    defaultValues: { userName: "", contact: "" },
+    resolver: yupResolver(mobileOtpSchema),
   });
 
-  // email otp
+  // EMAIL OTP FORM
   const {
     register: registerEmailOtp,
     handleSubmit: handleEmailOtpSubmit,
-    formState: { errors: sendEmailOtpError },
+    formState: { errors: emailErrors },
   } = useForm({
-    resolver: yupResolver(emailOtp),
-    defaultValues: {
-      userId: userId,
-      otp: "",
-    },
+    resolver: yupResolver(emailOtpSchema),
   });
+
+  const renderEmailForm = () => (
+    <>
+      <form
+        onSubmit={handleEmailOtpSubmit(verifyEmail)}
+        className="space-y-2 mt-4"
+      >
+        <InputField label={isEmail ? "Email Verified " : "Enter Email OTP"}>
+          <input
+            type="text"
+            {...registerEmailOtp("otp")}
+            className={`w-full px-4 py-2 border rounded-lg ${
+              isEmail ? "border-green-500 bg-green-50" : ""
+            }`}
+            disabled={isEmail}
+          />
+        </InputField>
+
+        {emailHint && <p className="text-gray-600 text-sm">{emailHint}</p>}
+        {emailErrors?.otp && (
+          <p className="text-red-500 text-sm">{emailErrors.otp.message}</p>
+        )}
+        {emailOtpError && (
+          <p className="text-red-500 text-sm">{emailOtpError}</p>
+        )}
+
+        {emailVerifySuccess && (
+          <div className="animate-fade-in px-4 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 text-center font-medium shadow-sm">
+            {emailVerifySuccess}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isEmail}>
+          {isEmail ? "Verified " : "Verify Email OTP"}
+        </Button>
+      </form>
+    </>
+  );
 
   return (
     <div
@@ -100,113 +190,71 @@ const VerifyOtp = ({
           </button>
         </div>
 
-        {/* BOTH NOT VERIFIED */}
-        {!isContact && !isEmail && (
-          <>
-            {/* Mobile OTP */}
-            <form
-              onSubmit={handleMobileOtpSubmit(sendMobileOtp)}
-              className="space-y-4"
-            >
-              <InputField label="Enter Mobile OTP" required={true}>
-                <input
-                  type="text"
-                  {...registerMobileOtp("otp")}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </InputField>
+        {/* Helper Form Renderers */}
+        {(() => {
+          const renderMobileForm = () => (
+            <>
+              <form
+                onSubmit={handleMobileOtpSubmit(verifyMobile)}
+                className="space-y-2"
+              >
+                <InputField
+                  label={isContact ? "Mobile Verified " : "Enter Mobile OTP"}
+                >
+                  <input
+                    type="text"
+                    {...registerMobileOtp("otp")}
+                    className={`w-full px-4 py-2 border rounded-lg ${
+                      isContact ? "border-green-500 bg-green-50" : ""
+                    }`}
+                    disabled={isContact}
+                  />
+                </InputField>
 
-              {/* {mobileOtpErrors.otp && (
-                <p className="text-red-500 text-sm">
-                  {mobileOtpErrors.otp.message}
-                </p>
-              )} */}
+                {mobileHint && (
+                  <p className="text-gray-600 text-sm">{mobileHint}</p>
+                )}
+                {mobileErrors?.otp && (
+                  <p className="text-red-500 text-sm">
+                    {mobileErrors.otp.message}
+                  </p>
+                )}
+                {mobileOtpError && (
+                  <p className="text-red-500 text-sm">{mobileOtpError}</p>
+                )}
 
-              <Button type="submit" className="w-full">
-                Verify Mobile OTP
-              </Button>
-            </form>
+                <Button type="submit" className="w-full" disabled={isContact}>
+                  {isContact ? "Verified " : "Verify Mobile OTP"}
+                </Button>
+              </form>
 
-            {/* Email OTP */}
-            <form
-              onSubmit={handleEmailOtpSubmit(console.log)}
-              className="space-y-4 mt-4"
-            >
-              <InputField label="Enter Email OTP" required={true}>
-                <input
-                  type="text"
-                  {...registerEmailOtp("otp")}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </InputField>
+              {mobileVerifySuccess && (
+                <div className="animate-fade-in px-4 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 text-center font-medium shadow-sm">
+                  {mobileVerifySuccess}
+                </div>
+              )}
+            </>
+          );
 
-              {/* {emailOtpErrors.otp && (
-                <p className="text-red-500 text-sm">
-                  {emailOtpErrors.otp.message}
-                </p>
-              )} */}
+          //  MOBILE + EMAIL needed
+          if (!isContact && !isEmail)
+            return (
+              <>
+                {renderMobileForm()}
+                {renderEmailForm()}
+              </>
+            );
 
-              <Button type="submit" className="w-full">
-                Verify Email OTP
-              </Button>
-            </form>
-          </>
-        )}
+          //  ONLY MOBILE needed
+          if (!isContact && isEmail) return renderMobileForm();
 
-        {/* ONLY CONTACT NOT VERIFIED */}
-        {!isContact && isEmail && (
-          <form
-            onSubmit={handleMobileOtpSubmit(console.log)}
-            className="space-y-4"
-          >
-            <InputField label="Enter Mobile OTP" required={true}>
-              <input
-                type="text"
-                {...registerMobileOtp("otp")}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </InputField>
+          //  ONLY EMAIL needed
+          if (isContact && !isEmail) return renderEmailForm();
 
-            {/* {mobileOtpErrors.otp && (
-              <p className="text-red-500 text-sm">
-                {mobileOtpErrors.otp.message}
-              </p>
-            )} */}
-
-            <Button type="submit" className="w-full">
-              Verify Mobile OTP
-            </Button>
-          </form>
-        )}
-
-        {/* ONLY EMAIL NOT VERIFIED */}
-        {isContact && !isEmail && (
-          <form
-            onSubmit={handleEmailOtpSubmit(console.log)}
-            className="space-y-4"
-          >
-            <InputField label="Enter Email OTP" required={true}>
-              <input
-                type="text"
-                {...registerEmailOtp("otp")}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </InputField>
-
-            {/* {emailOtpErrors.otp && (
-              <p className="text-red-500 text-sm">
-                {emailOtpErrors.otp.message}
-              </p>
-            )} */}
-
-            <Button type="submit" className="w-full">
-              Verify Email OTP
-            </Button>
-          </form>
-        )}
+          return null;
+        })()}
       </div>
     </div>
   );
 };
-
 export default VerifyOtp;
