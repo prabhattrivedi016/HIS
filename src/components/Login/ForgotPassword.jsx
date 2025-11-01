@@ -65,7 +65,7 @@ const ForgotPassword = ({ onClose }) => {
         contact: data.contact,
       });
 
-      console.log("otp sent successfully", response);
+      // console.log("otp sent successfully", response);
       setOtpSent(true);
       setUserId(response?.data?.userId);
       setHintMessage(response?.data?.message);
@@ -90,10 +90,10 @@ const ForgotPassword = ({ onClose }) => {
     try {
       const response = await verifySmsOtp({
         otp: data.otp,
-        userId: userId, // <-- use value passed from the form
+        userId: userId,
       });
 
-      console.log("OTP Verified:", response);
+      // console.log("OTP Verified:", response);
       setOtpVerified(true);
       setErrorMessage("");
       setVerifiedOtp(response?.data?.otp);
@@ -110,7 +110,7 @@ const ForgotPassword = ({ onClose }) => {
     try {
       const response = await resetPasswordByUserId({
         userId: userId,
-        otp: verifiedOtp, // OTP stored from verify step
+        otp: verifiedOtp,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
@@ -163,7 +163,7 @@ const ForgotPassword = ({ onClose }) => {
         {!otpSent && (
           <>
             <form onSubmit={handleSendOtpSubmit(sendOtp)} className="space-y-4">
-              <InputField label="UserName" required>
+              <InputField label="UserName" required={true}>
                 <input
                   {...registerSendOtp("userName")}
                   className="w-full px-4 py-2 border rounded-lg"
@@ -175,7 +175,7 @@ const ForgotPassword = ({ onClose }) => {
                 </p>
               )}
 
-              <InputField label="Mobile Number" required>
+              <InputField label="Mobile Number" required={true}>
                 <input
                   type="tel"
                   maxLength={10}
@@ -188,9 +188,8 @@ const ForgotPassword = ({ onClose }) => {
                   {sendOtpErrors.contact.message}
                 </p>
               )}
-
               {contactHint && (
-                <p className="text-sm text-gray-600 mt-2 text-center">
+                <p className="text-sm text-gray-600 text-center">
                   Registered Contact Number is:{" "}
                   <span className="font-semibold">{contactHint}</span>
                 </p>
@@ -208,7 +207,7 @@ const ForgotPassword = ({ onClose }) => {
             onSubmit={handleVerifyOtpSubmit(verifyOtp)}
             className="space-y-4"
           >
-            <InputField label="Enter OTP" required>
+            <InputField label="Enter OTP" required={true}>
               <input
                 {...registerVerifyOtp("otp")}
                 className="w-full px-4 py-2 border rounded-lg"
@@ -224,7 +223,6 @@ const ForgotPassword = ({ onClose }) => {
             {hintMessage && (
               <p className="text-sm text-gray-600">{hintMessage}</p>
             )}
-
             <Button type="submit" className="w-full">
               Verify OTP
             </Button>
@@ -236,7 +234,7 @@ const ForgotPassword = ({ onClose }) => {
             onSubmit={handleResetPassSubmit(resetPassword)}
             className="space-y-4"
           >
-            <InputField label="New Password" required>
+            <InputField label="New Password" required={true}>
               <input
                 type="password"
                 {...registerResetPass("newPassword")}
@@ -250,7 +248,7 @@ const ForgotPassword = ({ onClose }) => {
               </p>
             )}
 
-            <InputField label="Confirm Password" required>
+            <InputField label="Confirm Password" required={true}>
               <input
                 type="password"
                 {...registerResetPass("confirmPassword")}

@@ -10,15 +10,15 @@ import Select from "../Atomic/Select";
 import Checkbox from "../Atomic/Checkbox";
 import Button from "../Atomic/Button";
 import AuthBackground from "../Layout/AuthBackground";
-import { userLogin, getActiveBranchList } from "../../api/AuthServices";
+import { userLogin } from "../../api/AuthServices";
 import VerifyOtp from "./VerifyOtp";
+import UseGetBranchList from "../../Hook/UseGetBranchList";
 
 const Login = () => {
+  const { branchList, fetchBranchList } = UseGetBranchList();
   const navigate = useNavigate();
 
-  const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
-    selectedBranch: "",
     selectedBranchId: "",
     userName: "",
     password: "",
@@ -33,51 +33,29 @@ const Login = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [contact, setContact] = useState("");
+  const [isContact, setIsContact] = useState("");
+  const [isEmail, setIsEmail] = useState("");
+  const [userId, setUserId] = useState("");
 
-  //  Fetch active branches
+  // Fetch branches
   useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const savedBranch = localStorage.getItem("selectedBranch");
-        const savedBranchId = localStorage.getItem("selectedBranchId");
-
-        const response = await getActiveBranchList();
-        const data = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
-
-        setBranches(data);
-
-        // If localStorage has a branch, persist it
-        if (savedBranch && savedBranchId) {
-          setFormData((prev) => ({
-            ...prev,
-            selectedBranch: savedBranch,
-            selectedBranchId: savedBranchId,
-          }));
-        } else if (data.length > 0) {
-          // Default select first branch
-          setFormData((prev) => ({
-            ...prev,
-            selectedBranch: data[0].branchName,
-            selectedBranchId: data[0].branchId,
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching branches:", error);
-        setErrors((prev) => ({
-          ...prev,
-          branch: "Failed to load branches. Please try again.",
-        }));
-      }
-    };
-
-    fetchBranches();
+    fetchBranchList();
   }, []);
 
-  // Handle input change
+  // Auto-select first branch
+  useEffect(() => {
+    if (branchList?.data.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        selectedBranchId: branchList?.data[0].branchId,
+      }));
+    }
+  }, [branchList?.data]);
+
+  // Input Change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -86,27 +64,20 @@ const Login = () => {
     }));
   };
 
-  //  Handle branch selection
-  const handleBranchChange = (e) => {
-    const branchName = e.target.value;
-    const selectedBranch = branches.find((b) => b.branchName === branchName);
-
+  // Branch Select Change
+  const handleBranchChange = (value) => {
     setFormData((prev) => ({
       ...prev,
-      selectedBranch: branchName,
-      selectedBranchId: selectedBranch?.branchId || "",
+      selectedBranchId: value,
     }));
-
-    localStorage.setItem("selectedBranch", branchName);
-    localStorage.setItem("selectedBranchId", selectedBranch?.branchId || "");
   };
 
-  //  Handle Login
+  // Submit Login
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newErrors = {};
-    if (!formData.selectedBranchId) newErrors.branch = "Please select a branch";
+
     if (!formData.userName.trim()) newErrors.userName = "User ID is required";
     if (!formData.password.trim()) newErrors.password = "Password is required";
 
@@ -124,10 +95,27 @@ const Login = () => {
       };
 
       const response = await userLogin(payload);
-      setSuccessMessage(response?.data?.message);
+
+      // console.log(response?.data?.data);
+
+      const apiResponseData = response?.data?.data;
+      // console.log(apiResponseData);
+      setUserName(apiResponseData?.userName);
+      setEmail(apiResponseData?.email);
+      setContact(apiResponseData.contact);
+      setIsContact(apiResponseData?.isContactVerified);
+      setIsEmail(apiResponseData?.isEmailVerified);
+      setUserId(apiResponseData?.userId);
+
       setErrorMessage("");
 
-      setTimeout(() => navigate("/dashboard"), 1500);
+      if (isContact && isEmail) {
+        setSuccessMessage(response?.data?.message);
+
+        setTimeout(() => navigate("/dashboard"), 1500);
+      } else {
+        setShowOtpModal(true);
+      }
     } catch (err) {
       setSuccessMessage("");
       setErrorMessage(
@@ -136,7 +124,7 @@ const Login = () => {
     }
   };
 
-  // Drawer logic
+  // Drawer Logic (UNCHANGED)
   const openDrawer = (type) => {
     if (type === "signup") {
       setOpenSignup(true);
@@ -157,12 +145,17 @@ const Login = () => {
     }
   };
 
+  const onClose = () => {
+    setShowOtpModal(false);
+  };
+
   return (
     <AuthBackground>
       <motion.div
-        initial={{ opacity: 0, y: -1000 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.5 }}
+        transition={{ duration: 1, ease: "easeOut" }}
         className="relative w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto"
       >
         <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
@@ -177,7 +170,6 @@ const Login = () => {
             <p className="text-indigo-600 font-medium">!! Welcome Back !!</p>
           </div>
 
-          {/* Success & Error Messages */}
           {successMessage && (
             <div className="px-4 py-3 rounded-lg bg-green-100 border border-green-300 text-green-700 text-center mb-3">
               {successMessage}
@@ -190,18 +182,19 @@ const Login = () => {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4">
             <Select
               icon={Building2}
               placeholder="Select Branch"
-              value={formData.selectedBranch}
+              value={formData.selectedBranchId}
               onChange={handleBranchChange}
-              options={branches.map((branch) => ({
-                value: branch.branchName,
+              options={branchList?.data.map((branch) => ({
+                value: branch.branchId,
                 label: branch.branchName,
               }))}
               error={errors.branch}
             />
+
             {errors.branch && (
               <p className="text-sm text-red-500">{errors.branch}</p>
             )}
@@ -245,15 +238,13 @@ const Login = () => {
               </span>
             </div>
 
-            <Button type="submit" className="w-full flex justify-center gap-2 ">
+            <Button
+              type="submit"
+              className="w-full flex justify-center gap-2"
+              onClick={handleSubmit}
+            >
               <LogIn size={18} /> LOGIN
             </Button>
-
-            {errors.credentials && (
-              <p className="text-sm text-red-500 text-center mt-2">
-                {errors.credentials}
-              </p>
-            )}
           </form>
 
           <div className="mt-6 pt-4 border-t border-gray-200 text-center">
@@ -270,7 +261,7 @@ const Login = () => {
         </div>
       </motion.div>
 
-      {/* Signup Drawer */}
+      {/* Drawer UI remains unchanged (not removed) */}
       {openSignup && (
         <div
           className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
@@ -295,7 +286,6 @@ const Login = () => {
         </div>
       )}
 
-      {/*  Forgot Password Drawer */}
       {openForgot && (
         <div
           className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
@@ -312,14 +302,32 @@ const Login = () => {
             <button
               onClick={() => closeDrawer("forgot")}
               className="absolute top-4 right-4 text-xl text-gray-600 hover:text-black"
-            ></button>
+            >
+              ✕
+            </button>
             <ForgotPassword onClose={() => closeDrawer("forgot")} />
           </div>
         </div>
       )}
+
       <p className="text-lg text-gray-800 drop-shadow-md flex justify-center absolute bottom-5 w-full text-center">
         Powered by Gravity Web Technologies Pvt Ltd.
       </p>
+
+      {/*  open otp verification modal */}
+      {showOtpModal && (
+        <VerifyOtp
+          userId={userId}
+          userName={userName}
+          contact={contact}
+          email={email}
+          setIsContact={setIsContact}
+          setIsEmail={setIsEmail}
+          isContact={isContact}
+          isEmail={isEmail}
+          onClose={onClose}
+        />
+      )}
     </AuthBackground>
   );
 };

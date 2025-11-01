@@ -1,8 +1,15 @@
 export const ENDPOINTS = {
   LOGIN: "User/userLogin",
-  SIGNUP: "User/NewUserSignUp",
+  USER_SIGNUP: "User/NewUserSignUp",
   GET_BRANCHES: "Home/getActiveBranchList",
   SEND_OTP: "User/sendSmsOtp",
   VERIFY_SMS_OTP: "User/verifySmsOtp",
   RESET_PASSWORD_BY_USERID: "User/resetPasswordByUserId",
+  GET_PICKLIST_MASTER: "Home/getPickListMaster",
+  SEND_EMAIL_OTP: "User/sendEmailOtp",
+  VERIFY_EMAIL_OTP: "User/verifyEmailOtp",
 };
+
+// http://103.217.247.236/HISWEBAPI/api/User/sendSmsOtp
+
+// http://103.217.247.236/HISWEBAPI/api/User/sendEmailOtp
