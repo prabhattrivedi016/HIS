@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { ENDPOINTS } from "../api/endPoints";
 
-const UsePickMaster = () => {
+export const usePickMaster = () => {
   const [pickMasterValue, setPickMasterValue] = useState("");
 
   const getPickMasterValue = async (fieldName) => {
@@ -18,5 +18,3 @@ const UsePickMaster = () => {
 
   return { pickMasterValue, getPickMasterValue };
 };
-
-export default UsePickMaster;

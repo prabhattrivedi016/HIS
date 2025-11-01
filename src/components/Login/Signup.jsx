@@ -8,10 +8,10 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import signupSchema from "../../validation/signupSchema";
 import { genderOptions } from "../../constants/constants";
 import { stopPropagationHandler } from "../../utils/utilities";
-import UsePickMaster from "../../Hook/UsePickMaster";
+import { usePickMaster } from "../../Hook/usePickMaster";
 
 const Signup = ({ onLoginClick }) => {
-  const { pickMasterValue, getPickMasterValue } = UsePickMaster();
+  const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const {
     register,
     handleSubmit,

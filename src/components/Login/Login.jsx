@@ -12,10 +12,10 @@ import Button from "../Atomic/Button";
 import AuthBackground from "../Layout/AuthBackground";
 import { userLogin } from "../../api/AuthServices";
 import VerifyOtp from "./VerifyOtp";
-import UseGetBranchList from "../../Hook/UseGetBranchList";
+import useGetBranchList from "../../Hook/useGetBranchList";
 
 const Login = () => {
-  const { branchList, fetchBranchList } = UseGetBranchList();
+  const { branchList, fetchBranchList } = useGetBranchList();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
