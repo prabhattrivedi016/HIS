@@ -99,7 +99,7 @@ const Login = () => {
       // console.log(response?.data?.data);
 
       const apiResponseData = response?.data?.data;
-      // console.log(apiResponseData);
+      console.log(apiResponseData);
       setUserName(apiResponseData?.userName);
       setEmail(apiResponseData?.email);
       setContact(apiResponseData.contact);

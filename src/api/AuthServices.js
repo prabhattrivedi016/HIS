@@ -19,6 +19,14 @@ export const userSignup = async (signupData) => {
   }
 };
 
+// const payload = {
+//   ...signupData,
+// userId: 0,
+// isActive: true,
+// employeeID: "",
+// };
+//
+
 // Get Active Branch List
 export const getActiveBranchList = async () => {
   try {
@@ -59,19 +67,23 @@ export const resetPasswordByUserId = async (payload) => {
   }
 };
 
-// Send Email OTP
-export const sendEmailOtp = async (payload) => {
+// Verify Email OTP
+export const verifyEmailOtp = async (payload) => {
   try {
-    return await axiosInstance.post(ENDPOINTS.SEND_EMAIL_OTP, payload);
+    return await axiosInstance.post(ENDPOINTS.VERIFY_EMAIL_OTP, payload);
   } catch (err) {
     throw err;
   }
 };
 
-// Verify Email OTP
-export const verifyEmailOtp = async (payload) => {
+//send email otp
+export const sendEmailOtp = async (emailOtp) => {
   try {
-    return await axiosInstance.post(ENDPOINTS.VERIFY_EMAIL_OTP, payload);
+    const response = await axiosInstance.post(
+      ENDPOINTS.SEND_EMAIL_OTP,
+      emailOtp
+    );
+    return response;
   } catch (err) {
     throw err;
   }

@@ -133,6 +133,44 @@ const VerifyOtp = ({
     resolver: yupResolver(emailOtpSchema),
   });
 
+  const renderEmailForm = () => (
+    <>
+      <form
+        onSubmit={handleEmailOtpSubmit(verifyEmail)}
+        className="space-y-2 mt-4"
+      >
+        <InputField label={isEmail ? "Email Verified " : "Enter Email OTP"}>
+          <input
+            type="text"
+            {...registerEmailOtp("otp")}
+            className={`w-full px-4 py-2 border rounded-lg ${
+              isEmail ? "border-green-500 bg-green-50" : ""
+            }`}
+            disabled={isEmail}
+          />
+        </InputField>
+
+        {emailHint && <p className="text-gray-600 text-sm">{emailHint}</p>}
+        {emailErrors?.otp && (
+          <p className="text-red-500 text-sm">{emailErrors.otp.message}</p>
+        )}
+        {emailOtpError && (
+          <p className="text-red-500 text-sm">{emailOtpError}</p>
+        )}
+
+        {emailVerifySuccess && (
+          <div className="animate-fade-in px-4 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 text-center font-medium shadow-sm">
+            {emailVerifySuccess}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isEmail}>
+          {isEmail ? "Verified " : "Verify Email OTP"}
+        </Button>
+      </form>
+    </>
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -195,50 +233,6 @@ const VerifyOtp = ({
                   {mobileVerifySuccess}
                 </div>
               )}
-            </>
-          );
-
-          const renderEmailForm = () => (
-            <>
-              <form
-                onSubmit={handleEmailOtpSubmit(verifyEmail)}
-                className="space-y-2 mt-4"
-              >
-                <InputField
-                  label={isEmail ? "Email Verified " : "Enter Email OTP"}
-                >
-                  <input
-                    type="text"
-                    {...registerEmailOtp("otp")}
-                    className={`w-full px-4 py-2 border rounded-lg ${
-                      isEmail ? "border-green-500 bg-green-50" : ""
-                    }`}
-                    disabled={isEmail}
-                  />
-                </InputField>
-
-                {emailHint && (
-                  <p className="text-gray-600 text-sm">{emailHint}</p>
-                )}
-                {emailErrors?.otp && (
-                  <p className="text-red-500 text-sm">
-                    {emailErrors.otp.message}
-                  </p>
-                )}
-                {emailOtpError && (
-                  <p className="text-red-500 text-sm">{emailOtpError}</p>
-                )}
-
-                {emailVerifySuccess && (
-                  <div className="animate-fade-in px-4 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 text-center font-medium shadow-sm">
-                    {emailVerifySuccess}
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={isEmail}>
-                  {isEmail ? "Verified " : "Verify Email OTP"}
-                </Button>
-              </form>
             </>
           );
 
