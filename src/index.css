@@ -148,3 +148,27 @@ input::placeholder {
 .login-footer-text {
   @apply text-gray-800;
 }
+
+/* input box design */
+.input-box {
+  @apply w-full px-4 py-2 border rounded-lg border-gray-500 focus:border-blue-500 focus:ring-0;
+}
+
+.input-label {
+  @apply text-sm  text-gray-700;
+}
+
+.input-required {
+  @apply text-red-500 ml-1;
+}
+.input-validation-error {
+  @apply text-red-500 text-sm;
+}
+
+/* verify otp modal */
+.verify-otp-modal {
+  @apply bg-white border border-gray-300 p-6 rounded-xl w-[500px] shadow-lg;
+}
+.cancel-button {
+  @apply mt-4 text-gray-500 cursor-pointer;
+}

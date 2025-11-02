@@ -6,7 +6,6 @@ import { userSignup } from "../../api/AuthServices";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import signupSchema from "../../validation/signupSchema";
-import { genderOptions } from "../../constants/constants";
 import { stopPropagationHandler } from "../../utils/utilities";
 import { usePickMaster } from "../../Hook/usePickMaster";
 
