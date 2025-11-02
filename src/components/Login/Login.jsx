@@ -13,9 +13,10 @@ import AuthBackground from "../Layout/AuthBackground";
 import { userLogin } from "../../api/AuthServices";
 import VerifyOtp from "./VerifyOtp";
 import useGetBranchList from "../../Hook/useGetBranchList";
+import { ErrorMessage, SuccessMessage } from "../../ui/InfoText";
 
 const Login = () => {
-  const { branchList, fetchBranchList } = useGetBranchList();
+  const { branchList, fetchBranchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -99,7 +100,6 @@ const Login = () => {
       // console.log(response?.data?.data);
 
       const apiResponseData = response?.data?.data;
-      console.log(apiResponseData);
       setUserName(apiResponseData?.userName);
       setEmail(apiResponseData?.email);
       setContact(apiResponseData.contact);
@@ -109,7 +109,10 @@ const Login = () => {
 
       setErrorMessage("");
 
-      if (isContact && isEmail) {
+      if (
+        apiResponseData?.isContactVerified &&
+        apiResponseData?.isEmailVerified
+      ) {
         setSuccessMessage(response?.data?.message);
 
         setTimeout(() => navigate("/dashboard"), 1500);
@@ -169,12 +172,14 @@ const Login = () => {
             </div>
             <p className="text-indigo-600 font-medium">!! Welcome Back !!</p>
           </div>
+          {branchListError && <ErrorMessage text={branchListError} />}
+          {successMessage && <SuccessMessage text={successMessage} />}
 
-          {successMessage && (
+          {/* {successMessage && (
             <div className="px-4 py-3 rounded-lg bg-green-100 border border-green-300 text-green-700 text-center mb-3">
               {successMessage}
             </div>
-          )}
+          )} */}
 
           {errorMessage && (
             <div className="px-4 py-3 rounded-lg bg-red-100 border border-red-300 text-red-700 text-center mb-3">
@@ -310,9 +315,9 @@ const Login = () => {
         </div>
       )}
 
-      <p className="text-lg text-gray-800 drop-shadow-md flex justify-center absolute bottom-5 w-full text-center">
+      {/* <p className="text-lg text-gray-800 drop-shadow-md flex justify-center absolute bottom-5 w-full text-center">
         Powered by Gravity Web Technologies Pvt Ltd.
-      </p>
+      </p> */}
 
       {/*  open otp verification modal */}
       {showOtpModal && (
