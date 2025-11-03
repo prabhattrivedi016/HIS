@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import Button from "../Atomic/Button";
-import InputField from "../Atomic/InputField";
+import Button from "../../../components/customButton";
+import InputField from "../../../components/customInputField";
 import {
   sendOtpApi,
   verifySmsOtp,
   resetPasswordByUserId,
-} from "../../api/AuthServices";
+} from "../../../api/AuthServices";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
   otpSchema,
   userNameAndMobileSchema,
   resetPasswordSchema,
-} from "../../validation/forgotPasswordSchema";
-import { stopPropagationHandler } from "../../utils/utilities";
+} from "../../../validation/forgotPasswordSchema";
+import { stopPropagationHandler } from "../../../utils/utilities";
 
 const ForgotPassword = ({ onClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
