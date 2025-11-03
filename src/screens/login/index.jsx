@@ -3,17 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, Lock, Building2, LogIn } from "lucide-react";
 
-import Signup from "./Signup";
-import ForgotPassword from "./ForgotPassword";
-import Input from "../Atomic/Input";
-import Select from "../Atomic/Select";
-import Checkbox from "../Atomic/Checkbox";
-import Button from "../Atomic/Button";
-import AuthBackground from "../Layout/AuthBackground";
+import Signup from "../signup";
 import { userLogin } from "../../api/AuthServices";
-import VerifyOtp from "./VerifyOtp";
-import useGetBranchList from "../../Hook/useGetBranchList";
-import { ErrorMessage, SuccessMessage } from "../../ui/InfoText";
+import VerifyOtp from "./components/VerifyOtp";
+import useGetBranchList from "../../hooks/useGetBranchList";
+import ForgotPassword from "./components/ForgotPassword";
+import Input from "../../components/cutomInput";
+import Select from "../../components/customSelect";
+import Checkbox from "../../components//customCheckbox";
+import Button from "../../components/customButton";
+import {ErrorMessage, SuccessMessage} from '../../components/infoText'
+import AuthBackground from "../../components/layout";
 
 const Login = () => {
   const { branchList, fetchBranchList, branchListError } = useGetBranchList();

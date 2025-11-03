@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Button from "../Atomic/Button";
-import InputField from "../Atomic/InputField";
+import Button from "../../../components/customButton";
+import InputField from "../../../components/customInputField";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
@@ -8,19 +8,19 @@ import {
   HintMessage,
   ErrorMessage,
   ModalHeader,
-} from "../../ui/InfoText";
+} from "../../../components/infoText";
 
 import {
   emailOtpSchema,
   mobileOtpSchema,
-} from "../../validation/verifyOtpSchema";
+} from "../../../validation/verifyOtpSchema";
 
 import {
   sendOtpApi,
   verifySmsOtp,
   sendEmailOtp,
   verifyEmailOtp,
-} from "../../api/AuthServices";
+} from "../../../api/AuthServices";
 import ResendButton from "./ResendButton";
 
 const VerifyOtp = ({

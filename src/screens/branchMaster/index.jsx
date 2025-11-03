@@ -1,5 +1,5 @@
 import React from "react";
-import Input from "../Atomic/Input";
+import Input from "../../components/cutomInput";
 import { User } from "lucide-react";
 
 const BranchMaster = () => {

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import Button from "../Atomic/Button";
-import InputField from "../Atomic/InputField";
+import Button from "../../components/customButton";
+import InputField from "../../components/customInputField";
 import { ChevronDown, User } from "lucide-react";
 import { userSignup } from "../../api/AuthServices";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import signupSchema from "../../validation/signupSchema";
 import { stopPropagationHandler } from "../../utils/utilities";
-import { usePickMaster } from "../../Hook/usePickMaster";
+import { usePickMaster } from "../../hooks/usePickMaster";
 
 const Signup = ({ onLoginClick }) => {
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
