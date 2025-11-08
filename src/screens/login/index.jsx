@@ -12,7 +12,7 @@ import Input from "../../components/cutomInput";
 import Select from "../../components/customSelect";
 import Checkbox from "../../components//customCheckbox";
 import Button from "../../components/customButton";
-import {ErrorMessage, SuccessMessage} from '../../components/infoText'
+import { ErrorMessage, SuccessMessage } from "../../components/infoText";
 import AuthBackground from "../../components/layout";
 
 const Login = () => {
@@ -44,7 +44,7 @@ const Login = () => {
   // Fetch branches
   useEffect(() => {
     fetchBranchList();
-  }, []);
+  }, [fetchBranchList]);
 
   // Auto-select first branch
   useEffect(() => {
@@ -97,9 +97,12 @@ const Login = () => {
 
       const response = await userLogin(payload);
 
-      // console.log(response?.data?.data);
+      const { accessToken } = response?.data?.data;
+
+      localStorage.setItem("accessToken", accessToken);
 
       const apiResponseData = response?.data?.data;
+
       setUserName(apiResponseData?.userName);
       setEmail(apiResponseData?.email);
       setContact(apiResponseData.contact);
@@ -115,7 +118,7 @@ const Login = () => {
       ) {
         setSuccessMessage(response?.data?.message);
 
-        setTimeout(() => navigate("/dashboard"), 1500);
+        setTimeout(() => navigate("/dashboard"), 1000);
       } else {
         setShowOtpModal(true);
       }
@@ -127,7 +130,7 @@ const Login = () => {
     }
   };
 
-  // Drawer Logic (UNCHANGED)
+  // Drawer Logic
   const openDrawer = (type) => {
     if (type === "signup") {
       setOpenSignup(true);
@@ -266,7 +269,7 @@ const Login = () => {
         </div>
       </motion.div>
 
-      {/* Drawer UI remains unchanged (not removed) */}
+      {/* Drawer UI  */}
       {openSignup && (
         <div
           className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
@@ -315,11 +318,7 @@ const Login = () => {
         </div>
       )}
 
-      {/* <p className="text-lg text-gray-800 drop-shadow-md flex justify-center absolute bottom-5 w-full text-center">
-        Powered by Gravity Web Technologies Pvt Ltd.
-      </p> */}
-
-      {/*  open otp verification modal */}
+      {/* otp verification modal */}
       {showOtpModal && (
         <VerifyOtp
           userId={userId}

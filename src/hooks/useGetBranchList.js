@@ -1,12 +1,12 @@
-import  { useState } from "react";
+import { useCallback, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
-import { ENDPOINTS } from "../api/endPoints";
+import { ENDPOINTS } from "../config/defaults";
 
 const useGetBranchList = () => {
   const [branchList, setBranchList] = useState();
   const [branchListError, setBranchListError] = useState("");
 
-  const fetchBranchList = async () => {
+  const fetchBranchList = useCallback(async () => {
     try {
       const res = await axiosInstance.get(ENDPOINTS.GET_BRANCHES);
       setBranchList(res?.data ?? []);
@@ -15,7 +15,7 @@ const useGetBranchList = () => {
         err?.response?.data || "Server not responding. Please retry in a moment"
       );
     }
-  };
+  }, [setBranchList, setBranchListError]);
   return { branchList, fetchBranchList, branchListError };
 };
 

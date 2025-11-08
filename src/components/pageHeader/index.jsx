@@ -1,23 +1,33 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Download, RefreshCcw, Search, UserPlus } from "lucide-react";
-import RoleMasterDrawer from "./RoleMasterDrawer";
+import {
+  Download,
+  RefreshCcw,
+  Search,
+  UserPlus,
+  Grid,
+  List,
+} from "lucide-react";
 
-const RoleMasterHeader = ({ viewMode, setViewMode }) => {
-  const [openDrawer, setOpenDrawer] = useState(false);
-
+const PageHeader = ({
+  onClick,
+  title,
+  buttonTitle,
+  onGridView,
+  onListView,
+}) => {
   return (
-    <header className=" px-4 py-6 bg-gray-100 mx-2">
+    <header className=" px-4 py-6 bg-gray-50 mx-2">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4">
         {/* Title Section */}
         <div>
-          <h1 className="text-2xl font-bold text-black mb-1">Role Master</h1>
+          <h1 className="text-2xl font-bold text-black mb-1">{title}</h1>
           <nav className="text-sm text-gray-500">
             <NavLink to="/dashboard" className="hover:underline">
               Home
             </NavLink>
             <span className="mx-2">»</span>
-            <span>Role Master</span>
+            <span>{title}</span>
           </nav>
         </div>
 
@@ -34,6 +44,22 @@ const RoleMasterHeader = ({ viewMode, setViewMode }) => {
             </span>
           </div>
 
+          <button
+            className="p-2.5 rounded transition-colors border border-gray-200  bg-white text-black-300 hover:bg-gray-200"
+            title="Grid View"
+            onClick={onGridView}
+          >
+            <Grid size={15} />
+          </button>
+
+          <button
+            className="p-2.5 rounded transition-colors border border-gray-200  bg-white text-black-300 hover:bg-gray-200"
+            title="List View"
+            onClick={onListView}
+          >
+            <List size={15} />
+          </button>
+
           <button className="p-2.5 border border-gray-300 bg-white text-gray-600 rounded hover:bg-gray-100 transition-colors">
             <RefreshCcw size={16} />
           </button>
@@ -44,20 +70,14 @@ const RoleMasterHeader = ({ viewMode, setViewMode }) => {
 
           <button
             className="flex items-center gap-2 px-4 py-2 bg-[#1e6da1] text-white rounded hover:bg-blue-600 transition-colors font-medium"
-            onClick={() => setOpenDrawer(true)}
+            onClick={onClick}
           >
-            <UserPlus size={16} /> Add New Role
+            <UserPlus size={16} /> {buttonTitle}
           </button>
         </div>
       </div>
-
-      {/* Drawer Component */}
-      <RoleMasterDrawer
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-      />
     </header>
   );
 };
 
-export default RoleMasterHeader;
+export default PageHeader;
