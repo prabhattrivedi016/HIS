@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosInstance";
-import { ENDPOINTS } from "./endPoints";
+import { ENDPOINTS } from "../config/defaults";
 
 // User Login
 export const userLogin = async (loginData) => {

@@ -1,97 +1,88 @@
-import React, { useState } from "react";
-import RoleMasterProfile from "../profileCards/RoleMasterProfile";
-import RoleMasterHeader from "./components/RoleMasterHeader";
+import React, { useState, useEffect } from "react";
+import PageHeader from "../../components/pageHeader";
+import { transformDataWithConfig } from "../../utils/utilities";
+import { getRoleMaster } from "../../api/roleMasterApis";
+import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
+import ProfileCard from "../../components/profileCard";
+import RoleMasterDrawer from "./components/RoleMasterDrawer";
 
-const Role = [
-  {
-    id: "001",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "002",
-    role: "admin",
-    status: "In Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "003",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "004",
-    role: "admin",
-    status: "In Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "005",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "006",
-    role: "admin",
-    status: "In Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "007",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "008",
-    role: "admin",
-    status: "In Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "009",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "010",
-    role: "admin",
-    status: "In Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-  {
-    id: "011",
-    role: "admin",
-    status: "Active",
-    lastModified: "1 Jan 2025",
-    modifiedBy: "Ram",
-  },
-];
+const VIEWTYPE = {
+  GRID: "grid",
+  LIST: "list",
+};
 
 const RoleMaster = () => {
-  return (
-    <div className="flex-1 w-half-screen min-h-screen bg-gray-100 -mt-4 -mx-4">
-      <RoleMasterHeader />
+  const [openDrawer, setOpenDrawer] = useState(false);
+  const [roleMasterData, setRoleMasterData] = useState([]);
+  const [cardsView, setCardsView] = useState(VIEWTYPE.GRID);
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
-        {Role.map((user) => (
-          <RoleMasterProfile user={user} key={user.id} />
-        ))}
-      </div>
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await getRoleMaster();
+      const apiResponse = response?.data;
+      // console.log("api response of role master", apiResponse);
+
+      const transformedData = transformDataWithConfig(
+        roleMasterConfig,
+        apiResponse
+      );
+      // console.log("role master transformed data:", transformedData);
+      setRoleMasterData(transformedData);
+    } catch (error) {
+      console.log("error while fetching the data", error);
+    }
+  };
+
+  const onGridView = () => {
+    setCardsView(VIEWTYPE.GRID);
+  };
+
+  const onListView = () => {
+    setCardsView(VIEWTYPE.LIST);
+  };
+
+  const renderCards = () => {
+    console.log("cardsViewcardsView", cardsView);
+    if (cardsView === VIEWTYPE.GRID) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
+          {roleMasterData?.map((user, index) => (
+            <ProfileCard data={user} key={index} />
+          ))}
+        </div>
+      );
+    } else if (cardsView === VIEWTYPE.LIST) {
+      return (
+        <div className="gap-6 px-4 py-4">
+          {roleMasterData?.map((user, index) => (
+            <ProfileCard data={user} key={index} />
+          ))}
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className="flex-1 w-half-screen min-h-screen bg-gray-50 -mt-4 -mx-4">
+      <PageHeader
+        roleName={"Role Name"}
+        onClick={() => setOpenDrawer(true)}
+        title={"Role Master"}
+        buttonTitle={"Add Role Master"}
+        onGridView={onGridView}
+        onListView={onListView}
+        selectedViewType={cardsView}
+      />
+      {renderCards()}
+      {/* Drawer Component */}
+      <RoleMasterDrawer
+        open={openDrawer}
+        onClose={() => setOpenDrawer(false)}
+      />
     </div>
   );
 };

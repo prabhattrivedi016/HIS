@@ -1,4 +1,4 @@
-export const ENDPOINTS = {
+const ENDPOINTS = {
   LOGIN: "User/userLogin",
   USER_SIGNUP: "User/NewUserSignUp",
   GET_BRANCHES: "Home/getActiveBranchList",
@@ -8,8 +8,9 @@ export const ENDPOINTS = {
   GET_PICKLIST_MASTER: "Home/getPickListMaster",
   SEND_EMAIL_OTP: "User/sendEmailOtp",
   VERIFY_EMAIL_OTP: "User/verifyEmailOtp",
+  FAC_ICON_LIST: "Admin/getFaIconList",
+  ROLE_MASTER_LIST: "Admin/roleMasterList",
+  USER_MASTER_LIST: "Admin/userMasterList",
 };
 
-// http://103.217.247.236/HISWEBAPI/api/User/sendSmsOtp
-
-// http://103.217.247.236/HISWEBAPI/api/User/sendEmailOtp
+export { ENDPOINTS };

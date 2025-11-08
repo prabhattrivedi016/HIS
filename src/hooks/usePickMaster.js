@@ -1,6 +1,6 @@
-import  { useState } from "react";
+import { useState } from "react";
 import axiosInstance from "../api/axiosInstance";
-import { ENDPOINTS } from "../api/endPoints";
+import { ENDPOINTS } from "../config/defaults";
 
 export const usePickMaster = () => {
   const [pickMasterValue, setPickMasterValue] = useState("");

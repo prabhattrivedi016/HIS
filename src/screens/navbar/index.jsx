@@ -4,6 +4,7 @@ import Dashboard from "../dashbord";
 import Login from "../login";
 import RoleMaster from "../roleMaster";
 import Sidebar from "./components/Sidebar";
+import UserMaster from "../userMaster";
 
 const Navbar = () => {
   return (
@@ -16,7 +17,7 @@ const Navbar = () => {
         <Route element={<Sidebar />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/role-master" element={<RoleMaster />} />
-          <Route path="/user-master" element={<h1>User Master Page</h1>} />
+          <Route path="/user-master" element={<UserMaster />} />
         </Route>
       </Routes>
     </Router>
