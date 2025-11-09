@@ -1,11 +1,27 @@
 export const roleMasterConfig = {
   type: "Role Master",
-  cardLeftTop: "isActive",
+  cardLeftTop: [
+    {
+      label: "Status",
+      keyFromApi: "isActive",
+    },
+  ],
   cardRightTop: "",
-  cardAvatar: "iconName",
-  cardId: "roleId",
+  cardAvatar: [
+    {
+      label: "profile",
+      keyFromApi: "iconName",
+    },
+  ],
+  cardId: [
+    {
+      label: "Role ID",
+      keyFromApi: "roleId",
+    },
+  ],
   cardTitle: [
     {
+      label: "Role Name",
       keyFromApi: "roleName",
     },
   ],
