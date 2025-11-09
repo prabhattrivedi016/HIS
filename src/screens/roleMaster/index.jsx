@@ -5,6 +5,7 @@ import { getRoleMaster } from "../../api/roleMasterApis";
 import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
 import ProfileCard from "../../components/profileCard";
 import RoleMasterDrawer from "./components/RoleMasterDrawer";
+import ListView from "../../components/profileCard/listView";
 
 const VIEWTYPE = {
   GRID: "grid",
@@ -24,19 +25,20 @@ const RoleMaster = () => {
     try {
       const response = await getRoleMaster();
       const apiResponse = response?.data;
-      // console.log("api response of role master", apiResponse);
+      console.log("api response of role master", apiResponse);
 
       const transformedData = transformDataWithConfig(
         roleMasterConfig,
         apiResponse
       );
-      // console.log("role master transformed data:", transformedData);
+      console.log("role master transformed data:", transformedData);
       setRoleMasterData(transformedData);
     } catch (error) {
       console.log("error while fetching the data", error);
     }
   };
 
+  // card view
   const onGridView = () => {
     setCardsView(VIEWTYPE.GRID);
   };
@@ -46,7 +48,6 @@ const RoleMaster = () => {
   };
 
   const renderCards = () => {
-    console.log("cardsViewcardsView", cardsView);
     if (cardsView === VIEWTYPE.GRID) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
@@ -57,10 +58,8 @@ const RoleMaster = () => {
       );
     } else if (cardsView === VIEWTYPE.LIST) {
       return (
-        <div className="gap-6 px-4 py-4">
-          {roleMasterData?.map((user, index) => (
-            <ProfileCard data={user} key={index} />
-          ))}
+        <div>
+          <ListView data={roleMasterData} />
         </div>
       );
     }
@@ -77,6 +76,7 @@ const RoleMaster = () => {
         onListView={onListView}
         selectedViewType={cardsView}
       />
+
       {renderCards()}
       {/* Drawer Component */}
       <RoleMasterDrawer

@@ -1,12 +1,22 @@
-import { label } from "framer-motion/client";
-
 // user master data
 export const userMasterConfig = {
   type: "User Master",
-  cardId: "employeeID",
-  cardLeftTop: "isActive",
+  cardId: [
+    {
+      label: "User Id",
+      keyFromApi: "employeeID",
+    },
+  ],
+  cardLeftTop: [
+    {
+      label: "Status",
+      keyFromApi: "isActive",
+    },
+  ],
   cardRightTop: { label: "toggle", action: "toggleButton" },
-  cardTitle: [{ keyFromAPI: "firstName" }, { keyFromAPI: "lastName" }],
+  cardTitle: [
+    { label: "User Name", keyFromAPI: "firstName", keyFromAPI: "lastName" },
+  ],
   cardFooterSection: [
     { label: "Gender", keyFromApi: "gender" },
     { label: "Contact", keyFromApi: "contact" },
