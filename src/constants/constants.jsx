@@ -10,3 +10,8 @@ export const SuccessBox = ({ text = "Success" }) => (
     {text}
   </div>
 );
+
+export const VIEWTYPE = {
+  GRID: "grid",
+  LIST: "list",
+};

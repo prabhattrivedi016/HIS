@@ -1,34 +1,97 @@
-import React from "react";
+import React, { useState } from "react";
 
 const ListView = (data) => {
-  if (!data || !data.data || data.data.length === 0) {
+  if (!data || !data?.data || data?.data?.length === 0) {
     return <p className="text-gray-500 text-center">No data available</p>;
   }
 
-  const tableData = data.data;
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const tableData = data?.data;
   const first = tableData[0];
 
-  // Extract table headers dynamically
-  const header = [
-    first?.cardId?.label,
-    first?.cardTitle?.label,
-    first?.cardLeftTop?.label,
-    ...first?.cardFooterSection.map((f) => f.label),
+  // Extract headers dynamically
+  const headers = [
+    { key: "cardId", label: first?.cardId?.label || "ID" },
+    { key: "cardTitle", label: first?.cardTitle?.label || "Title" },
+    { key: "cardLeftTop", label: first?.cardLeftTop?.label || "Status" },
+    ...(first?.cardFooterSection?.map((f, index) => ({
+      key: `footer_${index}`,
+      label: f.label,
+    })) || []),
   ];
+
+  // Sorting logic
+  const handleSort = (key, event) => {
+    const direction =
+      sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
+    setSortConfig({ key, direction });
+  };
+
+  const sortedData = [...tableData].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    let aValue = "",
+      bValue = "";
+
+    switch (true) {
+      case sortConfig.key === "cardId":
+        aValue = a?.cardId?.value;
+        bValue = b?.cardId?.value;
+        break;
+      case sortConfig.key === "cardTitle":
+        aValue = a?.cardTitle?.value;
+        bValue = b?.cardTitle?.value;
+        break;
+      case sortConfig.key === "cardLeftTop":
+        aValue = a?.cardLeftTop?.value;
+        bValue = b?.cardLeftTop?.value;
+        break;
+      case sortConfig.key.startsWith("footer_"):
+        const index = parseInt(sortConfig.key.split("_")[1]);
+        aValue = a.cardFooterSection[index]?.value;
+        bValue = b.cardFooterSection[index]?.value;
+        break;
+      default:
+        break;
+    }
+
+    aValue = aValue || "";
+    bValue = bValue || "";
+
+    if (!isNaN(aValue) && !isNaN(bValue)) {
+      return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+    }
+
+    return sortConfig.direction === "asc"
+      ? aValue.toString().localeCompare(bValue.toString())
+      : bValue.toString().localeCompare(aValue.toString());
+  });
+
+  // Helper: get correct icon for each column
+  const getSortIcon = (headerKey) => {
+    if (sortConfig.key !== headerKey) return "fa-sort text-gray-400";
+    return sortConfig.direction === "asc"
+      ? "fa-sort-up text-blue-600"
+      : "fa-sort-down text-blue-600";
+  };
 
   return (
     <div className="p-6">
       <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
         <table className="min-w-full border-collapse text-sm text-gray-700">
           {/* Table Head */}
-          <thead className="bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+          <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
             <tr>
-              {header.map((head, index) => (
+              {headers.map((header) => (
                 <th
-                  key={index}
-                  className="px-4 py-3 text-center font-semibold text-gray-700 uppercase tracking-wide"
+                  key={header.key}
+                  onClick={() => handleSort(header.key)}
+                  className="px-4 py-3 text-left font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none"
                 >
-                  {head}
+                  <div className="flex items-center gap-2">
+                    <i className={`fa ${getSortIcon(header.key)} text-xs`} />
+                    <span>{header.label}</span>
+                  </div>
                 </th>
               ))}
             </tr>
@@ -36,28 +99,33 @@ const ListView = (data) => {
 
           {/* Table Body */}
           <tbody>
-            {tableData.map((item, index) => (
+            {sortedData.map((item, index) => (
               <tr
                 key={index}
                 className="hover:bg-blue-50 transition duration-150 ease-in-out border-b border-gray-100"
               >
                 {/* ID */}
-                <td className="px-4 py-3 text-center font-medium text-gray-600">
+                <td className="px-4 py-3 text-left font-medium text-gray-600 align-middle">
                   {item?.cardId?.value || "-"}
                 </td>
 
-                {/* Icon + Role Name */}
-                <td className="px-4 py-3 text-left flex items-center justify-center gap-2">
-                  <span className="text-blue-600 text-xl">
-                    <i className={`fa ${item.cardAvatar}`}></i>
-                  </span>
-                  <span className="font-medium text-gray-700">
-                    {item?.cardTitle?.value || "-"}
-                  </span>
+                {/* Role Name + Icon */}
+                <td className="px-4 py-3 text-left align-middle">
+                  <div className="flex items-center justify-start gap-2">
+                    {item?.cardAvatar && (
+                      <i
+                        className={`fa ${item?.cardAvatar} text-gray-600 text-base leading-none`}
+                        style={{ lineHeight: "1", verticalAlign: "middle" }}
+                      ></i>
+                    )}
+                    <span className="font-medium text-gray-700 leading-none">
+                      {item?.cardTitle?.value || "-"}
+                    </span>
+                  </div>
                 </td>
 
                 {/* Status */}
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-3 text-left align-middle">
                   {item?.cardLeftTop?.value === 1 ? (
                     <span className="inline-block rounded-full bg-green-100 text-green-700 text-xs font-semibold px-3 py-1">
                       Active
@@ -69,11 +137,11 @@ const ListView = (data) => {
                   )}
                 </td>
 
-                {/* Footer Data */}
-                {item?.cardFooterSection.map((footer, fIndex) => (
+                {/* Footer Section */}
+                {item?.cardFooterSection?.map((footer, fIndex) => (
                   <td
                     key={fIndex}
-                    className="px-4 py-3 text-center text-gray-500"
+                    className="px-4 py-3 text-left text-gray-500 align-middle"
                   >
                     {footer?.value || "-"}
                   </td>

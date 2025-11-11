@@ -15,7 +15,16 @@ const PageHeader = ({
   buttonTitle,
   onGridView,
   onListView,
+  onSearch,
 }) => {
+  const [searchValue, setSearchValue] = useState("");
+
+  // handle search button
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setSearchValue(value);
+    onSearch?.(value);
+  };
   return (
     <header className=" px-4 py-6 bg-gray-50 mx-2">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4">
@@ -37,6 +46,8 @@ const PageHeader = ({
             <input
               type="text"
               placeholder="Search"
+              value={searchValue}
+              onChange={handleChange}
               className="w-full p-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400"
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
