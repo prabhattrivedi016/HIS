@@ -6,7 +6,16 @@ export const roleMasterConfig = {
       keyFromApi: "isActive",
     },
   ],
-  cardRightTop: "",
+
+  gridCardRightTop: null,
+
+  listCardRightTop: [
+    {
+      label: "toggle",
+      action: "ListToggleButton",
+    },
+  ],
+
   cardAvatar: [
     {
       label: "profile",

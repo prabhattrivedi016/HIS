@@ -10,9 +10,9 @@ export const usePickMaster = () => {
       const res = await axiosInstance.get(ENDPOINTS.GET_PICKLIST_MASTER, {
         params: { fieldName },
       });
-      setPickMasterValue(res.data);
+      setPickMasterValue(res?.data);
     } catch (err) {
-      console.log(err);
+      console.log("error while fetching pick master value", err);
     }
   };
 

@@ -16,6 +16,8 @@ const PageHeader = ({
   onGridView,
   onListView,
   onSearch,
+  onClickRefresh,
+  onClickDownload,
 }) => {
   const [searchValue, setSearchValue] = useState("");
 
@@ -71,11 +73,19 @@ const PageHeader = ({
             <List size={15} />
           </button>
 
-          <button className="p-2.5 border border-gray-300 bg-white text-gray-600 rounded hover:bg-gray-100 transition-colors">
+          <button
+            className="p-2.5 border border-gray-300 bg-white text-gray-600 rounded hover:bg-gray-100 transition-colors"
+            title="Refresh"
+            onClick={onClickRefresh}
+          >
             <RefreshCcw size={16} />
           </button>
 
-          <button className="p-2.5 border border-gray-300 bg-white text-gray-600 rounded hover:bg-gray-100 transition-colors">
+          <button
+            className="p-2.5 border border-gray-300 bg-white text-gray-600 rounded hover:bg-gray-100 transition-colors"
+            title="Download"
+            onClick={onClickDownload}
+          >
             <Download size={16} />
           </button>
 
