@@ -1,20 +1,14 @@
-import React, { useState } from "react";
 import { MoreVertical } from "lucide-react";
+import { useState } from "react";
 
-const ListView = (data) => {
-  if (!data || !data?.data || data?.data?.length === 0) {
-    return <p className="text-gray-500 text-center">No data available</p>;
-  }
-
+const ListView = data => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [hiddenColumns, setHiddenColumns] = useState([]);
 
   const tableData = data?.data;
   const first = tableData[0];
 
-  tableData.map((item) =>
-    console.log("list card right top is", item?.listCardRightTop)
-  );
+  tableData.map(item => console.log("list card right top is", item?.listCardRightTop));
 
   // Extract headers dynamically
   const headers = [
@@ -37,14 +31,13 @@ const ListView = (data) => {
     }
 
     // Regular click sorts column
-    const direction =
-      sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
+    const direction = sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
     setSortConfig({ key, direction });
   };
 
-  const toggleColumnVisibility = (key) => {
-    setHiddenColumns((prev) =>
-      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+  const toggleColumnVisibility = key => {
+    setHiddenColumns(prev =>
+      prev.includes(key) ? prev.filter(col => col !== key) : [...prev, key]
     );
   };
 
@@ -92,12 +85,16 @@ const ListView = (data) => {
   });
 
   // --- Icons ---
-  const getSortIcon = (headerKey) => {
+  const getSortIcon = headerKey => {
     if (sortConfig.key !== headerKey) return "fa-sort text-gray-400";
     return sortConfig.direction === "asc"
       ? "fa-sort-up text-blue-600"
       : "fa-sort-down text-blue-600";
   };
+
+  if (!data || !data?.data || data?.data?.length === 0) {
+    return <p className="text-gray-500 text-center">No data available</p>;
+  }
 
   return (
     <div className="p-6">
@@ -120,11 +117,11 @@ const ListView = (data) => {
           <thead className="bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200">
             <tr>
               {headers
-                .filter((header) => !hiddenColumns.includes(header.key))
-                .map((header) => (
+                .filter(header => !hiddenColumns.includes(header.key))
+                .map(header => (
                   <th
                     key={header.key}
-                    onClick={(e) => handleSort(header.key, e)}
+                    onClick={e => handleSort(header.key, e)}
                     title="Click to sort • Alt + Click to hide"
                     className="px-4 py-3 text-left font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none"
                   >
@@ -201,10 +198,7 @@ const ListView = (data) => {
                   if (hiddenColumns.includes(footerKey)) return null;
 
                   return (
-                    <td
-                      key={fIndex}
-                      className="px-4 py-3 text-left text-gray-500 align-middle"
-                    >
+                    <td key={fIndex} className="px-4 py-3 text-left text-gray-500 align-middle">
                       {footer?.value || "-"}
                     </td>
                   );
