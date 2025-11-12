@@ -21,25 +21,26 @@ const UserMaster = () => {
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
 
-  // //  Fetch configuration
-  // const fetchConfig = async () => {
-  //   setConfigLoading(true);
-  //   try {
-  //     await getConfigMasterValue("userMaster");
-  //   } catch (err) {
-  //     console.error("Error fetching User Master config, using fallback:", err);
-  //   } finally {
-  //     setConfigLoading(false);
-  //   }
-  // };
+  //  user master config file
 
-  // useEffect(() => {
-  //   fetchConfig();
-  // }, []);
+  const fetchConfig = async () => {
+    setConfigLoading(true);
+    try {
+      await getConfigMasterValue("userMaster");
+    } catch (err) {
+      console.error("Error fetching User Master config, using fallback:", err);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
 
   //  Fetch user data (after config loaded)
   const fetchUserMasterListData = useCallback(async () => {
-    // if (configLoading) return;
+    if (configLoading) return;
     setLoading(true);
     try {
       const response = await getUserMasterList();
@@ -71,6 +72,11 @@ const UserMaster = () => {
   // handle download
   const handleDownload = () => {
     exportMasterData(filteredData, 'UserMaster', 'csv');
+  };
+
+  // Add new user handler
+  const addNewUserHandler = () => {
+    console.log("Add new User handler is clicked!!");
   };
 
   //  Switch views
@@ -113,17 +119,17 @@ const UserMaster = () => {
 
   // Render grid or list view
   const renderCards = () => {
-    // if (configLoading || loading) {
-    //   return (
-    //     <p className="text-center text-gray-500 py-10">
-    //       Loading User Masters...
-    //     </p>
-    //   );
-    // }
+    if (configLoading || loading) {
+      return (
+        <p className="text-center text-gray-500 py-10">
+          Loading User Masters...
+        </p>
+      );
+    }
 
-    // if (!filteredData || filteredData.length === 0) {
-    //   return <p className="text-center text-gray-500 py-10">No Users Found</p>;
-    // }
+    if (!filteredData || filteredData.length === 0) {
+      return <p className="text-center text-gray-500 py-10">No Users Found</p>;
+    }
 
     if (cardsView === VIEWTYPE.GRID) {
       return (
@@ -151,7 +157,7 @@ const UserMaster = () => {
         onListView={onListView}
         selectedViewType={cardsView}
         onSearch={handleSearch}
-        onClick={() => console.log('Add User Master button clicked!')}
+        onClick={addNewUserHandler}
         onClickRefresh={handleRefresh}
         onClickDownload={handleDownload}
       />

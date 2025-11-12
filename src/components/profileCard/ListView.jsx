@@ -20,7 +20,6 @@ const ListView = data => {
     })) || []),
   ];
 
-  // --- Sorting logic ---
   const handleSort = (key, event) => {
     // Alt + Click hides column
     if (event.altKey) {
@@ -41,33 +40,26 @@ const ListView = data => {
 
   const resetColumns = () => setHiddenColumns([]);
 
-  // --- Sorting ---
+  // sort the data
   const sortedData = [...tableData].sort((a, b) => {
     if (!sortConfig.key) return 0;
 
     let aValue = "",
       bValue = "";
 
-    switch (true) {
-      case sortConfig.key === "cardId":
-        aValue = a?.cardId?.value;
-        bValue = b?.cardId?.value;
-        break;
-      case sortConfig.key === "cardTitle":
-        aValue = a?.cardTitle?.value;
-        bValue = b?.cardTitle?.value;
-        break;
-      case sortConfig.key === "cardLeftTop":
-        aValue = a?.cardLeftTop?.value;
-        bValue = b?.cardLeftTop?.value;
-        break;
-      case sortConfig.key.startsWith("footer_"):
-        const index = parseInt(sortConfig.key.split("_")[1]);
-        aValue = a.cardFooterSection[index]?.value;
-        bValue = b.cardFooterSection[index]?.value;
-        break;
-      default:
-        break;
+    if (sortConfig.key === "cardId") {
+      aValue = a?.cardId?.value;
+      bValue = b?.cardId?.value;
+    } else if (sortConfig.key === "cardTitle") {
+      aValue = a?.cardTitle?.value;
+      bValue = b?.cardTitle?.value;
+    } else if (sortConfig.key === "cardLeftTop") {
+      aValue = a?.cardLeftTop?.value;
+      bValue = b?.cardLeftTop?.value;
+    } else if (sortConfig.key.startsWith("footer_")) {
+      const index = parseInt(sortConfig.key.split("_")[1]);
+      aValue = a.cardFooterSection[index]?.value;
+      bValue = b.cardFooterSection[index]?.value;
     }
 
     aValue = aValue || "";
@@ -82,7 +74,7 @@ const ListView = data => {
       : bValue.toString().localeCompare(aValue.toString());
   });
 
-  // --- Icons ---
+  // Icons
   const getSortIcon = headerKey => {
     if (sortConfig.key !== headerKey) return "fa-sort text-gray-400";
     return sortConfig.direction === "asc"
@@ -96,7 +88,7 @@ const ListView = data => {
 
   return (
     <div className="p-6">
-      {/* Reset Columns Button */}
+      {/* reset buttons */}
       {hiddenColumns.length > 0 && (
         <div className="flex justify-end mb-3">
           <button
@@ -108,10 +100,8 @@ const ListView = data => {
         </div>
       )}
 
-      {/* Table */}
       <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
         <table className="min-w-full border-collapse text-sm text-gray-700">
-          {/* Table Head */}
           <thead className="bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200">
             <tr>
               {headers
@@ -132,7 +122,6 @@ const ListView = data => {
             </tr>
           </thead>
 
-          {/* Table Body */}
           <tbody>
             {sortedData.map((item, index) => (
               <tr
