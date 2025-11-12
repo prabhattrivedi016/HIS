@@ -8,8 +8,6 @@ const ListView = data => {
   const tableData = data?.data;
   const first = tableData[0];
 
-  tableData.map(item => console.log("list card right top is", item?.listCardRightTop));
-
   // Extract headers dynamically
   const headers = [
     { Key: "listCardRightTop", label: "Action" },
