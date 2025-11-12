@@ -11,6 +11,9 @@ const ENDPOINTS = {
   FAC_ICON_LIST: "Admin/getFaIconList",
   ROLE_MASTER_LIST: "Admin/roleMasterList",
   USER_MASTER_LIST: "Admin/userMasterList",
+  MASTER_CONFIG: "PageConfig/getConfigMaster",
 };
 
 export { ENDPOINTS };
+
+// 'http://103.217.247.236/HISWEBAPI/api/PageConfig/getConfigMaster?configKey=roleMaster' \

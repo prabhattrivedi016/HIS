@@ -7,45 +7,85 @@ import { getRoleMaster } from "../../api/roleMasterApis";
 import { transformDataWithConfig } from "../../utils/utilities";
 import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
+import { useConfigMaster } from "../../hooks/useConfigMaster";
+import { exportMasterData } from "../../utils/exportUtils";
 
 const RoleMaster = () => {
-  // -------------------- State --------------------
+  // Custom hook: fetch Role Master config
+  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+
+  // Local states
   const [openDrawer, setOpenDrawer] = useState(false);
   const [roleMasterData, setRoleMasterData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [cardsView, setCardsView] = useState(VIEWTYPE.GRID);
   const [loading, setLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
 
-  // fetch data
+  //  Step 1: Fetch config from API
+  // useEffect(() => {
+  //   const fetchConfig = async () => {
+  //     setConfigLoading(true);
+  //     try {
+  //       await getConfigMasterValue("roleMaster");
+  //     } catch (err) {
+  //       console.error(" Error fetching config, will use fallback:", err);
+  //     } finally {
+  //       setConfigLoading(false);
+  //     }
+  //   };
+  //   fetchConfig();
+  // }, []);
+
+  //  Step 2: Fetch Role Master Data (uses fallback if needed)
   const fetchRoleMasterData = useCallback(async () => {
+    console.log("api call of role master data");
     setLoading(true);
     try {
       const response = await getRoleMaster();
       const apiResponse = response?.data || [];
-      console.log("Role Master API Response:", apiResponse);
+
+      //  Use API config if available, otherwise fallback to static one
+      const activeConfig = configDataValue || roleMasterConfig;
 
       const transformedData = transformDataWithConfig(
-        roleMasterConfig,
+        activeConfig,
         apiResponse
       );
-      console.log("Transformed Role Master Data:", transformedData);
+      console.log("transformed data of role master", transformedData);
 
       setRoleMasterData(transformedData);
       setFilteredData(transformedData);
     } catch (error) {
-      console.error("Error while fetching Role Master data:", error.message);
+      console.error(" Error while fetching Role Master data:", error.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [configDataValue]);
 
   useEffect(() => {
     fetchRoleMasterData();
-  }, [fetchRoleMasterData]);
+  }, []);
 
-  // handlers
+  //  Step 3: Fetch data after config (or fallback) is ready
+  // useEffect(() => {
+  //   if (!configLoading) {
+  //     fetchRoleMasterData();
+  //   }
+  // }, [configLoading, fetchRoleMasterData]);
 
+  // handle refresh
+  const handleRefresh = () => {
+    fetchRoleMasterData();
+  };
+
+  // handle download csv file
+  const handleDownload = () => {
+    exportMasterData(filteredData, "RoleMasterData", "excel");
+  };
+
+  // Handlers
   const onGridView = () => setCardsView(VIEWTYPE.GRID);
   const onListView = () => setCardsView(VIEWTYPE.LIST);
 
@@ -71,19 +111,19 @@ const RoleMaster = () => {
     setOpenDrawer(true);
   };
 
-  // render views
+  // Render Views (unchanged)
   const renderView = () => {
-    if (loading) {
-      return (
-        <p className="text-center text-gray-500 py-10">
-          Loading Role Masters...
-        </p>
-      );
-    }
+    // if (configLoading || loading) {
+    //   return (
+    //     <p className="text-center text-gray-500 py-10">
+    //       Loading Role Masters...
+    //     </p>
+    //   );
+    // }
 
-    if (!filteredData || filteredData.length === 0) {
-      return <p className="text-center text-gray-500 py-10">No Roles Found</p>;
-    }
+    // if (!filteredData || filteredData.length === 0) {
+    //   return <p className="text-center text-gray-500 py-10">No Roles Found</p>;
+    // }
 
     if (cardsView === VIEWTYPE.GRID) {
       return (
@@ -102,6 +142,7 @@ const RoleMaster = () => {
     return null;
   };
 
+  // Final Render
   return (
     <div className="flex-1 w-full min-h-screen bg-gray-50 -mt-4 -mx-4">
       <PageHeader
@@ -112,6 +153,8 @@ const RoleMaster = () => {
         onListView={onListView}
         selectedViewType={cardsView}
         onSearch={handleSearch}
+        onClickRefresh={handleRefresh}
+        onClickDownload={handleDownload}
       />
 
       {renderView()}

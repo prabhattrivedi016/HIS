@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { getUserMasterList } from "../../api/userMasterApis";
 import { transformDataWithConfig } from "../../utils/utilities";
@@ -6,42 +6,81 @@ import ProfileCard from "../../components/profileCard";
 import PageHeader from "../../components/pageHeader";
 import ListView from "../../components/profileCard/listView";
 import { VIEWTYPE } from "../../constants/constants";
+import { useConfigMaster } from "../../hooks/useConfigMaster";
+import { exportMasterData } from "../../utils/exportUtils";
 
 const UserMaster = () => {
+  //  Custom hook to fetch backend configuration
+  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+
+  //  Local states
   const [userMasterData, setUserMasterData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [cardsView, setCardsView] = useState(VIEWTYPE.GRID);
+  const [loading, setLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
 
-  // Fetch user list
-  useEffect(() => {
-    fetchUserMasterList();
-  }, []);
+  // //  Fetch configuration
+  // const fetchConfig = async () => {
+  //   setConfigLoading(true);
+  //   try {
+  //     await getConfigMasterValue("userMaster");
+  //   } catch (err) {
+  //     console.error("Error fetching User Master config, using fallback:", err);
+  //   } finally {
+  //     setConfigLoading(false);
+  //   }
+  // };
 
-  const fetchUserMasterList = async () => {
+  // useEffect(() => {
+  //   fetchConfig();
+  // }, []);
+
+  //  Fetch user data (after config loaded)
+  const fetchUserMasterListData = useCallback(async () => {
+    // if (configLoading) return;
+    setLoading(true);
     try {
       const response = await getUserMasterList();
-      console.log("API Response (User Master):", response?.data);
-
       const apiResponse = response?.data || [];
+
+      const activeConfig = userMasterConfig;
+
       const transformedData = transformDataWithConfig(
-        userMasterConfig,
+        activeConfig,
         apiResponse
       );
+      console.log("transformed data of user master", transformedData);
 
-      console.log("Transformed User Data:", transformedData);
       setUserMasterData(transformedData);
       setFilteredData(transformedData);
     } catch (error) {
-      console.error("Error fetching user list:", error.message);
+      console.error("Error fetching User Master list:", error.message);
+    } finally {
+      setLoading(false);
     }
+  }, [configDataValue, configLoading]);
+
+  useEffect(() => {
+    fetchUserMasterListData();
+  }, [fetchUserMasterListData]);
+
+  //  Refresh button handler
+  const handleRefresh = () => {
+    fetchUserMasterListData();
   };
 
-  // Switch between card and list view
+  // handle download
+  const handleDownload = () => {
+    exportMasterData(filteredData, "UserMaster", "csv");
+  };
+
+  //  Switch views
   const onGridView = () => setCardsView(VIEWTYPE.GRID);
   const onListView = () => setCardsView(VIEWTYPE.LIST);
 
-  // Handle search
+  //  Handle search
   const handleSearch = (value) => {
     setSearchTerm(value);
 
@@ -53,32 +92,57 @@ const UserMaster = () => {
     const search = value.toLowerCase();
 
     const filtered = userMasterData.filter((item) => {
-      const name = item?.cardTitle?.value?.toLowerCase() || "";
-      const id = item?.cardId?.value?.toString() || "";
-      return name.includes(search) || id.includes(search);
+      // Handle cardTitle
+      let titleValue = "";
+      if (Array.isArray(item.cardTitle)) {
+        titleValue = item.cardTitle.map((t) => t.value).join(" ");
+      } else if (typeof item.cardTitle === "object") {
+        titleValue = item.cardTitle?.value || "";
+      }
+
+      // Handle cardId
+      let idValue = "";
+      if (Array.isArray(item.cardId)) {
+        idValue = item.cardId.map((t) => t.value).join(" ");
+      } else if (typeof item.cardId === "object") {
+        idValue = item.cardId?.value || "";
+      }
+
+      return (
+        titleValue.toLowerCase().includes(search) ||
+        idValue.toString().includes(search)
+      );
     });
 
     setFilteredData(filtered);
   };
 
-  // Render UI based on view type
+  // Render grid or list view
   const renderCards = () => {
-    if (!filteredData || filteredData.length === 0) {
-      return <p className="text-center text-gray-500 py-10">No Users Found</p>;
-    }
+    // if (configLoading || loading) {
+    //   return (
+    //     <p className="text-center text-gray-500 py-10">
+    //       Loading User Masters...
+    //     </p>
+    //   );
+    // }
+
+    // if (!filteredData || filteredData.length === 0) {
+    //   return <p className="text-center text-gray-500 py-10">No Users Found</p>;
+    // }
 
     if (cardsView === VIEWTYPE.GRID) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
-          {filteredData.map((user, index) => (
-            <ProfileCard data={user} key={index} />
+          {userMasterData.map((user, index) => (
+            <ProfileCard data={user} key={user.cardId?.value || index} />
           ))}
         </div>
       );
     }
 
     if (cardsView === VIEWTYPE.LIST) {
-      return <ListView data={filteredData} />;
+      return <ListView data={userMasterData} />;
     }
 
     return null;
@@ -94,6 +158,8 @@ const UserMaster = () => {
         selectedViewType={cardsView}
         onSearch={handleSearch}
         onClick={() => console.log("Add User Master button clicked!")}
+        onClickRefresh={handleRefresh}
+        onClickDownload={handleDownload}
       />
       {renderCards()}
     </div>
