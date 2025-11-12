@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.vite
+.cache
+.turbo
+.parcel-cache
+public
+.vscode
+.git
+coverage
+*.lock
