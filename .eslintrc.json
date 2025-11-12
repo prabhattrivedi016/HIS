@@ -18,7 +18,15 @@
     "sourceType": "module",
     "ecmaFeatures": { "jsx": true }
   },
-  "settings": { "react": { "version": "detect" } },
+  "settings": {
+    "react": { "version": "detect" },
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"],
+        "moduleDirectory": ["node_modules", "src"]
+      }
+    }
+  },
   "plugins": ["react", "react-hooks", "jsx-a11y", "import"],
   "rules": {
     "react/react-in-jsx-scope": "off",

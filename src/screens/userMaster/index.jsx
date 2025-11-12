@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
-import { getUserMasterList } from "../../api/userMasterApis";
-import { transformDataWithConfig } from "../../utils/utilities";
-import ProfileCard from "../../components/profileCard";
-import PageHeader from "../../components/pageHeader";
-import ListView from "../../components/profileCard/listView";
-import { VIEWTYPE } from "../../constants/constants";
-import { useConfigMaster } from "../../hooks/useConfigMaster";
-import { exportMasterData } from "../../utils/exportUtils";
+import { useCallback, useEffect, useState } from 'react';
+import { getUserMasterList } from '../../api/userMasterApis';
+import PageHeader from '../../components/pageHeader';
+import ProfileCard from '../../components/profileCard';
+import ListView from '../../components/profileCard/ListView';
+import { userMasterConfig } from '../../config/masterConfig/userMasterConfig';
+import { VIEWTYPE } from '../../constants/constants';
+import { useConfigMaster } from '../../hooks/useConfigMaster';
+import { exportMasterData } from '../../utils/exportUtils';
+import { transformDataWithConfig } from '../../utils/utilities';
 
 const UserMaster = () => {
   //  Custom hook to fetch backend configuration
@@ -16,7 +16,7 @@ const UserMaster = () => {
   //  Local states
   const [userMasterData, setUserMasterData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [cardsView, setCardsView] = useState(VIEWTYPE.GRID);
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
@@ -47,16 +47,13 @@ const UserMaster = () => {
 
       const activeConfig = userMasterConfig;
 
-      const transformedData = transformDataWithConfig(
-        activeConfig,
-        apiResponse
-      );
-      console.log("transformed data of user master", transformedData);
+      const transformedData = transformDataWithConfig(activeConfig, apiResponse);
+      console.log('transformed data of user master', transformedData);
 
       setUserMasterData(transformedData);
       setFilteredData(transformedData);
     } catch (error) {
-      console.error("Error fetching User Master list:", error.message);
+      console.error('Error fetching User Master list:', error.message);
     } finally {
       setLoading(false);
     }
@@ -73,7 +70,7 @@ const UserMaster = () => {
 
   // handle download
   const handleDownload = () => {
-    exportMasterData(filteredData, "UserMaster", "csv");
+    exportMasterData(filteredData, 'UserMaster', 'csv');
   };
 
   //  Switch views
@@ -81,7 +78,7 @@ const UserMaster = () => {
   const onListView = () => setCardsView(VIEWTYPE.LIST);
 
   //  Handle search
-  const handleSearch = (value) => {
+  const handleSearch = value => {
     setSearchTerm(value);
 
     if (!value.trim()) {
@@ -91,27 +88,24 @@ const UserMaster = () => {
 
     const search = value.toLowerCase();
 
-    const filtered = userMasterData.filter((item) => {
+    const filtered = userMasterData.filter(item => {
       // Handle cardTitle
-      let titleValue = "";
+      let titleValue = '';
       if (Array.isArray(item.cardTitle)) {
-        titleValue = item.cardTitle.map((t) => t.value).join(" ");
-      } else if (typeof item.cardTitle === "object") {
-        titleValue = item.cardTitle?.value || "";
+        titleValue = item.cardTitle.map(t => t.value).join(' ');
+      } else if (typeof item.cardTitle === 'object') {
+        titleValue = item.cardTitle?.value || '';
       }
 
       // Handle cardId
-      let idValue = "";
+      let idValue = '';
       if (Array.isArray(item.cardId)) {
-        idValue = item.cardId.map((t) => t.value).join(" ");
-      } else if (typeof item.cardId === "object") {
-        idValue = item.cardId?.value || "";
+        idValue = item.cardId.map(t => t.value).join(' ');
+      } else if (typeof item.cardId === 'object') {
+        idValue = item.cardId?.value || '';
       }
 
-      return (
-        titleValue.toLowerCase().includes(search) ||
-        idValue.toString().includes(search)
-      );
+      return titleValue.toLowerCase().includes(search) || idValue.toString().includes(search);
     });
 
     setFilteredData(filtered);
@@ -157,7 +151,7 @@ const UserMaster = () => {
         onListView={onListView}
         selectedViewType={cardsView}
         onSearch={handleSearch}
-        onClick={() => console.log("Add User Master button clicked!")}
+        onClick={() => console.log('Add User Master button clicked!')}
         onClickRefresh={handleRefresh}
         onClickDownload={handleDownload}
       />

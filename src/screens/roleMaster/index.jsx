@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { getRoleMaster } from "../../api/roleMasterApis";
 import PageHeader from "../../components/pageHeader";
 import ProfileCard from "../../components/profileCard";
-import ListView from "../../components/profileCard/listView";
-import RoleMasterDrawer from "./components/RoleMasterDrawer";
-import { getRoleMaster } from "../../api/roleMasterApis";
-import { transformDataWithConfig } from "../../utils/utilities";
+import ListView from "../../components/profileCard/ListView";
 import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
 import { exportMasterData } from "../../utils/exportUtils";
+import { transformDataWithConfig } from "../../utils/utilities";
+import RoleMasterDrawer from "./components/RoleMasterDrawer";
 
 const RoleMaster = () => {
   // Custom hook: fetch Role Master config
@@ -49,10 +49,7 @@ const RoleMaster = () => {
       //  Use API config if available, otherwise fallback to static one
       const activeConfig = configDataValue || roleMasterConfig;
 
-      const transformedData = transformDataWithConfig(
-        activeConfig,
-        apiResponse
-      );
+      const transformedData = transformDataWithConfig(activeConfig, apiResponse);
       console.log("transformed data of role master", transformedData);
 
       setRoleMasterData(transformedData);
@@ -89,7 +86,7 @@ const RoleMaster = () => {
   const onGridView = () => setCardsView(VIEWTYPE.GRID);
   const onListView = () => setCardsView(VIEWTYPE.LIST);
 
-  const handleSearch = (value) => {
+  const handleSearch = value => {
     setSearchTerm(value);
     if (!value.trim()) {
       setFilteredData(roleMasterData);
@@ -97,7 +94,7 @@ const RoleMaster = () => {
     }
 
     const search = value.toLowerCase();
-    const filtered = roleMasterData.filter((item) => {
+    const filtered = roleMasterData.filter(item => {
       const name = item?.cardTitle?.value?.toLowerCase() || "";
       const id = item?.cardId?.value?.toString() || "";
       return name.includes(search) || id.includes(search);
@@ -160,10 +157,7 @@ const RoleMaster = () => {
       {renderView()}
 
       {/* Drawer Component */}
-      <RoleMasterDrawer
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-      />
+      <RoleMasterDrawer open={openDrawer} onClose={() => setOpenDrawer(false)} />
     </div>
   );
 };
