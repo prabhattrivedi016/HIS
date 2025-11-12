@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Lock, Building2, LogIn } from "lucide-react";
+import { Building2, Lock, LogIn, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import Signup from "../signup";
 import { userLogin } from "../../api/AuthServices";
-import VerifyOtp from "./components/VerifyOtp";
-import useGetBranchList from "../../hooks/useGetBranchList";
-import ForgotPassword from "./components/ForgotPassword";
-import Input from "../../components/cutomInput";
-import Select from "../../components/customSelect";
 import Checkbox from "../../components//customCheckbox";
 import Button from "../../components/customButton";
+import Select from "../../components/customSelect";
+import Input from "../../components/cutomInput";
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
 import AuthBackground from "../../components/layout";
+import useGetBranchList from "../../hooks/useGetBranchList";
+import Signup from "../signup";
+import ForgotPassword from "./components/ForgotPassword";
+import VerifyOtp from "./components/VerifyOtp";
 
 const Login = () => {
   const { branchList, fetchBranchList, branchListError } = useGetBranchList();
@@ -49,7 +49,7 @@ const Login = () => {
   // Auto-select first branch
   useEffect(() => {
     if (branchList?.data.length > 0) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         selectedBranchId: branchList?.data[0].branchId,
       }));
@@ -57,24 +57,24 @@ const Login = () => {
   }, [branchList?.data]);
 
   // Input Change
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   // Branch Select Change
-  const handleBranchChange = (value) => {
-    setFormData((prev) => ({
+  const handleBranchChange = value => {
+    setFormData(prev => ({
       ...prev,
       selectedBranchId: value,
     }));
   };
 
   // Submit Login
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
 
     const newErrors = {};
@@ -97,11 +97,13 @@ const Login = () => {
 
       const response = await userLogin(payload);
 
-      const { accessToken } = response?.data?.data;
+      const { accessToken } = response?.data?.data ?? {};
 
       localStorage.setItem("accessToken", accessToken);
 
       const apiResponseData = response?.data?.data;
+
+      console.log("api response of loginData", apiResponseData);
 
       setUserName(apiResponseData?.userName);
       setEmail(apiResponseData?.email);
@@ -112,10 +114,7 @@ const Login = () => {
 
       setErrorMessage("");
 
-      if (
-        apiResponseData?.isContactVerified &&
-        apiResponseData?.isEmailVerified
-      ) {
+      if (apiResponseData?.isContactVerified && apiResponseData?.isEmailVerified) {
         setSuccessMessage(response?.data?.message);
 
         setTimeout(() => navigate("/dashboard"), 1000);
@@ -124,14 +123,12 @@ const Login = () => {
       }
     } catch (err) {
       setSuccessMessage("");
-      setErrorMessage(
-        err?.response?.data?.message || "Invalid Username or Password"
-      );
+      setErrorMessage(err?.response?.data?.message || "Invalid Username or Password");
     }
   };
 
   // Drawer Logic
-  const openDrawer = (type) => {
+  const openDrawer = type => {
     if (type === "signup") {
       setOpenSignup(true);
       setTimeout(() => setAnimateSignup(true), 10);
@@ -141,7 +138,7 @@ const Login = () => {
     }
   };
 
-  const closeDrawer = (type) => {
+  const closeDrawer = type => {
     if (type === "signup") {
       setAnimateSignup(false);
       setTimeout(() => setOpenSignup(false), 300);
@@ -196,16 +193,14 @@ const Login = () => {
               placeholder="Select Branch"
               value={formData.selectedBranchId}
               onChange={handleBranchChange}
-              options={branchList?.data.map((branch) => ({
+              options={branchList?.data.map(branch => ({
                 value: branch.branchId,
                 label: branch.branchName,
               }))}
               error={errors.branch}
             />
 
-            {errors.branch && (
-              <p className="text-sm text-red-500">{errors.branch}</p>
-            )}
+            {errors.branch && <p className="text-sm text-red-500">{errors.branch}</p>}
 
             <Input
               icon={User}
@@ -215,9 +210,7 @@ const Login = () => {
               value={formData.userName}
               onChange={handleChange}
             />
-            {errors.userName && (
-              <p className="text-sm text-red-500 mt-1">{errors.userName}</p>
-            )}
+            {errors.userName && <p className="text-sm text-red-500 mt-1">{errors.userName}</p>}
 
             <Input
               icon={Lock}
@@ -227,9 +220,7 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
             />
-            {errors.password && (
-              <p className="text-sm text-red-500 mt-1">{errors.password}</p>
-            )}
+            {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
 
             <div className="flex justify-between items-center">
               <Checkbox
@@ -281,7 +272,7 @@ const Login = () => {
             className={`bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300 ${
               animateSignup ? "translate-x-0" : "translate-x-full"
             }`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <button
               onClick={() => closeDrawer("signup")}
@@ -305,7 +296,7 @@ const Login = () => {
             className={`bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300 ${
               animateForgot ? "translate-x-0" : "translate-x-full"
             }`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <button
               onClick={() => closeDrawer("forgot")}
