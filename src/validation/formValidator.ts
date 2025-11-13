@@ -1,4 +1,4 @@
-type Component = {
+type ComponentType = {
   required?: boolean;
   label: string;
   validation?: RegExp;
@@ -6,7 +6,7 @@ type Component = {
   maxLength?: number;
 };
 
-export const formValidator = (component: Component) => {
+export const formValidator = (component: ComponentType) => {
   return {
     required: component.required ? `${component.label} is required` : false,
     pattern: component.validation
