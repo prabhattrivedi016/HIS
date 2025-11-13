@@ -5,7 +5,7 @@ import { ENDPOINTS } from "../config/defaults";
 export const useConfigMaster = () => {
   const [configDataValue, setConfigDataValue] = useState(null);
 
-  const getConfigMasterValue = async (fieldName) => {
+  const getConfigMasterValue = async fieldName => {
     try {
       //  API call with query param
       const response = await axiosInstance.get(ENDPOINTS.MASTER_CONFIG, {

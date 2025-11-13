@@ -110,11 +110,7 @@ const RoleMaster = () => {
   // Render Views (unchanged)
   const renderView = () => {
     if (configLoading || loading) {
-      return (
-        <p className="text-center text-gray-500 py-10">
-          Loading Role Masters...
-        </p>
-      );
+      return <p className="text-center text-gray-500 py-10">Loading Role Masters...</p>;
     }
 
     if (!filteredData || filteredData.length === 0) {
@@ -155,7 +151,7 @@ const RoleMaster = () => {
 
       {renderView()}
 
-      {/* Drawer Component */}
+      {/* Add new role drawer */}
       <RoleMasterDrawer open={openDrawer} onClose={() => setOpenDrawer(false)} />
     </div>
   );
