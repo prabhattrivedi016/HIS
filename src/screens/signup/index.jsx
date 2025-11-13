@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { ChevronDown, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { userSignup } from "../../api/AuthServices";
 import Button from "../../components/customButton";
 import InputField from "../../components/customInputField";
-import { ChevronDown, User } from "lucide-react";
-import { userSignup } from "../../api/AuthServices";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import signupSchema from "../../validation/signupSchema";
-import { stopPropagationHandler } from "../../utils/utilities";
 import { usePickMaster } from "../../hooks/usePickMaster";
+import { stopPropagationHandler } from "../../utils/utilities";
+import signupSchema from "../../validation/signupSchema";
 
 const Signup = ({ onLoginClick }) => {
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
@@ -42,7 +42,7 @@ const Signup = ({ onLoginClick }) => {
   }, []);
 
   // Handle submit
-  const onSubmit = async (data) => {
+  const onSubmit = async data => {
     try {
       const response = await userSignup(data);
       setSuccessMessage(response?.data?.message);
@@ -74,9 +74,7 @@ const Signup = ({ onLoginClick }) => {
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-4 justify-center">
             Create New Account
           </h1>
-          <p className="text-sm text-red-500 mt-1">
-            Fields marked with * are required
-          </p>
+          <p className="text-sm text-red-500 mt-1">Fields marked with * are required</p>
         </div>
         <div className="mb-4">
           {successMessage && (
@@ -104,9 +102,7 @@ const Signup = ({ onLoginClick }) => {
                 />
               </InputField>
               {errors.firstName && (
-                <p className="text-red-500 text-sm">
-                  {errors.firstName?.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.firstName?.message}</p>
               )}
             </div>
             <div>
@@ -131,7 +127,7 @@ const Signup = ({ onLoginClick }) => {
                   >
                     <option value="">Select</option>
 
-                    {pickMasterValue?.data?.map((item) => (
+                    {pickMasterValue?.data?.map(item => (
                       <option key={item.id} value={item.value}>
                         {item.value}
                       </option>
@@ -141,9 +137,7 @@ const Signup = ({ onLoginClick }) => {
                   <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
               </InputField>
-              {errors.gender && (
-                <p className="text-red-500 text-sm">{errors.gender?.message}</p>
-              )}
+              {errors.gender && <p className="text-red-500 text-sm">{errors.gender?.message}</p>}
             </div>
 
             <div>
@@ -154,9 +148,7 @@ const Signup = ({ onLoginClick }) => {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 />
               </InputField>
-              {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email?.message}</p>
-              )}
+              {errors.email && <p className="text-red-500 text-sm">{errors.email?.message}</p>}
             </div>
           </div>
 
@@ -170,9 +162,7 @@ const Signup = ({ onLoginClick }) => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 />
               </InputField>
-              {errors.dob && (
-                <p className="text-red-500 text-sm">{errors.dob?.message}</p>
-              )}
+              {errors.dob && <p className="text-red-500 text-sm">{errors.dob?.message}</p>}
             </div>
             <div>
               <InputField label="Contact Number " required={true}>
@@ -182,11 +172,7 @@ const Signup = ({ onLoginClick }) => {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 />
               </InputField>
-              {errors.contact && (
-                <p className="text-red-500 text-sm">
-                  {errors.contact?.message}
-                </p>
-              )}
+              {errors.contact && <p className="text-red-500 text-sm">{errors.contact?.message}</p>}
             </div>
           </div>
 
@@ -200,11 +186,7 @@ const Signup = ({ onLoginClick }) => {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                 />
               </InputField>
-              {errors.address && (
-                <p className="text-red-500 text-sm">
-                  {errors.address?.message}
-                </p>
-              )}
+              {errors.address && <p className="text-red-500 text-sm">{errors.address?.message}</p>}
             </div>
             <div>
               <InputField label="Username " required={true}>
@@ -215,9 +197,7 @@ const Signup = ({ onLoginClick }) => {
                 />
               </InputField>
               {errors.userName && (
-                <p className="text-red-500 text-sm">
-                  {errors.userName?.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.userName?.message}</p>
               )}
             </div>
           </div>
@@ -233,9 +213,7 @@ const Signup = ({ onLoginClick }) => {
                 />
               </InputField>
               {errors.password && (
-                <p className="text-red-500 text-sm">
-                  {errors.password?.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.password?.message}</p>
               )}
             </div>
             <div>
@@ -247,9 +225,7 @@ const Signup = ({ onLoginClick }) => {
                 />
               </InputField>
               {errors.confirmPassword && (
-                <p className="text-red-500 text-sm">
-                  {errors.confirmPassword?.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.confirmPassword?.message}</p>
               )}
             </div>
           </div>
