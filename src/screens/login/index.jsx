@@ -229,18 +229,20 @@ const Login = () => {
                 checked={formData.rememberMe}
                 onChange={handleChange}
               />
-              <span
+              <button
+                type="button"
                 onClick={() => openDrawer("forgot")}
                 className="text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
               >
                 Forgot Password?
-              </span>
+              </button>
             </div>
 
             <Button
               type="submit"
               className="w-full flex justify-center gap-2"
               onClick={handleSubmit}
+              disabled={false}
             >
               <LogIn size={18} /> LOGIN
             </Button>
@@ -249,12 +251,13 @@ const Login = () => {
           <div className="mt-6 pt-4 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-500">
               New User?{" "}
-              <span
+              <button
+                type="button"
                 onClick={() => openDrawer("signup")}
                 className="text-indigo-600 hover:underline font-medium cursor-pointer"
               >
                 Sign Up
-              </span>
+              </button>
             </p>
           </div>
         </div>
@@ -266,13 +269,20 @@ const Login = () => {
           className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
             animateSignup ? "opacity-100" : "opacity-0"
           }`}
-          onClick={() => closeDrawer("signup")}
+          onClick={e => {
+            if (e.target === e.currentTarget) closeDrawer("signup");
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") closeDrawer("signup");
+          }}
+          aria-label="Close signup drawer"
         >
           <div
             className={`bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300 ${
               animateSignup ? "translate-x-0" : "translate-x-full"
             }`}
-            onClick={e => e.stopPropagation()}
           >
             <button
               onClick={() => closeDrawer("signup")}
@@ -290,13 +300,20 @@ const Login = () => {
           className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
             animateForgot ? "opacity-100" : "opacity-0"
           }`}
-          onClick={() => closeDrawer("forgot")}
+          onClick={e => {
+            if (e.target === e.currentTarget) closeDrawer("forgot");
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") closeDrawer("forgot");
+          }}
+          aria-label="Close forgot drawer"
         >
           <div
             className={`bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300 ${
               animateForgot ? "translate-x-0" : "translate-x-full"
             }`}
-            onClick={e => e.stopPropagation()}
           >
             <button
               onClick={() => closeDrawer("forgot")}
