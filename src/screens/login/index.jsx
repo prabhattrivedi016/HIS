@@ -97,11 +97,13 @@ const Login = () => {
 
       const response = await userLogin(payload);
 
-      const { accessToken } = response?.data?.data;
+      const { accessToken } = response?.data?.data ?? {};
 
       localStorage.setItem("accessToken", accessToken);
 
       const apiResponseData = response?.data?.data;
+
+      console.log("api response of loginData", apiResponseData);
 
       setUserName(apiResponseData?.userName);
       setEmail(apiResponseData?.email);

@@ -1,19 +1,15 @@
-import React, { useState } from "react";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { resetPasswordByUserId, sendOtpApi, verifySmsOtp } from "../../../api/AuthServices";
 import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField";
-import {
-  sendOtpApi,
-  verifySmsOtp,
-  resetPasswordByUserId,
-} from "../../../api/AuthServices";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { stopPropagationHandler } from "../../../utils/utilities";
 import {
   otpSchema,
-  userNameAndMobileSchema,
   resetPasswordSchema,
+  userNameAndMobileSchema,
 } from "../../../validation/forgotPasswordSchema";
-import { stopPropagationHandler } from "../../../utils/utilities";
 
 const ForgotPassword = ({ onClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
@@ -58,7 +54,7 @@ const ForgotPassword = ({ onClose }) => {
   });
 
   // SEND OTP FUNCTION
-  const sendOtp = async (data) => {
+  const sendOtp = async data => {
     try {
       const response = await sendOtpApi({
         userName: data.userName,
@@ -86,7 +82,7 @@ const ForgotPassword = ({ onClose }) => {
 
   // VERIFY OTP FUNCTION
 
-  const verifyOtp = async (data) => {
+  const verifyOtp = async data => {
     try {
       const response = await verifySmsOtp({
         otp: data.otp,
@@ -106,7 +102,7 @@ const ForgotPassword = ({ onClose }) => {
   };
 
   // RESET PASSWORD FUNCTION
-  const resetPassword = async (data) => {
+  const resetPassword = async data => {
     try {
       const response = await resetPasswordByUserId({
         userId: userId,
@@ -126,8 +122,7 @@ const ForgotPassword = ({ onClose }) => {
     } catch (error) {
       console.log("Reset Password Error:", error);
       const apiMessage =
-        error?.response?.data?.message ||
-        "Something went wrong while resetting password";
+        error?.response?.data?.message || "Something went wrong while resetting password";
       setErrorMessage(apiMessage);
     }
   };
@@ -170,9 +165,7 @@ const ForgotPassword = ({ onClose }) => {
                 />
               </InputField>
               {sendOtpErrors.userName && (
-                <p className="text-red-500 text-sm">
-                  {sendOtpErrors.userName.message}
-                </p>
+                <p className="text-red-500 text-sm">{sendOtpErrors.userName.message}</p>
               )}
 
               <InputField label="Mobile Number" required={true}>
@@ -184,14 +177,11 @@ const ForgotPassword = ({ onClose }) => {
                 />
               </InputField>
               {sendOtpErrors.contact && (
-                <p className="text-red-500 text-sm">
-                  {sendOtpErrors.contact.message}
-                </p>
+                <p className="text-red-500 text-sm">{sendOtpErrors.contact.message}</p>
               )}
               {contactHint && (
                 <p className="text-sm text-gray-600 text-center">
-                  Registered Contact Number is:{" "}
-                  <span className="font-semibold">{contactHint}</span>
+                  Registered Contact Number is: <span className="font-semibold">{contactHint}</span>
                 </p>
               )}
 
@@ -203,26 +193,16 @@ const ForgotPassword = ({ onClose }) => {
         )}
 
         {otpSent && !otpVerified && (
-          <form
-            onSubmit={handleVerifyOtpSubmit(verifyOtp)}
-            className="space-y-4"
-          >
+          <form onSubmit={handleVerifyOtpSubmit(verifyOtp)} className="space-y-4">
             <InputField label="Enter OTP" required={true}>
-              <input
-                {...registerVerifyOtp("otp")}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
+              <input {...registerVerifyOtp("otp")} className="w-full px-4 py-2 border rounded-lg" />
             </InputField>
 
             {verifyOtpErrors.otp && (
-              <p className="text-red-500 text-sm">
-                {verifyOtpErrors.otp.message}
-              </p>
+              <p className="text-red-500 text-sm">{verifyOtpErrors.otp.message}</p>
             )}
 
-            {hintMessage && (
-              <p className="text-sm text-gray-600">{hintMessage}</p>
-            )}
+            {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
             <Button type="submit" className="w-full">
               Verify OTP
             </Button>
@@ -230,10 +210,7 @@ const ForgotPassword = ({ onClose }) => {
         )}
 
         {otpSent && otpVerified && (
-          <form
-            onSubmit={handleResetPassSubmit(resetPassword)}
-            className="space-y-4"
-          >
+          <form onSubmit={handleResetPassSubmit(resetPassword)} className="space-y-4">
             <InputField label="New Password" required={true}>
               <input
                 type="password"
@@ -243,9 +220,7 @@ const ForgotPassword = ({ onClose }) => {
             </InputField>
 
             {resetPassErrors.newPassword && (
-              <p className="text-red-500 text-sm">
-                {resetPassErrors.newPassword.message}
-              </p>
+              <p className="text-red-500 text-sm">{resetPassErrors.newPassword.message}</p>
             )}
 
             <InputField label="Confirm Password" required={true}>
@@ -257,9 +232,7 @@ const ForgotPassword = ({ onClose }) => {
             </InputField>
 
             {resetPassErrors.confirmPassword && (
-              <p className="text-red-500 text-sm">
-                {resetPassErrors.confirmPassword.message}
-              </p>
+              <p className="text-red-500 text-sm">{resetPassErrors.confirmPassword.message}</p>
             )}
 
             <Button type="submit" className="w-full">
@@ -270,10 +243,7 @@ const ForgotPassword = ({ onClose }) => {
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Remembered password?{" "}
-          <span
-            onClick={onClose}
-            className="text-indigo-600 font-semibold cursor-pointer"
-          >
+          <span onClick={onClose} className="text-indigo-600 font-semibold cursor-pointer">
             Log In
           </span>
         </p>

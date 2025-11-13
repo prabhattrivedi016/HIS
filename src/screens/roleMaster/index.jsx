@@ -23,22 +23,22 @@ const RoleMaster = () => {
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
 
-  //  Step 1: Fetch config from API
-  // useEffect(() => {
-  //   const fetchConfig = async () => {
-  //     setConfigLoading(true);
-  //     try {
-  //       await getConfigMasterValue("roleMaster");
-  //     } catch (err) {
-  //       console.error(" Error fetching config, will use fallback:", err);
-  //     } finally {
-  //       setConfigLoading(false);
-  //     }
-  //   };
-  //   fetchConfig();
-  // }, []);
+  //   Fetch config from API
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setConfigLoading(true);
+      try {
+        await getConfigMasterValue("roleMaster");
+      } catch (err) {
+        console.error(" Error fetching config, will use fallback:", err);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
 
-  //  Step 2: Fetch Role Master Data (uses fallback if needed)
+  //  Fetch Role Master Data
   const fetchRoleMasterData = useCallback(async () => {
     console.log("api call of role master data");
     setLoading(true);
@@ -46,7 +46,6 @@ const RoleMaster = () => {
       const response = await getRoleMaster();
       const apiResponse = response?.data || [];
 
-      //  Use API config if available, otherwise fallback to static one
       const activeConfig = configDataValue || roleMasterConfig;
 
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
@@ -61,16 +60,16 @@ const RoleMaster = () => {
     }
   }, [configDataValue]);
 
-  useEffect(() => {
-    fetchRoleMasterData();
-  }, []);
+  // useEffect(() => {
+  //   fetchRoleMasterData();
+  // }, []);
 
   //  Step 3: Fetch data after config (or fallback) is ready
-  // useEffect(() => {
-  //   if (!configLoading) {
-  //     fetchRoleMasterData();
-  //   }
-  // }, [configLoading, fetchRoleMasterData]);
+  useEffect(() => {
+    if (!configLoading) {
+      fetchRoleMasterData();
+    }
+  }, [configLoading, fetchRoleMasterData]);
 
   // handle refresh
   const handleRefresh = () => {
@@ -110,17 +109,13 @@ const RoleMaster = () => {
 
   // Render Views (unchanged)
   const renderView = () => {
-    // if (configLoading || loading) {
-    //   return (
-    //     <p className="text-center text-gray-500 py-10">
-    //       Loading Role Masters...
-    //     </p>
-    //   );
-    // }
+    if (configLoading || loading) {
+      return <p className="text-center text-gray-500 py-10">Loading Role Masters...</p>;
+    }
 
-    // if (!filteredData || filteredData.length === 0) {
-    //   return <p className="text-center text-gray-500 py-10">No Roles Found</p>;
-    // }
+    if (!filteredData || filteredData.length === 0) {
+      return <p className="text-center text-gray-500 py-10">No Roles Found</p>;
+    }
 
     if (cardsView === VIEWTYPE.GRID) {
       return (
@@ -156,7 +151,7 @@ const RoleMaster = () => {
 
       {renderView()}
 
-      {/* Drawer Component */}
+      {/* Add new role drawer */}
       <RoleMasterDrawer open={openDrawer} onClose={() => setOpenDrawer(false)} />
     </div>
   );

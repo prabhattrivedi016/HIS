@@ -6,7 +6,7 @@ const ListView = data => {
   const [hiddenColumns, setHiddenColumns] = useState([]);
 
   const tableData = data?.data;
-  const first = tableData[0];
+  const first = tableData?.[0];
 
   // Extract headers dynamically
   const headers = [
@@ -20,15 +20,11 @@ const ListView = data => {
     })) || []),
   ];
 
-  // --- Sorting logic ---
   const handleSort = (key, event) => {
-    // Alt + Click hides column
     if (event.altKey) {
       toggleColumnVisibility(key);
       return;
     }
-
-    // Regular click sorts column
     const direction = sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
     setSortConfig({ key, direction });
   };
@@ -41,33 +37,25 @@ const ListView = data => {
 
   const resetColumns = () => setHiddenColumns([]);
 
-  // --- Sorting ---
+  // Sort the data
   const sortedData = [...tableData].sort((a, b) => {
     if (!sortConfig.key) return 0;
-
     let aValue = "",
       bValue = "";
 
-    switch (true) {
-      case sortConfig.key === "cardId":
-        aValue = a?.cardId?.value;
-        bValue = b?.cardId?.value;
-        break;
-      case sortConfig.key === "cardTitle":
-        aValue = a?.cardTitle?.value;
-        bValue = b?.cardTitle?.value;
-        break;
-      case sortConfig.key === "cardLeftTop":
-        aValue = a?.cardLeftTop?.value;
-        bValue = b?.cardLeftTop?.value;
-        break;
-      case sortConfig.key.startsWith("footer_"):
-        const index = parseInt(sortConfig.key.split("_")[1]);
-        aValue = a.cardFooterSection[index]?.value;
-        bValue = b.cardFooterSection[index]?.value;
-        break;
-      default:
-        break;
+    if (sortConfig.key === "cardId") {
+      aValue = a?.cardId?.value;
+      bValue = b?.cardId?.value;
+    } else if (sortConfig.key === "cardTitle") {
+      aValue = a?.cardTitle?.value;
+      bValue = b?.cardTitle?.value;
+    } else if (sortConfig.key === "cardLeftTop") {
+      aValue = a?.cardLeftTop?.value;
+      bValue = b?.cardLeftTop?.value;
+    } else if (sortConfig.key.startsWith("footer_")) {
+      const index = parseInt(sortConfig.key.split("_")[1]);
+      aValue = a.cardFooterSection[index]?.value;
+      bValue = b.cardFooterSection[index]?.value;
     }
 
     aValue = aValue || "";
@@ -82,7 +70,6 @@ const ListView = data => {
       : bValue.toString().localeCompare(aValue.toString());
   });
 
-  // --- Icons ---
   const getSortIcon = headerKey => {
     if (sortConfig.key !== headerKey) return "fa-sort text-gray-400";
     return sortConfig.direction === "asc"
@@ -95,116 +82,119 @@ const ListView = data => {
   }
 
   return (
-    <div className="p-6">
-      {/* Reset Columns Button */}
+    <div className="p-3 sm:p-4 md:p-6">
+      {/* Reset button */}
       {hiddenColumns.length > 0 && (
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end mb-2 sm:mb-3">
           <button
             onClick={resetColumns}
-            className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition"
+            className="text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 sm:px-3 py-1 rounded hover:bg-blue-200 transition"
           >
             Reset Columns
           </button>
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
-        <table className="min-w-full border-collapse text-sm text-gray-700">
-          {/* Table Head */}
-          <thead className="bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-            <tr>
-              {headers
-                .filter(header => !hiddenColumns.includes(header.key))
-                .map(header => (
-                  <th
-                    key={header.key}
-                    onClick={e => handleSort(header.key, e)}
-                    title="Click to sort • Alt + Click to hide"
-                    className="px-4 py-3 text-left font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none"
-                  >
-                    <div className="flex items-center gap-2">
-                      <i className={`fa ${getSortIcon(header.key)} text-xs`} />
-                      <span>{header.label}</span>
-                    </div>
-                  </th>
-                ))}
-            </tr>
-          </thead>
-
-          {/* Table Body */}
-          <tbody>
-            {sortedData.map((item, index) => (
-              <tr
-                key={index}
-                className="hover:bg-blue-50 transition duration-150 ease-in-out border-b border-gray-100"
-              >
-                {/* Action Icon */}
-                {!hiddenColumns.includes("listCardRightTop") && (
-                  <td className="px-4 py-3 text-left align-middle">
-                    <button className="p-1.5 hover:bg-gray-100 rounded-md transition">
-                      <MoreVertical size={18} className="text-gray-600" />
-                    </button>
-                  </td>
-                )}
-
-                {/* ID */}
-                {!hiddenColumns.includes("cardId") && (
-                  <td className="px-4 py-3 text-left font-medium text-gray-600 align-middle">
-                    {item?.cardId?.value || "-"}
-                  </td>
-                )}
-
-                {/* Title + Icon */}
-                {!hiddenColumns.includes("cardTitle") && (
-                  <td className="px-4 py-3 text-left align-middle">
-                    <div className="flex items-center justify-start gap-2">
-                      {item?.cardAvatar && (
-                        <i
-                          className={`fa ${item?.cardAvatar} text-gray-600 text-base leading-none`}
-                          style={{
-                            lineHeight: "1",
-                            verticalAlign: "middle",
-                          }}
-                        ></i>
-                      )}
-                      <span className="font-medium text-gray-700 leading-none">
-                        {item?.cardTitle?.value || "-"}
-                      </span>
-                    </div>
-                  </td>
-                )}
-
-                {/* Status */}
-                {!hiddenColumns.includes("cardLeftTop") && (
-                  <td className="px-4 py-3 text-left align-middle">
-                    {item?.cardLeftTop?.value === 1 ? (
-                      <span className="inline-block rounded-full bg-green-100 text-green-700 text-xs font-semibold px-3 py-1">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-block rounded-full bg-red-100 text-red-700 text-xs font-semibold px-3 py-1">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                )}
-
-                {/* Footer */}
-                {item?.cardFooterSection?.map((footer, fIndex) => {
-                  const footerKey = `footer_${fIndex}`;
-                  if (hiddenColumns.includes(footerKey)) return null;
-
-                  return (
-                    <td key={fIndex} className="px-4 py-3 text-left text-gray-500 align-middle">
-                      {footer?.value || "-"}
-                    </td>
-                  );
-                })}
+      {/* Responsive table wrapper */}
+      <div className="overflow-x-auto rounded-lg shadow-lg bg-white">
+        <div className="min-w-[480px] sm:min-w-full">
+          <table className="min-w-full border-collapse text-[11px] sm:text-sm md:text-base text-gray-700">
+            <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+              <tr>
+                {headers
+                  .filter(header => !hiddenColumns.includes(header.key))
+                  .map(header => (
+                    <th
+                      key={header.key}
+                      onClick={e => handleSort(header.key, e)}
+                      title="Click to sort • Alt + Click to hide"
+                      className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                    >
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <i className={`fa ${getSortIcon(header.key)} text-[9px] sm:text-xs`} />
+                        <span>{header.label}</span>
+                      </div>
+                    </th>
+                  ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {sortedData.map((item, index) => (
+                <tr
+                  key={index}
+                  className="hover:bg-blue-50 transition duration-150 ease-in-out border-b border-gray-100"
+                >
+                  {/* Action Icon */}
+                  {!hiddenColumns.includes("listCardRightTop") && (
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
+                      <button className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-md transition">
+                        <MoreVertical size={14} className="sm:w-[18px] text-gray-600" />
+                      </button>
+                    </td>
+                  )}
+
+                  {/* ID */}
+                  {!hiddenColumns.includes("cardId") && (
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 align-middle whitespace-nowrap">
+                      {item?.cardId?.value || "-"}
+                    </td>
+                  )}
+
+                  {/* Title */}
+                  {!hiddenColumns.includes("cardTitle") && (
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
+                      <div className="flex items-center justify-start gap-1 sm:gap-2">
+                        {item?.cardAvatar && (
+                          <i
+                            className={`fa ${item?.cardAvatar} text-gray-600 text-xs sm:text-base leading-none`}
+                            style={{
+                              lineHeight: "1",
+                              verticalAlign: "middle",
+                            }}
+                          ></i>
+                        )}
+                        <span className="font-medium text-gray-700 leading-none">
+                          {item?.cardTitle?.value || "-"}
+                        </span>
+                      </div>
+                    </td>
+                  )}
+
+                  {/* Status */}
+                  {!hiddenColumns.includes("cardLeftTop") && (
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
+                      {item?.cardLeftTop?.value === 1 ? (
+                        <span className="inline-block rounded-full bg-green-100 text-green-700 text-[9px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-block rounded-full bg-red-100 text-red-700 text-[9px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                  )}
+
+                  {/* Footer */}
+                  {item?.cardFooterSection?.map((footer, fIndex) => {
+                    const footerKey = `footer_${fIndex}`;
+                    if (hiddenColumns.includes(footerKey)) return null;
+
+                    return (
+                      <td
+                        key={fIndex}
+                        className="px-2 sm:px-4 py-2 sm:py-3 text-left text-gray-500 align-middle whitespace-nowrap"
+                      >
+                        {footer?.value || "-"}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
