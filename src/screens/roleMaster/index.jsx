@@ -40,7 +40,6 @@ const RoleMaster = () => {
 
   //  Fetch Role Master Data
   const fetchRoleMasterData = useCallback(async () => {
-    console.log("api call of role master data");
     setLoading(true);
     try {
       const response = await getRoleMaster();
@@ -49,7 +48,6 @@ const RoleMaster = () => {
       const activeConfig = configDataValue || roleMasterConfig;
 
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
-      console.log("transformed data of role master", transformedData);
 
       setRoleMasterData(transformedData);
       setFilteredData(transformedData);
@@ -58,30 +56,26 @@ const RoleMaster = () => {
     } finally {
       setLoading(false);
     }
-  }, [configDataValue]);
+  }, [configDataValue, setRoleMasterData, setFilteredData, setLoading]);
 
-  // useEffect(() => {
-  //   fetchRoleMasterData();
-  // }, []);
-
-  //  Step 3: Fetch data after config (or fallback) is ready
   useEffect(() => {
     if (!configLoading) {
       fetchRoleMasterData();
     }
-  }, [configLoading, fetchRoleMasterData]);
+  }, [configLoading]);
 
-  // handle refresh
   const handleRefresh = () => {
     fetchRoleMasterData();
   };
 
-  // handle download csv file
   const handleDownload = () => {
     exportMasterData(filteredData, "RoleMasterData", "excel");
   };
 
-  // Handlers
+  const onStatusChange = useCallback(() => {
+    fetchRoleMasterData();
+  }, [fetchRoleMasterData]);
+
   const onGridView = () => setCardsView(VIEWTYPE.GRID);
   const onListView = () => setCardsView(VIEWTYPE.LIST);
 
@@ -103,11 +97,14 @@ const RoleMaster = () => {
   };
 
   const handleAddRoleClick = () => {
-    console.log("Add Role Master button clicked!");
     setOpenDrawer(true);
   };
 
-  // Render Views (unchanged)
+  const onCloseDrawer = () => {
+    setOpenDrawer(false);
+    handleRefresh();
+  };
+
   const renderView = () => {
     if (configLoading || loading) {
       return <p className="text-center text-gray-500 py-10">Loading Role Masters...</p>;
@@ -121,7 +118,12 @@ const RoleMaster = () => {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
           {filteredData.map((role, index) => (
-            <ProfileCard key={index} data={role} />
+            <ProfileCard
+              key={index}
+              data={role}
+              onStatusChange={onStatusChange}
+              onCloseDrawer={handleRefresh}
+            />
           ))}
         </div>
       );
@@ -134,7 +136,6 @@ const RoleMaster = () => {
     return null;
   };
 
-  // Final Render
   return (
     <div className="flex-1 w-full min-h-screen bg-gray-50 -mt-4 -mx-4">
       <PageHeader
@@ -152,7 +153,7 @@ const RoleMaster = () => {
       {renderView()}
 
       {/* Add new role drawer */}
-      <RoleMasterDrawer open={openDrawer} onClose={() => setOpenDrawer(false)} />
+      <RoleMasterDrawer open={openDrawer} onClose={onCloseDrawer} />
     </div>
   );
 };

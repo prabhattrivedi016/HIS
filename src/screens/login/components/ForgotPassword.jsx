@@ -147,7 +147,7 @@ const ForgotPassword = ({ onClose }) => {
               {successMessage}
             </div>
           )}
-          {/* success & error message */}
+
           {errorMessage && (
             <div className="animate-fade-in px-4 py-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-center font-medium shadow-sm">
               {errorMessage}

@@ -8,12 +8,15 @@ const ENDPOINTS = {
   GET_PICKLIST_MASTER: "Home/getPickListMaster",
   SEND_EMAIL_OTP: "User/sendEmailOtp",
   VERIFY_EMAIL_OTP: "User/verifyEmailOtp",
-  FAC_ICON_LIST: "Admin/getFaIconList",
+  FA_ICON_LIST: "Admin/getFaIconList",
   ROLE_MASTER_LIST: "Admin/roleMasterList",
   USER_MASTER_LIST: "Admin/userMasterList",
   MASTER_CONFIG: "PageConfig/getConfigMaster",
+  CREATE_UPDATE_USER_MASTER: "Admin/CreateUpdateUserMaster",
+  USER_DEPARTMENT_LIST: "Admin/userDepartmentList",
+  UPDATE_ROLE_MASTER_STATUS: "Admin/updateRoleMasterStatus",
+  CREATE_UPDATE_ROLE_MASTER: "Admin/createUpdateRoleMaster",
+  UPDATE_USER_MASTER_STATUS: "Admin/updateUserMasterStatus",
 };
 
 export { ENDPOINTS };
-
-// 'http://103.217.247.236/HISWEBAPI/api/PageConfig/getConfigMaster?configKey=roleMaster' \

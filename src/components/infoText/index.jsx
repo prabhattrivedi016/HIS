@@ -5,9 +5,7 @@ const SuccessMessage = ({ text = "Success" }) => (
 );
 
 const InfoMessage = ({ text = "info" }) => (
-  <p className="text-yellow-200 border border-yellow-400 text-sm font-medium m-2">
-    {text}
-  </p>
+  <p className="text-yellow-200 border border-yellow-400 text-sm font-medium m-2">{text}</p>
 );
 
 const ErrorMessage = ({ text }) => {
@@ -28,4 +26,4 @@ const ModalHeader = ({ text }) => {
   return <h2 className=" text-lg font-semibold text-gray-700 mb-3">{text}</h2>;
 };
 
-export { SuccessMessage, InfoMessage, ErrorMessage, HintMessage, ModalHeader };
+export { ErrorMessage, HintMessage, InfoMessage, ModalHeader, SuccessMessage };
