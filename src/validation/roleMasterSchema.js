@@ -1,9 +1,8 @@
-import * as Yup from "yup";
+import * as yup from "yup";
 
-//role name ,active & inActive ,select option
-export const roleMasterSchema = Yup.object().shape({
-  roleId: Yup.string().trim().nullable,
-  roleName: Yup.string().trim().required("Role Name is required"),
-  isActive: Yup.string().trim().nullable,
-  mappingBranch: Yup.string().nullable(),
+export const roleMasterSchema = yup.object().shape({
+  roleName: yup.string().required("Role name is required"),
+  isActive: yup.string().required("Status is required"),
+  faIconId: yup.string().required("Icon selection is required"),
+  roleId: yup.string().nullable(),
 });

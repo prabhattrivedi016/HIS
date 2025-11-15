@@ -51,7 +51,8 @@ const UserMaster = () => {
       const activeConfig = userMasterConfig;
 
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
-      console.log("transformed data of user master", transformedData);
+
+      console.log("transmformed data of user data is", transformedData);
 
       setUserMasterData(transformedData);
       setFilteredData(transformedData);
@@ -132,7 +133,12 @@ const UserMaster = () => {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
           {userMasterData.map((user, index) => (
-            <ProfileCard data={user} key={user.cardId?.value || index} />
+            <ProfileCard
+              data={user}
+              key={user.cardId?.value || index}
+              onStatusChange={handleRefresh}
+              onCloseDrawer={() => {}}
+            />
           ))}
         </div>
       );
@@ -160,9 +166,6 @@ const UserMaster = () => {
       />
       {renderCards()}
 
-      {/* add new user drawer */}
-
-      {/* <UserMasterDrawer open={openDrawer} onClose={() => setOpenDrawer(false)} /> */}
       <FormComponent
         formConfig={formConfig}
         open={openDrawer}

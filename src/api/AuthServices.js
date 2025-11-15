@@ -1,90 +1,65 @@
-import axiosInstance from "./axiosInstance";
 import { ENDPOINTS } from "../config/defaults";
+import axiosInstance from "./axiosInstance";
 
 // User Login
-export const userLogin = async (loginData) => {
-  try {
-    return await axiosInstance.post(ENDPOINTS.LOGIN, loginData);
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} loginData
+ */
+export const userLogin = async loginData => {
+  return await axiosInstance.post(ENDPOINTS.LOGIN, loginData);
 };
 
 // User Signup
-export const userSignup = async (signupData) => {
-  try {
-    return await axiosInstance.post(ENDPOINTS.USER_SIGNUP, signupData);
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} signupData
+ */
+export const userSignup = async signupData => {
+  return await axiosInstance.post(ENDPOINTS.USER_SIGNUP, signupData);
 };
-
-// const payload = {
-//   ...signupData,
-// userId: 0,
-// isActive: true,
-// employeeID: "",
-// };
-//
 
 // Get Active Branch List
 export const getActiveBranchList = async () => {
-  try {
-    const response = await axiosInstance.get(ENDPOINTS.GET_BRANCHES);
-    return response.data;
-  } catch (err) {
-    throw err;
-  }
+  const response = await axiosInstance.get(ENDPOINTS.GET_BRANCHES);
+  return response.data;
 };
 
 // Send OTP (SMS)
-export const sendOtpApi = async (payload) => {
-  try {
-    return await axiosInstance.post(ENDPOINTS.SEND_OTP, payload);
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} payload
+ */
+export const sendOtpApi = async payload => {
+  return await axiosInstance.post(ENDPOINTS.SEND_OTP, payload);
 };
 
 // Verify SMS OTP
-export const verifySmsOtp = async (payload) => {
-  try {
-    return await axiosInstance.post(ENDPOINTS.VERIFY_SMS_OTP, payload);
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} payload
+ */
+export const verifySmsOtp = async payload => {
+  return await axiosInstance.post(ENDPOINTS.VERIFY_SMS_OTP, payload);
 };
 
 // Reset Password by UserID
-export const resetPasswordByUserId = async (payload) => {
-  try {
-    return await axiosInstance.post(
-      ENDPOINTS.RESET_PASSWORD_BY_USERID,
-      payload
-    );
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} payload
+ */
+export const resetPasswordByUserId = async payload => {
+  return await axiosInstance.post(ENDPOINTS.RESET_PASSWORD_BY_USERID, payload);
 };
 
 // Verify Email OTP
-export const verifyEmailOtp = async (payload) => {
-  try {
-    return await axiosInstance.post(ENDPOINTS.VERIFY_EMAIL_OTP, payload);
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} payload
+ */
+export const verifyEmailOtp = async payload => {
+  return await axiosInstance.post(ENDPOINTS.VERIFY_EMAIL_OTP, payload);
 };
 
 //send email otp
-export const sendEmailOtp = async (emailOtp) => {
-  try {
-    const response = await axiosInstance.post(
-      ENDPOINTS.SEND_EMAIL_OTP,
-      emailOtp
-    );
-    return response;
-  } catch (err) {
-    throw err;
-  }
+/**
+ * @param {*} emailOtp
+ */
+export const sendEmailOtp = async emailOtp => {
+  const response = await axiosInstance.post(ENDPOINTS.SEND_EMAIL_OTP, emailOtp);
+  return response;
 };

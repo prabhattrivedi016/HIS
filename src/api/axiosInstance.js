@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
 
 //attach token
 axiosInstance.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem("accessToken");
 
     if (token) {
@@ -18,7 +18,7 @@ axiosInstance.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  error => Promise.reject(error)
 );
 
 export default axiosInstance;

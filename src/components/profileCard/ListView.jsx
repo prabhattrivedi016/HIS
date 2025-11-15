@@ -1,16 +1,20 @@
 import { MoreVertical } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ListView = data => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [hiddenColumns, setHiddenColumns] = useState([]);
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
+  const menuRefs = useRef([]);
 
   const tableData = data?.data;
   const first = tableData?.[0];
 
+  console.log("table data ", tableData);
+
   // Extract headers dynamically
   const headers = [
-    { Key: "listCardRightTop", label: "Action" },
+    { key: "listCardRightTop", label: "Action" },
     { key: "cardId", label: first?.cardId?.label || "ID" },
     { key: "cardTitle", label: first?.cardTitle?.label || "Title" },
     { key: "cardLeftTop", label: first?.cardLeftTop?.label || "Status" },
@@ -19,6 +23,18 @@ const ListView = data => {
       label: f.label,
     })) || []),
   ];
+
+  // close the three dot button
+  useEffect(() => {
+    const handleOutsideClick = e => {
+      if (menuRefs.current.some(ref => ref && ref.contains(e.target))) {
+        return; // clicked inside
+      }
+      setOpenMenuIndex(null); // close all menus
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const handleSort = (key, event) => {
     if (event.altKey) {
@@ -36,6 +52,35 @@ const ListView = data => {
   };
 
   const resetColumns = () => setHiddenColumns([]);
+
+  // handle menu action
+  const handleMenuAction = (action, rowIndex) => {
+    setOpenMenuIndex(null);
+    switch (action) {
+      case "view":
+        // alert(`View details of row ${rowIndex + 1}`);
+        console.log("view");
+
+        break;
+      case "edit":
+        // alert(`Edit clicked on row ${rowIndex + 1}`);
+        console.log("edit");
+
+        break;
+      case "history":
+        // alert(`History clicked on row ${rowIndex + 1}`);
+        console.log("history");
+
+        break;
+      case "delete":
+        // alert(`Delete clicked on row ${rowIndex + 1}`);
+        console.log("delete");
+
+        break;
+      default:
+        break;
+    }
+  };
 
   // Sort the data
   const sortedData = [...tableData].sort((a, b) => {
@@ -95,7 +140,6 @@ const ListView = data => {
         </div>
       )}
 
-      {/* Responsive table wrapper */}
       <div className="overflow-x-auto rounded-lg shadow-lg bg-white">
         <div className="min-w-[480px] sm:min-w-full">
           <table className="min-w-full border-collapse text-[11px] sm:text-sm md:text-base text-gray-700">
@@ -106,14 +150,39 @@ const ListView = data => {
                   .map(header => (
                     <th
                       key={header.key}
-                      onClick={e => handleSort(header.key, e)}
-                      title="Click to sort • Alt + Click to hide"
-                      className="px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-700 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                      onClick={e => {
+                        if (e.altKey) {
+                          toggleColumnVisibility(header.key);
+                          return;
+                        }
+
+                        if (header.key !== "listCardRightTop") {
+                          handleSort(header.key, e);
+                        }
+                      }}
+                      title={
+                        header.key === "listCardRightTop"
+                          ? "Alt + Click to hide column"
+                          : "Click to sort • Alt + Click to hide"
+                      }
+                      className={`px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold uppercase tracking-wide select-none whitespace-nowrap
+            ${
+              header.key === "listCardRightTop"
+                ? "text-gray-700 cursor-pointer"
+                : "text-gray-700 cursor-pointer"
+            }`}
                     >
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <i className={`fa ${getSortIcon(header.key)} text-[9px] sm:text-xs`} />
-                        <span>{header.label}</span>
-                      </div>
+                      {header.key === "listCardRightTop" ? (
+                        <div className="flex justify-center items-center gap-1">
+                          {/* <MoreVertical size={14} className="text-gray-600" /> */}
+                          <span>{header.label}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <i className={`fa ${getSortIcon(header.key)} text-[9px] sm:text-xs`} />
+                          <span>{header.label}</span>
+                        </div>
+                      )}
                     </th>
                   ))}
               </tr>
@@ -127,12 +196,48 @@ const ListView = data => {
                 >
                   {/* Action Icon */}
                   {!hiddenColumns.includes("listCardRightTop") && (
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
-                      <button className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-md transition">
+                    <td
+                      className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle relative"
+                      ref={el => (menuRefs.current[index] = el)}
+                    >
+                      <button
+                        onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
+                        className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-md transition"
+                      >
                         <MoreVertical size={14} className="sm:w-[18px] text-gray-600" />
                       </button>
+
+                      {/* Dropdown menu */}
+                      {openMenuIndex === index && (
+                        <div
+                          className={`absolute ${
+                            index === sortedData.length - 1
+                              ? "bottom-10 sm:bottom-12 left-10"
+                              : "top-8 left-10"
+                          } right-0 w-40  bg-white border border-gray-200 rounded-md shadow-md z-20`}
+                        >
+                          {[
+                            { label: "View Details", action: "view" },
+                            { label: "Edit", action: "edit" },
+                            { label: "History", action: "history" },
+                            { label: "Delete", action: "delete" },
+                          ].map(item => (
+                            <button
+                              key={item.action}
+                              onClick={() => handleMenuAction(item.action, index)}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </td>
                   )}
+
+                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 align-middle whitespace-nowrap">
+                    {item?.id}
+                  </td>
 
                   {/* ID */}
                   {!hiddenColumns.includes("cardId") && (
@@ -164,7 +269,7 @@ const ListView = data => {
                   {/* Status */}
                   {!hiddenColumns.includes("cardLeftTop") && (
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
-                      {item?.cardLeftTop?.value === 1 ? (
+                      {item?.cardLeftTop?.value === "Active" ? (
                         <span className="inline-block rounded-full bg-green-100 text-green-700 text-[9px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
                           Active
                         </span>

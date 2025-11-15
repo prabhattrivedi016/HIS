@@ -27,8 +27,6 @@ export const useConfigMaster = () => {
       // Parse data
       const parsedJson = JSON.parse(configString);
       setConfigDataValue(parsedJson);
-
-      console.log(" Parsed Config Object:", parsedJson);
     } catch (error) {
       console.error(" Error while fetching config master value:", error);
       setConfigDataValue(null);
