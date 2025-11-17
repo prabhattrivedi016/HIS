@@ -7,29 +7,19 @@ export const useConfigMaster = () => {
 
   const getConfigMasterValue = async fieldName => {
     try {
-      //  API call with query param
-      const response = await axiosInstance.get(ENDPOINTS.MASTER_CONFIG, {
+      const res = await axiosInstance.get(ENDPOINTS.MASTER_CONFIG, {
         params: { configKey: fieldName },
       });
 
-      //  response
-      const data = Array.isArray(response?.data?.data)
-        ? response?.data?.data[0]
-        : response?.data?.data;
+      const apiRes = res?.data?.data;
 
-      if (!data?.configJson) {
-        console.warn(" No configJson found in API response");
-        return;
-      }
+      const parsedJson = JSON.parse(apiRes[0].configJson);
 
-      let configString = data.configJson;
-
-      // Parse data
-      const parsedJson = JSON.parse(configString);
       setConfigDataValue(parsedJson);
     } catch (error) {
-      console.error(" Error while fetching config master value:", error);
+      console.error("Error while fetching config master value:", error);
       setConfigDataValue(null);
+      return null;
     }
   };
 

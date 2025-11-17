@@ -34,7 +34,7 @@ export const createUpdateUserMaster = async createUserData => {
 /**
  * @param {{ userId: string|number, isActive: boolean }} updateData
  */
-export const updateforUserMasterstatus = async updateData => {
+export const updateForUserMasterstatus = async updateData => {
   try {
     console.log("user master active toggle is clicked");
     const response = await axiosInstance.patch(

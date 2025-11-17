@@ -1,305 +1,128 @@
 import { MoreVertical } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-const ListView = data => {
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-  const [hiddenColumns, setHiddenColumns] = useState([]);
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  const menuRefs = useRef([]);
+const ListView = ({ data = [], onStatusChange }) => {
+  const [openListMenu, setOpenListMenu] = useState(null);
 
-  const tableData = data?.data;
-  const first = tableData?.[0];
+  const tableData = data;
+  const firstData = tableData[0] || {};
 
-  console.log("table data ", tableData);
+  const cardTitleValue = value =>
+    value === "roleMaster" ? "Role Name" : value === "userMaster" ? "User Name" : "Name";
 
-  // Extract headers dynamically
+  const cardTitleName = cardTitleValue(firstData?.type);
+
   const headers = [
-    { key: "listCardRightTop", label: "Action" },
-    { key: "cardId", label: first?.cardId?.label || "ID" },
-    { key: "cardTitle", label: first?.cardTitle?.label || "Title" },
-    { key: "cardLeftTop", label: first?.cardLeftTop?.label || "Status" },
-    ...(first?.cardFooterSection?.map((f, index) => ({
+    { key: "listLeftButton", label: firstData?.listLeftButton?.[0]?.label || "Action" },
+    { key: "cardId", label: firstData?.cardId?.[0]?.label || "ID" },
+    { key: "cardTitle", label: cardTitleName || "Title" },
+    { key: "status", label: firstData?.listStatus?.[0]?.label || "Status" },
+    ...(firstData?.listGroupSection?.map((f, index) => ({
       key: `footer_${index}`,
       label: f.label,
     })) || []),
   ];
 
-  // close the three dot button
+  const handleListLeftButton = (e, rowData) => {
+    e.stopPropagation();
+    setOpenListMenu(prev => (prev?.id === rowData?.id ? null : rowData));
+  };
+
   useEffect(() => {
-    const handleOutsideClick = e => {
-      if (menuRefs.current.some(ref => ref && ref.contains(e.target))) {
-        return; // clicked inside
-      }
-      setOpenMenuIndex(null); // close all menus
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    const closeMenu = () => setOpenListMenu(null);
+    document.addEventListener("click", closeMenu);
+    return () => document.removeEventListener("click", closeMenu);
   }, []);
 
-  const handleSort = (key, event) => {
-    if (event.altKey) {
-      toggleColumnVisibility(key);
-      return;
-    }
-    const direction = sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
-    setSortConfig({ key, direction });
-  };
-
-  const toggleColumnVisibility = key => {
-    setHiddenColumns(prev =>
-      prev.includes(key) ? prev.filter(col => col !== key) : [...prev, key]
-    );
-  };
-
-  const resetColumns = () => setHiddenColumns([]);
-
-  // handle menu action
-  const handleMenuAction = (action, rowIndex) => {
-    setOpenMenuIndex(null);
-    switch (action) {
-      case "view":
-        // alert(`View details of row ${rowIndex + 1}`);
-        console.log("view");
-
-        break;
-      case "edit":
-        // alert(`Edit clicked on row ${rowIndex + 1}`);
-        console.log("edit");
-
-        break;
-      case "history":
-        // alert(`History clicked on row ${rowIndex + 1}`);
-        console.log("history");
-
-        break;
-      case "delete":
-        // alert(`Delete clicked on row ${rowIndex + 1}`);
-        console.log("delete");
-
-        break;
+  const extractValue = (rowData, key) => {
+    const isActive = rowData?.listStatus?.[0]?.value === 1;
+    switch (key) {
+      case "listLeftButton":
+        return (
+          <div className="relative inline-block">
+            <button
+              className="cursor-pointer p-1 hover:bg-gray-100 rounded transition-colors"
+              onClick={e => handleListLeftButton(e, rowData)}
+            >
+              <MoreVertical size={18} className="text-gray-600" />
+            </button>
+            {openListMenu?.id === rowData?.id && (
+              <div
+                className="absolute left-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                onClick={e => e.stopPropagation()}
+              >
+                <ul className="text-sm">
+                  <li
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-gray-700 transition-colors"
+                    onClick={() => console.log("Edit clicked", rowData)}
+                  >
+                    Edit
+                  </li>
+                  <li
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-gray-700 transition-colors"
+                    onClick={() =>
+                      onStatusChange({ isActive: isActive ? 0 : 1, userId: rowData?.id })
+                    }
+                  >
+                    {isActive ? "Inactive" : "Active"}
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      case "cardId":
+        return rowData?.cardId?.[0]?.value || "-";
+      case "cardTitle":
+        return rowData?.cardTitle?.map(t => t?.value).join(" ") || "Unknown";
+      case "status":
+        return (
+          <span
+            className={`px-2 py-1 rounded text-xs font-semibold ${
+              isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        );
       default:
-        break;
+        return key.startsWith("footer_")
+          ? rowData?.listGroupSection?.[Number(key.split("_")[1])]?.value || "-"
+          : "-";
     }
   };
-
-  // Sort the data
-  const sortedData = [...tableData].sort((a, b) => {
-    if (!sortConfig.key) return 0;
-    let aValue = "",
-      bValue = "";
-
-    if (sortConfig.key === "cardId") {
-      aValue = a?.cardId?.value;
-      bValue = b?.cardId?.value;
-    } else if (sortConfig.key === "cardTitle") {
-      aValue = a?.cardTitle?.value;
-      bValue = b?.cardTitle?.value;
-    } else if (sortConfig.key === "cardLeftTop") {
-      aValue = a?.cardLeftTop?.value;
-      bValue = b?.cardLeftTop?.value;
-    } else if (sortConfig.key.startsWith("footer_")) {
-      const index = parseInt(sortConfig.key.split("_")[1]);
-      aValue = a.cardFooterSection[index]?.value;
-      bValue = b.cardFooterSection[index]?.value;
-    }
-
-    aValue = aValue || "";
-    bValue = bValue || "";
-
-    if (!isNaN(aValue) && !isNaN(bValue)) {
-      return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
-    }
-
-    return sortConfig.direction === "asc"
-      ? aValue.toString().localeCompare(bValue.toString())
-      : bValue.toString().localeCompare(aValue.toString());
-  });
-
-  const getSortIcon = headerKey => {
-    if (sortConfig.key !== headerKey) return "fa-sort text-gray-400";
-    return sortConfig.direction === "asc"
-      ? "fa-sort-up text-blue-600"
-      : "fa-sort-down text-blue-600";
-  };
-
-  if (!data || !data?.data || data?.data?.length === 0) {
-    return <p className="text-gray-500 text-center">No data available</p>;
-  }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6">
-      {/* Reset button */}
-      {hiddenColumns.length > 0 && (
-        <div className="flex justify-end mb-2 sm:mb-3">
-          <button
-            onClick={resetColumns}
-            className="text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 sm:px-3 py-1 rounded hover:bg-blue-200 transition"
-          >
-            Reset Columns
-          </button>
-        </div>
-      )}
-
-      <div className="overflow-x-auto rounded-lg shadow-lg bg-white">
-        <div className="min-w-[480px] sm:min-w-full">
-          <table className="min-w-full border-collapse text-[11px] sm:text-sm md:text-base text-gray-700">
-            <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-              <tr>
-                {headers
-                  .filter(header => !hiddenColumns.includes(header.key))
-                  .map(header => (
-                    <th
-                      key={header.key}
-                      onClick={e => {
-                        if (e.altKey) {
-                          toggleColumnVisibility(header.key);
-                          return;
-                        }
-
-                        if (header.key !== "listCardRightTop") {
-                          handleSort(header.key, e);
-                        }
-                      }}
-                      title={
-                        header.key === "listCardRightTop"
-                          ? "Alt + Click to hide column"
-                          : "Click to sort • Alt + Click to hide"
-                      }
-                      className={`px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold uppercase tracking-wide select-none whitespace-nowrap
-            ${
-              header.key === "listCardRightTop"
-                ? "text-gray-700 cursor-pointer"
-                : "text-gray-700 cursor-pointer"
-            }`}
-                    >
-                      {header.key === "listCardRightTop" ? (
-                        <div className="flex justify-center items-center gap-1">
-                          {/* <MoreVertical size={14} className="text-gray-600" /> */}
-                          <span>{header.label}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <i className={`fa ${getSortIcon(header.key)} text-[9px] sm:text-xs`} />
-                          <span>{header.label}</span>
-                        </div>
-                      )}
-                    </th>
-                  ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedData.map((item, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-blue-50 transition duration-150 ease-in-out border-b border-gray-100"
+    <div className="w-full px-3 py-2 sm:px-6 sm:py-4 md:px-8 md:py-6">
+      <div className="w-full overflow-x-auto rounded-lg shadow-lg bg-white">
+        <table className="w-full min-w-max border-collapse text-xs sm:text-sm md:text-base text-gray-700">
+          <thead className="bg-blue-50 border-b border-blue-200">
+            <tr>
+              {headers.map(header => (
+                <th
+                  key={header.key}
+                  className="px-3 sm:px-4 py-2 text-left font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap"
                 >
-                  {/* Action Icon */}
-                  {!hiddenColumns.includes("listCardRightTop") && (
-                    <td
-                      className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle relative"
-                      ref={el => (menuRefs.current[index] = el)}
-                    >
-                      <button
-                        onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
-                        className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-md transition"
-                      >
-                        <MoreVertical size={14} className="sm:w-[18px] text-gray-600" />
-                      </button>
-
-                      {/* Dropdown menu */}
-                      {openMenuIndex === index && (
-                        <div
-                          className={`absolute ${
-                            index === sortedData.length - 1
-                              ? "bottom-10 sm:bottom-12 left-10"
-                              : "top-8 left-10"
-                          } right-0 w-40  bg-white border border-gray-200 rounded-md shadow-md z-20`}
-                        >
-                          {[
-                            { label: "View Details", action: "view" },
-                            { label: "Edit", action: "edit" },
-                            { label: "History", action: "history" },
-                            { label: "Delete", action: "delete" },
-                          ].map(item => (
-                            <button
-                              key={item.action}
-                              onClick={() => handleMenuAction(item.action, index)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  )}
-
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 align-middle whitespace-nowrap">
-                    {item?.id}
-                  </td>
-
-                  {/* ID */}
-                  {!hiddenColumns.includes("cardId") && (
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 align-middle whitespace-nowrap">
-                      {item?.cardId?.value || "-"}
-                    </td>
-                  )}
-
-                  {/* Title */}
-                  {!hiddenColumns.includes("cardTitle") && (
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
-                      <div className="flex items-center justify-start gap-1 sm:gap-2">
-                        {item?.cardAvatar && (
-                          <i
-                            className={`fa ${item?.cardAvatar} text-gray-600 text-xs sm:text-base leading-none`}
-                            style={{
-                              lineHeight: "1",
-                              verticalAlign: "middle",
-                            }}
-                          ></i>
-                        )}
-                        <span className="font-medium text-gray-700 leading-none">
-                          {item?.cardTitle?.value || "-"}
-                        </span>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Status */}
-                  {!hiddenColumns.includes("cardLeftTop") && (
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
-                      {item?.cardLeftTop?.value === "Active" ? (
-                        <span className="inline-block rounded-full bg-green-100 text-green-700 text-[9px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-block rounded-full bg-red-100 text-red-700 text-[9px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                  )}
-
-                  {/* Footer */}
-                  {item?.cardFooterSection?.map((footer, fIndex) => {
-                    const footerKey = `footer_${fIndex}`;
-                    if (hiddenColumns.includes(footerKey)) return null;
-
-                    return (
-                      <td
-                        key={fIndex}
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-left text-gray-500 align-middle whitespace-nowrap"
-                      >
-                        {footer?.value || "-"}
-                      </td>
-                    );
-                  })}
-                </tr>
+                  {header.label}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.map((rowData, idx) => (
+              <tr
+                key={idx}
+                className="hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200"
+              >
+                {headers.map(header => (
+                  <td key={header.key} className="px-3 sm:px-4 py-2 whitespace-nowrap align-middle">
+                    {extractValue(rowData, header.key)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
