@@ -17,7 +17,7 @@ export const getRoleMaster = async () => {
 /**
  * @param {{ roleId: string|number, isActive: boolean }} updateData
  */
-export const updateforRoleMasterstatus = async updateData => {
+export const updateForRoleMasterstatus = async updateData => {
   try {
     const response = await axiosInstance.patch(
       ENDPOINTS.UPDATE_ROLE_MASTER_STATUS,

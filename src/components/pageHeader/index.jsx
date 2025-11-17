@@ -2,7 +2,7 @@ import { Download, Grid, List, RefreshCcw, Search, UserPlus } from "lucide-react
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
 
-const PageHeader = ({ title, onCardView, buttonTitle }) => {
+const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAddNew }) => {
   return (
     <header className="px-4 py-6 bg-gray-50 mx-2">
       <div
@@ -46,6 +46,7 @@ const PageHeader = ({ title, onCardView, buttonTitle }) => {
               type="text"
               placeholder="Search"
               className="w-full p-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400"
+              onChange={onSearch}
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
               <Search size={16} />
@@ -73,6 +74,7 @@ const PageHeader = ({ title, onCardView, buttonTitle }) => {
             <button
               className="p-2.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
               title="Refresh"
+              onClick={onRefresh}
             >
               <RefreshCcw size={16} />
             </button>
@@ -99,6 +101,7 @@ const PageHeader = ({ title, onCardView, buttonTitle }) => {
                 transition-colors
                 whitespace-nowrap
               "
+              onClick={onAddNew}
             >
               <UserPlus size={16} /> {buttonTitle}
             </button>

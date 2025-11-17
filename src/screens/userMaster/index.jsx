@@ -7,11 +7,17 @@ import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
 import { transformDataWithConfig } from "../../utils/utilities";
+import UserMasterDrawer from "./components/UserMasterDrawer";
 
 const UserMaster = () => {
   const { configDataValue, getConfigMasterValue } = useConfigMaster();
   const [userMasterGridData, setUserMasterGridData] = useState([]);
   const [userMasterListData, setUserMasterListData] = useState([]);
+  const [gridFilteredData, setGridFilteredData] = useState([]);
+  const [listFilteredData, setListFilteredData] = useState([]);
+  const [openUserDrawer, setOpenUserDrawer] = useState(false);
+  const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New User");
+  const [userDrawerTitle, setUserDrawerTitle] = useState("Add New User");
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
 
@@ -37,7 +43,10 @@ const UserMaster = () => {
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
       setUserMasterGridData(transformedData?.gridView);
+      setGridFilteredData(transformedData?.gridView);
+
       setUserMasterListData(transformedData?.listView);
+      setListFilteredData(transformedData?.listView);
     } catch (error) {
       console.error("Error fetching User Master list:", error?.message);
     }
@@ -62,12 +71,50 @@ const UserMaster = () => {
     }
   };
 
+  // handle refresh
+  const handleRefresh = () => {
+    fetchUserMasterListData();
+  };
+
+  // search handler
+  const searchHandler = e => {
+    const query = e.target.value.toLowerCase();
+
+    if (!query) {
+      setGridFilteredData(userMasterGridData);
+      setListFilteredData(userMasterListData);
+      return;
+    }
+    const filteredGridData = userMasterGridData.filter(item =>
+      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(query))
+    );
+
+    const filteredListData = userMasterListData?.filter(item =>
+      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(query))
+    );
+
+    setGridFilteredData(filteredGridData);
+    setListFilteredData(filteredListData);
+  };
+
+  // add new user handler
+  const addNewHandler = () => {
+    setOpenUserDrawer(true);
+  };
+
   const renderComponent = view => {
     if (view === VIEWTYPE?.GRID) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 px-4 pb-10  mt-5">
-          {userMasterGridData.map((user, index) => (
-            <GridView key={index} data={user} onStatusChange={updateUserMasterStatus} />
+          {gridFilteredData.map((user, index) => (
+            <GridView
+              key={index}
+              data={user}
+              onStatusChange={updateUserMasterStatus}
+              openDrawer={addNewHandler}
+              buttonTitle={setDrawerButtonTitle}
+              drawerTitle={setUserDrawerTitle}
+            />
           ))}
         </div>
       );
@@ -76,7 +123,13 @@ const UserMaster = () => {
     if (view === VIEWTYPE?.LIST) {
       return (
         <div className="px-4 pb-8 overflow-x-auto">
-          <ListView data={userMasterListData} onStatusChange={updateUserMasterStatus} />
+          <ListView
+            data={listFilteredData}
+            onStatusChange={updateUserMasterStatus}
+            openDrawer={addNewHandler}
+            buttonTitle={setDrawerButtonTitle}
+            drawerTitle={setUserDrawerTitle}
+          />
         </div>
       );
     }
@@ -84,9 +137,25 @@ const UserMaster = () => {
 
   return (
     <div className="flex-1 w-full min-h-screen bg-gray-50 -mt-4 -mx-4">
-      <PageHeader title="User Master" onCardView={handleCardView} buttonTitle="Add New User" />
+      <PageHeader
+        title="User Master"
+        onCardView={handleCardView}
+        buttonTitle="Add New User"
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
+        onAddNew={addNewHandler}
+      />
 
       <div className="w-full">{renderComponent(cardView)}</div>
+
+      {openUserDrawer && (
+        <UserMasterDrawer
+          isOpen={openUserDrawer}
+          onClose={() => setOpenUserDrawer(false)}
+          buttonTitle={drawerButtonTitle}
+          drawerTitle={userDrawerTitle}
+        />
+      )}
     </div>
   );
 };
