@@ -1,7 +1,9 @@
 export const roleMasterConfig = {
-  type: "RoleMaster",
+  type: "roleMaster",
   gridCardView: {
+    type: "roleMaster",
     id: "0",
+
     gridLeftTop: [
       {
         label: "Status",
@@ -58,10 +60,11 @@ export const roleMasterConfig = {
     ],
   },
   listCardView: {
+    type: "roleMaster",
     id: "0",
     listLeftButton: [
       {
-        label: "Active",
+        label: "Action",
         action: "toggleActive",
       },
     ],
@@ -75,6 +78,12 @@ export const roleMasterConfig = {
       {
         label: "Role Name",
         keyFromApi: "roleName",
+      },
+    ],
+    listStatus: [
+      {
+        label: "Status",
+        keyFromApi: "isActive",
       },
     ],
     listGroupSection: [

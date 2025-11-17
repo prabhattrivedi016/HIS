@@ -1,38 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
-import { getUserMasterList } from "../../api/userMasterApis";
-import FormComponent from "../../components/formComponent/FormComponent";
+import { useEffect, useState } from "react";
+import { getUserMasterList, updateForUserMasterstatus } from "../../api/userMasterApis";
 import PageHeader from "../../components/pageHeader";
-import ProfileCard from "../../components/profileCard";
+import GridView from "../../components/profileCard/GridView";
 import ListView from "../../components/profileCard/ListView";
-import { formConfig } from "../../config/formConfig/formConfig";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
-import { exportMasterData } from "../../utils/exportUtils";
 import { transformDataWithConfig } from "../../utils/utilities";
 
 const UserMaster = () => {
-  //  Custom hook to fetch backend configuration
   const { configDataValue, getConfigMasterValue } = useConfigMaster();
+  const [userMasterGridData, setUserMasterGridData] = useState([]);
+  const [userMasterListData, setUserMasterListData] = useState([]);
 
-  //  Local states
-  const [userMasterData, setUserMasterData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [cardsView, setCardsView] = useState(VIEWTYPE.GRID);
-  const [loading, setLoading] = useState(false);
-  const [configLoading, setConfigLoading] = useState(true);
-  const [openDrawer, setOpenDrawer] = useState(false);
-
-  //  user master config file
+  const [cardView, setCardView] = useState(VIEWTYPE.GRID);
 
   const fetchConfig = async () => {
-    setConfigLoading(true);
     try {
       await getConfigMasterValue("userMaster");
     } catch (err) {
       console.error("Error fetching User Master config, using fallback:", err);
-    } finally {
-      setConfigLoading(false);
     }
   };
 
@@ -40,137 +27,66 @@ const UserMaster = () => {
     fetchConfig();
   }, []);
 
-  //  Fetch user data (after config loaded)
-  const fetchUserMasterListData = useCallback(async () => {
-    if (configLoading) return;
-    setLoading(true);
+  const fetchUserMasterListData = async () => {
     try {
       const response = await getUserMasterList();
       const apiResponse = response?.data || [];
 
-      const activeConfig = userMasterConfig;
+      const activeConfig = configDataValue || userMasterConfig;
 
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
-      console.log("transmformed data of user data is", transformedData);
-
-      setUserMasterData(transformedData);
-      setFilteredData(transformedData);
+      setUserMasterGridData(transformedData?.gridView);
+      setUserMasterListData(transformedData?.listView);
     } catch (error) {
-      console.error("Error fetching User Master list:", error.message);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching User Master list:", error?.message);
     }
-  }, [configDataValue, configLoading]);
+  };
 
   useEffect(() => {
     fetchUserMasterListData();
-  }, [fetchUserMasterListData]);
+  }, []);
 
-  //  Refresh button handler
-  const handleRefresh = () => {
-    fetchUserMasterListData();
+  const handleCardView = cardType => {
+    setCardView(cardType);
   };
 
-  // handle download
-  const handleDownload = () => {
-    exportMasterData(filteredData, "UserMaster", "csv");
-  };
-
-  // Add new user handler
-  const addNewUserHandler = () => {
-    console.log("Add new User handler is clicked!!");
-    setOpenDrawer(true);
-  };
-
-  //  Switch views
-  const onGridView = () => setCardsView(VIEWTYPE.GRID);
-  const onListView = () => setCardsView(VIEWTYPE.LIST);
-
-  //  Handle search
-  const handleSearch = value => {
-    if (!value.trim()) {
-      setFilteredData(userMasterData);
-      return;
+  // update status
+  const updateUserMasterStatus = async ({ isActive, userId }) => {
+    try {
+      const res = await updateForUserMasterstatus({ isActive, userId });
+      console.log("user status update", res?.data);
+      fetchUserMasterListData();
+    } catch (error) {
+      console.log("error while updating user status", error?.message);
     }
-
-    const search = value.toLowerCase();
-
-    const filtered = userMasterData.filter(item => {
-      // Handle cardTitle
-      let titleValue = "";
-      if (Array.isArray(item.cardTitle)) {
-        titleValue = item.cardTitle.map(t => t.value).join(" ");
-      } else if (typeof item.cardTitle === "object") {
-        titleValue = item.cardTitle?.value || "";
-      }
-
-      // Handle cardId
-      let idValue = "";
-      if (Array.isArray(item.cardId)) {
-        idValue = item.cardId.map(t => t.value).join(" ");
-      } else if (typeof item.cardId === "object") {
-        idValue = item.cardId?.value || "";
-      }
-
-      return titleValue.toLowerCase().includes(search) || idValue.toString().includes(search);
-    });
-
-    setFilteredData(filtered);
   };
 
-  // Render grid or list view
-  const renderCards = () => {
-    if (configLoading || loading) {
-      return <p className="text-center text-gray-500 py-10">Loading User Masters...</p>;
-    }
-
-    if (!filteredData || filteredData.length === 0) {
-      return <p className="text-center text-gray-500 py-10">No Users Found</p>;
-    }
-
-    if (cardsView === VIEWTYPE.GRID) {
+  const renderComponent = view => {
+    if (view === VIEWTYPE?.GRID) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 py-4">
-          {userMasterData.map((user, index) => (
-            <ProfileCard
-              data={user}
-              key={user.cardId?.value || index}
-              onStatusChange={handleRefresh}
-              onCloseDrawer={() => {}}
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 px-4 pb-10  mt-5">
+          {userMasterGridData.map((user, index) => (
+            <GridView key={index} data={user} onStatusChange={updateUserMasterStatus} />
           ))}
         </div>
       );
     }
 
-    if (cardsView === VIEWTYPE.LIST) {
-      return <ListView data={userMasterData} />;
+    if (view === VIEWTYPE?.LIST) {
+      return (
+        <div className="px-4 pb-8 overflow-x-auto">
+          <ListView data={userMasterListData} onStatusChange={updateUserMasterStatus} />
+        </div>
+      );
     }
-
-    return null;
   };
 
   return (
     <div className="flex-1 w-full min-h-screen bg-gray-50 -mt-4 -mx-4">
-      <PageHeader
-        title="User Master"
-        buttonTitle="Add New User"
-        onGridView={onGridView}
-        onListView={onListView}
-        selectedViewType={cardsView}
-        onSearch={handleSearch}
-        onClick={addNewUserHandler}
-        onClickRefresh={handleRefresh}
-        onClickDownload={handleDownload}
-      />
-      {renderCards()}
+      <PageHeader title="User Master" onCardView={handleCardView} buttonTitle="Add New User" />
 
-      <FormComponent
-        formConfig={formConfig}
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-      />
+      <div className="w-full">{renderComponent(cardView)}</div>
     </div>
   );
 };

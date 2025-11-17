@@ -1,6 +1,7 @@
 export const userMasterConfig = {
   type: "userMaster",
   gridCardView: {
+    type: "userMaster",
     id: "0",
     gridLeftTop: [
       {
@@ -56,10 +57,11 @@ export const userMasterConfig = {
     ],
   },
   listCardView: {
+    type: "userMaster",
     id: "0",
     listLeftButton: [
       {
-        label: "Active",
+        label: "Action",
         action: "listToggleActive",
       },
     ],
@@ -79,6 +81,12 @@ export const userMasterConfig = {
         keyFromApi: "lastName",
       },
     ],
+    listStatus: [
+      {
+        label: "Status",
+        keyFromApi: "isActive",
+      },
+    ],
     listGroupSection: [
       {
         label: "Gender",
@@ -89,7 +97,7 @@ export const userMasterConfig = {
         keyFromApi: "contact",
       },
       {
-        label: "Address ",
+        label: "Address",
         keyFromApi: "address",
       },
     ],
