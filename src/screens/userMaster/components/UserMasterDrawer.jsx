@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../../../components/customInputField";
 import userMasterSchema from "../../../validation/userMasterSchema";
 
-const UserMasterDrawer = ({ open, onClose }) => {
+const UserMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle }) => {
   const {
     register,
     handleSubmit,
@@ -52,7 +52,7 @@ const UserMasterDrawer = ({ open, onClose }) => {
       >
         <div className="flex  justify-between items-center p-4 border-b border-gray-300 bg-gray-100 sticky top-0 z-10">
           <div className="flex flex-col">
-            <h2 className="text-lg font-semibold text-gray-800">Add New User</h2>
+            <h2 className="text-lg font-semibold text-gray-800">{drawerTitle}</h2>
             <p className="text-sm text-red-500 mt-1">Fields marked with * are required</p>
           </div>
           <button
@@ -187,7 +187,7 @@ const UserMasterDrawer = ({ open, onClose }) => {
               className="w-full px-6 py-2 bg-[#1e6da1] text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
               type="submit"
             >
-              Create New User
+              {buttonTitle}
             </button>
           </div>
         </form>

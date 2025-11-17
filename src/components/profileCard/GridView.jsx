@@ -1,8 +1,6 @@
 import { MoreVertical, User } from "lucide-react";
 
-const GridView = ({ data, onStatusChange }) => {
-  console.log("data grid", data);
-
+const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }) => {
   const {
     cardLeftTop = [],
     cardRightTop = [],
@@ -37,7 +35,21 @@ const GridView = ({ data, onStatusChange }) => {
         return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, userId: id });
       }
 
+      case "toggleActive": {
+        return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, roleId: id });
+      }
+
       case "gridToggleEdit": {
+        buttonTitle("Update User");
+        drawerTitle("Update Existing User");
+        openDrawer();
+
+        return;
+      }
+      case "toggleEdit": {
+        buttonTitle("Update Role");
+        drawerTitle("Update Existing Role");
+        openDrawer();
         return;
       }
     }
@@ -105,7 +117,7 @@ const GridView = ({ data, onStatusChange }) => {
             <button
               key={btn.label}
               style={{
-                backgroundColor: btn.color || (btn.label === "Active" ? "#22c55e" : "#3b82f6"),
+                backgroundColor: btn.color || (btn.label === "Active" ? "#0b5394" : "#5f6f88"),
               }}
               className="flex-1 text-white text-sm py-2 rounded-md font-medium transition hover:opacity-80"
               onClick={() => handleButtonClick(btn.action)}
