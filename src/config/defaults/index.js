@@ -12,7 +12,7 @@ const ENDPOINTS = {
   ROLE_MASTER_LIST: "Admin/roleMasterList",
   USER_MASTER_LIST: "Admin/userMasterList",
   MASTER_CONFIG: "PageConfig/getConfigMaster",
-  CREATE_UPDATE_USER_MASTER: "Admin/updateUserMasterStatus",
+  CREATE_UPDATE_USER_MASTER: "Admin/CreateUpdateUserMaster",
   USER_DEPARTMENT_LIST: "Admin/userDepartmentList",
   UPDATE_ROLE_MASTER_STATUS: "Admin/updateRoleMasterStatus",
   CREATE_UPDATE_ROLE_MASTER: "Admin/createUpdateRoleMaster",

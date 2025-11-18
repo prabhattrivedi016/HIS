@@ -2,7 +2,12 @@ import { ENDPOINTS } from "../config/defaults";
 import axiosInstance from "./axiosInstance";
 
 // user master list
-export const getUserMasterList = async () => {
+export const getUserMasterList = async (id = "") => {
+  if (id) {
+    return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST, {
+      params: { userId: id },
+    });
+  }
   return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST);
 };
 
@@ -22,11 +27,13 @@ export const getUserDepartmentList = async () => {
  * @param {CreateUserData} createUserData
  */
 export const createUpdateUserMaster = async createUserData => {
+  const { userId } = createUserData ?? {};
   const payload = {
     ...createUserData,
-    userId: "0",
   };
-
+  if (!userId) {
+    payload.userId = "0";
+  }
   return await axiosInstance.post(ENDPOINTS.CREATE_UPDATE_USER_MASTER, payload);
 };
 
@@ -38,7 +45,7 @@ export const updateForUserMasterstatus = async updateData => {
   try {
     console.log("user master active toggle is clicked");
     const response = await axiosInstance.patch(
-      ENDPOINTS.CREATE_UPDATE_USER_MASTER,
+      ENDPOINTS.UPDATE_USER_MASTER_STATUS,
       null, // no body since we're sending query params
       {
         params: {

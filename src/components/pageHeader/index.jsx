@@ -101,7 +101,9 @@ const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAdd
                 transition-colors
                 whitespace-nowrap
               "
-              onClick={onAddNew}
+              onClick={() => {
+                onAddNew?.();
+              }}
             >
               <UserPlus size={16} /> {buttonTitle}
             </button>

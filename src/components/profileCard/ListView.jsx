@@ -10,7 +10,7 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
   const tableData = sortedItems ?? data;
   const firstData = tableData[0] || {};
 
-  // 1 Column Definitions
+  // table heading
   const headers = [
     { key: "listLeftButton", label: firstData?.listLeftButton?.[0]?.label || "Action" },
     { key: "cardId", label: firstData?.cardId?.[0]?.label || "ID" },
@@ -22,20 +22,20 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
     })) || []),
   ];
 
-  // 2️ Helper to Open Popup and Track Row
+  // Open Popup
   const handleListLeftButton = (e, rowData) => {
     e.stopPropagation();
     setOpenListMenu(prev => (prev?.id === rowData?.id ? null : rowData));
   };
 
-  // Auto-Close Popup when Clicking Outside
+  // Close Popup
   useEffect(() => {
     const closeMenu = () => setOpenListMenu(null);
     document.addEventListener("click", closeMenu);
     return () => document.removeEventListener("click", closeMenu);
   }, []);
 
-  // 4️Helper to Toggle Status
+  //  Toggle Status
   const handleStatusChange = rowData => {
     const type = rowData?.type?.toLowerCase();
     const payload = {
@@ -52,10 +52,8 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
   // open drawer
   const openDrawerHandler = rowData => {
     const type = rowData?.type?.toLowerCase();
-    buttonTitle(type === "rolemaster" ? "Update Existing Role" : "Update Existing User");
-    drawerTitle(type === "rolemaster" ? "Update Role" : "Update User");
     setOpenListMenu(null);
-    openDrawer();
+    openDrawer(rowData?.id);
   };
 
   // hiding column
@@ -69,7 +67,7 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
     }
   };
 
-  // 7 Restore Hidden Columns Button
+  //  Restore Hidden Columns Button
   const restoreHiddenColumns = () => setHiddenColumns([]);
 
   // Sorting handler

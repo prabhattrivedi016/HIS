@@ -9,36 +9,14 @@ import { usePickMaster } from "../../hooks/usePickMaster";
 import { formValidator } from "../../validation/formValidator";
 import InputField from "../customInputField";
 
-const userMasterData = {
-  id: 6,
-  firstName: "xyz",
-  midelName: "",
-  lastName: "",
-  dob: "06-11-2025",
-  gender: "Female",
-  userName: "admin1",
-  password: "PE5wEEM4Z908b#5vhjP31QecdNt@hwdbgT",
-  address: "vns",
-  contact: "1234567890",
-  email: "admin@gamil.com",
-  isActive: 1,
-  employeeID: "002",
-  createdBy: "GWS   (GWS)",
-  createdOn: "14-11-2025 06:13 PM",
-  lastModifiedBy: "Rohit   (Rohit)",
-  lastModifiedOn: null,
-  reportToUserId: 1,
-  userDepartmentId: 2,
-};
-
-const FormComponent = ({ open, onClose, formConfig }) => {
+const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [localSelectData, setLocalSelectData] = useState({});
-
+  const [userMasterData, setUserMasterData] = useState({});
   // Fetch gender picklist
   useEffect(() => {
     getPickMasterValue("gender");
@@ -74,7 +52,21 @@ const FormComponent = ({ open, onClose, formConfig }) => {
 
   useEffect(() => {
     getUserMaster();
-  }, []);
+    if (userId) getUserMasterById();
+  }, [userId]);
+
+  // fetch user by id
+  const getUserMasterById = async () => {
+    try {
+      const response = await getUserMasterList(userId);
+      console.log("user master data", response?.data?.data);
+      const apiResponse = response?.data?.data;
+
+      setUserMasterData(apiResponse?.[0]);
+    } catch (error) {
+      console.log("error while fetching the user master list", error?.message);
+    }
+  };
 
   const {
     register,
@@ -102,8 +94,11 @@ const FormComponent = ({ open, onClose, formConfig }) => {
           fieldValue = convertDateFormat(fieldValue);
         }
 
-        acc[field.fieldId] = fieldValue;
-
+        if (field?.fieldId === "confirmPassword") {
+          acc[field.fieldId] = userMasterData?.["password"] ?? "";
+        } else {
+          acc[field.fieldId] = fieldValue;
+        }
         if (field?.type === "select") {
           setLocalSelectData(prev => {
             if (field?.fieldId === "userDepartmentId") {
@@ -125,7 +120,7 @@ const FormComponent = ({ open, onClose, formConfig }) => {
       return acc;
     }, {});
     reset(formDataDefaultValues);
-  }, [userMasterData, formConfig, reset, userDepartment]);
+  }, [formConfig, reset, userDepartment]);
 
   const headingField = formConfig?.find(f => f.type === "heading");
   const requiredField = formConfig?.find(f => f.type === "requiredErrorMessage");
@@ -133,7 +128,7 @@ const FormComponent = ({ open, onClose, formConfig }) => {
   // handle submit
   const onSubmit = async data => {
     try {
-      const response = await createUpdateUserMaster(data);
+      const response = await createUpdateUserMaster({ ...data, userId });
       console.log(response?.data);
       const apiResponse = response?.data;
       setSuccessMessage(apiResponse?.message);
@@ -147,8 +142,6 @@ const FormComponent = ({ open, onClose, formConfig }) => {
       setErrorMessage(apiError?.message);
     }
   };
-
-  console.log("error message is:", errorMessage);
 
   //  correct dropdown menu for gender
   const getSelectOptions = fieldId => {
@@ -286,7 +279,7 @@ const FormComponent = ({ open, onClose, formConfig }) => {
     <>
       <div
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          open ? "opacity-100 visible" : "opacity-0 invisible"
+          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
         onClick={onClose}
       />
@@ -294,7 +287,7 @@ const FormComponent = ({ open, onClose, formConfig }) => {
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]
                     bg-gray-100 shadow-xl z-50 transition-transform duration-300 overflow-y-auto ${
-                      open ? "translate-x-0" : "translate-x-full"
+                      isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
       >
         <div className="flex justify-between items-center p-4 border-b border-gray-300 bg-gray-100 sticky top-0 z-10">

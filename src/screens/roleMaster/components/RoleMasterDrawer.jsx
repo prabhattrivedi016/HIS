@@ -1,20 +1,11 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { createUpdateRoleMaster, getFaIconList } from "../../../api/roleMasterApis";
+import { createUpdateRoleMaster, getFaIconList, getRoleMaster } from "../../../api/roleMasterApis";
 import InputField from "../../../components/customInputField";
 import { roleMasterSchema } from "../../../validation/roleMasterSchema";
 
-const RoleMasterDrawer = ({
-  isOpen,
-  onClose,
-  buttonTitle,
-  cardLeftTop = "",
-  cardTitle = "",
-  cardId = "",
-  cardAvatar = "",
-  drawerTitle,
-}) => {
+const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDrawer, roleId }) => {
   const [iconsList, setIconsList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -30,20 +21,46 @@ const RoleMasterDrawer = ({
     },
   });
 
-  useEffect(() => {
-    reset({
-      roleName: cardTitle || "",
-      isActive: cardLeftTop,
-      roleId: cardId || "0",
-    });
-  }, [cardTitle, cardLeftTop, cardId, reset]);
+  // role master  by Id
+  const fetchRoleDetails = async () => {
+    try {
+      const response = await getRoleMaster(roleId);
+      const roleData = response?.data?.data?.[0];
+
+      reset({
+        roleName: roleData?.roleName || "",
+        isActive: roleData?.isActive?.toString() || "",
+        faIconId: roleData?.faIconId || "",
+        roleId: roleData?.roleId || roleId,
+      });
+
+      if (iconsList.length > 0) {
+        const foundIcon = iconsList.find(icon => icon.id === roleData?.faIconId);
+        setLocalIcon(
+          foundIcon
+            ? { id: foundIcon.id, value: foundIcon.iconName }
+            : { id: "", value: "Select Icon" }
+        );
+      }
+    } catch (error) {
+      console.log("Error while loading role for edit:", error);
+    }
+  };
 
   useEffect(() => {
-    if (cardAvatar && iconsList?.length) {
-      const defaultIconId = iconsList?.find(icon => icon?.iconName === cardAvatar);
-      setLocalIcon({ id: defaultIconId?.id, value: defaultIconId?.iconName });
+    if (!roleId) {
+      reset({
+        roleName: "",
+        isActive: "",
+        faIconId: "",
+        roleId: "0",
+      });
+      setLocalIcon({ id: "", value: "Select Icon" });
+      return;
     }
-  }, [cardAvatar, iconsList]);
+
+    fetchRoleDetails();
+  }, [roleId, iconsList, reset]);
 
   //icons list
   const getIcons = async () => {
@@ -66,6 +83,7 @@ const RoleMasterDrawer = ({
       const apiResponse = response?.data;
       setSuccessMessage(apiResponse?.message || "New Role Created Successfully!");
       setErrorMessage("");
+      onCloseDrawer?.();
       setTimeout(() => {
         onClose();
       }, 500);
@@ -74,6 +92,7 @@ const RoleMasterDrawer = ({
       setErrorMessage(apiError?.message || "Something went wrong!");
     }
   };
+
   if (!isOpen) return;
 
   return (
