@@ -19,6 +19,7 @@ const RoleMaster = () => {
   const [openRoleDrawer, setOpenRoleDrawer] = useState(false);
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New Role");
   const [roleDrawerTitle, setRoleDrawerTitle] = useState("Add New Role");
+  const [roleIdToEdit, setRoleIdToEdit] = useState(null);
 
   const fetchConfigRoleMaster = async () => {
     try {
@@ -92,11 +93,19 @@ const RoleMaster = () => {
   };
 
   // add new role handler
-  const addNewHandler = () => {
-    setDrawerButtonTitle("Add New Role");
-    setRoleDrawerTitle("Add New Role");
+  const addNewHandler = (id = null) => {
+    if (id) {
+      setDrawerButtonTitle("Update Role");
+      setRoleDrawerTitle("Update Existing Role");
+      setRoleIdToEdit(id);
+    } else {
+      setDrawerButtonTitle("Create New Role");
+      setRoleDrawerTitle("Add New Role");
+      setRoleIdToEdit(null);
+    }
     setOpenRoleDrawer(true);
   };
+
   const renderComponent = view => {
     if (view === VIEWTYPE?.GRID) {
       return (
@@ -150,10 +159,11 @@ const RoleMaster = () => {
           onClose={() => setOpenRoleDrawer(false)}
           buttonTitle={drawerButtonTitle}
           drawerTitle={roleDrawerTitle}
+          onCloseDrawer={handleRefresh}
+          roleId={roleIdToEdit}
         />
       )}
     </div>
   );
 };
-
 export default RoleMaster;

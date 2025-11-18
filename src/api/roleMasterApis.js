@@ -3,14 +3,14 @@ import axiosInstance from "./axiosInstance";
 
 // role master list
 
-export const getRoleMaster = async () => {
-  try {
-    const response = await axiosInstance.get(ENDPOINTS.ROLE_MASTER_LIST);
-    return response;
-  } catch (error) {
-    console.log("Error while fetching role master data ", error);
-    throw error;
+// Role master list
+export const getRoleMaster = async (roleId = "") => {
+  if (roleId) {
+    return await axiosInstance.get(ENDPOINTS.ROLE_MASTER_LIST, {
+      params: { roleId: roleId },
+    });
   }
+  return await axiosInstance.get(ENDPOINTS.ROLE_MASTER_LIST);
 };
 
 // role master status update

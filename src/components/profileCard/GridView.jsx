@@ -1,4 +1,5 @@
 import { MoreVertical, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }) => {
   const {
@@ -11,6 +12,8 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
     buttonSection = [],
     id,
   } = data ?? {};
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const cardTitleName = Array.isArray(cardTitle)
     ? cardTitle?.map(t => t?.value).join(" ")
@@ -42,27 +45,34 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
       case "gridToggleEdit": {
         buttonTitle("Update User");
         drawerTitle("Update Existing User");
-        openDrawer();
+        openDrawer(id);
 
         return;
       }
       case "toggleEdit": {
         buttonTitle("Update Role");
         drawerTitle("Update Existing Role");
-        openDrawer();
+        openDrawer(id);
         return;
       }
     }
   };
 
-  // handle grid card right top button
-  const gridCardButtonHandler = id => {
-    console.log("button is clicked for id!!", id);
+  // Toggle menu
+  const toggleMenu = e => {
+    e.stopPropagation();
+    setIsMenuOpen(prev => !prev);
   };
+
+  // Close menu when clicked outside
+  useEffect(() => {
+    const handleClickOutside = () => setIsMenuOpen(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4 flex flex-col transition hover:shadow-lg min-h-[260px]">
-      {/* ---- TOP STATUS + MENU ---- */}
       <div className="flex justify-between items-center mb-3">
         <span
           className={`font-semibold text-xs px-3 py-1 rounded ${
@@ -73,16 +83,30 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
         </span>
 
         {cardRightTop && (
-          <button
-            className="p-2 hover:bg-gray-100 rounded-md transition"
-            onClick={() => gridCardButtonHandler(id)}
-          >
-            <MoreVertical size={16} className="text-gray-600" />
-          </button>
+          <div className="relative">
+            <button className="p-2 hover:bg-gray-100 rounded-md transition" onClick={toggleMenu}>
+              <MoreVertical size={16} className="text-gray-600" />
+            </button>
+
+            {isMenuOpen && (
+              <ul
+                className="absolute right-0 mt-2 bg-white rounded-md shadow-md w-32 text-sm z-50"
+                onClick={e => e.stopPropagation()}
+              >
+                <li>
+                  <button
+                    onClick={() => alert(`View history for role ${id}`)}
+                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                  >
+                    History
+                  </button>
+                </li>
+              </ul>
+            )}
+          </div>
         )}
       </div>
 
-      {/* ---- AVATAR + TITLE ---- */}
       <div className="flex flex-col items-center">
         <div className="w-20 h-20 rounded-full border border-gray-300 flex items-center justify-center bg-gray-50">
           {cardAvatar ? (
@@ -96,7 +120,6 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
         <h2 className="text-lg font-bold text-gray-800 text-center">{cardTitleName}</h2>
       </div>
 
-      {/* ---- FOOTER SECTION ---- */}
       {cardFooter.length > 0 && (
         <div className="border border-gray-300 rounded-md mt-3 p-2">
           <div className="flex flex-wrap divide-x divide-gray-300">
@@ -110,7 +133,6 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
         </div>
       )}
 
-      {/* ---- BUTTON SECTION ---- */}
       {buttonSection.length > 0 && (
         <div className="flex gap-3 mt-4">
           {buttonSection.map(btn => (

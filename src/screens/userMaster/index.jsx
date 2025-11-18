@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserMasterList, updateForUserMasterstatus } from "../../api/userMasterApis";
+import FormComponent from "../../components/formComponent/FormComponent";
 import PageHeader from "../../components/pageHeader";
 import GridView from "../../components/profileCard/GridView";
 import ListView from "../../components/profileCard/ListView";
+import { formConfig } from "../../config/formConfig/formConfig";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
 import { transformDataWithConfig } from "../../utils/utilities";
-import UserMasterDrawer from "./components/UserMasterDrawer";
 
 const UserMaster = () => {
   const { configDataValue, getConfigMasterValue } = useConfigMaster();
@@ -15,12 +16,14 @@ const UserMaster = () => {
   const [userMasterListData, setUserMasterListData] = useState([]);
   const [gridFilteredData, setGridFilteredData] = useState([]);
   const [listFilteredData, setListFilteredData] = useState([]);
-  const [openUserDrawer, setOpenUserDrawer] = useState(false);
+  const [openFormComponent, setOpenFormComponent] = useState("");
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New User");
   const [userDrawerTitle, setUserDrawerTitle] = useState("Add New User");
+  const [openAddNewUser, setOpenAddNewUser] = useState(false);
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
 
+  // user master config data value for transforming data
   const fetchConfig = async () => {
     try {
       await getConfigMasterValue("userMaster");
@@ -98,9 +101,19 @@ const UserMaster = () => {
   };
 
   // add new user handler
-  const addNewHandler = () => {
-    setOpenUserDrawer(true);
+  const addNewHandler = userId => {
+    if (typeof userId === "number") {
+      setOpenFormComponent(userId);
+    } else {
+      setOpenAddNewUser(true);
+    }
   };
+
+  const showFormDrawer = useMemo(() => {
+    if (!!openFormComponent || openAddNewUser) {
+      return true;
+    } else return false;
+  }, [openFormComponent, openAddNewUser]);
 
   const renderComponent = view => {
     if (view === VIEWTYPE?.GRID) {
@@ -148,12 +161,18 @@ const UserMaster = () => {
 
       <div className="w-full">{renderComponent(cardView)}</div>
 
-      {openUserDrawer && (
-        <UserMasterDrawer
-          isOpen={openUserDrawer}
-          onClose={() => setOpenUserDrawer(false)}
+      {showFormDrawer && (
+        <FormComponent
+          isOpen={showFormDrawer}
+          onClose={() => {
+            setOpenFormComponent("");
+            setOpenAddNewUser(false);
+            fetchUserMasterListData();
+          }}
           buttonTitle={drawerButtonTitle}
           drawerTitle={userDrawerTitle}
+          formConfig={formConfig}
+          userId={openFormComponent}
         />
       )}
     </div>

@@ -24,13 +24,6 @@ type FormConfig = {
   action?: string;
 };
 
-// {
-//   "userId": 0,
-// "isActive": 0, select
-// "employeeID": "string", input field
-// "reportToUserId": 0 select from api
-// }
-
 export const formConfig: FormConfig[] = [
   { type: "heading", label: "Create New User" },
   { type: "requiredErrorMessage", label: "Fields marked with * are required" },
