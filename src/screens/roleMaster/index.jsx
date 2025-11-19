@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getRoleMaster, updateForRoleMasterstatus } from "../../api/roleMasterApis";
+import CustomLoader from "../../components/customLoader";
 import PageHeader from "../../components/pageHeader";
 import GridView from "../../components/profileCard/GridView";
 import ListView from "../../components/profileCard/ListView";
@@ -67,7 +68,8 @@ const RoleMaster = () => {
   // update status for role master
   const updateRoleMasterStatus = async ({ isActive, roleId }) => {
     try {
-      const res = await updateForRoleMasterstatus({ isActive, roleId });
+      setLoading(true);
+      await updateForRoleMasterstatus({ isActive, roleId });
       fetchRoleMasterData(false);
     } catch (error) {
       console.log("Error while updating the state of role master", error?.message);
@@ -186,15 +188,22 @@ const RoleMaster = () => {
       <div className="w-full">{renderComponent(cardView)}</div>
 
       {openRoleDrawer && (
-        <RoleMasterDrawer
-          isOpen={openRoleDrawer}
-          onClose={() => setOpenRoleDrawer(false)}
-          buttonTitle={drawerButtonTitle}
-          drawerTitle={roleDrawerTitle}
-          onCloseDrawer={handleRefresh}
-          roleId={roleIdToEdit}
-        />
+        <div className="fixed inset-0 z-[999]">
+          {/* Full screen overlay */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+          <RoleMasterDrawer
+            isOpen={openRoleDrawer}
+            onClose={() => setOpenRoleDrawer(false)}
+            buttonTitle={drawerButtonTitle}
+            drawerTitle={roleDrawerTitle}
+            onCloseDrawer={handleRefresh}
+            roleId={roleIdToEdit}
+            setParentLoader={setLoading}
+          />
+        </div>
       )}
+      <CustomLoader isLoading={loading} />
     </div>
   );
 };

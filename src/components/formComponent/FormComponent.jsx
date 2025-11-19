@@ -10,7 +10,16 @@ import { usePickMaster } from "../../hooks/usePickMaster";
 import { formValidator } from "../../validation/formValidator";
 import InputField from "../customInputField";
 
-const FormComponent = ({ isOpen, onClose, formConfig, userId = "0", buttonTitle, drawerTitle }) => {
+const FormComponent = ({
+  isOpen,
+  onClose,
+  formConfig,
+  userId = "0",
+  buttonTitle,
+  drawerTitle,
+  setParentLoader,
+  refreshData,
+}) => {
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
@@ -134,6 +143,8 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0", buttonTitle,
   const onSubmit = async data => {
     try {
       setLoading(true);
+      setParentLoader(true);
+      refreshData();
       const response = await createUpdateUserMaster({ ...data, userId });
       console.log(response?.data);
       const apiResponse = response?.data;

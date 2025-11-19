@@ -40,7 +40,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
       <div className="flex items-center gap-8 sm:gap-6 md:gap-8 flex-shrink-0">
         <div className="hidden md:block text-white px-5 py-1 rounded-md overflow-hidden whitespace-nowrap max-w-[200px]">
           <span className="animate-marquee text-xs sm:text-sm">
-            🚀 Coming Soon • Updates Ahead! GRAVITY WEB SOLUTIONS
+            Updates Ahead! GRAVITY WEB SOLUTIONS
           </span>
         </div>
         {/* Notification Bell */}
@@ -48,7 +48,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           <Bell className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
-        {/* Profile */}
+        {/* Profile  */}
         <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
           <User className="text-white w-4 h-4 sm:w-5 sm:h-5" />
         </div>

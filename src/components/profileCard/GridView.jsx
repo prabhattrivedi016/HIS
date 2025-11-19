@@ -1,4 +1,4 @@
-import { MoreVertical, User } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }) => {
@@ -110,9 +110,9 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
       <div className="flex flex-col items-center">
         <div className="w-20 h-20 rounded-full border border-gray-300 flex items-center justify-center bg-gray-50">
           {cardAvatar ? (
-            <i className={`fa ${cardAvatar} text-4xl text-gray-700`}></i>
+            <i className={`fa ${cardAvatar} fa-3x text-gray-700`}></i>
           ) : (
-            <User size={40} className="text-gray-600" />
+            <i className="fa-solid fa-user fa-3x text-gray-700"></i>
           )}
         </div>
 
