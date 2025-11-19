@@ -31,13 +31,13 @@ export default function Layout() {
       {/* SIDEBAR */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-60 p-4
-          bg-gray-100 border-r border-gray-300
-          transition-transform duration-300
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        fixed inset-y-0 left-0 z-50 w-60 p-4  h-16 bg-[#0b5394]
+        border-gray-300
+        transition-transform duration-300
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+      `}
       >
-        <h2 className="text-xl font-semibold mb-6">Navigation</h2>
+        <h2 className="text-xl font-semibold mt-16 ">Navigation</h2>
 
         <button
           onClick={() => setOpenMenu(openMenu => !openMenu)}

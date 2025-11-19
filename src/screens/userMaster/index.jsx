@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getUserMasterList, updateForUserMasterstatus } from "../../api/userMasterApis";
+import CustomLoader from "../../components/customLoader";
 import FormComponent from "../../components/formComponent/FormComponent";
 import PageHeader from "../../components/pageHeader";
 import GridView from "../../components/profileCard/GridView";
@@ -74,7 +75,8 @@ const UserMaster = () => {
   // update status
   const updateUserMasterStatus = async ({ isActive, userId }) => {
     try {
-      const res = await updateForUserMasterstatus({ isActive, userId });
+      setLoading(true);
+      await updateForUserMasterstatus({ isActive, userId });
       fetchUserMasterListData(false);
     } catch (error) {
       console.log("error while updating user status", error?.message);
@@ -194,19 +196,25 @@ const UserMaster = () => {
       <div className="w-full">{renderComponent(cardView)}</div>
 
       {showFormDrawer && (
-        <FormComponent
-          isOpen={showFormDrawer}
-          onClose={() => {
-            setOpenFormComponent("");
-            setOpenAddNewUser(false);
-            fetchUserMasterListData();
-          }}
-          buttonTitle={drawerButtonTitle}
-          drawerTitle={userDrawerTitle}
-          formConfig={formConfig}
-          userId={openFormComponent}
-        />
+        <div className="fixed inset-0 z-[999]">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+
+          <FormComponent
+            isOpen={showFormDrawer}
+            onClose={() => {
+              setOpenFormComponent("");
+              setOpenAddNewUser(false);
+            }}
+            buttonTitle={drawerButtonTitle}
+            drawerTitle={userDrawerTitle}
+            formConfig={formConfig}
+            userId={openFormComponent}
+            setParentLoader={setLoading}
+            refreshData={fetchUserMasterListData}
+          />
+        </div>
       )}
+      <CustomLoader isLoading={loading} />
     </div>
   );
 };
