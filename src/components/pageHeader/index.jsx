@@ -2,9 +2,21 @@ import { Download, Grid, List, RefreshCcw, Search, UserPlus } from "lucide-react
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
 
-const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAddNew }) => {
+const PageHeader = ({
+  title,
+  onCardView,
+  buttonTitle,
+  onRefresh,
+  onSearch,
+  searchValue,
+  onAddNew,
+  onDownload,
+}) => {
   return (
-    <header className="px-4 py-6 bg-gray-50 mx-2">
+    <header
+      className="px-4 py-6 bg-gray-50 mx-2
+"
+    >
       <div
         className="
           flex
@@ -44,6 +56,7 @@ const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAdd
           <div className="relative w-full sm:w-64">
             <input
               type="text"
+              value={searchValue}
               placeholder="Search"
               className="w-full p-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400"
               onChange={onSearch}
@@ -82,6 +95,7 @@ const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAdd
             <button
               className="p-2.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
               title="Download"
+              onClick={onDownload}
             >
               <Download size={16} />
             </button>

@@ -1,3 +1,12 @@
+// Using children, the same wrapper can handle anything you put between the opening and closing tags.
+
+// type InputFieldProps = {
+//   label?: string,
+//   required?: boolean,
+//   className?: string,
+//   children?: React.ReactNode,
+// };
+
 const InputField = ({ label, required, children, className = "" }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="input-label">
@@ -7,4 +16,5 @@ const InputField = ({ label, required, children, className = "" }) => (
     {children}
   </div>
 );
+
 export default InputField;
