@@ -107,6 +107,14 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
   return (
     <div className="w-full px-3 py-4 sm:px-6 md:px-8">
       <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
+        {hiddenColumns.length > 0 && (
+          <button
+            className="m-3 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
+            onClick={restoreHiddenColumns}
+          >
+            Restore Columns ({hiddenColumns.length})
+          </button>
+        )}
         <table className="w-full border-collapse text-sm text-gray-700">
           <thead className="bg-blue-50 border-b border-blue-200">
             <tr>
@@ -121,7 +129,7 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
                   >
                     <div className="flex items-center justify-between">
                       {label}
-                      {sortConfig?.key === key && (sortConfig.direction === "asc" ? "🔼" : "🔽")}
+                      {sortConfig?.key === key && (sortConfig.direction === "asc" ? "🔺" : "🔻")}
                     </div>
                   </th>
                 )
@@ -177,15 +185,6 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
           </tbody>
         </table>
       </div>
-
-      {hiddenColumns.length > 0 && (
-        <button
-          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
-          onClick={restoreHiddenColumns}
-        >
-          Restore Columns ({hiddenColumns.length})
-        </button>
-      )}
     </div>
   );
 };

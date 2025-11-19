@@ -8,6 +8,7 @@ import { formConfig } from "../../config/formConfig/formConfig";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
+import { exportListViewData } from "../../utils/exportUtils";
 import { transformDataWithConfig } from "../../utils/utilities";
 
 const UserMaster = () => {
@@ -20,6 +21,8 @@ const UserMaster = () => {
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New User");
   const [userDrawerTitle, setUserDrawerTitle] = useState("Add New User");
   const [openAddNewUser, setOpenAddNewUser] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
 
@@ -36,8 +39,11 @@ const UserMaster = () => {
     fetchConfig();
   }, []);
 
-  const fetchUserMasterListData = async () => {
+  const fetchUserMasterListData = async (updateLoading = true) => {
     try {
+      if (updateLoading) {
+        setLoading(true);
+      }
       const response = await getUserMasterList();
       const apiResponse = response?.data || [];
 
@@ -46,12 +52,14 @@ const UserMaster = () => {
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
       setUserMasterGridData(transformedData?.gridView);
-      setGridFilteredData(transformedData?.gridView);
-
       setUserMasterListData(transformedData?.listView);
+
+      setGridFilteredData(transformedData?.gridView);
       setListFilteredData(transformedData?.listView);
     } catch (error) {
       console.error("Error fetching User Master list:", error?.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,8 +75,7 @@ const UserMaster = () => {
   const updateUserMasterStatus = async ({ isActive, userId }) => {
     try {
       const res = await updateForUserMasterstatus({ isActive, userId });
-      console.log("user status update", res?.data);
-      fetchUserMasterListData();
+      fetchUserMasterListData(false);
     } catch (error) {
       console.log("error while updating user status", error?.message);
     }
@@ -77,23 +84,25 @@ const UserMaster = () => {
   // handle refresh
   const handleRefresh = () => {
     fetchUserMasterListData();
+    setSearchQuery("");
   };
 
   // search handler
   const searchHandler = e => {
-    const query = e.target.value.toLowerCase();
+    const value = e.target.value.toLowerCase();
+    setSearchQuery(value);
 
-    if (!query) {
+    if (!value) {
       setGridFilteredData(userMasterGridData);
       setListFilteredData(userMasterListData);
       return;
     }
     const filteredGridData = userMasterGridData.filter(item =>
-      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(query))
+      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
     );
 
     const filteredListData = userMasterListData?.filter(item =>
-      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(query))
+      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
     );
 
     setGridFilteredData(filteredGridData);
@@ -103,20 +112,38 @@ const UserMaster = () => {
   // add new user handler
   const addNewHandler = userId => {
     if (typeof userId === "number") {
+      setDrawerButtonTitle("Update User");
+      setUserDrawerTitle("Update Existing User");
       setOpenFormComponent(userId);
     } else {
       setOpenAddNewUser(true);
+      setDrawerButtonTitle("Add New User");
+      setUserDrawerTitle("Add New User");
     }
   };
 
+  // dynamic form drawer
   const showFormDrawer = useMemo(() => {
     if (!!openFormComponent || openAddNewUser) {
       return true;
     } else return false;
   }, [openFormComponent, openAddNewUser]);
 
+  // download user master list
+  const downloadHandler = () => {
+    exportListViewData(listFilteredData, "UserMasterList", "xlsx");
+  };
+
+  // render component
   const renderComponent = view => {
+    if (loading) {
+      return <div className="text-center text-gray-500 py-8 text-lg">Loading user master...</div>;
+    }
+
     if (view === VIEWTYPE?.GRID) {
+      if (gridFilteredData.length === 0) {
+        return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
+      }
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 px-4 pb-10  mt-5">
           {gridFilteredData.map((user, index) => (
@@ -134,6 +161,9 @@ const UserMaster = () => {
     }
 
     if (view === VIEWTYPE?.LIST) {
+      if (listFilteredData.length === 0) {
+        return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
+      }
       return (
         <div className="px-4 pb-8 overflow-x-auto">
           <ListView
@@ -156,7 +186,9 @@ const UserMaster = () => {
         buttonTitle="Add New User"
         onRefresh={handleRefresh}
         onSearch={searchHandler}
+        searchValue={searchQuery}
         onAddNew={addNewHandler}
+        onDownload={downloadHandler}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>

@@ -114,7 +114,7 @@ export const formConfig: FormConfig[] = [
     label: "Status",
     fieldId: "isActive",
     placeholder: "Select Status",
-    required: false,
+    required: true,
     readonly: false,
   },
   {
@@ -138,7 +138,7 @@ export const formConfig: FormConfig[] = [
     label: " Department ",
     fieldId: "userDepartmentId",
     placeholder: "Enter User Department ID",
-    required: false,
+    required: true,
     readonly: false,
   },
   {

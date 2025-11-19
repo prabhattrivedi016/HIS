@@ -1,97 +1,87 @@
 import * as XLSX from "xlsx";
 
-/**
- * Exports transformed master data to CSV or Excel
- * @param {Array} data - The transformed data array (from transformDataWithConfig)
- * @param {string} fileName - The name of the exported file
- * @param {'csv' | 'excel'} format - Export format type
- */
-export const exportMasterData = (
-  data,
-  fileName = "MasterData",
-  format = "csv"
-) => {
-  if (!data || data.length === 0) {
-    alert("No data available to export!");
-    return;
-  }
+// detect valid YYYY-MM-DD or DD/MM/YYYY
+const isDateValue = value =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value) || /^\d{2}\/\d{2}\/\d{4}$/.test(value);
 
-  // Extract headers dynamically
+// convert ANY detected date into dd-mm-yyyy
+const formatDate = value => {
+  if (value.includes("-")) {
+    const [y, m, d] = value.split("-");
+    return `${d}-${m}-${y}`;
+  } else {
+    const [d, m, y] = value.split("/");
+    return `${d}-${m}-${y}`;
+  }
+};
+
+export const exportListViewData = (
+  listData,
+  fileName = "MasterList",
+  format = "excel" // <--- change to "csv" when needed
+) => {
+  if (!listData?.length) return alert("No data found!");
+
   const headers = [
-    data[0]?.cardId?.label || "ID",
-    data[0]?.cardTitle?.label || "Name",
+    "ID",
+    "Name",
     "Status",
-    ...(data[0]?.cardFooterSection?.map((f) => f.label) || []),
+    ...(listData[0]?.listGroupSection?.map(i => i.label) || []),
   ];
 
-  // Prepare rows
-  const rows = data.map((item) => {
-    const id = item?.cardId?.value || "-";
-    const name = item?.cardTitle?.value || "-";
-    const status = item?.cardLeftTop?.value === 1 ? "Active" : "Inactive";
+  const rows = listData.map(item => {
+    const id = item?.cardId?.[0]?.value ?? "-";
+    const name = item?.cardTitle?.map(t => t.value).join(" ") ?? "-";
+    const status = item?.listStatus?.[0]?.value === 1 ? "Active" : "Inactive";
 
-    // Handle footer data safely + prevent Excel number formatting (e.g. phone numbers)
     const footerValues =
-      item?.cardFooterSection?.map((f) => {
+      item?.listGroupSection?.map(f => {
         let value = f.value || "-";
 
-        // ✅ Fix: Prevent Excel scientific notation for long numbers (phone, contact, etc.)
-        // Option 1 — detect by label name
-        const label = f.label?.toLowerCase() || "";
-        const isPhoneLike =
-          label.includes("phone") ||
-          label.includes("contact") ||
-          label.includes("mobile");
+        // DATE FORMAT
+        if (isDateValue(value)) {
+          return formatDate(value);
+        }
 
-        // Option 2 — detect by numeric length (8+ digits)
-        const looksLikeLongNumber =
-          /^\d{8,}$/.test(value) && !isNaN(Number(value));
-
-        if (isPhoneLike || looksLikeLongNumber) {
-          value = `'${value}`; // force Excel to treat as text
+        // PHONE NUMBER
+        if (/^\d{8,}$/.test(value)) {
+          return `'${value}`;
         }
 
         return value;
-      }) || [];
+      }) ?? [];
 
     return [id, name, status, ...footerValues];
   });
 
-  // ✅ CSV Export
+  // csv export
   if (format === "csv") {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [
-        headers.map((h) => `"${h}"`).join(","),
-        ...rows.map((r) => r.map((cell) => `"${cell}"`).join(",")),
-      ].join("\n");
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row =>
+        row
+          .map(cell => {
+            if (isDateValue(cell)) return `"="${cell}"`;
+            return `"${cell}"`;
+          })
+          .join(",")
+      ),
+    ].join("\n");
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${fileName}.csv`);
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${fileName}.csv`;
     link.click();
-    document.body.removeChild(link);
+
+    return;
   }
 
-  // ✅ Excel Export
-  else if (format === "excel") {
-    const sheetData = [headers, ...rows];
-    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+  // EXCEL EXPORT
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
-    // Force Excel to treat long numbers as strings
-    Object.keys(worksheet).forEach((cell) => {
-      if (cell[0] === "!") return; // skip metadata
-      const cellValue = worksheet[cell].v;
-      if (typeof cellValue === "number" && cellValue.toString().length >= 8) {
-        worksheet[cell].t = "s"; // set type to string
-        worksheet[cell].v = cellValue.toString();
-      }
-    });
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-    XLSX.writeFile(workbook, `${fileName}.xlsx`);
-  }
+  XLSX.writeFile(workbook, `${fileName}.xlsx`);
 };

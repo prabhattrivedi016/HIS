@@ -96,7 +96,7 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
                 <li>
                   <button
                     onClick={() => alert(`View history for role ${id}`)}
-                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                    className="w-full text-left px-4 py-2 border border-gray-200 hover:bg-blue-50 text-gray-700"
                   >
                     History
                   </button>

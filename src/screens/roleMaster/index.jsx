@@ -6,6 +6,7 @@ import ListView from "../../components/profileCard/ListView";
 import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
+import { exportListViewData } from "../../utils/exportUtils";
 import { transformDataWithConfig } from "../../utils/utilities";
 import RoleMasterDrawer from "./components/RoleMasterDrawer";
 
@@ -20,6 +21,8 @@ const RoleMaster = () => {
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New Role");
   const [roleDrawerTitle, setRoleDrawerTitle] = useState("Add New Role");
   const [roleIdToEdit, setRoleIdToEdit] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const fetchConfigRoleMaster = async () => {
     try {
@@ -32,8 +35,11 @@ const RoleMaster = () => {
     fetchConfigRoleMaster();
   }, []);
 
-  const fetchRoleMasterData = async () => {
+  const fetchRoleMasterData = async (updateStatus = true) => {
     try {
+      if (updateStatus) {
+        setLoading(true);
+      }
       const response = await getRoleMaster();
       const apiResponse = response?.data || [];
       const activeConfig = configDataValue || roleMasterConfig;
@@ -46,6 +52,8 @@ const RoleMaster = () => {
       setListFilteredData(transformedData?.listView);
     } catch (error) {
       console.error("Error while fetching Role Master data:", error?.message || error);
+    } finally {
+      setLoading(false);
     }
   };
   useEffect(() => {
@@ -60,7 +68,7 @@ const RoleMaster = () => {
   const updateRoleMasterStatus = async ({ isActive, roleId }) => {
     try {
       const res = await updateForRoleMasterstatus({ isActive, roleId });
-      fetchRoleMasterData();
+      fetchRoleMasterData(false);
     } catch (error) {
       console.log("Error while updating the state of role master", error?.message);
     }
@@ -69,23 +77,25 @@ const RoleMaster = () => {
   // handle Refresh
   const handleRefresh = () => {
     fetchRoleMasterData();
+    setSearchQuery("");
   };
 
   // search handler
   const searchHandler = e => {
-    const query = e.target.value.toLowerCase();
+    const value = e.target.value.toLowerCase();
+    setSearchQuery(value);
 
-    if (!query) {
+    if (!value) {
       setGridFilteredData(roleMaterGridData);
       setListFilteredData(roleMasterListData);
       return;
     }
     const filteredGridData = roleMaterGridData.filter(item =>
-      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(query))
+      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
     );
 
     const filteredListData = roleMasterListData?.filter(item =>
-      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(query))
+      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
     );
 
     setGridFilteredData(filteredGridData);
@@ -106,8 +116,27 @@ const RoleMaster = () => {
     setOpenRoleDrawer(true);
   };
 
+  // download handler
+  const downloadHandler = () => {
+    exportListViewData(listFilteredData, "RoleMasterList", "xlsx");
+  };
+
+  // render component
   const renderComponent = view => {
+    if (loading) {
+      return (
+        <div
+          className="text-center text-gray-500 py-8 text-lg pt-16
+"
+        >
+          Loading role master...
+        </div>
+      );
+    }
     if (view === VIEWTYPE?.GRID) {
+      if (gridFilteredData.length === 0) {
+        return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
+      }
       return (
         <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 mt-5 gap-6 px-4 pb-10 ">
           {gridFilteredData.map((role, index) => (
@@ -125,14 +154,15 @@ const RoleMaster = () => {
     }
 
     if (view === VIEWTYPE?.LIST) {
+      if (listFilteredData.length === 0) {
+        return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
+      }
       return (
         <div className="px-4 pb-8 overflow-x-auto">
           <ListView
             data={listFilteredData}
             onStatusChange={updateRoleMasterStatus}
             openDrawer={addNewHandler}
-            buttonTitle={setDrawerButtonTitle}
-            drawerTitle={setRoleDrawerTitle}
           />
         </div>
       );
@@ -147,7 +177,9 @@ const RoleMaster = () => {
         buttonTitle="Add New Role"
         onRefresh={handleRefresh}
         onSearch={searchHandler}
+        searchValue={searchQuery}
         onAddNew={addNewHandler}
+        onDownload={downloadHandler}
       />
 
       {/* render component  */}

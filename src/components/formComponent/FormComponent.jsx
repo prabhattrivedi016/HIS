@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Spinner } from "../../../assets/svgIcons";
 import {
   createUpdateUserMaster,
   getUserDepartmentList,
@@ -9,7 +10,7 @@ import { usePickMaster } from "../../hooks/usePickMaster";
 import { formValidator } from "../../validation/formValidator";
 import InputField from "../customInputField";
 
-const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
+const FormComponent = ({ isOpen, onClose, formConfig, userId = "0", buttonTitle, drawerTitle }) => {
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
@@ -17,6 +18,11 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [localSelectData, setLocalSelectData] = useState({});
   const [userMasterData, setUserMasterData] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  // check for edit mode
+  const isEditMode = !!userId && userId !== "0";
+
   // Fetch gender picklist
   useEffect(() => {
     getPickMasterValue("gender");
@@ -53,13 +59,12 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
   useEffect(() => {
     getUserMaster();
     if (userId) getUserMasterById();
-  }, [userId]);
+  }, []);
 
   // fetch user by id
   const getUserMasterById = async () => {
     try {
       const response = await getUserMasterList(userId);
-      console.log("user master data", response?.data?.data);
       const apiResponse = response?.data?.data;
 
       setUserMasterData(apiResponse?.[0]);
@@ -128,6 +133,7 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
   // handle submit
   const onSubmit = async data => {
     try {
+      setLoading(true);
       const response = await createUpdateUserMaster({ ...data, userId });
       console.log(response?.data);
       const apiResponse = response?.data;
@@ -140,6 +146,8 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
       const apiError = error?.response?.data;
       console.log("api error is:", apiError?.message);
       setErrorMessage(apiError?.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -181,8 +189,9 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
   };
 
   const renderComponent = ({ component, index }) => {
-    const { type } = component ?? {};
+    const { type, fieldId, label } = component ?? {};
 
+    const isPassword = fieldId === "password" || fieldId === "confirmPassword";
     switch (type) {
       case "text":
       case "email":
@@ -190,14 +199,17 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
       case "date":
         return (
           <div key={index}>
-            <InputField label={component.label} required={component.required}>
+            <InputField label={label} required={!isEditMode && component.required}>
               <input
-                type={component.type}
-                placeholder={component.placeholder || `Enter ${component.label}`}
+                type={type}
+                placeholder={component.placeholder || `Enter ${label}`}
                 {...register(
-                  component.fieldId,
-                  formValidator(component, getValues, formConfig).validationRules
+                  fieldId,
+                  isEditMode && isPassword
+                    ? {}
+                    : formValidator(component, getValues, formConfig).validationRules
                 )}
+                disabled={isEditMode && isPassword ? true : false}
                 {...formValidator(component, getValues, formConfig).uiAttributes}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white 
                            focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
@@ -262,10 +274,20 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
           <div key={index} className="col-span-2 mt-4">
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
-                         transition duration-200 font-medium"
+              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center active:scale-95 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  : "bg-[#1e6da1] hover:bg-blue-600 text-white"
+              }`}
+              disabled={loading}
             >
-              {component.label}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Spinner /> Loading ...
+                </span>
+              ) : (
+                buttonTitle
+              )}
             </button>
           </div>
         );
@@ -293,7 +315,7 @@ const FormComponent = ({ isOpen, onClose, formConfig, userId = "0" }) => {
         <div className="flex justify-between items-center p-4 border-b border-gray-300 bg-gray-100 sticky top-0 z-10">
           <div className="flex flex-col">
             <h2 className="text-lg font-semibold text-gray-800">
-              {headingField ? headingField.label : "Create New User"}
+              {headingField ? drawerTitle : "Create New User"}
             </h2>
             <p className="text-sm text-red-500 mt-1">
               {requiredField ? requiredField.label : "Fields marked with * are required"}
