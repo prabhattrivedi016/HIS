@@ -1,9 +1,7 @@
-import React from "react";
-
 const Button = ({
   children,
   variant = "primary",
-  type = "button", // <-- Accept type
+  type = "button",
   onClick,
   disabled,
   className = "",

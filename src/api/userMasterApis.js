@@ -43,7 +43,6 @@ export const createUpdateUserMaster = async createUserData => {
  */
 export const updateForUserMasterstatus = async updateData => {
   try {
-    console.log("user master active toggle is clicked");
     const response = await axiosInstance.patch(
       ENDPOINTS.UPDATE_USER_MASTER_STATUS,
       null, // no body since we're sending query params

@@ -1,10 +1,29 @@
 import { Download, Grid, List, RefreshCcw, Search, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
 
-const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAddNew }) => {
+const PageHeader = ({
+  title,
+  onCardView,
+  buttonTitle,
+  onRefresh,
+  onSearch,
+  onAddNew,
+  onDownload,
+  onFilter,
+}) => {
+  const [selectDropDown, setSelectDropDown] = useState("");
+
+  const selectHandler = e => {
+    setSelectDropDown(e.target.value);
+  };
+
   return (
-    <header className="px-4 py-6 bg-gray-50 mx-2">
+    <header
+      className="px-4 py-6 bg-gray-50 mx-2
+"
+    >
       <div
         className="
           flex
@@ -40,13 +59,28 @@ const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAdd
             md:w-auto
           "
         >
+          {/* filter Icon*/}
+          <span
+            className="p-2 rounded border border-gray-200 bg-white text-gray-700 hover:bg-gray-200"
+            title="filter"
+          >
+            <select onChange={selectHandler}>
+              <option value="">Select</option>
+              {onFilter?.map((col, index) => (
+                <option key={index} value={col.label}>
+                  {col.label}
+                </option>
+              ))}
+            </select>
+          </span>
+
           {/* Search Box */}
           <div className="relative w-full sm:w-64">
             <input
               type="text"
               placeholder="Search"
               className="w-full p-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400"
-              onChange={onSearch}
+              onChange={e => onSearch(e.target.value, selectDropDown)}
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
               <Search size={16} />
@@ -82,6 +116,7 @@ const PageHeader = ({ title, onCardView, buttonTitle, onRefresh, onSearch, onAdd
             <button
               className="p-2.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
               title="Download"
+              onClick={onDownload}
             >
               <Download size={16} />
             </button>

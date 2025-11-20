@@ -1,26 +1,18 @@
-import React, { useEffect, useState } from "react";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { sendEmailOtp, sendOtpApi, verifyEmailOtp, verifySmsOtp } from "../../../api/AuthServices";
 import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 import {
-  SuccessMessage,
-  HintMessage,
   ErrorMessage,
+  HintMessage,
   ModalHeader,
+  SuccessMessage,
 } from "../../../components/infoText";
 
-import {
-  emailOtpSchema,
-  mobileOtpSchema,
-} from "../../../validation/verifyOtpSchema";
+import { emailOtpSchema, mobileOtpSchema } from "../../../validation/verifyOtpSchema";
 
-import {
-  sendOtpApi,
-  verifySmsOtp,
-  sendEmailOtp,
-  verifyEmailOtp,
-} from "../../../api/AuthServices";
 import ResendButton from "./ResendButton";
 
 const VerifyOtp = ({
@@ -49,9 +41,7 @@ const VerifyOtp = ({
       const response = await sendOtpApi({ userName, contact });
       setMobileHint(response?.data?.message);
     } catch (err) {
-      setMobileVerifyError(
-        err?.response?.data?.message || "Something went wrong!"
-      );
+      setMobileVerifyError(err?.response?.data?.message || "Something went wrong!");
     }
   };
 
@@ -61,15 +51,12 @@ const VerifyOtp = ({
       const res = await sendEmailOtp({ userName, email });
       setEmailHint(res?.data?.message);
     } catch (err) {
-      setEmailVerifyError(
-        err?.response?.data?.message || "Something went wrong!"
-      );
+      setEmailVerifyError(err?.response?.data?.message || "Something went wrong!");
     }
   };
 
   // VERIFY MOBILE OTP
-  const verifyMobile = async (data) => {
-    console.log("verify mobile is called");
+  const verifyMobile = async data => {
     try {
       const response = await verifySmsOtp({ otp: data.otp, userId });
       const apiResponse = response?.data;
@@ -79,14 +66,12 @@ const VerifyOtp = ({
       setMobileVerifyError("");
     } catch (err) {
       const apiError = err?.response?.data;
-      setMobileVerifyError(
-        apiError?.message || "Something Went Wrong, Try again!"
-      );
+      setMobileVerifyError(apiError?.message || "Something Went Wrong, Try again!");
     }
   };
 
   // VERIFY EMAIL OTP
-  const verifyEmail = async (data) => {
+  const verifyEmail = async data => {
     try {
       const response = await verifyEmailOtp({ userId, otp: data.otp });
       const apiResponse = response?.data;
@@ -96,9 +81,7 @@ const VerifyOtp = ({
       setEmailVerifyError("");
     } catch (err) {
       const apiError = err?.response?.data;
-      setEmailVerifyError(
-        apiError?.message || "Something Went Wrong, Try again!"
-      );
+      setEmailVerifyError(apiError?.message || "Something Went Wrong, Try again!");
     }
   };
 
@@ -195,16 +178,9 @@ export const MobileSection = ({
     <SuccessMessage text={mobileVerifySuccess} />
   ) : (
     <>
-      <form
-        onSubmit={handleMobileOtpSubmit(verifyMobile)}
-        className="space-y-2 mt-4"
-      >
+      <form onSubmit={handleMobileOtpSubmit(verifyMobile)} className="space-y-2 mt-4">
         <InputField label="Enter Mobile OTP" required>
-          <input
-            type="text"
-            {...registerMobileOtp("otp")}
-            className="input-box"
-          />
+          <input type="text" {...registerMobileOtp("otp")} className="input-box" />
         </InputField>
 
         {mobileHint && <HintMessage text={mobileHint} />}
@@ -238,16 +214,9 @@ export const EmailSection = ({
     <SuccessMessage text={emailVerifySuccess} />
   ) : (
     <>
-      <form
-        onSubmit={handleEmailOtpSubmit(verifyEmail)}
-        className="space-y-2 mt-4"
-      >
+      <form onSubmit={handleEmailOtpSubmit(verifyEmail)} className="space-y-2 mt-4">
         <InputField label="Enter Email OTP" required>
-          <input
-            type="text"
-            {...registerEmailOtp("otp")}
-            className="input-box"
-          />
+          <input type="text" {...registerEmailOtp("otp")} className="input-box" />
         </InputField>
 
         {emailHint && <HintMessage text={emailHint} />}

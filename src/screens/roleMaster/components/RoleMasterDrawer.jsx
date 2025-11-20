@@ -1,17 +1,32 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Spinner } from "../../../../assets/svgIcons";
 import { createUpdateRoleMaster, getFaIconList, getRoleMaster } from "../../../api/roleMasterApis";
 import InputField from "../../../components/customInputField";
 import { roleMasterSchema } from "../../../validation/roleMasterSchema";
 
-const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDrawer, roleId }) => {
+const RoleMasterDrawer = ({
+  isOpen,
+  onClose,
+  buttonTitle,
+  drawerTitle,
+  onCloseDrawer,
+  roleId,
+  setParentLoader,
+}) => {
   const [iconsList, setIconsList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [localIcon, setLocalIcon] = useState({ id: "", value: "Select Icon" });
+  const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(roleMasterSchema),
     defaultValues: {
       roleName: "",
@@ -79,6 +94,8 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
 
   const onSubmit = async data => {
     try {
+      setLoading(true);
+      setParentLoader(true);
       const response = await createUpdateRoleMaster(data);
       const apiResponse = response?.data;
       setSuccessMessage(apiResponse?.message || "New Role Created Successfully!");
@@ -90,6 +107,8 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
     } catch (error) {
       const apiError = error?.response?.data;
       setErrorMessage(apiError?.message || "Something went wrong!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,11 +122,11 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
         }`}
         onClick={onClose}
       />
-
       <div
-        className={`fixed top-0 right-0 h-full w-150 bg-gray-100 shadow-xl z-50 transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]
+                    bg-gray-100 shadow-xl z-50 transition-transform duration-300 overflow-y-auto ${
+                      isOpen ? "translate-x-0" : "translate-x-full"
+                    }`}
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">{drawerTitle}</h2>
@@ -133,6 +152,9 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <InputField label="Role Name" required={true}>
               <input {...register("roleName")} className="w-full px-4 py-2 border rounded-lg" />
+              {errors.roleName && (
+                <p className="text-red-600 text-sm mt-1">{errors.roleName.message}</p>
+              )}
             </InputField>
 
             <InputField label="Status" required={true}>
@@ -144,6 +166,9 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
                 <option value="1">Active</option>
                 <option value="0">Inactive</option>
               </select>
+              {errors.isActive && (
+                <p className="text-red-600 text-sm mt-1">{errors.isActive.message}</p>
+              )}
             </InputField>
 
             <InputField label="Role Icon" required={true}>
@@ -160,13 +185,27 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
                   ))}
                 </select>
               </div>
+              {errors.faIconId && (
+                <p className="text-red-600 text-sm mt-1">{errors.faIconId.message}</p>
+              )}
             </InputField>
 
             <button
               type="submit"
-              className="w-full py-2 bg-[#1e6da1] text-white rounded hover:bg-blue-600 transition-colors font-medium mt-5"
+              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center active:scale-95 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  : "bg-[#1e6da1] hover:bg-blue-600 text-white"
+              }`}
+              disabled={loading}
             >
-              {buttonTitle}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Spinner /> Loading...
+                </span>
+              ) : (
+                buttonTitle
+              )}
             </button>
           </form>
         </div>

@@ -1,101 +1,110 @@
-const stopPropagationHandler = e => {
-  e.stopPropagation();
-};
+const stopPropagationHandler = e => e.stopPropagation();
 
-// helper : returns null instead of empty array
 const mapOrNull = (arr, mapper) => {
   if (!Array.isArray(arr) || arr.length === 0) return null;
-
-  const mapped = arr.map(mapper).filter(Boolean);
-  return mapped.length > 0 ? mapped : null;
+  const out = arr.map(mapper).filter(Boolean);
+  return out.length ? out : null;
 };
 
 const transformDataWithConfig = (config, apiResponse) => {
-  const dataArray = apiResponse?.data || [];
-
   if (!config) return { gridView: [], listView: [] };
 
-  const normalizeView = (viewConfig, mode) => {
+  const dataArray = apiResponse?.data || [];
+
+  const GRID_MAP = {
+    gridLeftTop: "cardLeftTop",
+    gridRightTop: "cardRightTop",
+    gridAvatar: "cardAvatar",
+    gridId: "cardId",
+    gridTitle: "cardTitle",
+    gridFooterSection: "cardFooter",
+    gridButtonSection: "buttonSection",
+  };
+
+  const LIST_MAP = {
+    listLeftButton: "listLeftButton",
+    columns: "columns",
+  };
+
+  const normalizeConfig = (viewConfig, map) => {
     if (!viewConfig) return null;
 
-    return {
-      type: config.type,
-
-      cardLeftTop: viewConfig[`${mode}LeftTop`] || null,
-      cardRightTop: viewConfig[`${mode}RightTop`] || null,
-      cardAvatar: viewConfig[`${mode}Avatar`] || null,
-      cardId: viewConfig[`${mode}Id`] || null,
-      cardTitle: viewConfig[`${mode}Title`] || null,
-      cardFooter: viewConfig[`${mode}FooterSection`] || null,
-      buttonSection: viewConfig[`${mode}ButtonSection`] || null,
-
-      listLeftButton: viewConfig[`${mode}LeftButton`] || null,
-      listStatus: viewConfig[`${mode}Status`] || null, //
-      listGroupSection: viewConfig[`${mode}GroupSection`] || null,
+    const out = {
+      type: viewConfig.type,
+      cardType: viewConfig.cardType || null,
+      cardViewType: viewConfig.cardViewType || null,
     };
+
+    Object.entries(map).forEach(([rawKey, normalizedKey]) => {
+      if (viewConfig[rawKey]) out[normalizedKey] = viewConfig[rawKey];
+    });
+
+    return out;
   };
 
-  const gridCfg = normalizeView(config.gridCardView, "grid");
-  const listCfg = normalizeView(config.listCardView, "list");
+  const getFieldValue = (item, field) => {
+    if (Array.isArray(field.combine)) {
+      return field.combine
+        .map(c => (typeof c === "string" ? item[c] ?? "" : item[c.key] ?? c.default ?? ""))
+        .join(" ")
+        .trim();
+    }
+    if (field.keyFromApi) return item[field.keyFromApi] ?? field.default ?? null;
+    return null;
+  };
 
-  const buildCard = (item, cfg) => {
-    if (!cfg) return null;
-
-    const cardLeftTop = mapOrNull(cfg.cardLeftTop, f => ({
-      label: f.label,
-      value: item[f.keyFromApi] ?? null,
-    }));
-
-    const cardAvatar = cfg.cardAvatar?.length ? item[cfg.cardAvatar[0].keyFromApi] || null : null;
-
-    const cardId = mapOrNull(cfg.cardId, f => ({
-      label: f.label,
-      value: item[f.keyFromApi],
-    }));
-
-    const cardTitle = mapOrNull(cfg.cardTitle, t => ({
-      label: t.label || "Title",
-      value: item[t.keyFromApi] ?? null,
-    }));
-
-    const cardFooter = mapOrNull(cfg.cardFooter, f => ({
-      label: f.label,
-      value: item[f.keyFromApi],
-    }));
-
-    const listLeftButton = cfg.listLeftButton || null;
-
-    const listStatus = mapOrNull(cfg.listStatus, s => ({
-      label: s.label,
-      value: item[s.keyFromApi], // Raw status 1 or 0
-    }));
-
-    const listGroupSection = mapOrNull(cfg.listGroupSection, g => ({
-      label: g.label,
-      value: item[g.keyFromApi],
-    }));
-
-    return {
+  const buildCard = (item, cfg, isGrid) => {
+    const out = {
       type: cfg.type,
-      id: item.roleId || item.id || null,
-
-      cardLeftTop,
-      cardRightTop: cfg.cardRightTop || null,
-      cardAvatar,
-      cardId,
-      cardTitle,
-      cardFooter,
-      buttonSection: cfg.buttonSection || null,
-
-      listLeftButton,
-      listStatus,
-      listGroupSection,
+      cardType: cfg.cardType,
+      cardViewType: cfg.cardViewType,
+      id:
+        item[config.listCardView?.recordIdKey] ||
+        item[config.gridCardView?.recordIdKey] ||
+        item.employeeID ||
+        item.roleId ||
+        item.id ||
+        null,
     };
+
+    if (isGrid) {
+      out.cardLeftTop = mapOrNull(cfg.cardLeftTop, f => ({
+        label: f.label,
+        value: item[f.keyFromApi] ?? null,
+      }));
+      out.cardRightTop = cfg.cardRightTop || null;
+      out.cardAvatar = cfg.cardAvatar?.length ? item[cfg.cardAvatar[0].keyFromApi] ?? null : null;
+      out.cardId = mapOrNull(cfg.cardId, f => ({
+        label: f.label,
+        value: item[f.keyFromApi] ?? null,
+      }));
+      out.cardTitle = mapOrNull(cfg.cardTitle, f => ({
+        label: f.label,
+        value: item[f.keyFromApi] ?? null,
+      }));
+      out.cardFooter = mapOrNull(cfg.cardFooter, f => ({
+        label: f.label,
+        value: item[f.keyFromApi] ?? null,
+      }));
+      out.buttonSection = cfg.buttonSection || null;
+    }
+
+    if (!isGrid) {
+      out.listLeftButton = cfg.listLeftButton || null;
+      out.columns = cfg.columns
+        ? cfg.columns.map(col => ({ ...col, value: getFieldValue(item, col) }))
+        : null;
+    }
+
+    return out;
   };
+
+  const gridCfg = normalizeConfig(config.gridCardView, GRID_MAP);
+  const listCfg = normalizeConfig(config.listCardView, LIST_MAP);
 
   return {
-    gridView: gridCfg ? dataArray.map(item => buildCard(item, gridCfg)) : [],
-    listView: listCfg ? dataArray.map(item => buildCard(item, listCfg)) : [],
+    gridView: gridCfg ? dataArray.map(item => buildCard(item, gridCfg, true)) : [],
+    listView: listCfg ? dataArray.map(item => buildCard(item, listCfg, false)) : [],
   };
 };
 

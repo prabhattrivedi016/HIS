@@ -1,10 +1,9 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import Dashboard from "../dashbord";
 import Login from "../login";
 import RoleMaster from "../roleMaster";
-import Sidebar from "./components/Sidebar";
 import UserMaster from "../userMaster";
+import Sidebar from "./components/Sidebar";
 
 const Navbar = () => {
   return (

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Spinner } from "../../../assets/svgIcons";
 
 import { userLogin } from "../../api/AuthServices";
 import Checkbox from "../../components//customCheckbox";
@@ -40,6 +41,7 @@ const Login = () => {
   const [isContact, setIsContact] = useState("");
   const [isEmail, setIsEmail] = useState("");
   const [userId, setUserId] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Fetch branches
   useEffect(() => {
@@ -88,6 +90,7 @@ const Login = () => {
     }
 
     try {
+      setLoading(true);
       const payload = {
         branchId: parseInt(formData.selectedBranchId),
         userName: formData.userName,
@@ -124,6 +127,8 @@ const Login = () => {
     } catch (err) {
       setSuccessMessage("");
       setErrorMessage(err?.response?.data?.message || "Invalid Username or Password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -163,23 +168,26 @@ const Login = () => {
       >
         <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
           <div className="text-center mb-6">
-            <div className="w-120 h-50 mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+            <div
+              className="
+      mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white
+      w-full max-w-[300px]    /* width */
+      h-[150px]               /* height */
+      sm:max-w-[400px] sm:h-[200px]
+      md:max-w-[400px] md:h-[200px]
+    "
+            >
               <img
                 src="/assets/logo.jpg"
                 alt="Hospital Logo"
-                className="w-160 h-160 object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
+
             <p className="text-indigo-600 font-medium">!! Welcome Back !!</p>
           </div>
           {branchListError && <ErrorMessage text={branchListError} />}
           {successMessage && <SuccessMessage text={successMessage} />}
-
-          {/* {successMessage && (
-            <div className="px-4 py-3 rounded-lg bg-green-100 border border-green-300 text-green-700 text-center mb-3">
-              {successMessage}
-            </div>
-          )} */}
 
           {errorMessage && (
             <div className="px-4 py-3 rounded-lg bg-red-100 border border-red-300 text-red-700 text-center mb-3">
@@ -240,11 +248,21 @@ const Login = () => {
 
             <Button
               type="submit"
-              className="w-full flex justify-center gap-2"
+              className="w-full flex justify-center gap-2 items-center"
               onClick={handleSubmit}
-              disabled={false}
+              disabled={loading}
             >
-              <LogIn size={18} /> LOGIN
+              {loading ? (
+                <>
+                  <Spinner />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  LOGIN
+                </>
+              )}
             </Button>
           </form>
 
