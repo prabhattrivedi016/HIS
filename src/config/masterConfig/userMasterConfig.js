@@ -1,218 +1,61 @@
 export const userMasterConfig = {
   type: "userMaster",
+
   gridCardView: {
     type: "userMaster",
+    cardType: "userMasterGrid",
+    cardViewType: "grid",
     id: "0",
-    gridLeftTop: [
-      {
-        label: "Status",
-        keyFromApi: "isActive",
-      },
-    ],
-    gridRightTop: [
-      {
-        label: "toggle",
-        action: "gridRightToggleButton",
-      },
-    ],
-    gridId: [
-      {
-        label: "user ID",
-        keyFromApi: "employeeID",
-      },
-    ],
+
+    gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
+
+    gridRightTop: [{ label: "toggle", action: "gridRightToggleButton" }],
+
+    gridId: [{ label: "User ID", keyFromApi: "employeeID" }],
+
     gridTitle: [
-      {
-        label: "First Name",
-        keyFromApi: "firstName",
-      },
-      {
-        label: "Last Name",
-        keyFromApi: "lastName",
-      },
+      { label: "First Name", keyFromApi: "firstName" },
+      { label: "Last Name", keyFromApi: "lastName" },
     ],
+
     gridFooterSection: [
-      {
-        label: "Gender",
-        keyFromApi: "gender",
-      },
-      {
-        label: "Contact",
-        keyFromApi: "contact",
-      },
-      {
-        label: "Address",
-        keyFromApi: "address",
-      },
+      { label: "Gender", keyFromApi: "gender" },
+      { label: "Contact", keyFromApi: "contact" },
+      { label: "Address", keyFromApi: "address" },
     ],
+
     gridButtonSection: [
-      {
-        label: "Active",
-        action: "gridToggleActive",
-      },
-      {
-        label: "Edit",
-        action: "gridToggleEdit",
-      },
+      { label: "Active", action: "gridToggleActive" },
+      { label: "Edit", action: "gridToggleEdit" },
     ],
   },
+
   listCardView: {
     type: "userMaster",
+    cardType: "userMasterList",
+    cardViewType: "list",
     id: "0",
-    listLeftButton: [
+    recordIdKey: "employeeID",
+
+    listLeftButton: [{ label: "Action", action: "listToggleActive" }],
+
+    columns: [
       {
-        label: "Action",
-        action: "listToggleActive",
-      },
-    ],
-    listId: [
-      {
-        label: "User Id",
+        label: "UserID",
         keyFromApi: "employeeID",
-      },
-    ],
-    listTitle: [
-      {
-        label: "first Name",
-        keyFromApi: "firstName",
+        isSortable: true,
+        isSearchable: true,
+        allowColumnFilter: true,
+        isMasked: true,
       },
       {
-        label: "Last Name",
-        keyFromApi: "lastName",
+        label: "Name",
+        combine: ["firstName", "lastName"],
       },
-    ],
-    listStatus: [
-      {
-        label: "Status",
-        keyFromApi: "isActive",
-      },
-    ],
-    listGroupSection: [
-      {
-        label: "Gender",
-        keyFromApi: "gender",
-      },
-      {
-        label: "Contact",
-        keyFromApi: "contact",
-      },
-      {
-        label: "Address",
-        keyFromApi: "address",
-      },
+      { label: "Status", keyFromApi: "isActive" },
+      { label: "Gender", keyFromApi: "gender" },
+      { label: "Contact", keyFromApi: "contact" },
+      { label: "Address", keyFromApi: "address" },
     ],
   },
 };
-
-// export const userMasterConfig = {
-//   type: "userMaster",
-//   cardType: "userMasterGrid",
-//   gridCardView: {
-//     type: "userMaster",
-//     id: "0",
-
-//     gridLeftTop: [
-//       {
-//         label: "Status",
-//         keyFromApi: "isActive",
-//       },
-//     ],
-
-//     gridRightTop: [
-//       {
-//         label: "toggle",
-//         action: "gridRightToggleButton",
-//       },
-//     ],
-
-//     gridId: [
-//       {
-//         label: "User ID",
-//         keyFromApi: "employeeID",
-//       },
-//     ],
-
-//     gridTitle: [
-//       {
-//         label: "First Name",
-//         keyFromApi: "firstName",
-//       },
-//       {
-//         label: "Last Name",
-//         keyFromApi: "lastName",
-//       },
-//     ],
-
-//     gridFooterSection: [
-//       {
-//         label: "Gender",
-//         keyFromApi: "gender",
-//       },
-//       {
-//         label: "Contact",
-//         keyFromApi: "contact",
-//       },
-//       {
-//         label: "Address",
-//         keyFromApi: "address",
-//       },
-//     ],
-
-//     gridButtonSection: [
-//       {
-//         label: "Active",
-//         action: "gridToggleActive",
-//       },
-//       {
-//         label: "Edit",
-//         action: "gridToggleEdit",
-//       },
-//     ],
-//   },
-
-//   listCardView: {
-//     type: "userMaster",
-//     cardType: "userMasterList",
-//     id: "0",
-//     recordIdKey: "employeeID",
-
-//     listLeftButton: [
-//       {
-//         label: "Action",
-//         action: "listToggleActive",
-//       },
-//     ],
-
-//     columns: [
-//       {
-//         label: "User Id",
-//         keyFromApi: "employeeID",
-//         isSortable: true,
-//         isSearchable: true,
-//         allowColumnFilter: true,
-//         isMasked: true,
-//       },
-//       {
-//         label: "Name",
-//         combine: ["firstName", "lastName"],
-//         default: "",
-//       },
-//       {
-//         label: "Status",
-//         keyFromApi: "isActive",
-//       },
-//       {
-//         label: "Gender",
-//         keyFromApi: "gender",
-//       },
-//       {
-//         label: "Contact",
-//         keyFromApi: "contact",
-//       },
-//       {
-//         label: "Address",
-//         keyFromApi: "address",
-//       },
-//     ],
-//   },
-// };
