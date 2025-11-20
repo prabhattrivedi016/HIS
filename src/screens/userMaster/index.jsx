@@ -8,12 +8,11 @@ import ListView from "../../components/profileCard/ListView";
 import { formConfig } from "../../config/formConfig/formConfig";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
-import { useConfigMaster } from "../../hooks/useConfigMaster";
 import { exportListViewData } from "../../utils/exportUtils";
 import { transformDataWithConfig } from "../../utils/utilities";
 
 const UserMaster = () => {
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+  // const { configDataValue, getConfigMasterValue } = useConfigMaster();
   const [userMasterGridData, setUserMasterGridData] = useState([]);
   const [userMasterListData, setUserMasterListData] = useState([]);
   const [gridFilteredData, setGridFilteredData] = useState([]);
@@ -28,17 +27,17 @@ const UserMaster = () => {
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
 
   // user master config data value for transforming data
-  const fetchConfig = async () => {
-    try {
-      await getConfigMasterValue("userMaster");
-    } catch (err) {
-      console.error("Error fetching User Master config, using fallback:", err);
-    }
-  };
+  // const fetchConfig = async () => {
+  //   try {
+  //     await getConfigMasterValue("userMaster");
+  //   } catch (err) {
+  //     console.error("Error fetching User Master config, using fallback:", err);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
+  // useEffect(() => {
+  //   fetchConfig();
+  // }, []);
 
   const fetchUserMasterListData = async (updateLoading = true) => {
     try {
@@ -48,15 +47,16 @@ const UserMaster = () => {
       const response = await getUserMasterList();
       const apiResponse = response?.data || [];
 
-      const activeConfig = configDataValue || userMasterConfig;
+      const activeConfig = userMasterConfig;
 
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
       setUserMasterGridData(transformedData?.gridView);
+
       setUserMasterListData(transformedData?.listView);
 
-      setGridFilteredData(transformedData?.gridView);
-      setListFilteredData(transformedData?.listView);
+      // setGridFilteredData(transformedData?.gridView);
+      // setListFilteredData(transformedData?.listView);
     } catch (error) {
       console.error("Error fetching User Master list:", error?.message);
     } finally {
@@ -92,23 +92,25 @@ const UserMaster = () => {
   // search handler
   const searchHandler = e => {
     const value = e.target.value.toLowerCase();
-    setSearchQuery(value);
+    console.log("search value is:", value);
 
-    if (!value) {
-      setGridFilteredData(userMasterGridData);
-      setListFilteredData(userMasterListData);
-      return;
-    }
-    const filteredGridData = userMasterGridData.filter(item =>
-      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
-    );
+    // setSearchQuery(value);
 
-    const filteredListData = userMasterListData?.filter(item =>
-      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
-    );
+    // if (!value) {
+    //   setGridFilteredData(userMasterGridData);
+    //   setListFilteredData(userMasterListData);
+    //   return;
+    // }
+    // const filteredGridData = userMasterGridData.filter(item =>
+    //   item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
+    // );
 
-    setGridFilteredData(filteredGridData);
-    setListFilteredData(filteredListData);
+    // const filteredListData = userMasterListData?.filter(item =>
+    //   item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
+    // );
+
+    // setGridFilteredData(filteredGridData);
+    // setListFilteredData(filteredListData);
   };
 
   // add new user handler
@@ -136,6 +138,9 @@ const UserMaster = () => {
     exportListViewData(listFilteredData, "UserMasterList", "xlsx");
   };
 
+  // on filter dropdown
+  const filterDropDown = userMasterListData[0]?.columns;
+
   // render component
   const renderComponent = view => {
     if (loading) {
@@ -143,12 +148,12 @@ const UserMaster = () => {
     }
 
     if (view === VIEWTYPE?.GRID) {
-      if (gridFilteredData.length === 0) {
+      if (userMasterGridData.length === 0) {
         return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
       }
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 px-4 pb-10  mt-5">
-          {gridFilteredData.map((user, index) => (
+          {userMasterGridData.map((user, index) => (
             <GridView
               key={index}
               data={user}
@@ -163,17 +168,18 @@ const UserMaster = () => {
     }
 
     if (view === VIEWTYPE?.LIST) {
-      if (listFilteredData.length === 0) {
+      if (userMasterListData.length === 0) {
         return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
       }
       return (
         <div className="px-4 pb-8 overflow-x-auto">
           <ListView
-            data={listFilteredData}
+            data={userMasterListData}
             onStatusChange={updateUserMasterStatus}
             openDrawer={addNewHandler}
             buttonTitle={setDrawerButtonTitle}
             drawerTitle={setUserDrawerTitle}
+            onFilter={filterDropDown}
           />
         </div>
       );
@@ -191,6 +197,7 @@ const UserMaster = () => {
         searchValue={searchQuery}
         onAddNew={addNewHandler}
         onDownload={downloadHandler}
+        onFilter={filterDropDown}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>

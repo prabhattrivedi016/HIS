@@ -6,13 +6,12 @@ import GridView from "../../components/profileCard/GridView";
 import ListView from "../../components/profileCard/ListView";
 import { roleMasterConfig } from "../../config/masterConfig/roleMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
-import { useConfigMaster } from "../../hooks/useConfigMaster";
 import { exportListViewData } from "../../utils/exportUtils";
 import { transformDataWithConfig } from "../../utils/utilities";
 import RoleMasterDrawer from "./components/RoleMasterDrawer";
 
 const RoleMaster = () => {
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+  // const { configDataValue, getConfigMasterValue } = useConfigMaster();
   const [roleMaterGridData, setRoleMasterGridData] = useState([]);
   const [roleMasterListData, setRoleMasterListData] = useState([]);
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
@@ -25,16 +24,16 @@ const RoleMaster = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchConfigRoleMaster = async () => {
-    try {
-      await getConfigMasterValue("roleMaster");
-    } catch (err) {
-      console.error("Error fetching config, will use fallback:", err?.message || err);
-    }
-  };
-  useEffect(() => {
-    fetchConfigRoleMaster();
-  }, []);
+  // const fetchConfigRoleMaster = async () => {
+  //   try {
+  //     await getConfigMasterValue("roleMaster");
+  //   } catch (err) {
+  //     console.error("Error fetching config, will use fallback:", err?.message || err);
+  //   }
+  // };
+  // useEffect(() => {
+  //   fetchConfigRoleMaster();
+  // }, []);
 
   const fetchRoleMasterData = async (updateStatus = true) => {
     try {
@@ -43,13 +42,13 @@ const RoleMaster = () => {
       }
       const response = await getRoleMaster();
       const apiResponse = response?.data || [];
-      const activeConfig = configDataValue || roleMasterConfig;
+      const activeConfig = roleMasterConfig;
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
       setRoleMasterGridData(transformedData?.gridView);
-      setGridFilteredData(transformedData?.gridView);
-
       setRoleMasterListData(transformedData?.listView);
+
+      setGridFilteredData(transformedData?.gridView);
       setListFilteredData(transformedData?.listView);
     } catch (error) {
       console.error("Error while fetching Role Master data:", error?.message || error);
@@ -83,25 +82,31 @@ const RoleMaster = () => {
   };
 
   // search handler
-  const searchHandler = e => {
-    const value = e.target.value.toLowerCase();
-    setSearchQuery(value);
+  const searchHandler = (keyInput, selectedValue) => {
+    console.log("keyInputkeyInputkeyInput", keyInput);
 
-    if (!value) {
-      setGridFilteredData(roleMaterGridData);
+    console.log("search for role master list", selectedValue);
+
+    if (!keyInput && !selectedValue) {
       setListFilteredData(roleMasterListData);
+      setGridFilteredData(roleMaterGridData);
       return;
     }
-    const filteredGridData = roleMaterGridData.filter(item =>
-      item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
-    );
 
-    const filteredListData = roleMasterListData?.filter(item =>
-      item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
-    );
+    const matchFilter = roleMasterListData[0]?.columns?.find(col => col?.label === selectedValue);
 
-    setGridFilteredData(filteredGridData);
-    setListFilteredData(filteredListData);
+    console.log("matchFiltermatchFiltermatchFilter", matchFilter);
+
+    // const filteredGridData = roleMaterGridData.filter(item =>
+    //   item?.cardTitle?.some(t => t?.value?.toLowerCase().includes(value))
+    // );
+
+    // const filteredListData = roleMasterListData?.filter(item =>
+    //   item?.cardTitle?.some(t => t?.value.toLowerCase().includes(value))
+    // );
+
+    // setGridFilteredData(filteredGridData);
+    // setListFilteredData(filteredListData);
   };
 
   // add new role handler
@@ -122,6 +127,11 @@ const RoleMaster = () => {
   const downloadHandler = () => {
     exportListViewData(listFilteredData, "RoleMasterList", "xlsx");
   };
+
+  // filter dropdown
+  const filterDropDown = roleMasterListData[0]?.columns;
+
+  console.log("filterDropDownfilterDropDownfilterDropDown", filterDropDown);
 
   // render component
   const renderComponent = view => {
@@ -182,6 +192,7 @@ const RoleMaster = () => {
         searchValue={searchQuery}
         onAddNew={addNewHandler}
         onDownload={downloadHandler}
+        onFilter={filterDropDown}
       />
 
       {/* render component  */}
