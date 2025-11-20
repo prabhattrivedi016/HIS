@@ -82,7 +82,7 @@ const ListView = ({ data = [], onStatusChange, openDrawer, buttonTitle, drawerTi
     return "";
   };
 
-  // 🔹 Popup Helper Renderer
+  // action menu
   const renderActionMenu = (rowData, isActive) => (
     <ul className="text-sm">
       <li>
