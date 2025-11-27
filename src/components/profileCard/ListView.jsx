@@ -1,15 +1,25 @@
 import { MoreVertical } from "lucide-react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useSortTableData } from "../../hooks/useSortTableData";
 
-const ListView = ({ data = [], onStatusChange, openDrawer }) => {
+const Pagination = lazy(() => import("./Pagination"));
+
+const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) => {
   const [openListMenu, setOpenListMenu] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState([]);
+  const [pageData, setPageData] = useState(10);
+  const [activePage, setActivePage] = useState(1);
 
   const { sortedItems, sortConfig, onSort } = useSortTableData(data);
   const tableData = sortedItems ?? data;
 
   const firstData = tableData[0] || {};
+
+  // slice data for pagination
+  const start = (activePage - 1) * pageData;
+  const end = start + pageData;
+
+  const paginatedData = tableData.slice(start, end);
 
   // headers form columns
   const headers = [
@@ -88,18 +98,11 @@ const ListView = ({ data = [], onStatusChange, openDrawer }) => {
   };
 
   // hiding column
-  const handleHeaderClick = (key, e) => {
-    if (e.altKey) {
-      setHiddenColumns(prev =>
-        prev.includes(key) ? prev.filter(col => col !== key) : [...prev, key]
-      );
-    } else if (key !== "listLeftButton") {
+  const handleHeaderClick = key => {
+    if (key !== "listLeftButton") {
       onSort(key, getSortValue);
     }
   };
-
-  //  Restore Hidden Columns Button
-  const restoreHiddenColumns = () => setHiddenColumns([]);
 
   // Sorting table
   const getSortValue = (rowData, key) => {
@@ -139,25 +142,17 @@ const ListView = ({ data = [], onStatusChange, openDrawer }) => {
   return (
     <div className="w-full px-3 py-4 sm:px-6 md:px-8">
       <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
-        {hiddenColumns.length > 0 && (
-          <button
-            className="m-3 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
-            onClick={restoreHiddenColumns}
-          >
-            Restore Columns ({hiddenColumns.length})
-          </button>
-        )}
         <table className="w-full border-collapse text-sm text-gray-700">
           <thead className="bg-blue-50 border-b border-blue-200 ">
             <tr>
               {headers.map(({ key, label }) =>
-                hiddenColumns.includes(key) ? null : (
+                hiddenColumns.includes(key) || columnVisibility[label] === false ? null : (
                   <th
                     key={key}
                     className={`px-2 py-2 font-semibold text-sm ${
                       key !== "listLeftButton" ? "cursor-pointer" : ""
                     }`}
-                    onClick={e => handleHeaderClick(key, e)}
+                    onClick={() => handleHeaderClick(key)}
                   >
                     <div className="flex items-center justify-between">
                       {label}
@@ -170,13 +165,14 @@ const ListView = ({ data = [], onStatusChange, openDrawer }) => {
           </thead>
 
           <tbody>
-            {tableData.map((rowData, idx) => {
+            {paginatedData.map((rowData, idx) => {
               const isActive = getIsActiveValue(rowData) === 1;
 
               return (
                 <tr key={idx}>
                   {headers.map(header =>
-                    hiddenColumns.includes(header.key) ? null : (
+                    hiddenColumns.includes(header.key) ||
+                    columnVisibility?.[header.label] === false ? null : (
                       <td key={header.key} className="px-2 py-3 align-top whitespace-nowrap ">
                         {header.key === "listLeftButton" ? (
                           <div className="relative">
@@ -205,6 +201,20 @@ const ListView = ({ data = [], onStatusChange, openDrawer }) => {
           </tbody>
         </table>
       </div>
+      {/* pagination helper function */}
+      {tableData?.length > 20 ? (
+        <Suspense fallback={<div>Loading pagination...</div>}>
+          <Pagination
+            totalItem={tableData.length}
+            pageData={pageData}
+            setPageData={setPageData}
+            activePage={activePage}
+            setActivePage={setActivePage}
+          />
+        </Suspense>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

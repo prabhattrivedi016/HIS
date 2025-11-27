@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "../../../assets/svgIcons";
 
+import { AxiosError } from "axios";
 import { userLogin } from "../../api/AuthServices";
-import Checkbox from "../../components//customCheckbox";
 import Button from "../../components/customButton";
+import Checkbox from "../../components/customCheckbox";
 import Select from "../../components/customSelect";
 import Input from "../../components/cutomInput";
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
@@ -15,12 +16,13 @@ import useGetBranchList from "../../hooks/useGetBranchList";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
+import { LoginFormData } from "./type";
 
 const Login = () => {
   const { branchList, fetchBranchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     selectedBranchId: "",
     userName: "",
     password: "",
@@ -50,36 +52,49 @@ const Login = () => {
 
   // Auto-select first branch
   useEffect(() => {
-    if (branchList?.data.length > 0) {
+    fetchBranchList();
+  }, [fetchBranchList]);
+
+  useEffect(() => {
+    if (!branchList) return;
+
+    const firstBranch = branchList.data?.[0];
+    if (firstBranch) {
       setFormData(prev => ({
         ...prev,
-        selectedBranchId: branchList?.data[0].branchId,
+        selectedBranchId: firstBranch.branchId,
       }));
     }
-  }, [branchList?.data]);
+  }, [branchList]);
 
-  // Input Change
-  const handleChange = e => {
-    const { name, value, type, checked } = e.target;
+  // Handle input + checkbox change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target;
+
+    const value =
+      target instanceof HTMLInputElement && target.type === "checkbox"
+        ? target.checked
+        : target.value;
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [target.name]: value,
     }));
   };
 
   // Branch Select Change
-  const handleBranchChange = value => {
+  const handleBranchChange = (branchId: number) => {
     setFormData(prev => ({
       ...prev,
-      selectedBranchId: value,
+      selectedBranchId: branchId,
     }));
   };
 
   // Submit Login
-  const handleSubmit = async e => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
 
     if (!formData.userName.trim()) newErrors.userName = "User ID is required";
     if (!formData.password.trim()) newErrors.password = "Password is required";
@@ -92,7 +107,7 @@ const Login = () => {
     try {
       setLoading(true);
       const payload = {
-        branchId: parseInt(formData.selectedBranchId),
+        branchId: Number(formData.selectedBranchId),
         userName: formData.userName,
         password: formData.password,
         rememberMe: formData.rememberMe,
@@ -124,16 +139,18 @@ const Login = () => {
       } else {
         setShowOtpModal(true);
       }
-    } catch (err) {
+    } catch (error) {
       setSuccessMessage("");
-      setErrorMessage(err?.response?.data?.message || "Invalid Username or Password");
+      const err = error as AxiosError<{ message?: string }>;
+
+      setErrorMessage(err.response?.data?.message ?? "Invalid Username or Password");
     } finally {
       setLoading(false);
     }
   };
 
   // Drawer Logic
-  const openDrawer = type => {
+  const openDrawer = (type: string) => {
     if (type === "signup") {
       setOpenSignup(true);
       setTimeout(() => setAnimateSignup(true), 10);
@@ -143,7 +160,7 @@ const Login = () => {
     }
   };
 
-  const closeDrawer = type => {
+  const closeDrawer = (type: string) => {
     if (type === "signup") {
       setAnimateSignup(false);
       setTimeout(() => setOpenSignup(false), 300);
@@ -188,12 +205,6 @@ const Login = () => {
           </div>
           {branchListError && <ErrorMessage text={branchListError} />}
           {successMessage && <SuccessMessage text={successMessage} />}
-
-          {errorMessage && (
-            <div className="px-4 py-3 rounded-lg bg-red-100 border border-red-300 text-red-700 text-center mb-3">
-              {errorMessage}
-            </div>
-          )}
 
           <form className="space-y-4">
             <Select

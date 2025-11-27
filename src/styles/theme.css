@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@tailwind utilities;
+
+/* header theme */
+.header-bg {
+  @apply bg-[#0b5394];
+}
+
+/* page header */
+.ph-button-theme {
+  @apply rounded border border-gray-200 bg-white text-gray-700 hover:bg-gray-200 active:scale-90;
+}
+
+/* pagination */
+.btn-disable {
+  @apply rounded border bg-gray-200 text-gray-400 cursor-not-allowed;
+}
+.btn-active {
+  @apply rounded border bg-[#0b5394] text-white hover:bg-blue-600;
+}
+.pagination-select {
+  @apply border border-gray-300 rounded  text-sm;
+}

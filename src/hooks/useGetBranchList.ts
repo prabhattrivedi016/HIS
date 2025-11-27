@@ -1,18 +1,21 @@
+import type { AxiosError } from "axios";
 import { useCallback, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { ENDPOINTS } from "../config/defaults";
+import type { BranchListResponse } from "../screens/login/type";
 
 const useGetBranchList = () => {
-  const [branchList, setBranchList] = useState();
-  const [branchListError, setBranchListError] = useState("");
+  const [branchList, setBranchList] = useState<BranchListResponse | null>(null);
+  const [branchListError, setBranchListError] = useState<string>("");
 
   const fetchBranchList = useCallback(async () => {
     try {
       const res = await axiosInstance.get(ENDPOINTS.GET_BRANCHES);
-      setBranchList(res?.data ?? []);
-    } catch (err) {
+      setBranchList((res?.data as BranchListResponse) ?? []);
+    } catch (error) {
+      const err = error as AxiosError;
       setBranchListError(
-        err?.response?.data || "Server not responding. Please retry in a moment"
+        (err?.response?.data as string) || "Server not responding. Please retry in a moment"
       );
     }
   }, [setBranchList, setBranchListError]);
