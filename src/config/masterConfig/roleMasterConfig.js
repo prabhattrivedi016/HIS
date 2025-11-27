@@ -40,7 +40,7 @@ export const roleMasterConfig = {
 
     columns: [
       {
-        label: "RoleID",
+        label: "Role ID",
         keyFromApi: "roleId",
         isSortable: true,
         isSearchable: true,

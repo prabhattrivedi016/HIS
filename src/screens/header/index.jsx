@@ -1,4 +1,6 @@
 import { Bell, Menu, Search, User } from "lucide-react";
+import "../../styles/layout.css";
+import "../../styles/theme.css";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
   const toggleSidebarHandler = () => {
@@ -9,7 +11,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   return (
     <header
       className={`
-        fixed top-0 z-30 h-16 bg-[#0b5394] shadow-sm 
+        fixed top-0 z-30 h-16 header-bg shadow-sm 
         flex items-center justify-between px-2 sm:px-4 md:px-6 
         transition-all duration-300
         ${isSidebarOpen ? "md:left-60 left-0" : "left-0"}
@@ -36,7 +38,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
         </div>
       </div>
 
-      {/* RIGHT SECTION */}
+      {/* marquee*/}
       <div className="flex items-center gap-8 sm:gap-6 md:gap-8 flex-shrink-0">
         <div className="hidden md:block text-white px-5 py-1 rounded-md overflow-hidden whitespace-nowrap max-w-[200px]">
           <span className="animate-marquee text-xs sm:text-sm">
