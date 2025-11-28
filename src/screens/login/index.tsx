@@ -19,7 +19,7 @@ import VerifyOtp from "./components/VerifyOtp";
 import { LoginFormData } from "./type";
 
 const Login = () => {
-  const { branchList, fetchBranchList, branchListError } = useGetBranchList();
+  const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<LoginFormData>({
@@ -44,16 +44,6 @@ const Login = () => {
   const [isEmail, setIsEmail] = useState("");
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Fetch branches
-  useEffect(() => {
-    fetchBranchList();
-  }, [fetchBranchList]);
-
-  // Auto-select first branch
-  useEffect(() => {
-    fetchBranchList();
-  }, [fetchBranchList]);
 
   useEffect(() => {
     if (!branchList) return;

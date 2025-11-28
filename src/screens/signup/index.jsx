@@ -1,6 +1,6 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ChevronDown, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { userSignup } from "../../api/AuthServices";
 import Button from "../../components/customButton";
@@ -10,7 +10,7 @@ import { stopPropagationHandler } from "../../utils/utilities";
 import signupSchema from "../../validation/signupSchema";
 
 const Signup = ({ onLoginClick }) => {
-  const { pickMasterValue, getPickMasterValue } = usePickMaster();
+  const { pickMasterValue, } = usePickMaster({ fieldName: "gender" });
   const {
     register,
     handleSubmit,
@@ -36,10 +36,7 @@ const Signup = ({ onLoginClick }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  //picMaster Values for gender
-  useEffect(() => {
-    getPickMasterValue("gender");
-  }, []);
+
 
   // Handle submit
   const onSubmit = async data => {

@@ -20,7 +20,7 @@ const FormComponent = ({
   setParentLoader,
   refreshData,
 }) => {
-  const { pickMasterValue, getPickMasterValue } = usePickMaster();
+  const { pickMasterValue } = usePickMaster({ fieldName: "gender" });
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -32,10 +32,6 @@ const FormComponent = ({
   // check for edit mode
   const isEditMode = !!userId && userId !== "0";
 
-  // Fetch gender picklist
-  useEffect(() => {
-    getPickMasterValue("gender");
-  }, []);
 
   //   user depaetmentlist
   const userDepartmentList = async () => {
@@ -49,9 +45,7 @@ const FormComponent = ({
     }
   };
 
-  useEffect(() => {
-    userDepartmentList();
-  }, []);
+
 
   //   user master list
   const getUserMaster = async () => {
@@ -68,6 +62,7 @@ const FormComponent = ({
   useEffect(() => {
     getUserMaster();
     if (userId) getUserMasterById();
+    userDepartmentList();
   }, []);
 
   // fetch user by id
@@ -285,11 +280,10 @@ const FormComponent = ({
           <div key={index} className="col-span-2 mt-4">
             <button
               type="submit"
-              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center active:scale-95 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed text-white"
-                  : "bg-[#1e6da1] hover:bg-blue-600 text-white"
-              }`}
+              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center active:scale-95 ${loading
+                ? "bg-gray-400 cursor-not-allowed text-white"
+                : "bg-[#1e6da1] hover:bg-blue-600 text-white"
+                }`}
               disabled={loading}
             >
               {loading ? (
@@ -311,17 +305,15 @@ const FormComponent = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
         onClick={onClose}
       />
 
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]
-                    bg-gray-100 shadow-xl z-50 transition-transform duration-300 overflow-y-auto ${
-                      isOpen ? "translate-x-0" : "translate-x-full"
-                    }`}
+                    bg-gray-100 shadow-xl z-50 transition-transform duration-300 overflow-y-auto ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="flex justify-between items-center p-4 border-b border-gray-300 bg-gray-100 sticky top-0 z-10">
           <div className="flex flex-col">

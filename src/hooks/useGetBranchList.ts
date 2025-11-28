@@ -1,5 +1,5 @@
 import type { AxiosError } from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { ENDPOINTS } from "../config/defaults";
 import type { BranchListResponse } from "../screens/login/type";
@@ -19,7 +19,12 @@ const useGetBranchList = () => {
       );
     }
   }, [setBranchList, setBranchListError]);
-  return { branchList, fetchBranchList, branchListError };
+
+  useEffect(() => {
+    fetchBranchList();
+  }, []);
+
+  return { branchList, branchListError };
 };
 
 export default useGetBranchList;
