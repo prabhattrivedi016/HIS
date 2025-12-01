@@ -22,8 +22,10 @@ const PageHeader = ({
   onAddNew,
   onDownload,
   onFilter,
-  hideShowColumn,
   view,
+  hideShowBtnRef,
+  onToggleColumnModal,
+  downloadBtnRef,
 }) => {
   const [selectDropDown, setSelectDropDown] = useState("");
 
@@ -135,7 +137,12 @@ const PageHeader = ({
               <RefreshCcw size={16} />
             </button>
 
-            <button className="p-2.5 ph-button-theme" title="Download" onClick={onDownload}>
+            <button
+              className="p-2.5 ph-button-theme"
+              title="Download"
+              onClick={onDownload}
+              ref={downloadBtnRef}
+            >
               <Download size={16} />
             </button>
 
@@ -145,7 +152,8 @@ const PageHeader = ({
               <button
                 className="p-2  ph-button-theme"
                 title="Hide/Show Columns"
-                onClick={hideShowColumn}
+                ref={hideShowBtnRef}
+                onClick={onToggleColumnModal}
               >
                 <ArrowDownWideNarrow size={20} />
               </button>

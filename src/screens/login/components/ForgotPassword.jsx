@@ -1,9 +1,12 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { resetPasswordByUserId, sendOtpApi, verifySmsOtp } from "../../../api/AuthServices";
+import { Spinner } from "../../../../assets/svgIcons";
 import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField";
+import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
+import { ENDPOINTS } from "../../../config/defaults/index";
+import useGlobalApi from "../../../hooks/useGlobalApi";
 import { stopPropagationHandler } from "../../../utils/utilities";
 import {
   otpSchema,
@@ -12,6 +15,8 @@ import {
 } from "../../../validation/forgotPasswordSchema";
 
 const ForgotPassword = ({ onClose }) => {
+  const { loading, error, fetchApi } = useGlobalApi();
+
   const [errorMessage, setErrorMessage] = useState("");
   const [hintMessage, setHintMessage] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -53,77 +58,62 @@ const ForgotPassword = ({ onClose }) => {
     defaultValues: { newPassword: "", confirmPassword: "" },
   });
 
-  // SEND OTP FUNCTION
+  // send otp
   const sendOtp = async data => {
     try {
-      const response = await sendOtpApi({
-        userName: data.userName,
-        contact: data.contact,
+      const response = await fetchApi("POST", ENDPOINTS.SEND_OTP, {
+        userName: data?.userName,
+        contact: data?.contact,
       });
-
-      // console.log("otp sent successfully", response);
+      if (!response) {
+        return;
+      }
       setOtpSent(true);
       setUserId(response?.data?.userId);
-      setHintMessage(response?.data?.message);
-      setErrorMessage("");
-    } catch (err) {
-      const apiMessage = err?.response?.data;
-
-      if (apiMessage) {
-        setErrorMessage(apiMessage?.message);
-        setContactHint(apiMessage?.contactHint);
-        console.log("API Error:", apiMessage);
-      } else {
-        setErrorMessage("Something went wrong. Please try again.");
-        console.log("Unexpected Error:", err);
-      }
+      setHintMessage(response?.message);
+    } catch (error) {
+      console.log("Error while sending mobile otp", error);
     }
   };
 
-  // VERIFY OTP FUNCTION
+  // verify otp
 
   const verifyOtp = async data => {
     try {
-      const response = await verifySmsOtp({
-        otp: data.otp,
+      const response = await fetchApi("POST", ENDPOINTS.VERIFY_SMS_OTP, {
+        otp: data?.otp,
         userId: userId,
       });
 
-      // console.log("OTP Verified:", response);
+      if (!response) {
+        setOtpVerified(false);
+        setSuccessMessage("");
+        return;
+      }
+      setSuccessMessage(response?.message);
       setOtpVerified(true);
-      setErrorMessage("");
       setVerifiedOtp(response?.data?.otp);
-    } catch (error) {
-      console.log("error error", error);
-      const apiMessage = error?.response?.data?.message || "Invalid OTP";
-      setErrorMessage(apiMessage);
-      setOtpVerified(false);
+    } catch (err) {
+      console.log("Error while verifying mobile otp", err);
     }
   };
 
-  // RESET PASSWORD FUNCTION
+  // reset password
   const resetPassword = async data => {
     try {
-      const response = await resetPasswordByUserId({
+      const response = await fetchApi("POST", ENDPOINTS.RESET_PASSWORD_BY_USERID, {
         userId: userId,
         otp: verifiedOtp,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
-
-      // console.log("Password reset successfully:", response);
-
-      setErrorMessage(""); // clear previous errors
-      setSuccessMessage(response?.data?.message);
+      setSuccessMessage(response?.message);
 
       setTimeout(() => {
         onClose();
       }, 2000);
     } catch (error) {
-      console.log("Reset Password Error:", error);
-      const apiMessage =
-        error?.response?.data?.message || "Something went wrong while resetting password";
-      setErrorMessage(apiMessage);
+      console.log("Error while resetting password", error);
     }
   };
 
@@ -142,17 +132,9 @@ const ForgotPassword = ({ onClose }) => {
         <h1 className="text-2xl font-bold text-center mb-6">Forgot Password</h1>
 
         <div className="mb-4">
-          {successMessage && (
-            <div className="animate-fade-in px-4 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 text-center font-medium shadow-sm">
-              {successMessage}
-            </div>
-          )}
+          {successMessage && <SuccessMessage text={successMessage} />}
 
-          {errorMessage && (
-            <div className="animate-fade-in px-4 py-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-center font-medium shadow-sm">
-              {errorMessage}
-            </div>
-          )}
+          {error && <ErrorMessage text={error} />}
         </div>
 
         {!otpSent && (
@@ -186,7 +168,14 @@ const ForgotPassword = ({ onClose }) => {
               )}
 
               <Button type="submit" className="w-full">
-                Send OTP
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner />
+                    <span>Sending OTP...</span>
+                  </div>
+                ) : (
+                  "Send OTP"
+                )}
               </Button>
             </form>
           </>
@@ -204,7 +193,14 @@ const ForgotPassword = ({ onClose }) => {
 
             {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
             <Button type="submit" className="w-full">
-              Verify OTP
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Spinner />
+                  <span>Verifying OTP...</span>
+                </div>
+              ) : (
+                "Verify OTP"
+              )}
             </Button>
           </form>
         )}

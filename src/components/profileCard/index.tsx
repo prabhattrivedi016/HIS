@@ -1,7 +1,51 @@
 import { MoreVertical } from "lucide-react";
-import { useEffect, useState } from "react";
+import { handleButtonClick } from "./helper";
 
-const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }) => {
+type CardItem = {
+  label?: string;
+  value?: string | number;
+};
+
+type ButtonItem = {
+  label: string;
+  action: string;
+  color?: string;
+};
+
+type GridViewData = {
+  cardLeftTop?: CardItem[];
+  cardRightTop?: CardItem[];
+  cardId?: CardItem[];
+  cardAvatar?: string | null;
+  cardTitle?: CardItem[];
+  cardFooter?: CardItem[];
+  buttonSection?: ButtonItem[];
+  id: number;
+};
+
+type GridViewProps = {
+  data: GridViewData;
+  onStatusChange: (payload: {
+    isActive: number;
+    userId?: number;
+    roleId?: number;
+    cardRightTopBtn?: string;
+    id?: number;
+  }) => void;
+  openDrawer: (id: number) => void;
+  buttonTitle: (title: string) => void;
+  drawerTitle: (title: string) => void;
+};
+
+const GridView = ({
+  data,
+  onStatusChange,
+  openDrawer,
+  buttonTitle,
+  drawerTitle,
+  cardRightTopBtn,
+  gridRightBtnRef,
+}: GridViewProps) => {
   const {
     cardLeftTop = [],
     cardRightTop = [],
@@ -13,15 +57,13 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
     id,
   } = data ?? {};
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   const cardTitleName = Array.isArray(cardTitle)
     ? cardTitle?.map(t => t?.value).join(" ")
     : "Unknown";
 
   const cardIdValue = Array.isArray(cardId) ? cardId?.map(t => t?.value) : "-";
 
-  const getButtonLlabel = btnLabel => {
+  const getButtonLlabel = (btnLabel: string) => {
     switch (btnLabel) {
       case "Active": {
         return cardLeftTop[0]?.value === 1 ? "Inactive" : "Active";
@@ -31,45 +73,18 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
     }
   };
 
-  // handle click
-  const handleButtonClick = btnAction => {
-    switch (btnAction) {
-      case "gridToggleActive": {
-        return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, userId: id });
-      }
-
-      case "toggleActive": {
-        return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, roleId: id });
-      }
-
-      case "gridToggleEdit": {
-        buttonTitle("Update User");
-        drawerTitle("Update Existing User");
-        openDrawer(id);
-
-        return;
-      }
-      case "toggleEdit": {
-        buttonTitle("Update Role");
-        drawerTitle("Update Existing Role");
-        openDrawer(id);
-        return;
-      }
-    }
+  // button handler
+  const buttonHandler = btnAction => {
+    handleButtonClick({
+      btnAction: btnAction,
+      onStatusChange,
+      cardLeftTop,
+      buttonTitle,
+      drawerTitle: drawerTitle,
+      id,
+      openDrawer: openDrawer,
+    });
   };
-
-  // Toggle menu
-  const toggleMenu = e => {
-    e.stopPropagation();
-    setIsMenuOpen(prev => !prev);
-  };
-
-  // Close menu when clicked outside
-  useEffect(() => {
-    const handleClickOutside = () => setIsMenuOpen(false);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4 flex flex-col transition hover:shadow-lg min-h-[260px]">
@@ -84,25 +99,16 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
 
         {cardRightTop && (
           <div className="relative">
-            <button className="p-2 hover:bg-gray-100 rounded-md transition" onClick={toggleMenu}>
+            <button
+              className="p-2 hover:bg-gray-100 rounded-md transition"
+              onClick={e => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                cardRightTopBtn(id, rect);
+              }}
+              ref={gridRightBtnRef}
+            >
               <MoreVertical size={16} className="text-gray-600" />
             </button>
-
-            {isMenuOpen && (
-              <ul
-                className="absolute right-0 mt-2 bg-white rounded-md shadow-md w-32 text-sm z-50"
-                onClick={e => e.stopPropagation()}
-              >
-                <li>
-                  <button
-                    onClick={() => alert(`View history for role ${id}`)}
-                    className="w-full text-left px-4 py-2 border border-gray-200 hover:bg-blue-50 text-gray-700"
-                  >
-                    History
-                  </button>
-                </li>
-              </ul>
-            )}
           </div>
         )}
       </div>
@@ -143,7 +149,7 @@ const GridView = ({ data, onStatusChange, openDrawer, buttonTitle, drawerTitle }
                 backgroundColor: btn.color || (btn.label === "Active" ? "#0b5394" : "#5f6f88"),
               }}
               className="flex-1 text-white text-sm py-2 rounded-md font-medium transition hover:opacity-80"
-              onClick={() => handleButtonClick(btn.action)}
+              onClick={() => buttonHandler(btn.action)}
             >
               {getButtonLlabel(btn.label)}
             </button>

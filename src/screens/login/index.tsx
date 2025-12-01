@@ -1,18 +1,18 @@
 import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "../../../assets/svgIcons";
 
-import { AxiosError } from "axios";
-import { userLogin } from "../../api/AuthServices";
 import Button from "../../components/customButton";
 import Checkbox from "../../components/customCheckbox";
 import Select from "../../components/customSelect";
 import Input from "../../components/cutomInput";
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
 import AuthBackground from "../../components/layout";
+import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
+import useGlobalApi from "../../hooks/useGlobalApi";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
@@ -35,7 +35,6 @@ const Login = () => {
   const [animateSignup, setAnimateSignup] = useState(false);
   const [animateForgot, setAnimateForgot] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -43,8 +42,14 @@ const Login = () => {
   const [isContact, setIsContact] = useState("");
   const [isEmail, setIsEmail] = useState("");
   const [userId, setUserId] = useState("");
-  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<any>(null);
 
+  // Fetch branches
+  useEffect(() => {
+    fetchBranchList();
+  }, [fetchBranchList]);
+
+  // Auto-select first branch
   useEffect(() => {
     if (!branchList) return;
 
@@ -80,7 +85,8 @@ const Login = () => {
     }));
   };
 
-  // Submit Login
+  // handle submit
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -94,50 +100,41 @@ const Login = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      const payload = {
-        branchId: Number(formData.selectedBranchId),
-        userName: formData.userName,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
-      };
+    const payload = {
+      branchId: Number(formData.selectedBranchId),
+      userName: formData.userName,
+      password: formData.password,
+      rememberMe: formData.rememberMe,
+    };
+    const response = await fetchApi("POST", ENDPOINTS.LOGIN, payload);
+    console.log("responseresponseresponseresponseresponse", response?.data?.accessToken);
+    const { accessToken } = response?.data ?? {};
 
-      const response = await userLogin(payload);
+    localStorage.setItem("accessToken", accessToken);
 
-      const { accessToken } = response?.data?.data ?? {};
+    const api = response?.data;
 
-      localStorage.setItem("accessToken", accessToken);
+    setUserName(api?.userName);
+    setEmail(api?.email);
+    setContact(api?.contact);
+    setIsContact(api?.isContactVerified);
+    setIsEmail(api?.isEmailVerified);
+    setUserId(api?.userId);
 
-      const apiResponseData = response?.data?.data;
-
-      console.log("api response of loginData", apiResponseData);
-
-      setUserName(apiResponseData?.userName);
-      setEmail(apiResponseData?.email);
-      setContact(apiResponseData.contact);
-      setIsContact(apiResponseData?.isContactVerified);
-      setIsEmail(apiResponseData?.isEmailVerified);
-      setUserId(apiResponseData?.userId);
-
-      setErrorMessage("");
-
-      if (apiResponseData?.isContactVerified && apiResponseData?.isEmailVerified) {
-        setSuccessMessage(response?.data?.message);
-
-        setTimeout(() => navigate("/dashboard"), 1000);
-      } else {
-        setShowOtpModal(true);
-      }
-    } catch (error) {
-      setSuccessMessage("");
-      const err = error as AxiosError<{ message?: string }>;
-
-      setErrorMessage(err.response?.data?.message ?? "Invalid Username or Password");
-    } finally {
-      setLoading(false);
+    if (api?.isContactVerified && api?.isEmailVerified) {
+      setSuccessMessage(response.message);
+      timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
+    } else {
+      setShowOtpModal(true);
     }
   };
+
+  // cleanup timer
+  useEffect(() => {
+    if (timerRef) {
+      return clearTimeout(timerRef.current);
+    }
+  });
 
   // Drawer Logic
   const openDrawer = (type: string) => {
@@ -193,10 +190,10 @@ const Login = () => {
 
             <p className="text-indigo-600 font-medium">!! Welcome Back !!</p>
           </div>
-          {branchListError && <ErrorMessage text={branchListError} />}
+          {error && <ErrorMessage text={error} />}
           {successMessage && <SuccessMessage text={successMessage} />}
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <Select
               icon={Building2}
               placeholder="Select Branch"
@@ -250,7 +247,6 @@ const Login = () => {
             <Button
               type="submit"
               className="w-full flex justify-center gap-2 items-center"
-              onClick={handleSubmit}
               disabled={loading}
             >
               {loading ? (

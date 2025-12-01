@@ -1,6 +1,6 @@
 import { MoreVertical } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { useSortTableData } from "../../hooks/useSortTableData";
+import { useSortTableData } from "../../../hooks/useSortTableData";
 
 const Pagination = lazy(() => import("./Pagination"));
 
@@ -56,6 +56,8 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
 
   // Open Popup
   const handleListLeftButton = (e, rowData) => {
+    console.log("rowDatarowDatarowDatarowDatarowDatarowData", rowData);
+
     e.stopPropagation();
     setOpenListMenu(prev => (prev?.id === rowData?.id ? null : rowData));
   };
@@ -84,6 +86,8 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
         ? { roleId: rowData.id }
         : type === "usermaster"
         ? { userId: rowData.id }
+        : type === "usergroupmaster"
+        ? { id: rowData?.id }
         : {}),
     };
 

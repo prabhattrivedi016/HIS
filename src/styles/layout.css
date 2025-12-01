@@ -1,4 +1,21 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
+
+/* grid card responsive layout */
+
+.grid-card-page-layout {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 mt-5  px-4 pb-10;
+}
+
+.list-view-page-layout {
+  @apply px-4 pb-8 overflow-x-auto;
+}
+
+/* drawer layout */
+.drawer-layout {
+  @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
+}
+.drawer-bg-fade {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
+          transition-opacity duration-500 ease-out;
+}

@@ -63,6 +63,9 @@ export default function Layout() {
               <Link to="/user-master" className="px-3 py-2 rounded hover:bg-gray-200 text-sm">
                 User Master
               </Link>
+              <Link to="/user-group-master" className="px-3 py-2 rounded hover:bg-gray-200 text-sm">
+                User Group Master
+              </Link>
             </div>
           )}
 

@@ -76,7 +76,7 @@ const Pagination = ({
             <ChevronLeft size={18} />
           </button>
 
-          <span className="px-1 text-gray-700">
+          <span className="px-1 pagination-text">
             {activePage} of {no_of_pages}
           </span>
 
