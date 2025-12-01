@@ -19,8 +19,7 @@ import VerifyOtp from "./components/VerifyOtp";
 import { LoginFormData } from "./type";
 
 const Login = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
-  const { branchList, fetchBranchList } = useGetBranchList();
+  const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<LoginFormData>({

@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { ENDPOINTS } from "../config/defaults";
 
-export const usePickMaster = () => {
+export const usePickMaster = ({ fieldName }: { fieldName: string }) => {
   const [pickMasterValue, setPickMasterValue] = useState("");
 
-  const getPickMasterValue = async (fieldName) => {
+  const getPickMasterValue = async (fieldName: string) => {
     try {
       const res = await axiosInstance.get(ENDPOINTS.GET_PICKLIST_MASTER, {
         params: { fieldName },
@@ -16,5 +16,9 @@ export const usePickMaster = () => {
     }
   };
 
-  return { pickMasterValue, getPickMasterValue };
+  useEffect(() => {
+    getPickMasterValue(fieldName);
+  });
+
+  return { pickMasterValue };
 };
