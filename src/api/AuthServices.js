@@ -1,14 +1,6 @@
 import { ENDPOINTS } from "../config/defaults";
 import axiosInstance from "./axiosInstance";
 
-// User Login
-/**
- * @param {*} loginData
- */
-export const userLogin = async loginData => {
-  return await axiosInstance.post(ENDPOINTS.LOGIN, loginData);
-};
-
 // User Signup
 /**
  * @param {*} signupData

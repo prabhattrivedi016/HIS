@@ -22,7 +22,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <button
           onClick={toggleSidebarHandler}
-          className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 flex-shrink-0"
+          className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 shrink-0"
         >
           <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
@@ -39,19 +39,19 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
       </div>
 
       {/* marquee*/}
-      <div className="flex items-center gap-8 sm:gap-6 md:gap-8 flex-shrink-0">
+      <div className="flex items-center gap-8 sm:gap-6 md:gap-8 shrink-0">
         <div className="hidden md:block text-white px-5 py-1 rounded-md overflow-hidden whitespace-nowrap max-w-[200px]">
           <span className="animate-marquee text-xs sm:text-sm">
             Updates Ahead! GRAVITY WEB SOLUTIONS
           </span>
         </div>
         {/* Notification Bell */}
-        <button className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg flex-shrink-0">
+        <button className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg shrink-0">
           <Bell className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
         {/* Profile  */}
-        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
           <User className="text-white w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>

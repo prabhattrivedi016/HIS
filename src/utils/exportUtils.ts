@@ -2,9 +2,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
-// ---------------------------------------------------------
-// TYPE ALIASES
-// ---------------------------------------------------------
 type ColumnData = {
   keyFromApi: string;
   label: string;
@@ -14,10 +11,6 @@ type ColumnData = {
 type ListItem = {
   columns: ColumnData[];
 };
-
-// ---------------------------------------------------------
-// DATE HELPERS
-// ---------------------------------------------------------
 
 // detect date formats dd-mm-yyyy or yyyy-mm-dd
 const isDateValue = (value: string): boolean =>
@@ -38,9 +31,7 @@ const formatDate = (value: string): string => {
   return value;
 };
 
-// ---------------------------------------------------------
-// PREPARE ROWS
-// ---------------------------------------------------------
+//rows
 
 const prepareRows = (listData: ListItem[]): (string | number)[][] =>
   listData.map(item =>
@@ -63,9 +54,7 @@ const prepareRows = (listData: ListItem[]): (string | number)[][] =>
     })
   );
 
-// ---------------------------------------------------------
-// EXCEL EXPORT
-// ---------------------------------------------------------
+// excel
 
 export const exportToExcel = (listData: ListItem[], fileName: string) => {
   let headers: string[] = [];
@@ -91,7 +80,7 @@ export const exportToExcel = (listData: ListItem[], fileName: string) => {
   XLSX.writeFile(workbook, `${fileName}.xlsx`);
 };
 
-// PDF EXPORT — jsPDF + autoTable
+// Pdf export — jsPDF + autoTable
 
 export const exportToPDF = (listData: ListItem[], fileName: string) => {
   let headers: string[] = [];
@@ -106,7 +95,7 @@ export const exportToPDF = (listData: ListItem[], fileName: string) => {
   }
 
   const doc = new jsPDF({
-    orientation: "portrait",
+    orientation: "landscape",
     unit: "pt",
     format: "a4",
   });

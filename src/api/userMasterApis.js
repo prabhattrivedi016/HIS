@@ -1,20 +1,20 @@
 import { ENDPOINTS } from "../config/defaults";
 import axiosInstance from "./axiosInstance";
 
-// user master list
-export const getUserMasterList = async (id = "") => {
-  if (id) {
-    return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST, {
-      params: { userId: id },
-    });
-  }
-  return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST);
-};
+// // user master list
+// export const getUserMasterList = async (id = "") => {
+//   if (id) {
+//     return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST, {
+//       params: { userId: id },
+//     });
+//   }
+//   return await axiosInstance.get(ENDPOINTS.USER_MASTER_LIST);
+// };
 
-// user department list
-export const getUserDepartmentList = async () => {
-  return await axiosInstance.get(ENDPOINTS.USER_DEPARTMENT_LIST);
-};
+// // user department list
+// export const getUserDepartmentList = async () => {
+//   return await axiosInstance.get(ENDPOINTS.USER_DEPARTMENT_LIST);
+// };
 
 // create a new user master
 
@@ -37,26 +37,26 @@ export const createUpdateUserMaster = async createUserData => {
   return await axiosInstance.post(ENDPOINTS.CREATE_UPDATE_USER_MASTER, payload);
 };
 
-// update user master status
-/**
- * @param {{ userId: string|number, isActive: boolean }} updateData
- */
-export const updateForUserMasterstatus = async updateData => {
-  try {
-    const response = await axiosInstance.patch(
-      ENDPOINTS.UPDATE_USER_MASTER_STATUS,
-      null, // no body since we're sending query params
-      {
-        params: {
-          userId: updateData.userId,
-          isActive: updateData.isActive,
-        },
-      }
-    );
+// // update user master status
+// /**
+//  * @param {{ userId: string|number, isActive: boolean }} updateData
+//  */
+// export const updateForUserMasterstatus = async updateData => {
+//   try {
+//     const response = await axiosInstance.patch(
+//       ENDPOINTS.UPDATE_USER_MASTER_STATUS,
+//       null, // no body since we're sending query params
+//       {
+//         params: {
+//           userId: updateData.userId,
+//           isActive: updateData.isActive,
+//         },
+//       }
+//     );
 
-    return response;
-  } catch (error) {
-    console.error("Error updating user master status:", error);
-    throw error;
-  }
-};
+//     return response;
+//   } catch (error) {
+//     console.error("Error updating user master status:", error);
+//     throw error;
+//   }
+// };

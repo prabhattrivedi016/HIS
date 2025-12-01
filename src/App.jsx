@@ -4,6 +4,7 @@ import Dashboard from "./screens/dashbord";
 import Login from "./screens/login";
 import Layout from "./screens/navbar/components/Layout";
 import RoleMaster from "./screens/roleMaster";
+import UserGroupMaster from "./screens/userGroupMaster";
 import UserMaster from "./screens/userMaster";
 
 const App = () => {
@@ -18,6 +19,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/role-master" element={<RoleMaster />} />
           <Route path="/user-master" element={<UserMaster />} />
+          <Route path="/user-group-master" element={<UserGroupMaster />} />
         </Route>
       </Routes>
     </Router>

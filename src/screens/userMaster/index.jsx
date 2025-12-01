@@ -1,38 +1,50 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getUserMasterList, updateForUserMasterstatus } from "../../api/userMasterApis";
+import HideShowColumn from "../../components/buttonsPopup";
+import DownloadPopup from "../../components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "../../components/customLoader";
 import FormComponent from "../../components/formComponent/FormComponent";
+import { ErrorMessage } from "../../components/infoText";
 import PageHeader from "../../components/pageHeader";
-import GridView from "../../components/profileCard/GridView";
-import ListView from "../../components/profileCard/ListView";
+import GridView from "../../components/profileCard";
+import ListView from "../../components/profileCard/components/ListView";
+import { ENDPOINTS } from "../../config/defaults";
 import { formConfig } from "../../config/formConfig/formConfig";
 import { userMasterConfig } from "../../config/masterConfig/userMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
-import { useClickOutside } from "../../hooks/useClickOutside";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
+import useGlobalApi from "../../hooks/useGlobalApi";
 import { exportListViewData } from "../../utils/exportUtils";
+import { filteredData } from "../../utils/filteredData";
 import { transformDataWithConfig } from "../../utils/utilities";
 
 const UserMaster = () => {
+  const { loading, error, fetchApi } = useGlobalApi();
   const { configDataValue, getConfigMasterValue } = useConfigMaster();
+
   const [userMasterGridData, setUserMasterGridData] = useState([]);
   const [userMasterListData, setUserMasterListData] = useState([]);
   const [gridFilteredData, setGridFilteredData] = useState([]);
   const [listFilteredData, setListFilteredData] = useState([]);
+
   const [openFormComponent, setOpenFormComponent] = useState("");
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New User");
   const [userDrawerTitle, setUserDrawerTitle] = useState("Add New User");
   const [openAddNewUser, setOpenAddNewUser] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
   const [hideShowColumn, setHideShowColumn] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState({});
-  const [downloadList, setDownloadList] = useState(false);
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [popupPos, setPopupPos] = useState(null);
+  const [downloadPopup, setDownloadPopup] = useState(null);
+  const [onDownload, setOnDownload] = useState(false);
 
-  // user master config data value for transforming data
+  const hideShowBtnRef = useRef(null);
+  const downloadBtnRef = useRef(null);
+
+  // fetch config for user master
   const fetchConfig = async () => {
     try {
       await getConfigMasterValue("userMaster");
@@ -45,53 +57,44 @@ const UserMaster = () => {
     fetchConfig();
   }, []);
 
-  const fetchUserMasterListData = async (updateLoading = true) => {
+  // fetch user master list
+  const fetchUserMasterListData = async (userId = "") => {
     try {
-      if (updateLoading) {
-        setLoading(true);
+      const options = userId ? { params: { userId } } : {};
+      const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
+
+      if (!response) {
+        setErrorMessage(error || "Something went wrong");
+        return;
       }
-      const response = await getUserMasterList();
-      const apiResponse = response?.data || [];
 
+      setErrorMessage("");
+
+      const apiResponse = response || [];
       const activeConfig = configDataValue || userMasterConfig;
-
       const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
-      setUserMasterGridData(transformedData?.gridView);
-
-      setUserMasterListData(transformedData?.listView);
-
-      setGridFilteredData(transformedData?.gridView);
-      setListFilteredData(transformedData?.listView);
-    } catch (error) {
-      console.error("Error fetching User Master list:", error?.message);
-    } finally {
-      setLoading(false);
+      setUserMasterGridData(transformedData?.gridView || []);
+      setUserMasterListData(transformedData?.listView || []);
+      setGridFilteredData(transformedData?.gridView || []);
+      setListFilteredData(transformedData?.listView || []);
+    } catch (err) {
+      console.error("Error fetching User Master list:", err);
     }
   };
 
   useEffect(() => {
     fetchUserMasterListData();
-  }, []);
+  }, [configDataValue]); // refetch when config becomes available
 
-  // closes modal on clicking outside
-
-  const columnPopupRef = useRef(null);
-  useClickOutside(columnPopupRef, () => setHideShowColumn(false));
-
-  const downloadPopupRef = useRef(null);
-  useClickOutside(downloadPopupRef, () => setDownloadList(false));
-
-  // hide column on the checkbox change
+  // initialize column visibility when list data arrives
   useEffect(() => {
     if (listFilteredData.length > 0) {
       const firstRow = listFilteredData[0]?.columns || [];
       const visibilityState = {};
-
       firstRow.forEach(col => {
-        visibilityState[col.label] = true; // all columns visible
+        visibilityState[col.label] = true; // all visible by default
       });
-
       setColumnVisibility(visibilityState);
     }
   }, [listFilteredData]);
@@ -101,14 +104,18 @@ const UserMaster = () => {
     setCardView(cardType);
   };
 
-  // update status
+  // update user status
   const updateUserMasterStatus = async ({ isActive, userId }) => {
     try {
-      setLoading(true);
-      await updateForUserMasterstatus({ isActive, userId });
-      fetchUserMasterListData(false);
-    } catch (error) {
-      console.log("error while updating user status", error?.message);
+      const options = { params: { userId, isActive } };
+      const response = await fetchApi("PATCH", ENDPOINTS.UPDATE_USER_MASTER_STATUS, {}, options);
+      if (!response) {
+        console.error("Failed to update user master status");
+        return;
+      }
+      fetchUserMasterListData();
+    } catch (err) {
+      console.error("Error updating status:", err);
     }
   };
 
@@ -118,113 +125,86 @@ const UserMaster = () => {
     setSearchQuery("");
   };
 
-  // handle search
-  const searchHandler = (keyInput, selectedValue) => {
-    const value = keyInput?.toLowerCase()?.trim();
+  // search handler
+  const searchHandler = (keyInput = "", selectedValue = "") => {
+    const value = keyInput?.toLowerCase()?.trim() || "";
+    setSearchQuery(keyInput || "");
 
-    if (!value && !selectedValue) {
-      setListFilteredData(userMasterListData);
-      setGridFilteredData(userMasterGridData);
-      return;
-    }
-
-    // LIST SEARCH
-    const filteredListData = userMasterListData.filter(item => {
-      if (selectedValue) {
-        const col = item.columns?.find(c => c.label === selectedValue);
-
-        if (!col) return false;
-
-        if (selectedValue === "Status") {
-          const statusText = col.value === 1 ? "active" : "inactive";
-          return col.value?.toString().includes(value) || statusText.includes(value);
-        }
-
-        return col.value?.toString().toLowerCase().includes(value);
-      }
-
-      // GLOBAL
-      return item.columns?.some(c => c.value?.toString().toLowerCase().includes(value));
+    filteredData({
+      value,
+      selectedValue,
+      listData: userMasterListData,
+      gridData: userMasterGridData,
+      setListFilteredData,
+      setGridFilteredData,
     });
-
-    // GRID SEARCH
-    const filteredGridData = userMasterGridData.filter(item =>
-      item.cardTitle?.some(titleObj => titleObj.value?.toString().toLowerCase().includes(value))
-    );
-
-    setListFilteredData(filteredListData);
-    setGridFilteredData(filteredGridData);
   };
 
-  // add new user handler
+  // add or edit user
   const addNewHandler = userId => {
     if (typeof userId === "number") {
       setDrawerButtonTitle("Update User");
       setUserDrawerTitle("Update Existing User");
       setOpenFormComponent(userId);
+      setOpenAddNewUser(false);
     } else {
       setOpenAddNewUser(true);
       setDrawerButtonTitle("Add New User");
       setUserDrawerTitle("Add New User");
+      setOpenFormComponent("");
     }
   };
 
-  // dynamic form drawer
+  // show form drawer flag
   const showFormDrawer = useMemo(() => {
-    if (!!openFormComponent || openAddNewUser) {
-      return true;
-    } else return false;
+    return !!openFormComponent || openAddNewUser;
   }, [openFormComponent, openAddNewUser]);
 
-  // download user master list
+  // DOWNLOAD POPUP HANDLER
   const downloadHandler = e => {
-    const rect = e.target.getBoundingClientRect();
-
-    let top = rect.bottom + window.scrollY + 5;
-    let left = rect.left + window.scrollX;
-
-    // SIMPLE RESPONSIVE FIX
-    left = Math.min(left, window.innerWidth - 180); // popup width ~180px
-    left = Math.max(10, left);
-
-    setPopupPos({ top, left });
-    setDownloadList(prev => !prev);
+    if (!downloadBtnRef.current) return;
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+    setOnDownload(prev => !prev);
   };
 
-  // on filter dropdown
-  const filterDropDown = userMasterListData[0]?.columns;
-
-  // hide show column handler for list view
+  // HIDE SHOW COLUMN HANDLER
   const hideShowHandler = e => {
-    const rect = e.target.getBoundingClientRect();
-
-    let top = rect.bottom + window.scrollY + 5;
-    let left = rect.left + window.scrollX;
-
-    // SIMPLE RESPONSIVE FIX
-    left = Math.min(left, window.innerWidth - 220); // column popup width
-    left = Math.max(10, left);
-
-    setPopupPos({ top, left });
+    if (!hideShowBtnRef.current) return;
+    const rect = hideShowBtnRef.current.getBoundingClientRect();
+    setPopupPos({
+      top: rect.bottom + window.scrollY - 10,
+      left: rect.left + window.scrollX + 10,
+    });
     setHideShowColumn(prev => !prev);
   };
 
-  // get column names
-  const columnNames =
-    listFilteredData.length > 0 ? listFilteredData[0].columns.map(col => col.label) : [];
+  // COLUMN NAMES
+  const columnNames = useMemo(() => {
+    return listFilteredData.length > 0 ? listFilteredData[0].columns.map(col => col.label) : [];
+  }, [listFilteredData]);
 
-  // render component
+  // DROPDOWN FILTER
+  const filterDropDown = userMasterListData[0]?.columns || [];
+
+  // render helper
   const renderComponent = view => {
+    if (errorMessage || error) {
+      return <ErrorMessage text={errorMessage || error} />;
+    }
     if (loading) {
-      return <div className="text-center text-gray-500 py-8 text-lg">Loading user master...</div>;
+      return <div className="initial-message">Loading user master...</div>;
     }
 
-    if (view === VIEWTYPE?.GRID) {
+    if (view === VIEWTYPE.GRID) {
       if (gridFilteredData.length === 0) {
-        return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
+        return <div className="no-data-message">No data found...</div>;
       }
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 px-4 pb-10  mt-5">
+        <div className="grid-card-page-layout">
           {gridFilteredData.map((user, index) => (
             <GridView
               key={index}
@@ -239,12 +219,12 @@ const UserMaster = () => {
       );
     }
 
-    if (view === VIEWTYPE?.LIST) {
+    if (view === VIEWTYPE.LIST) {
       if (listFilteredData.length === 0) {
         return <div className="text-center text-gray-500 py-8 text-lg">No data found...</div>;
       }
       return (
-        <div className="px-4 pb-8 overflow-x-auto">
+        <div className="list-view-page-layout">
           <ListView
             data={listFilteredData}
             onStatusChange={updateUserMasterStatus}
@@ -257,10 +237,12 @@ const UserMaster = () => {
         </div>
       );
     }
+
+    return null;
   };
 
   return (
-    <div className="flex-1 w-full min-h-screen bg-gray-50 -mt-4 -mx-4">
+    <div className="master-page-size">
       <PageHeader
         title="User Master"
         onCardView={handleCardView}
@@ -272,13 +254,15 @@ const UserMaster = () => {
         onAddNew={addNewHandler}
         onDownload={downloadHandler}
         onFilter={filterDropDown}
-        hideShowColumn={hideShowHandler}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef}
+        downloadBtnRef={downloadBtnRef}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>
 
       {showFormDrawer && (
-        <div className="fixed inset-0 z-[999]">
+        <div className="fixed inset-0 z-999">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
           <FormComponent
@@ -291,74 +275,40 @@ const UserMaster = () => {
             drawerTitle={userDrawerTitle}
             formConfig={formConfig}
             userId={openFormComponent}
-            setParentLoader={setLoading}
             refreshData={fetchUserMasterListData}
           />
         </div>
       )}
-      <CustomLoader isLoading={loading} />
 
-      {/* checkbox for column hiding */}
-      {hideShowColumn && (
-        <div
-          ref={columnPopupRef}
-          className="z-50 p-4 bg-white rounded shadow-lg border"
-          style={{
-            position: "absolute",
-            top: hideColumnPopup.top,
-            left: hideColumnPopup.left,
-          }}
-        >
-          {columnNames.map((colName, index) => (
-            <div key={index} className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={columnVisibility[colName]}
-                onChange={() =>
-                  setColumnVisibility(prev => ({
-                    ...prev,
-                    [colName]: !prev[colName],
-                  }))
-                }
-              />
-              <label>{colName}</label>
-            </div>
-          ))}
-        </div>
+      {loading && <CustomLoader isLoading={loading} />}
+
+      {/* hide/show column popup */}
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
       )}
 
       {/* download popup */}
-
-      {downloadList && (
-        <div
-          className=" z-50 p-1 bg-white rounded shadow-lg border"
-          style={{ position: "absolute", top: popupPos.top, left: popupPos.left }}
-          ref={downloadPopupRef}
-        >
-          <h2 className="text-lg font-semibold mb-2">Download As</h2>
-
-          <button
-            className="w-full text-left px-3 py-2 mb-1 bg-gray-100 rounded hover:bg-gray-200"
-            onClick={() => {
-              exportListViewData(listFilteredData, "UserMaster", "pdf");
-              setDownloadList(false);
-            }}
-          >
-            📄 PDF
-          </button>
-
-          <button
-            className="w-full text-left px-3 py-2 bg-gray-100 rounded hover:bg-gray-200"
-            onClick={() => {
-              exportListViewData(listFilteredData, "UserMaster", "excel");
-
-              setDownloadList(false);
-            }}
-          >
-            📊 Excel
-          </button>
-        </div>
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadPdf={() => {
+            exportListViewData(listFilteredData, "UserMasterList", "pdf");
+            setOnDownload(false);
+          }}
+          onDownloadExcel={() => {
+            exportListViewData(listFilteredData, "UserMasterList", "excel");
+            setOnDownload(false);
+          }}
+        />
       )}
     </div>
   );

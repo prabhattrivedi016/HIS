@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Spinner } from "../../../assets/svgIcons";
-import {
-  createUpdateUserMaster,
-  getUserDepartmentList,
-  getUserMasterList,
-} from "../../api/userMasterApis";
+import { ENDPOINTS } from "../../config/defaults/index";
+import useGlobalApi from "../../hooks/useGlobalApi";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import { formValidator } from "../../validation/formValidator";
 import InputField from "../customInputField";
+import CustomLoader from "../customLoader";
 
 const FormComponent = ({
   isOpen,
@@ -20,6 +18,8 @@ const FormComponent = ({
   setParentLoader,
   refreshData,
 }) => {
+  const { loading, error, fetchApi } = useGlobalApi();
+
   const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
@@ -27,7 +27,6 @@ const FormComponent = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [localSelectData, setLocalSelectData] = useState({});
   const [userMasterData, setUserMasterData] = useState({});
-  const [loading, setLoading] = useState(false);
 
   // check for edit mode
   const isEditMode = !!userId && userId !== "0";
@@ -39,46 +38,58 @@ const FormComponent = ({
 
   //   user depaetmentlist
   const userDepartmentList = async () => {
-    try {
-      const response = await getUserDepartmentList();
-      const apiResponse = response?.data;
-      //   console.log("response of user department", apiResponse?.data);
-      setUserDepartment(apiResponse?.data);
-    } catch (error) {
-      console.log("error while fetching the user department list", error?.message);
+    const response = await fetchApi("GET", ENDPOINTS.USER_DEPARTMENT_LIST);
+
+    if (!response) {
+      console.error("Failed to fetch user department list");
+      return;
     }
+
+    setUserDepartment(response?.data || []);
   };
 
   useEffect(() => {
     userDepartmentList();
   }, []);
 
-  //   user master list
-  const getUserMaster = async () => {
-    try {
-      const response = await getUserMasterList();
-      //   console.log("user master list", response?.data?.data);
-      const apiResponse = response?.data;
-      setUserMasterList(apiResponse?.data);
-    } catch (error) {
-      console.log("error while fetching the user master list", error?.message);
+  // user master list
+  const getUserMaster = async (id = "") => {
+    const options = id ? { params: { userId: id } } : {};
+
+    const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
+
+    if (!response) {
+      console.error("Failed to fetch user master list");
+      return;
     }
+
+    // API returns: response.data.data
+    setUserMasterList(response?.data || []);
   };
 
   useEffect(() => {
     getUserMaster();
-    if (userId) getUserMasterById();
+    if (userId) getUserMasterById(userId);
   }, []);
 
   // fetch user by id
-  const getUserMasterById = async () => {
-    try {
-      const response = await getUserMasterList(userId);
-      const apiResponse = response?.data?.data;
 
-      setUserMasterData(apiResponse?.[0]);
+  const getUserMasterById = async userId => {
+    try {
+      const options = {
+        params: { userId },
+      };
+
+      const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
+
+      console.log("responseresponseresponseresponseresponse", response);
+
+      if (!response) return;
+
+      const apiResponse = response?.data;
+      setUserMasterData(apiResponse?.[0] || null);
     } catch (error) {
-      console.log("error while fetching the user master list", error?.message);
+      console.log("Error fetching user master by ID:", error);
     }
   };
 
@@ -139,26 +150,30 @@ const FormComponent = ({
   const headingField = formConfig?.find(f => f.type === "heading");
   const requiredField = formConfig?.find(f => f.type === "requiredErrorMessage");
 
-  // handle submit
+  // submit handler
   const onSubmit = async data => {
     try {
-      setLoading(true);
-      setParentLoader(true);
+      const payload = {
+        ...data,
+        userId: userId || "0",
+      };
+
+      const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_USER_MASTER, payload);
+
+      if (!response) {
+        setErrorMessage(error || "Something went wrong!");
+        return;
+      }
+
+      setSuccessMessage(response?.message || "Saved successfully!");
       refreshData();
-      const response = await createUpdateUserMaster({ ...data, userId });
-      console.log(response?.data);
-      const apiResponse = response?.data;
-      setSuccessMessage(apiResponse?.message);
-      setErrorMessage("");
+
       setTimeout(() => {
         onClose();
       }, 1500);
-    } catch (error) {
-      const apiError = error?.response?.data;
-      console.log("api error is:", apiError?.message);
-      setErrorMessage(apiError?.message);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Something went wrong!";
+      setErrorMessage(msg);
     }
   };
 
@@ -362,6 +377,7 @@ const FormComponent = ({
           </form>
         </div>
       </div>
+      {loading && <CustomLoader isLoading={loading} />}
     </>
   );
 };
