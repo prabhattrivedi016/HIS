@@ -18,7 +18,6 @@ const FormComponent = ({
   refreshData,
 }) => {
   const { pickMasterValue } = usePickMaster({ fieldName: "gender" });
-
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
