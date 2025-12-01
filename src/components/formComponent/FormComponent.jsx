@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Spinner } from "../../../assets/svgIcons";
 import { ENDPOINTS } from "../../config/defaults/index";
-import useGlobalApi from "../../hooks/useGlobalApi";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import { formValidator } from "../../validation/formValidator";
 import InputField from "../customInputField";
@@ -18,9 +17,8 @@ const FormComponent = ({
   setParentLoader,
   refreshData,
 }) => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { pickMasterValue } = usePickMaster({ fieldName: "gender" });
 
-  const { pickMasterValue, getPickMasterValue } = usePickMaster();
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -30,11 +28,6 @@ const FormComponent = ({
 
   // check for edit mode
   const isEditMode = !!userId && userId !== "0";
-
-  // Fetch gender picklist
-  useEffect(() => {
-    getPickMasterValue("gender");
-  }, []);
 
   //   user depaetmentlist
   const userDepartmentList = async () => {
@@ -47,10 +40,6 @@ const FormComponent = ({
 
     setUserDepartment(response?.data || []);
   };
-
-  useEffect(() => {
-    userDepartmentList();
-  }, []);
 
   // user master list
   const getUserMaster = async (id = "") => {
@@ -69,7 +58,8 @@ const FormComponent = ({
 
   useEffect(() => {
     getUserMaster();
-    if (userId) getUserMasterById(userId);
+    if (userId) getUserMasterById();
+    userDepartmentList();
   }, []);
 
   // fetch user by id
@@ -81,8 +71,6 @@ const FormComponent = ({
       };
 
       const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
-
-      console.log("responseresponseresponseresponseresponse", response);
 
       if (!response) return;
 
