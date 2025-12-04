@@ -1,11 +1,18 @@
 import { useEffect, useRef } from "react";
+import { DownloadPopupProps } from "../types";
 
-const DownloadPopup = ({ anchorRef, position, onClose, onDownloadPdf, onDownloadExcel }) => {
+const DownloadPopup = ({
+  anchorRef,
+  position,
+  onClose,
+  onDownloadPdf,
+  onDownloadExcel,
+}: DownloadPopupProps) => {
   const popupRef = useRef(null);
 
   // Close when clicking outside popup
   useEffect(() => {
-    const handleOutside = e => {
+    const handleOutside = (e: MouseEvent) => {
       if (
         popupRef.current &&
         !popupRef.current.contains(e.target) &&

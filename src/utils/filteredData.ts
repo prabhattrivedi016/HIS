@@ -1,20 +1,4 @@
-type ListColumn = {
-  label: string;
-  value: any;
-  keyFromApi?: string;
-};
-
-export type ListItem = {
-  columns: ListColumn[];
-};
-
-export type GridTitleItem = {
-  value: string | number;
-};
-
-export type GridItem = {
-  cardTitle: GridTitleItem[];
-};
+import { GridItem, ListItem } from "@/types/types";
 
 export type FilteredDataProps = {
   value: string;

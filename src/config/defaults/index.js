@@ -17,10 +17,16 @@ const ENDPOINTS = {
   UPDATE_ROLE_MASTER_STATUS: "Admin/updateRoleMasterStatus",
   CREATE_UPDATE_ROLE_MASTER: "Admin/createUpdateRoleMaster",
   UPDATE_USER_MASTER_STATUS: "Admin/updateUserMasterStatus",
-  // user group master
+  // user group
   USER_GROUP_LIST: "Admin/userGroupList",
   UPDATE_USER_GROUP_STATUS: "Admin/updateUserGroupStatus",
   CREATE_UPDATE_USER_GROUP_MASTER: "Admin/createUpdateUserGroupMaster",
+  USER_GROUP_MEMBER_LIST: "Admin/userGroupMembersList",
+  CREATE_UPDATE_USER_GROUP_MEMBER: "Admin/createUpdateUserGroupMembers",
+  // user department
+  GET_DEPARTMENT_LIST: "Admin/userDepartmentList",
+  CREATE_UPDATE_USER_DEPARTMENT: "Admin/createUpdateUserDepartment",
+  UPDATE_USER_DEPARTMENT_STATUS: "Admin/updateUserDepartmentStatus",
 };
 
 export { ENDPOINTS };
