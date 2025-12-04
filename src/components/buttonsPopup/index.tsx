@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import Checkbox from "../customCheckbox";
+import { HideShowColumnProps } from "./types";
 
 const HideShowColumn = ({
   columnNames = [],
@@ -7,10 +9,10 @@ const HideShowColumn = ({
   onClose,
   columnVisibility,
   setColumnVisibility,
-}) => {
+}: HideShowColumnProps) => {
   const popupRef = useRef(null);
 
-  const handleToggle = col => {
+  const handleToggle = (col: string) => {
     setColumnVisibility(prev => ({
       ...prev,
       [col]: !prev[col],
@@ -18,9 +20,10 @@ const HideShowColumn = ({
   };
 
   useEffect(() => {
-    const handleOutside = e => {
+    const handleOutside = (e: MouseEvent) => {
       if (
         popupRef.current &&
+        anchorRef.current &&
         !popupRef.current.contains(e.target) &&
         !anchorRef.current.contains(e.target)
       ) {
@@ -43,11 +46,7 @@ const HideShowColumn = ({
     >
       {columnNames.map((col, index) => (
         <div key={index} className="flex items-center gap-2 mb-1">
-          <input
-            type="checkbox"
-            checked={columnVisibility[col]}
-            onChange={() => handleToggle(col)}
-          />
+          <Checkbox checked={columnVisibility[col]} onChange={() => handleToggle(col)} />
           <label className="truncate">{col}</label>
         </div>
       ))}

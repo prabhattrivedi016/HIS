@@ -1,29 +1,8 @@
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import "./index.css";
-import Dashboard from "./screens/dashbord";
-import Login from "./screens/login";
-import Layout from "./screens/navbar/components/Layout";
-import RoleMaster from "./screens/roleMaster";
-import UserGroupMaster from "./screens/userGroupMaster";
-import UserMaster from "./screens/userMaster";
+import Navbar from "./screens/navbar";
 
 const App = () => {
-  return (
-    <Router>
-      <Routes>
-        {/* Public Route - Login  */}
-        <Route path="/" element={<Login />} />
-
-        {/* Protected Routes - With Sidebar & Header */}
-        <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/role-master" element={<RoleMaster />} />
-          <Route path="/user-master" element={<UserMaster />} />
-          <Route path="/user-group-master" element={<UserGroupMaster />} />
-        </Route>
-      </Routes>
-    </Router>
-  );
+  return <Navbar />;
 };
 
 export default App;

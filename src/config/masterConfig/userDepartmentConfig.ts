@@ -1,37 +1,37 @@
-export const userGroupMaster = {
-  type: "userGroupMaster",
+export const userDeprtmentConfig = {
+  type: "userDepartment",
 
   gridCardView: {
-    type: "userGroupMaster",
-    cardType: "userGroupMasterGrid",
+    type: "userDepartment",
+    cardType: "userDepartmentGrid",
     cardViewType: "grid",
     id: "0",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
-    gridRightTop: [{ label: "toggle", action: "umgGridRightButton" }],
+    gridRightTop: [{ label: "toggle", action: "ListToggleButton" }],
 
-    gridId: [{ label: "GroupID", keyFromApi: "id" }],
+    gridAvatar: [{ label: "profile", keyFromApi: "iconName" }],
 
-    gridTitle: [
-      { label: "First Name", keyFromApi: "groupName" },
-      { label: "Last Name", keyFromApi: "lastName" },
-    ],
+    gridId: [{ label: "Dept ID", keyFromApi: "id" }],
+
+    gridTitle: [{ label: "Department Name", keyFromApi: "departmentName" }],
 
     gridFooterSection: [
       { label: "Created By", keyFromApi: "createdBy" },
-      { label: "Created On", keyFromApi: "createdOn" },
-      { label: "Last Modified By", keyFromApi: "lastModifiedBy" },
+      { label: "Last Modified", keyFromApi: "lastModifiedOn" },
+      { label: "Modified By", keyFromApi: "lastModifiedBy" },
     ],
 
     gridButtonSection: [
-      { label: "Map User", action: "umgMapToUser" },
-      { label: "Edit", action: "umgGridEdit" },
+      { label: "Active", action: "deptToggleActive" },
+      { label: "Edit", action: "deptToggleEdit" },
     ],
   },
+
   listCardView: {
-    type: "userGroupMaster",
-    cardType: "userGroupMasterList",
+    type: "userDepartment",
+    cardType: "userDepartmentList",
     cardViewType: "list",
     id: "0",
 
@@ -39,7 +39,7 @@ export const userGroupMaster = {
 
     columns: [
       {
-        label: "GroupID",
+        label: "DeptID",
         keyFromApi: "id",
         isSortable: true,
         isSearchable: true,
@@ -47,8 +47,8 @@ export const userGroupMaster = {
         isMasked: true,
       },
       {
-        label: "Group Name",
-        keyFromApi: "groupName",
+        label: "Dept Name",
+        keyFromApi: "departmentName",
       },
       { label: "Status", keyFromApi: "isActive" },
       { label: "Created By", keyFromApi: "createdBy" },
