@@ -19,6 +19,7 @@ import VerifyOtp from "./components/VerifyOtp";
 import { LoginFormData } from "./type";
 
 const Login = () => {
+  const { loading, error, fetchApi } = useGlobalApi();
   const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
 
@@ -43,11 +44,6 @@ const Login = () => {
   const [isEmail, setIsEmail] = useState("");
   const [userId, setUserId] = useState("");
   const timerRef = useRef<any>(null);
-
-  // Fetch branches
-  useEffect(() => {
-    fetchBranchList();
-  }, [fetchBranchList]);
 
   // Auto-select first branch
   useEffect(() => {
@@ -107,7 +103,6 @@ const Login = () => {
       rememberMe: formData.rememberMe,
     };
     const response = await fetchApi("POST", ENDPOINTS.LOGIN, payload);
-    console.log("responseresponseresponseresponseresponse", response?.data?.accessToken);
     const { accessToken } = response?.data ?? {};
 
     localStorage.setItem("accessToken", accessToken);
@@ -129,12 +124,11 @@ const Login = () => {
     }
   };
 
-  // cleanup timer
   useEffect(() => {
-    if (timerRef) {
-      return clearTimeout(timerRef.current);
-    }
-  });
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   // Drawer Logic
   const openDrawer = (type: string) => {
@@ -192,7 +186,7 @@ const Login = () => {
           </div>
           {error && <ErrorMessage text={error} />}
           {successMessage && <SuccessMessage text={successMessage} />}
-
+          {branchListError && <ErrorMessage text={branchListError} />}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <Select
               icon={Building2}

@@ -7,7 +7,7 @@ type UserDeptDrawerProps = {
 };
 
 type Payload = {
-  id: string | null;
+  id: string | null | undefined;
   departmentName: string;
   isActive: string;
 };

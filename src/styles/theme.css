@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @tailwind utilities;
 
+/* button colors */
+:root {
+  --btn-active: #0b5394;
+  --btn-edit: #6f94c7;
+}
+
+/* login page */
+.open-drawer {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300;
+}
+.signup-bg {
+  @apply bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300;
+}
+.forgot-bg {
+  @apply bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300;
+}
+
+/* required-error message */
+.required-err {
+  @apply text-sm text-red-500;
+}
 /* header theme */
 .header-bg {
   @apply bg-[#0b5394];
@@ -51,15 +72,15 @@
   @apply text-center text-gray-500 py-8 text-lg;
 }
 
-/*  all add new drawer */
+/*  all  drawer */
 .drawer-close-btn {
-  @apply text-gray-600 hover:text-black text-2xl leading-none;
+  @apply text-gray-600  m-2  hover:text-black text-4xl leading-none;
 }
 .drawer-bg {
   @apply bg-gray-100;
 }
 .drawer-title-border {
-  @apply flex justify-between items-center p-4 border-b;
+  @apply flex justify-between items-center p-2 border-b;
 }
 .drawer-title {
   @apply text-lg font-semibold text-gray-800;
@@ -71,4 +92,47 @@
 }
 .input-field-error {
   @apply text-red-600 text-sm mt-1;
+}
+
+/* usergroup master styles */
+.item-border {
+  @apply border border-gray-200 p-2 mb-2 rounded bg-gray-50 text-sm cursor-move hover:bg-gray-100;
+}
+.box-border {
+  @apply border border-gray-300 rounded-lg p-3 w-full md:w-1/2 max-h-[420px] overflow-y-auto;
+}
+.heading-text {
+  @apply font-semibold mb-2 text-gray-700;
+}
+.no-user-text {
+  @apply text-gray-500 text-sm;
+}
+
+/* card view */
+.card-status {
+  @apply font-semibold text-xs px-3 py-1 rounded;
+}
+.active {
+  @apply text-green-700 bg-green-100;
+}
+.inactive {
+  @apply text-red-600 bg-red-100;
+}
+.card-icon {
+  @apply text-gray-700;
+}
+.card-id {
+  @apply text-gray-500 text-sm mt-2;
+}
+.card-title {
+  @apply text-lg font-bold text-gray-800 text-center;
+}
+.footer-label {
+  @apply text-gray-500 text-xs;
+}
+.footer-value {
+  @apply text-gray-800 text-sm font-medium;
+}
+.footer-border {
+  @apply border border-gray-300 rounded-md mt-3 p-2;
 }

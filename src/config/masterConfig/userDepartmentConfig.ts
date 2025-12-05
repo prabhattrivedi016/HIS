@@ -1,4 +1,4 @@
-export const userDeprtmentConfig = {
+export const userDepartmentConfig = {
   type: "userDepartment",
 
   gridCardView: {
@@ -54,7 +54,7 @@ export const userDeprtmentConfig = {
       { label: "Created By", keyFromApi: "createdBy" },
       { label: "Created On", keyFromApi: "createdOn" },
       { label: "Last Modified By", keyFromApi: "lastModifiedBy" },
-      { label: "last Modified On", keyFromApi: "lastModifiedOn" },
+      { label: "Last Modified On", keyFromApi: "lastModifiedOn" },
       { label: "Ip Address", keyFromApi: "ipAddress" },
     ],
   },

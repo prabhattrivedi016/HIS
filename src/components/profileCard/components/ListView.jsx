@@ -87,7 +87,9 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
         : type === "usermaster"
         ? { userId: rowData.id }
         : type === "usergroupmaster"
-        ? { id: rowData?.id }
+        ? { id: rowData.id }
+        : type === "userdepartment"
+        ? { id: rowData.id }
         : {}),
     };
 

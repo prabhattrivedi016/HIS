@@ -34,7 +34,7 @@ interface GridItem {
   id: number;
 
   cardLeftTop: GridLeftTop[];
-  cardRightTOp: GridRightTop[];
+  cardRightTop: GridRightTop[];
   cardAvatar: string | null;
   cardId: GridId[];
   cardTitle: GridTitle[];
@@ -56,7 +56,7 @@ interface ColumnItem {
 
   label: string;
   keyFromApi: string;
-  value: any;
+  value: string | number | null;
 }
 
 interface ListItem {

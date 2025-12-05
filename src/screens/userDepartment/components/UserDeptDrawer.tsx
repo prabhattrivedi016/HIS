@@ -21,7 +21,7 @@ const UserDeptDrawer = ({
 }: UserDeptDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [sucessMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   //   add new or update department
@@ -90,12 +90,13 @@ const UserDeptDrawer = ({
   useEffect(() => {
     if (deptId) {
       fetchDepartmentById(deptId);
+    } else {
+      reset({
+        id: "0",
+        isActive: "",
+        departmentName: "",
+      });
     }
-    reset({
-      id: "0",
-      isActive: "",
-      departmentName: "",
-    });
   }, [deptId, reset]);
 
   return (
@@ -116,7 +117,7 @@ const UserDeptDrawer = ({
           </div>
           <div className="p-4">
             <div className="mb-4">
-              {sucessMessage ? <SuccessMessage text={sucessMessage} /> : <></>}
+              {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
               {error ? <ErrorMessage text={error} /> : <></>}
             </div>
 
