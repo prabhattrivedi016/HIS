@@ -63,7 +63,7 @@ const FormComponent = ({
   useEffect(() => {
     getUserMaster();
     if (userId) getUserMasterById(userId);
-  }, []);
+  }, [userId]);
 
   // fetch user by id
 

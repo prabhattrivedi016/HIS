@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
 import Header from "../../header/index";
 
-export default function Layout() {
+export default function Sidebar() {
   const [openMenu, setOpenMenu] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 

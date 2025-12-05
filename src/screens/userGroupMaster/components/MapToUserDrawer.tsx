@@ -17,7 +17,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingUsers, setPendingUsers] = useState([]);
   const [mappedUsers, setMappedUsers] = useState([]);
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   //  double-tap handler (for mobile & desktop touch)
   const lastTapRef = useRef(0);
@@ -203,9 +203,9 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
 
                 {pendingUsers.length === 0 && <p className="no-user-text">No users</p>}
 
-                {pendingUsers.map((item, idx) => (
+                {pendingUsers.map(item => (
                   <div
-                    key={idx}
+                    key={item.userId}
                     draggable
                     onDragStart={() => onDragStart(item)}
                     // desktop double-click
@@ -234,9 +234,9 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
 
                 {mappedUsers.length === 0 && <p className="no-user-text">No users</p>}
 
-                {mappedUsers.map((item, idx) => (
+                {mappedUsers.map(item => (
                   <div
-                    key={idx}
+                    key={item.userId}
                     draggable
                     onDragStart={() => onDragStart(item)}
                     // desktop double-click
