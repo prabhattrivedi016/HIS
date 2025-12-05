@@ -19,3 +19,12 @@
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
           transition-opacity duration-500 ease-out;
 }
+
+/* grid  view  */
+.card-layout {
+  @apply bg-white shadow-md rounded-xl p-4 flex flex-col transition hover:shadow-lg min-h-[260px];
+}
+
+.card-avatar-size {
+  @apply w-20 h-20 rounded-full border border-gray-300 flex items-center justify-center bg-gray-50;
+}
