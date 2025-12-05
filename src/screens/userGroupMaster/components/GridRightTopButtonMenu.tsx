@@ -79,7 +79,7 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
       }}
     >
       <button onClick={activeHandler} className="data-downlaod-popup-btn">
-        {isActive ? (isActive === 1 ? "Inactive" : "Active") : ""}
+        {isActive !== null ? (isActive === 1 ? "Inactive" : "Active") : ""}
       </button>
 
       {loading ? <CustomLoader isLoading={updateLoading} /> : <></>}
