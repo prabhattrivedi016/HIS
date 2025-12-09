@@ -69,6 +69,15 @@ export default function Sidebar() {
               <Link to="/user-department" className="px-3 py-2 rounded hover:bg-gray-200 text-sm">
                 User Department
               </Link>
+              <Link
+                to="/user-authorization"
+                className="px-3 py-2 rounded hover:bg-gray-200 text-sm"
+              >
+                User Authorization
+              </Link>
+              <Link to="/navigation-panel" className="px-3 py-2 rounded hover:bg-gray-200 text-sm">
+                Navigation Panel
+              </Link>
             </div>
           )}
 

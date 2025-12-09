@@ -1,4 +1,5 @@
 const ENDPOINTS = {
+  // login
   LOGIN: "User/userLogin",
   USER_SIGNUP: "User/NewUserSignUp",
   GET_BRANCHES: "Home/getActiveBranchList",
@@ -27,6 +28,18 @@ const ENDPOINTS = {
   GET_DEPARTMENT_LIST: "Admin/userDepartmentList",
   CREATE_UPDATE_USER_DEPARTMENT: "Admin/createUpdateUserDepartment",
   UPDATE_USER_DEPARTMENT_STATUS: "Admin/updateUserDepartmentStatus",
+  // user authorization
+  GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION: "Admin/getAssignRoleForUserAuthorization",
+  SAVE_UPDATE_ROLE_MAPPING: "Admin/saveUpdateRoleMapping",
+  GET_ASSIGN_USER_RIGHT_MAPPING: "Admin/getAssignUserRightMapping",
+  SAVE_UPDATE_USER_RIGHT_MAPPING: "Admin/saveUpdateUserRightMapping",
+  GET_ASSIGN_DASHBOARD_USER_RIGHT: "Admin/getAssignDashBoardUserRight",
+  SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING: "Admin/saveUpdateDashBoardUserRightMapping",
+  // navigation panel
+  GET_NAVIGATION_SUB_MENU_MASTER: "Admin/getNavigationSubMenuMaster",
+  GET_NAVIGATION_TAB_MASTER: "Admin/getNavigationTabMaster",
+  CREATE_UPDATE_NAVIGATION_TAB_MASTER: "Admin/createUpdateNavigationTabMaster",
+  CREATE_UPDATE_NAVIGATION_SUBMENU_MASTER: "Admin/createUpdateNavigationSubMenuMaster",
 };
 
 export { ENDPOINTS };

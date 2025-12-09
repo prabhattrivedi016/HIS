@@ -18,7 +18,7 @@ export const usePickMaster = ({ fieldName }: { fieldName: string }) => {
 
   useEffect(() => {
     getPickMasterValue(fieldName);
-  });
+  }, []);
 
   return { pickMasterValue };
 };
