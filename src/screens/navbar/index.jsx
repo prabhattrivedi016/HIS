@@ -1,7 +1,9 @@
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import Dashboard from "../dashbord";
+import Dashboard from "../dashboard";
 import Login from "../login";
+import NavigationPanel from "../navigationPanel";
 import RoleMaster from "../roleMaster";
+import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
 import UserGroupMaster from "../userGroupMaster";
 import UserMaster from "../userMaster";
@@ -21,6 +23,8 @@ const Navbar = () => {
           <Route path="/user-master" element={<UserMaster />} />
           <Route path="/user-group" element={<UserGroupMaster />} />
           <Route path="/user-department" element={<UserDepartment />} />
+          <Route path="/user-authorization" element={<UserAuthorization />} />
+          <Route path="/navigation-panel" element={<NavigationPanel />} />
         </Route>
       </Routes>
     </Router>

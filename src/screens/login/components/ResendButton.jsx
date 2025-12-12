@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 const ResendButton = ({ onResend }) => {
-  const [timer, setTimer] = useState(120);
+  const [timer, setTimer] = useState(60);
   const [isDisabled, setIsDisabled] = useState(true);
 
   useEffect(() => {
     let interval;
     if (isDisabled) {
       interval = setInterval(() => {
-        setTimer((prev) => {
+        setTimer(prev => {
           if (prev <= 1) {
             setIsDisabled(false);
             clearInterval(interval);
@@ -20,7 +20,7 @@ const ResendButton = ({ onResend }) => {
     return () => clearInterval(interval);
   }, [isDisabled]);
 
-  const formatTime = (t) => {
+  const formatTime = t => {
     const m = String(Math.floor(t / 60)).padStart(2, "0");
     const s = String(t % 60).padStart(2, "0");
     return `${m}:${s}`;
@@ -35,7 +35,7 @@ const ResendButton = ({ onResend }) => {
       <button
         onClick={() => {
           onResend();
-          setTimer(120);
+          setTimer(60);
           setIsDisabled(true);
         }}
         disabled={isDisabled}

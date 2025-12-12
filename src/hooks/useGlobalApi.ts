@@ -39,27 +39,22 @@ const useGlobalApi = () => {
       switch (method.toUpperCase()) {
         case "GET":
           response = await axiosInstance.get(url, options);
-
           break;
 
         case "POST":
           response = await axiosInstance.post(url, payload, options);
-
           break;
 
         case "PUT":
           response = await axiosInstance.put(url, payload, options);
-
           break;
 
         case "PATCH":
           response = await axiosInstance.patch(url, payload, options);
-
           break;
 
         case "DELETE":
           response = await axiosInstance.delete(url, options);
-
           break;
 
         default:

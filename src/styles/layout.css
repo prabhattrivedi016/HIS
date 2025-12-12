@@ -1,6 +1,47 @@
 @import "tailwindcss";
 @tailwind utilities;
 
+/* drawer central*/
+.drawer-bg-overlay {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm 
+          transition-opacity duration-300 z-9998;
+}
+.central-drawer {
+  @apply fixed top-1/2 left-1/2 z-9999
+          bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-md
+          transition-all duration-300 ease-out
+          transform;
+}
+.opacity-full {
+  @apply opacity-100 scale-100 -translate-x-1/2 -translate-y-1/2;
+}
+.no-opacity{
+  @apply "opacity-0 scale-50 -translate-x-1/2 -translate-y-1/2
+}
+
+/* right drawer  */
+/* drawer layout */
+.drawer-layout {
+  @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
+}
+.drawer-bg-fade {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
+          transition-opacity duration-500 ease-out;
+}
+
+
+
+/* login page */
+.login-btn-layout {
+  @apply w-full justify-center gap-2 items-center  cursor-pointer active:scale-95 px-4 py-2 rounded-lg font-semibold transition-all;
+}
+.forgot-btn-layout {
+  @apply text-sm font-medium cursor-pointer;
+}
+.check-btn-layout {
+  @apply border  focus:ring-2 focus:ring-blue-400 w-4 h-4 m-1 rounded cursor-pointer border-gray-300
+      transition-all duration-200;
+}
 /* grid card responsive layout */
 
 .grid-card-page-layout {
@@ -11,14 +52,7 @@
   @apply px-4 pb-8 overflow-x-auto;
 }
 
-/* drawer layout */
-.drawer-layout {
-  @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
-}
-.drawer-bg-fade {
-  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
-          transition-opacity duration-500 ease-out;
-}
+
 
 /* grid  view  */
 .card-layout {
@@ -28,3 +62,5 @@
 .card-avatar-size {
   @apply w-20 h-20 rounded-full border border-gray-300 flex items-center justify-center bg-gray-50;
 }
+
+/* className="overflow-x-auto overflow-y-auto rounded-lg border min-h-[300px] max-h-[400px];" */

@@ -103,6 +103,7 @@ const Login = () => {
       rememberMe: formData.rememberMe,
     };
     const response = await fetchApi("POST", ENDPOINTS.LOGIN, payload);
+    if (!response) return;
     const { accessToken } = response?.data ?? {};
 
     localStorage.setItem("accessToken", accessToken);
