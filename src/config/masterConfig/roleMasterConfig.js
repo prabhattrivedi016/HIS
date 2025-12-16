@@ -11,7 +11,7 @@ export const roleMasterConfig = {
 
     gridRightTop: [{ label: "toggle", action: "ListToggleButton" }],
 
-    gridAvatar: [{ label: "profile", keyFromApi: "iconName" }],
+    gridAvatar: [{ label: "profile", keyFromApi: "iconClass" }],
 
     gridId: [{ label: "Role ID", keyFromApi: "roleId" }],
 

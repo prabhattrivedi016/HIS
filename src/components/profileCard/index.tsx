@@ -80,9 +80,9 @@ const GridView = ({
       <div className="flex flex-col items-center">
         <div className="card-avatar-size">
           {cardAvatar ? (
-            <i className={`fa ${cardAvatar} card-icon`}></i>
+            <i className={`${cardAvatar} card-icon`} />
           ) : (
-            <i className="fa-solid fa-user fa-2x text-gray-700"></i>
+            <i className="fa-solid fa-user fa-2x text-gray-700" />
           )}
         </div>
 

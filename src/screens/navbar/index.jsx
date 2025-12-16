@@ -1,30 +1,37 @@
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import Dashboard from "../dashboard";
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import Login from "../login";
-import NavigationPanel from "../navigationPanel";
-import RoleMaster from "../roleMaster";
-import UserAuthorization from "../userAuthorization";
-import UserDepartment from "../userDepartment";
-import UserGroupMaster from "../userGroupMaster";
-import UserMaster from "../userMaster";
+import { authorizedRouteMap } from "../routes";
 import Sidebar from "./components/Sidebar";
 
 const Navbar = () => {
+  const { authorizedPages } = useAuthorizedPages();
+
   return (
     <Router>
       <Routes>
-        {/* Public Route - Login  */}
+        {/* Public */}
         <Route path="/" element={<Login />} />
 
-        {/* Protected Routes - With Sidebar & Header */}
+        {/* Protected */}
         <Route element={<Sidebar />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/role-master" element={<RoleMaster />} />
-          <Route path="/user-master" element={<UserMaster />} />
-          <Route path="/user-group" element={<UserGroupMaster />} />
-          <Route path="/user-department" element={<UserDepartment />} />
-          <Route path="/user-authorization" element={<UserAuthorization />} />
-          <Route path="/navigation-panel" element={<NavigationPanel />} />
+          <Route path="/dashboard" element={authorizedRouteMap["dashboard"]} />
+
+          {authorizedPages?.flatMap(tab =>
+            tab.pages.map(page => {
+              const Component = authorizedRouteMap[page.url];
+
+              if (!Component) {
+                console.warn(`No component mapped for: ${page.url}`);
+                return null;
+              }
+
+              return <Route key={page.subMenuId} path={`/${page.url}`} element={Component} />;
+            })
+          )}
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </Router>

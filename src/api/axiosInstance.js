@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "http://103.217.247.236/HISWEBAPI/api/",
+  baseURL: "http://1.22.197.24/HISWEBAPI/Api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -22,3 +22,5 @@ axiosInstance.interceptors.request.use(
 );
 
 export default axiosInstance;
+
+// http://103.217.247.236/HISWEBAPI/Api

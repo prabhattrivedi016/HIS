@@ -35,11 +35,23 @@ const ENDPOINTS = {
   SAVE_UPDATE_USER_RIGHT_MAPPING: "Admin/saveUpdateUserRightMapping",
   GET_ASSIGN_DASHBOARD_USER_RIGHT: "Admin/getAssignDashBoardUserRight",
   SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING: "Admin/saveUpdateDashBoardUserRightMapping",
+  GET_USER_WISE_MENU_MASTER: "Admin/getUserWiseMenuMaster",
+  SAVE_UPDATE_USER_MENU_MASTER: "Admin/saveUpdateUserMenuMaster",
+  GET_USER_WISE_CORPORATE_MAPPING: "Admin/getUserWiseCorporateMapping",
+  GET_USER_WISE_BED_MAPPING: "Admin/getUserWiseBedMapping",
+  SAVE_UPDATE_USER_CORPORATE_MAPPING: "Admin/saveUpdateUserCorporateMapping",
+  SAVE_UPDATE_USER_BED_MAPPING: "Admin/saveUpdateUserBedMapping",
+
   // navigation panel
   GET_NAVIGATION_SUB_MENU_MASTER: "Admin/getNavigationSubMenuMaster",
   GET_NAVIGATION_TAB_MASTER: "Admin/getNavigationTabMaster",
   CREATE_UPDATE_NAVIGATION_TAB_MASTER: "Admin/createUpdateNavigationTabMaster",
   CREATE_UPDATE_NAVIGATION_SUBMENU_MASTER: "Admin/createUpdateNavigationSubMenuMaster",
+  GET_ROLE_WISE_MENU_MAPPING: "Admin/getRoleWiseMenuMapping",
+  SAVE_UPDATE_ROLE_WISE_MENU_MAPPING: "Admin/saveUpdateRoleWiseMenuMapping",
+  // header
+  GET_USER_ROLES: "User/getUserRoles",
+  GET_USER_TAB_SUB_MENU_MAPPING: "User/getUserTabAndSubMenuMapping",
 };
 
 export { ENDPOINTS };

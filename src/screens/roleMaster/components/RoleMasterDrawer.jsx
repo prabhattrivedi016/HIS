@@ -3,18 +3,18 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Spinner } from "../../../../assets/svgIcons";
 import InputField from "../../../components/customInputField";
-import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
-import { ENDPOINTS } from "../../../config/defaults/index";
+import CustomLoader from "../../../components/customLoader";
+import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
+import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { roleMasterSchema } from "../../../validation/roleMasterSchema";
 
-const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDrawer, roleId }) => {
+const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDrawer, roleId }) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [iconsList, setIconsList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [localIcon, setLocalIcon] = useState({ id: "", value: "Select Icon" });
 
   const {
     register,
@@ -31,41 +31,52 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
     },
   });
 
-  // role master by Id
+  // Fetch single role details for Edit mode
   const fetchRoleDetails = async (roleId = "") => {
     try {
-      const options = roleId ? { params: { roleId } } : {};
-
-      const response = await fetchApi("GET", ENDPOINTS.ROLE_MASTER_LIST, {}, options);
+      const response = await fetchApi(
+        "GET",
+        ENDPOINTS.ROLE_MASTER_LIST,
+        {},
+        { params: { roleId } }
+      );
 
       if (!response) return;
 
-      const roleData = response?.data?.[0];
+      const role = response.data[0];
 
       reset({
-        roleName: roleData?.roleName || "",
-        isActive: roleData?.isActive?.toString() || "",
-        faIconId: roleData?.faIconId || "",
-        roleId: roleData?.roleId || roleId,
+        roleName: role.roleName || "",
+        isActive: role.isActive?.toString() || "",
+        faIconId: role.faIconId || "",
+        roleId: role.roleId || roleId,
       });
-
-      // Handle icon selection
-      if (iconsList.length > 0) {
-        const foundIcon = iconsList.find(icon => icon.id === roleData?.faIconId);
-
-        setLocalIcon(
-          foundIcon
-            ? { id: foundIcon.id, value: foundIcon.iconName }
-            : { id: "", value: "Select Icon" }
-        );
-      }
-    } catch (error) {
-      console.log("Error while loading role for edit:", error);
+    } catch (err) {
+      console.error("Error while loading role for edit:", err);
     }
   };
 
-  // reset value when coponent mounts
+  // Load icon list once
+  const loadIconList = async () => {
+    const response = await fetchApi("GET", ENDPOINTS.FA_ICON_LIST);
+
+    if (!response) {
+      return;
+    }
+
+    setIconsList(response.data || []);
+  };
+
   useEffect(() => {
+    loadIconList();
+  }, []);
+
+  // Load role details only when: roleId is present AND icons are loaded
+  useEffect(() => {
+    if (roleId && iconsList.length > 0) {
+      fetchRoleDetails(roleId);
+    }
+
     if (!roleId) {
       reset({
         roleName: "",
@@ -73,42 +84,19 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
         faIconId: "",
         roleId: "0",
       });
-      setLocalIcon({ id: "", value: "Select Icon" });
-      return;
     }
-
-    fetchRoleDetails();
   }, [roleId, iconsList, reset]);
 
-  //icons list
-  const getIcons = async () => {
-    const response = await fetchApi("GET", ENDPOINTS.FA_ICON_LIST);
-
-    if (!response) {
-      console.error("Error fetching icon list:", error);
-      return;
-    }
-
-    const iconArray = response.data || [];
-
-    setIconsList(iconArray);
-  };
-
-  useEffect(() => {
-    getIcons();
-  }, []);
-
+  // Submit handler
   const onSubmit = async data => {
     const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_ROLE_MASTER, data);
 
     if (!response) {
-      setErrorMessage(error || "Something went wrong!");
+      setErrorMessage(error);
       return;
     }
 
-    const apiResponse = response;
-
-    setSuccessMessage(apiResponse?.message || "New Role Created Successfully!");
+    setSuccessMessage(response.message || "Role saved successfully!");
     setErrorMessage("");
 
     onCloseDrawer?.();
@@ -118,15 +106,13 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
     }, 1000);
   };
 
-  if (!isOpen) return;
+  if (!isOpen) return null;
 
   return (
     <>
-      <div
-        className={`drawer-bg-fade ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
-        onClick={onClose}
-      />
-      <div className={`drawer-layout drawer-bg ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className="drawer-bg-fade opacity-100 visible" onClick={onClose} />
+
+      <div className="drawer-layout drawer-bg translate-x-0">
         <div className="drawer-title-border">
           <h2 className="drawer-title">{drawerTitle}</h2>
           <button onClick={onClose} className="drawer-close-btn">
@@ -135,13 +121,15 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
         </div>
 
         <div className="p-4">
+          {/* SUCCESS / ERROR MESSAGES */}
           <div className="mb-4">
             {successMessage && <SuccessMessage text={successMessage} />}
-
             {errorMessage && <ErrorMessage text={errorMessage} />}
           </div>
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <InputField label="Role Name" required={true}>
+            {/* ROLE NAME */}
+            <InputField label="Role Name" required>
               <input
                 placeholder="Enter Role Name"
                 {...register("roleName")}
@@ -152,7 +140,8 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
               )}
             </InputField>
 
-            <InputField label="Status" required={true}>
+            {/* STATUS */}
+            <InputField label="Status" required>
               <select {...register("isActive")} className="input-field">
                 <option value="">Select</option>
                 <option value="1">Active</option>
@@ -163,30 +152,32 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
               )}
             </InputField>
 
-            <InputField label="Role Icon" required={true}>
-              <div className="flex items-center gap-2">
-                <select {...register("faIconId")} className="input-field">
-                  <option value={localIcon?.id}>{localIcon?.value}</option>
-                  {iconsList.map(icon => (
-                    <option key={icon.id} value={icon.id}>
-                      {icon.iconName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* ICON SELECT */}
+            <InputField label="Role Icon" required>
+              <select {...register("faIconId")} className="input-field">
+                <option value="">Select Icon</option>
+
+                {iconsList.map(icon => (
+                  <option key={icon.id} value={icon.id}>
+                    {icon.iconName}
+                  </option>
+                ))}
+              </select>
+
               {errors.faIconId && (
                 <p className="text-red-600 text-sm mt-1">{errors.faIconId.message}</p>
               )}
             </InputField>
 
+            {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center active:scale-95 ${
+              disabled={loading}
+              className={`w-full py-2 rounded mt-5 flex justify-center items-center font-medium active:scale-95 transition-colors ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed text-white"
                   : "bg-[#1e6da1] hover:bg-blue-600 text-white"
               }`}
-              disabled={loading}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -199,6 +190,7 @@ const RoleMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle, onCloseDr
           </form>
         </div>
       </div>
+      {loading ? <CustomLoader isLoading={loading} /> : <></>}
     </>
   );
 };
