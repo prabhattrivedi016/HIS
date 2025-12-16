@@ -12,7 +12,12 @@ import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ENDPOINTS } from "../../../config/defaults";
 import { navigationPanelDrawerSchema } from "../../../validation/navigationPanelDrawerSchema";
-import { NavigationPanelDrawerProps, SubmitPayload, tabDropdownItem } from "../types";
+import {
+  NavigationFormFields,
+  NavigationPanelDrawerProps,
+  SubmitPayload,
+  tabDropdownItem,
+} from "../types";
 import AddNewTabPanel from "./AddNewTabPanel";
 
 const NavigationPanelDrawer = ({
@@ -21,12 +26,14 @@ const NavigationPanelDrawer = ({
   buttonTitle,
   drawerTitle,
   onUpdate,
+  updatedValue,
 }: NavigationPanelDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [addNewTab, setAddNewTab] = useState(false);
   const [tabDropDown, setTabDropDown] = useState<tabDropdownItem[]>([]);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [tabId, setTabId] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   //   add new tab handler
@@ -48,17 +55,41 @@ const NavigationPanelDrawer = ({
   const {
     register,
     handleSubmit,
+    reset,
+    watch,
+    setValue,
     formState: { errors },
-  } = useForm({
+  } = useForm<NavigationFormFields>({
     resolver: yupResolver(navigationPanelDrawerSchema),
     defaultValues: {
       subMenuId: 0,
       tabId: 0,
       subMenuName: "",
       url: "",
-      isActive: false,
+      isActive: "",
     },
   });
+
+  useEffect(() => {
+    if (!updatedValue || !tabDropDown.length) return;
+
+    const normalizedIsActive =
+      updatedValue.isActive === 1 || updatedValue.isActive === true
+        ? "true"
+        : updatedValue.isActive === 0 || updatedValue.isActive === false
+        ? "false"
+        : "";
+
+    reset({
+      subMenuId: updatedValue.subMenuId ?? 0,
+      tabId: String(updatedValue.tabId ?? ""),
+      subMenuName: updatedValue.subMenuName ?? "",
+      url: updatedValue.url ?? "",
+      isActive: normalizedIsActive,
+    });
+
+    setTabId(Number(updatedValue.tabId));
+  }, [updatedValue, tabDropDown.length, reset]);
 
   const onSubmit = async (data: any) => {
     const payload: SubmitPayload = {
@@ -77,6 +108,7 @@ const NavigationPanelDrawer = ({
       onClose();
     }, 1000);
   };
+
   // clear timer
   useEffect(() => {
     return () => {
@@ -111,11 +143,21 @@ const NavigationPanelDrawer = ({
                 {/* Select Dropdown */}
                 <div className="flex-1">
                   <InputField label="Tab Name" required={true}>
-                    <select className="input-field h-[38px]" {...register("tabId")}>
+                    <select
+                      className="input-field h-[38px]"
+                      {...register("tabId")}
+                      value={String(watch("tabId") ?? "")}
+                      onChange={e => {
+                        const id = Number(e.target.value);
+                        setTabId(id);
+                        setValue("tabId", id);
+                      }}
+                    >
                       <option value="">Select</option>
+
                       {tabDropDown.map(tab => (
-                        <option key={tab?.tabId} value={tab?.tabId}>
-                          {tab?.tabName}
+                        <option key={tab.tabId} value={tab.tabId}>
+                          {tab.tabName}
                         </option>
                       ))}
                     </select>
@@ -124,7 +166,6 @@ const NavigationPanelDrawer = ({
                   {errors.tabId && <p className="input-field-error">{errors.tabId.message}</p>}
                 </div>
 
-                {/* Add Button aligned perfectly */}
                 <button type="button" className="add-tabPan-btn" onClick={newTabHandler}>
                   <Plus size={20} />
                 </button>
@@ -177,7 +218,11 @@ const NavigationPanelDrawer = ({
 
       {/* add new tab popup */}
       {addNewTab ? (
-        <AddNewTabPanel isOpenTab={addNewTab} onCloseTab={() => setAddNewTab(false)} />
+        <AddNewTabPanel
+          isOpenTab={addNewTab}
+          onCloseTab={() => setAddNewTab(false)}
+          tabId={tabId}
+        />
       ) : (
         <></>
       )}

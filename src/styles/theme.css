@@ -19,7 +19,7 @@
   @apply text-white font-medium bg-gray-400 hover:bg-gray-600 active:scale-95 w-full px-4 py-2 m-2 rounded-lg  transition-all flex items-center justify-center gap-2;
 }
 .close-drawer-btn {
-  @apply "text-gray-600 hover:text-black text-3xl leading-none";
+  @apply text-gray-600 hover:text-black text-3xl leading-none;
 }
 
 /* login page */

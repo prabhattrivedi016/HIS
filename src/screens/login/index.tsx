@@ -282,12 +282,6 @@ const Login = () => {
           onClick={e => {
             if (e.target === e.currentTarget) closeDrawer("signup");
           }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") closeDrawer("signup");
-          }}
-          aria-label="Close signup drawer"
         >
           <div
             className={`bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300 ${
@@ -313,12 +307,6 @@ const Login = () => {
           onClick={e => {
             if (e.target === e.currentTarget) closeDrawer("forgot");
           }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") closeDrawer("forgot");
-          }}
-          aria-label="Close forgot drawer"
         >
           <div
             className={`bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300 ${

@@ -15,8 +15,8 @@
 .opacity-full {
   @apply opacity-100 scale-100 -translate-x-1/2 -translate-y-1/2;
 }
-.no-opacity{
-  @apply "opacity-0 scale-50 -translate-x-1/2 -translate-y-1/2
+.no-opacity {
+  @apply opacity-0 scale-50 -translate-x-1/2 -translate-y-1/2;
 }
 
 /* right drawer  */
@@ -28,8 +28,6 @@
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
           transition-opacity duration-500 ease-out;
 }
-
-
 
 /* login page */
 .login-btn-layout {
@@ -51,8 +49,6 @@
 .list-view-page-layout {
   @apply px-4 pb-8 overflow-x-auto;
 }
-
-
 
 /* grid  view  */
 .card-layout {

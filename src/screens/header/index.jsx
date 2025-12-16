@@ -1,11 +1,17 @@
-import { Bell, Menu, Search, User } from "lucide-react";
+import { Bell, ClipboardPlus, Menu, Search, User } from "lucide-react";
+import { useState } from "react";
 import "../../styles/layout.css";
 import "../../styles/theme.css";
+import RoleBindPage from "./components/RoleBindPage";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
+  const [openRoleBind, setOpenRoleBind] = useState(false);
   const toggleSidebarHandler = () => {
     toggleSidebar();
-    console.log("toggle sidebar handler is called");
+  };
+
+  const roleBindHandler = () => {
+    setOpenRoleBind(true);
   };
 
   return (
@@ -46,6 +52,14 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           </span>
         </div>
         {/* Notification Bell */}
+
+        <button
+          className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg shrink-0 active:scale-95"
+          onClick={roleBindHandler}
+        >
+          <ClipboardPlus size={30} className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
+          {/* <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" /> */}
+        </button>
         <button className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg shrink-0">
           <Bell className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -55,6 +69,12 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           <User className="text-white w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
+      {/* role bind dropdown */}
+      {openRoleBind ? (
+        <RoleBindPage isOpen={openRoleBind} onClose={() => setOpenRoleBind(false)} />
+      ) : (
+        <></>
+      )}
     </header>
   );
 }

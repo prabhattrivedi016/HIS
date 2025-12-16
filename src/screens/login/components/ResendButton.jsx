@@ -4,20 +4,21 @@ const ResendButton = ({ onResend }) => {
   const [isDisabled, setIsDisabled] = useState(true);
 
   useEffect(() => {
-    let interval;
-    if (isDisabled) {
-      interval = setInterval(() => {
-        setTimer(prev => {
-          if (prev <= 1) {
-            setIsDisabled(false);
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
+    if (!isDisabled) return;
+
+    const intervalId = setInterval(() => {
+      setTimer(prev => {
+        if (prev <= 1) {
+          setIsDisabled(false);
+          clearInterval(intervalId);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // cleanup
+    return () => clearInterval(intervalId);
   }, [isDisabled]);
 
   const formatTime = t => {
