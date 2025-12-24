@@ -2,7 +2,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Spinner } from "../../../../assets/svgIcons";
-import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField/index";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
@@ -141,7 +140,7 @@ const UserGroupDrawer = ({
                 {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
               </InputField>
 
-              <Button type="submit" variant="addButtons">
+              <button type="submit" className="login-btn w-full">
                 {loading ? (
                   <>
                     <Spinner />
@@ -150,7 +149,7 @@ const UserGroupDrawer = ({
                 ) : (
                   buttonTitle
                 )}
-              </Button>
+              </button>
             </form>
           </div>
         </div>

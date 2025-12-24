@@ -8,9 +8,34 @@
 }
 
 /* buttons */
+.login-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#4D34E9] text-white cursor-pointer active:scale-95;
+}
+
+/* login component */
+.login-input-field {
+  @apply w-full px-3 py-2 sm:py-2 md:py-2 text-sm sm:text-base rounded-lg outline-none bg-transparent  text-gray-800  placeholder:text-gray-400 placeholder:opacity-70 focus:bg-transparent autofill:bg-transparent;
+}
+.input-field-error {
+  @apply text-sm text-red-500;
+}
+
+.welcome {
+  @apply text-indigo-600 font-medium;
+}
+
+.forgot-btn {
+  @apply text-indigo-600 hover:underline text-sm font-semibold cursor-pointer;
+}
+
+/* signup */
+.signup-input-field {
+  @apply px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition;
+}
+
+/* buttons */
 .add-tabPan-btn {
-  @apply mt-6 h-[38px] px-3 bg-blue-500 text-white rounded-lg 
-               hover:bg-blue-600 active:scale-95 flex items-center justify-center;
+  @apply mt-6 h-[38px] px-3 bg-blue-500 text-white rounded-lg  hover:bg-blue-600 active:scale-95 flex items-center justify-center;
 }
 .submit-btn {
   @apply text-white font-medium bg-[#1e6da1] hover:bg-blue-600 active:scale-95 m-2 w-full px-4 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
@@ -22,21 +47,6 @@
   @apply text-gray-600 hover:text-black text-3xl leading-none;
 }
 
-/* login page */
-.login-btn {
-  @apply bg-[#4F46E5] text-white;
-}
-.forgot-btn {
-  @apply text-indigo-600 hover:text-indigo-700;
-}
-.check-btn {
-  @apply accent-blue-600;
-}
-
-/* required-error message */
-.required-err {
-  @apply text-sm text-red-500;
-}
 /* header theme */
 .header-bg {
   @apply bg-[#0b5394];

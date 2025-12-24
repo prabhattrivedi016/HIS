@@ -206,3 +206,14 @@ input::placeholder {
 .cancel-button {
   @apply mt-4 text-gray-500 cursor-pointer;
 }
+
+/* Remove Chrome autofill blue background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  -webkit-text-fill-color: #1f2937 !important; /* gray-800 */
+  transition: background-color 9999s ease-in-out 0s;
+}

@@ -64,7 +64,7 @@ const useGlobalApi = () => {
       return response.data;
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
-      setError(err?.response?.data?.message || "Something went wrong!");
+      setError(err?.response?.data?.message);
     } finally {
       setLoading(false);
     }

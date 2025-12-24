@@ -140,7 +140,6 @@ const NavigationPanelDrawer = ({
 
             <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
               <div className="flex items-start gap-2 w-full p-1">
-                {/* Select Dropdown */}
                 <div className="flex-1">
                   <InputField label="Tab Name" required={true}>
                     <select

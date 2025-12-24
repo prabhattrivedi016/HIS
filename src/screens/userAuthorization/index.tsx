@@ -1,7 +1,9 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import Select from "react-select";
 import InputField from "../../components/customInputField";
 import CustomLoader from "../../components/customLoader";
+import { SelectStyles } from "../../components/customSelect";
 import { ENDPOINTS } from "../../config/defaults";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
@@ -30,7 +32,7 @@ const UserAuthorization = () => {
   >([]);
 
   const [branchId, setBranchId] = useState<number>(1);
-  const [typeId, setTypeId] = useState<string>();
+  const [typeId, setTypeId] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [roleId, setRoleId] = useState<number>(0);
   const [pageView, setPageView] = useState(false);
@@ -43,17 +45,30 @@ const UserAuthorization = () => {
 
   const [tableData, setTableData] = useState<TableData | null>(null);
 
-  // BRANCH
+  //user group options
+  const userSelectOptions =
+    userGroupGrantedList?.map(u => ({
+      value: u?.id,
+      label: u?.firstName || u?.groupName,
+    })) || [];
+
+  const roleSelectOption =
+    userRightsGrantedRoles?.map(r => ({
+      value: r?.roleId,
+      label: r?.roleName,
+    })) || [];
+
+  // branch handler
   const branchHandler = (e: ChangeEvent<HTMLSelectElement>) => setBranchId(Number(e.target.value));
 
-  // CHANGE AUTHORIZATION TYPE
+  // authorization type
   const typeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
 
     setTypeId(id);
 
     const selectedType =
-      pickMasterValue?.data?.find((t: PickMasterValueItem) => t.key === id) ?? null;
+      pickMasterValue?.data?.find((t: PickMasterValueItem) => t?.key === id) ?? null;
 
     setGroupType(selectedType);
 
@@ -91,12 +106,12 @@ const UserAuthorization = () => {
   };
 
   // role button click
-  const selectUserGroupHandlerToBindRoles = async (e?: ChangeEvent<HTMLSelectElement> | null) => {
-    const selectedId = Number(e?.target?.value);
-
+  const selectUserGroupHandlerToBindRoles = async (
+    selected: { value: number; label: string } | null
+  ) => {
     setPageView(true);
 
-    setUserId(Number(e?.target?.value));
+    setUserId(selected?.value);
     setSelectedButton("roles");
     setUserRightsDropdown(false);
 
@@ -104,7 +119,7 @@ const UserAuthorization = () => {
       "GET",
       ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
       {},
-      { params: { branchId, typeId, userId: selectedId } }
+      { params: { branchId, typeId, userId: selected?.value } }
     );
 
     if (!response) {
@@ -112,7 +127,7 @@ const UserAuthorization = () => {
         type: "roleName",
         branchId,
         typeId: typeId!,
-        userId: selectedId,
+        userId: selected?.value,
         data: [],
       });
       setFilteredData([]);
@@ -124,11 +139,11 @@ const UserAuthorization = () => {
       type: "roleName",
       branchId,
       typeId: typeId!,
-      userId: selectedId,
-      data: response.data,
+      userId: selected?.value,
+      data: response?.data,
     });
 
-    setFilteredData(response.data);
+    setFilteredData(response?.data);
 
     setUserRightGrantedRoles(response?.data?.filter((item: RoleDataItem) => item.isGranted === 1));
   };
@@ -179,9 +194,8 @@ const UserAuthorization = () => {
   };
 
   // user rights dropdown change
-  const userRightsDropdownHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selected = Number(e.target.value);
-    setRoleId(selected);
+  const userRightsDropdownHandler = (selected: { value: number; label: string }) => {
+    setRoleId(selected?.value);
   };
 
   const userDashboardTableData = async () => {
@@ -395,8 +409,8 @@ const UserAuthorization = () => {
             <option value="">Select Type</option>
 
             {pickMasterValue?.data?.map(t => (
-              <option key={t.id} value={t.key}>
-                {t.value}
+              <option key={t?.id} value={t?.key}>
+                {t?.value}
               </option>
             ))}
           </select>
@@ -411,30 +425,46 @@ const UserAuthorization = () => {
               : "Select Authorization"
           }
         >
-          <select
-            className="input-field"
-            value={userId || ""}
+          {/* <Select
+            options={selectOptions}
+            placeholder="Select..."
+            isSearchable
+            isClearable={false}
+            classNames={SelectStyles}
             onChange={selectUserGroupHandlerToBindRoles}
-          >
-            <option value="">Select</option>
-            {userGroupGrantedList?.map(item => (
-              <option key={item.id} value={item.id}>
-                {"firstName" in item ? item.firstName : item.groupName}
-              </option>
-            ))}
-          </select>
+          /> */}
+          <Select
+            options={userSelectOptions}
+            placeholder="Select..."
+            isSearchable
+            isClearable
+            onChange={selectUserGroupHandlerToBindRoles}
+            classNames={SelectStyles}
+            menuPortalTarget={document?.body}
+            menuPosition="fixed"
+          />
         </InputField>
 
         {userRightsDropdown && (
           <InputField label="Role">
-            <select className="input-field" onChange={userRightsDropdownHandler}>
+            {/* <select className="input-field" onChange={userRightsDropdownHandler}>
               <option value={0}>All</option>
               {userRightsGrantedRoles?.map(role => (
                 <option key={role.roleId} value={role.roleId}>
                   {role.roleName}
                 </option>
               ))}
-            </select>
+            </select> */}
+            <Select
+              options={roleSelectOption}
+              placeholder="Select..."
+              isSearchable
+              isClearable
+              onChange={userRightsDropdownHandler}
+              classNames={SelectStyles}
+              menuPortalTarget={document?.body}
+              menuPosition="fixed"
+            />
           </InputField>
         )}
       </div>
@@ -503,6 +533,7 @@ const UserAuthorization = () => {
               filteredData={filteredData}
               onChangeFilter={data => setFilteredData(data)}
               onChangeMessage={setSuccessMessage}
+              selectedButton={selectedButton}
             />
           )}
         </>

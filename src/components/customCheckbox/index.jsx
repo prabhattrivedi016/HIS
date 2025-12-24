@@ -1,12 +1,7 @@
-import React from "react";
-
 const Checkbox = ({ label, checked, onChange, name, id, error }) => {
   return (
     <div className="flex flex-col">
-      <label
-        htmlFor={id || name}
-        className="flex items-center gap-2 cursor-pointer select-none"
-      >
+      <label htmlFor={id || name} className="flex items-center gap-2 cursor-pointer select-none">
         <input
           id={id || name}
           name={name}

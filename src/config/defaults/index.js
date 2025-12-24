@@ -3,7 +3,7 @@ const ENDPOINTS = {
   LOGIN: "User/userLogin",
   USER_SIGNUP: "User/NewUserSignUp",
   GET_BRANCHES: "Home/getActiveBranchList",
-  SEND_OTP: "User/sendSmsOtp",
+  SEND_SMS_OTP: "User/sendSmsOtp",
   VERIFY_SMS_OTP: "User/verifySmsOtp",
   RESET_PASSWORD_BY_USERID: "User/resetPasswordByUserId",
   GET_PICKLIST_MASTER: "Home/getPickListMaster",
@@ -52,6 +52,10 @@ const ENDPOINTS = {
   // header
   GET_USER_ROLES: "User/getUserRoles",
   GET_USER_TAB_SUB_MENU_MAPPING: "User/getUserTabAndSubMenuMapping",
+  SAVE_USER_FAVORITE_ROLES: "User/saveUserFavoriteRoles",
+  SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU: "User/saveRoleWiseUserFavoriteSubMenu",
 };
 
 export { ENDPOINTS };
+
+// http://103.217.247.236/HISWEBAPI/api/User/saveUserFavoriteRoles

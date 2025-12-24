@@ -10,12 +10,19 @@ import {
   CorporateMappingItem,
   PageAccessItem,
   RoleDataItem,
+  TableData,
   TableProps,
   UserDashboardItem,
   UserRightsItem,
 } from "../types";
 
-const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: TableProps) => {
+const Table = ({
+  tableData,
+  filteredData,
+  onChangeFilter,
+  onChangeMessage,
+  selectedButton,
+}: TableProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const [selectedBtn, setSelectedBtn] = useState<string>("");
 
@@ -33,6 +40,8 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
       : tableData?.type === "bedMapping"
       ? "Room Name"
       : "Table Name";
+
+  console.log("tableDatatableDatatableDatatableDatatableData", tableData);
 
   //  filter handler
   const allFilterHandler = () => {
@@ -67,13 +76,20 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
           )
         );
 
-      case "userRightName":
-      case "userDashboard":
+      case "userRightName": {
         return onChangeFilter(
-          tableData.data.filter((item: UserRightsItem | UserDashboardItem) =>
-            item.userRightName?.toLowerCase()?.includes(value)
+          tableData?.data?.filter((item: UserRightsItem) =>
+            item?.userRightName?.toLowerCase()?.includes(value)
           )
         );
+      }
+      case "userDashboard": {
+        return onChangeFilter(
+          tableData?.data?.filter((item: UserDashboardItem) =>
+            item?.userRightName?.toLowerCase()?.includes(value)
+          )
+        );
+      }
       case "pageAccess": {
         return onChangeFilter(
           tableData.data.filter((item: PageAccessItem) =>
@@ -113,7 +129,7 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
     onChangeFilter(updatedFiltered as any);
 
     // Update full table data consistently
-    tableData.data = tableData.data.map(item => {
+    tableData.data = tableData?.data?.map(item => {
       const key = item?.roleId || item?.userRightId || item?.subMenuId || item?.serviceItemId;
       const match = updatedFiltered?.find(
         f => (f?.roleId || f.userRightId || f?.subMenuId || f?.serviceItemId) === key
@@ -131,14 +147,14 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
     // update filtered data
     onChangeFilter(updated as any);
 
-    // update main tableData.data also
+    // update main tableData
     tableData.data = tableData.data.map((item, idx) =>
       idx === index ? { ...item, isGranted: updated[idx].isGranted } : item
     );
   };
 
   // on save handler
-  const onSaveHandler = async tableData => {
+  const onSaveHandler = async (tableData: TableData) => {
     switch (tableData?.type) {
       case "roleName": {
         const payload = {
@@ -322,7 +338,7 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
         </div>
 
         <button
-          className="table-header-button text-white  bg-[#0b5394]"
+          className="table-header-button text-white bg-[#0b5394]"
           onClick={() => onSaveHandler(tableData)}
         >
           Save
@@ -330,30 +346,41 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
       </div>
 
       <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
-        <table className="min-w-full">
+        <table className="min-w-full table-fixed">
           <thead className="bg-blue-50 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">
-                <div className="flex justify-between items-center">
-                  <span>{tableName}</span>
-                  <InputField>
-                    <input
-                      className="input-field"
-                      placeholder="Search..."
-                      onChange={onSearchHandler}
-                    />
-                  </InputField>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 text-center font-semibold">#</div>
+
+                  <div className="flex-1 flex items-center justify-between gap-3">
+                    {selectedButton === "pageAccess" ? (
+                      <>
+                        {/* <span>{"Navigation Name"}</span> */}
+                        <span className="font-semibold truncate"> {tableName}</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold truncate">{tableName}</span>
+                    )}
+
+                    <InputField>
+                      <input
+                        className="input-field w-40"
+                        placeholder="Search..."
+                        onChange={onSearchHandler}
+                      />
+                    </InputField>
+                  </div>
                 </div>
               </th>
 
-              {/* ALL Toggle */}
-              <th className="px-4 py-3 font-semibold text-gray-700">
-                <div className="flex items-center gap-2">
+              <th className="px-4 py-3 font-semibold text-gray-700 w-32">
+                <div className="flex items-center justify-center gap-2">
                   <ToggleButton
                     checked={
                       filteredData.length > 0 && filteredData.every(item => item.isGranted === 1)
                     }
-                    disabled={filteredData?.length === 0}
+                    disabled={filteredData.length === 0}
                     onClick={() => toggleAllHandler(filteredData)}
                   />
                   <span>All</span>
@@ -363,8 +390,8 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
           </thead>
 
           <tbody>
-            {filteredData && filteredData?.length > 0 ? (
-              filteredData?.map((item, idx) => {
+            {filteredData && filteredData.length > 0 ? (
+              filteredData.map((item, idx) => {
                 const name =
                   item?.roleName ||
                   item?.userRightName ||
@@ -374,24 +401,45 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
 
                 return (
                   <tr key={idx} className="hover:bg-gray-100">
-                    <td className="px-4 py-3 flex">
-                      <span className="text-center mr-4">{idx + 1}.</span>
-                      {name}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 text-center text-gray-600">{idx + 1}</div>
+
+                        <div className=" flex items-center justify-center gap-3">
+                          {selectedButton === "pageAccess" ? (
+                            <div className="flex items-center w-full">
+                              {/* <h1 className="text-md  truncate">{item?.tabName}</h1> */}
+                              <span className="text-md  truncate text-right">{name}</span>
+                            </div>
+                          ) : (
+                            <span className="truncate">{name}</span>
+                          )}
+
+                          {selectedButton === "userRight" && (
+                            <i
+                              className="fa-solid fa-info text-gray-400 hover:text-gray-600"
+                              title={item?.description}
+                            />
+                          )}
+                        </div>
+                      </div>
                     </td>
 
-                    <td className="px-4 py-3 text-center">
-                      <ToggleButton
-                        checked={item.isGranted === 1}
-                        disabled={false}
-                        onClick={() => toggleSingleHandler(idx)}
-                      />
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center">
+                        <ToggleButton
+                          checked={item.isGranted === 1}
+                          disabled={false}
+                          onClick={() => toggleSingleHandler(idx)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan={2} className="text-gray-500 text-center p-3">
+                <td colSpan={2} className="text-gray-500 text-center p-4">
                   No data found.
                 </td>
               </tr>
@@ -399,7 +447,8 @@ const Table = ({ tableData, filteredData, onChangeFilter, onChangeMessage }: Tab
           </tbody>
         </table>
       </div>
-      {loading ? <CustomLoader isLoading={loading} /> : <></>}
+
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

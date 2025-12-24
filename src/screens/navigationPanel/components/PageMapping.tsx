@@ -146,7 +146,7 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
     setSelectedItems([]);
   };
 
-  // move single item helpers (used by double-tap)
+  // move single item
   const moveToGranted = (item: RoleItem) => {
     const updatedPending = pendingRole.filter(x => x.subMenuId !== item.subMenuId);
     const updatedGranted = [...grantedRole, item];

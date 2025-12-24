@@ -2,7 +2,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Spinner } from "../../../../assets/svgIcons";
-import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
 import { ENDPOINTS } from "../../../config/defaults/index";
@@ -13,18 +12,19 @@ import {
   resetPasswordSchema,
   userNameAndMobileSchema,
 } from "../../../validation/forgotPasswordSchema";
+import { ForgotPasswordProps } from "../type";
 
-const ForgotPassword = ({ onClose }) => {
+const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [errorMessage, setErrorMessage] = useState("");
   const [hintMessage, setHintMessage] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [userId, setUserId] = useState("");
   const [verifiedOtp, setVerifiedOtp] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [contactHint, setContactHint] = useState("");
+  // const [contactHint, setContactHint] = useState("");
+  let contactHint = "";
 
   // 1) SEND OTP FORM
   const {
@@ -59,62 +59,50 @@ const ForgotPassword = ({ onClose }) => {
   });
 
   // send otp
-  const sendOtp = async data => {
-    try {
-      const response = await fetchApi("POST", ENDPOINTS.SEND_OTP, {
-        userName: data?.userName,
-        contact: data?.contact,
-      });
-      if (!response) {
-        return;
-      }
-      setOtpSent(true);
-      setUserId(response?.data?.userId);
-      setHintMessage(response?.message);
-    } catch (error) {
-      console.log("Error while sending mobile otp", error);
+  const sendOtp = async (data: { userName: string; contact: string }) => {
+    const response = await fetchApi("POST", ENDPOINTS.SEND_SMS_OTP, {
+      userName: data?.userName,
+      contact: data?.contact,
+    });
+    if (!response) {
+      return;
     }
+    setOtpSent(true);
+    setUserId(response?.data?.userId);
+    setHintMessage(response?.message);
   };
 
   // verify otp
 
-  const verifyOtp = async data => {
-    try {
-      const response = await fetchApi("POST", ENDPOINTS.VERIFY_SMS_OTP, {
-        otp: data?.otp,
-        userId: userId,
-      });
+  const verifyOtp = async (data: { otp: string }) => {
+    const response = await fetchApi("POST", ENDPOINTS.VERIFY_SMS_OTP, {
+      otp: data?.otp,
+      userId: userId,
+    });
 
-      if (!response) {
-        setOtpVerified(false);
-        setSuccessMessage("");
-        return;
-      }
-      setSuccessMessage(response?.message);
-      setOtpVerified(true);
-      setVerifiedOtp(response?.data?.otp);
-    } catch (err) {
-      console.log("Error while verifying mobile otp", err);
+    if (!response) {
+      setOtpVerified(false);
+      setSuccessMessage("");
+      return;
     }
+    setSuccessMessage(response?.message);
+    setOtpVerified(true);
+    setVerifiedOtp(response?.data?.otp);
   };
 
   // reset password
-  const resetPassword = async data => {
-    try {
-      const response = await fetchApi("POST", ENDPOINTS.RESET_PASSWORD_BY_USERID, {
-        userId: userId,
-        otp: verifiedOtp,
-        newPassword: data.newPassword,
-        confirmPassword: data.confirmPassword,
-      });
-      setSuccessMessage(response?.message);
+  const resetPassword = async (data: { newPassword: string; confirmPassword: string }) => {
+    const response = await fetchApi("POST", ENDPOINTS.RESET_PASSWORD_BY_USERID, {
+      userId: userId,
+      otp: verifiedOtp,
+      newPassword: data?.newPassword,
+      confirmPassword: data?.confirmPassword,
+    });
+    setSuccessMessage(response?.message);
 
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (error) {
-      console.log("Error while resetting password", error);
-    }
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
 
   return (
@@ -147,7 +135,7 @@ const ForgotPassword = ({ onClose }) => {
                 />
               </InputField>
               {sendOtpErrors.userName && (
-                <p className="text-red-500 text-sm">{sendOtpErrors.userName.message}</p>
+                <p className="input-field-error">{sendOtpErrors.userName.message}</p>
               )}
 
               <InputField label="Mobile Number" required={true}>
@@ -159,7 +147,7 @@ const ForgotPassword = ({ onClose }) => {
                 />
               </InputField>
               {sendOtpErrors.contact && (
-                <p className="text-red-500 text-sm">{sendOtpErrors.contact.message}</p>
+                <p className="input-field-error">{sendOtpErrors?.contact?.message}</p>
               )}
               {contactHint && (
                 <p className="text-sm text-gray-600 text-center">
@@ -167,7 +155,7 @@ const ForgotPassword = ({ onClose }) => {
                 </p>
               )}
 
-              <Button type="submit" className="w-full">
+              <button type="submit" className="w-full login-btn">
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <Spinner />
@@ -176,7 +164,7 @@ const ForgotPassword = ({ onClose }) => {
                 ) : (
                   "Send OTP"
                 )}
-              </Button>
+              </button>
             </form>
           </>
         )}
@@ -188,11 +176,11 @@ const ForgotPassword = ({ onClose }) => {
             </InputField>
 
             {verifyOtpErrors.otp && (
-              <p className="text-red-500 text-sm">{verifyOtpErrors.otp.message}</p>
+              <p className="input-field-error">{verifyOtpErrors.otp.message}</p>
             )}
 
             {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
-            <Button type="submit" className="w-full">
+            <button type="submit" className="w-full login-btn">
               {loading ? (
                 <div className="flex items-center gap-2">
                   <Spinner />
@@ -201,7 +189,7 @@ const ForgotPassword = ({ onClose }) => {
               ) : (
                 "Verify OTP"
               )}
-            </Button>
+            </button>
           </form>
         )}
 
@@ -215,8 +203,8 @@ const ForgotPassword = ({ onClose }) => {
               />
             </InputField>
 
-            {resetPassErrors.newPassword && (
-              <p className="text-red-500 text-sm">{resetPassErrors.newPassword.message}</p>
+            {resetPassErrors?.newPassword && (
+              <p className="input-field-error">{resetPassErrors?.newPassword?.message}</p>
             )}
 
             <InputField label="Confirm Password" required={true}>
@@ -227,13 +215,13 @@ const ForgotPassword = ({ onClose }) => {
               />
             </InputField>
 
-            {resetPassErrors.confirmPassword && (
-              <p className="text-red-500 text-sm">{resetPassErrors.confirmPassword.message}</p>
+            {resetPassErrors?.confirmPassword && (
+              <p className="input-field-error">{resetPassErrors?.confirmPassword?.message}</p>
             )}
 
-            <Button type="submit" className="w-full">
+            <button type="submit" className="w-full login-btn">
               Reset Password
-            </Button>
+            </button>
           </form>
         )}
 

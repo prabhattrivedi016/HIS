@@ -1,5 +1,4 @@
 import { MoreVertical } from "lucide-react";
-import Button from "../customButton";
 import { handleButtonClick } from "./helper";
 import { GridViewProps } from "./types";
 
@@ -106,15 +105,14 @@ const GridView = ({
       {buttonSection.length > 0 && (
         <div className="flex gap-3 mt-4">
           {buttonSection.map(btn => (
-            <Button
-              variant="primary"
+            <button
               key={btn.label}
-              className="btn-color"
+              className="w-full login-btn"
               color={btn.color || `var(--btn-${btn.label.toLowerCase()})`}
               onClick={() => buttonHandler(btn.action)}
             >
               {getButtonLlabel(btn.label)}
-            </Button>
+            </button>
           ))}
         </div>
       )}

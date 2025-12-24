@@ -1,4 +1,4 @@
-import { Bell, ClipboardPlus, Menu, Search, User } from "lucide-react";
+import { Bell, HousePlus, Menu, Search, User } from "lucide-react";
 import { useState } from "react";
 import "../../styles/layout.css";
 import "../../styles/theme.css";
@@ -6,6 +6,7 @@ import RoleBindPage from "./components/RoleBindPage";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
   const [openRoleBind, setOpenRoleBind] = useState(false);
+
   const toggleSidebarHandler = () => {
     toggleSidebar();
   };
@@ -18,9 +19,9 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
     <header
       className={`
         fixed top-0 z-30 h-16 header-bg shadow-sm 
-        flex items-center justify-between px-2 sm:px-4 md:px-6 
+        flex items-center justify-between px-2 sm:px-4 md:px-2 
         transition-all duration-300
-        ${isSidebarOpen ? "md:left-60 left-0" : "left-0"}
+        ${isSidebarOpen ? "md:left-60 left-0" : "md:left-16 left-0"}
         right-0
       `}
     >
@@ -45,28 +46,32 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
       </div>
 
       {/* marquee*/}
-      <div className="flex items-center gap-8 sm:gap-6 md:gap-8 shrink-0">
-        <div className="hidden md:block text-white px-5 py-1 rounded-md overflow-hidden whitespace-nowrap max-w-[200px]">
+      <div className="flex items-center gap-2 sm:gap-2 md:gap-4 shrink-0">
+        {/* <div className="hidden md:block text-white px-5 py-1 rounded-md overflow-hidden whitespace-nowrap max-w-[200px]">
           <span className="animate-marquee text-xs sm:text-sm">
             Updates Ahead! GRAVITY WEB SOLUTIONS
           </span>
-        </div>
-        {/* Notification Bell */}
+        </div> */}
+
+        {/* role bind handler */}
 
         <button
-          className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg shrink-0 active:scale-95"
           onClick={roleBindHandler}
+          className="relative flex items-center justify-center shrink-0 w-8 h-8 sm:w-10 sm:h-10  rounded-full bg-linear-to-br from-blue-300 to-purple-400 text-white transition active:scale-95 hover:scale-105 shadow-md"
         >
-          <ClipboardPlus size={30} className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
-          {/* <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" /> */}
+          <HousePlus size={30} className="w-4 h-4 sm:w-6 sm:h-6" />
         </button>
-        <button className="relative p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-lg shrink-0">
+        {/* notification button */}
+        <button className="relative p-1.5 sm:p-2  w-8 h-8 sm:w-10 sm:h-10 text-white bg-linear-to-br from-blue-300 to-purple-600  hover:bg-gray-50 rounded-full shrink-0 active:scale-90  hover:scale-105 shadow-md">
           <Bell className="text-white-600 w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
         {/* Profile  */}
-        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
-          <User className="text-white w-4 h-4 sm:w-5 sm:h-5" />
+        <div
+          className="w-9 h-9 sm:w-11 sm:h-11 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0 mr-2 sm:mr-10 active:scale-90  hover:scale-105
+    shadow-md"
+        >
+          <User className="text-white w-4 h-4 sm:w-5 sm:h-5 " size={40} />
         </div>
       </div>
       {/* role bind dropdown */}
