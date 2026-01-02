@@ -1,6 +1,24 @@
 @import "tailwindcss";
 @tailwind utilities;
 
+/* login component  */
+
+.animate-signup {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300;
+}
+
+.animate-forgot {
+  @apply bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300;
+}
+.forgot-animate-size {
+  @apply bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300;
+}
+
+/* signup component */
+.signup-form-layout {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
 /* drawer central*/
 .drawer-bg-overlay {
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm 

@@ -7,6 +7,7 @@ type RoleMapItem = {
   roleId: number;
   roleName: string;
   iconClass: string;
+  imagePath: string;
 };
 
 type TabItem = {

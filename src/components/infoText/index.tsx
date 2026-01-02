@@ -23,7 +23,6 @@ const ErrorMessage: React.FC<MessageProps> = ({ text = "" }) => {
 };
 
 const HintMessage: React.FC<MessageProps> = ({ text = "" }) => {
-  //   console.log(text);
   return <p className="text-gray-500 text-sm font-sm  m-2">{text}</p>;
 };
 

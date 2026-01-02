@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-const ResendButton = ({ onResend }) => {
+import React, { useEffect, useState } from "react";
+import { ResendButtonProps } from "../type";
+
+const ResendButton = ({ onResend }: ResendButtonProps) => {
   const [timer, setTimer] = useState(60);
   const [isDisabled, setIsDisabled] = useState(true);
 
@@ -21,7 +23,7 @@ const ResendButton = ({ onResend }) => {
     return () => clearInterval(intervalId);
   }, [isDisabled]);
 
-  const formatTime = t => {
+  const formatTime = (t: number) => {
     const m = String(Math.floor(t / 60)).padStart(2, "0");
     const s = String(t % 60).padStart(2, "0");
     return `${m}:${s}`;
@@ -52,4 +54,4 @@ const ResendButton = ({ onResend }) => {
   );
 };
 
-export default ResendButton;
+export default React.memo(ResendButton);

@@ -68,7 +68,7 @@ const RoleMaster = () => {
     );
 
     if (!response) {
-      setErrorMessage(error || "Something went wrong");
+      setErrorMessage(error);
       return;
     }
 
@@ -228,7 +228,7 @@ const RoleMaster = () => {
         title="Role Master"
         view={cardView}
         onCardView={handleCardView}
-        buttonTitle="Add New Role"
+        buttonTitle="Add Role"
         onRefresh={handleRefresh}
         onSearch={searchHandler}
         searchValue={searchQuery}

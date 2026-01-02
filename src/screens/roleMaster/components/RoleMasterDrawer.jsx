@@ -1,9 +1,12 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import Select from "react-select";
 import { Spinner } from "../../../../assets/svgIcons";
+import { LOGOS } from "../../../assets/logos";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
+import { SelectStyles } from "../../../components/customSelect";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
@@ -20,14 +23,16 @@ const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDr
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(roleMasterSchema),
     defaultValues: {
       roleName: "",
       isActive: "",
-      faIconId: "",
+      faIconId: "0",
       roleId: "0",
+      imagePath: "",
     },
   });
 
@@ -43,13 +48,14 @@ const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDr
 
       if (!response) return;
 
-      const role = response.data[0];
+      const role = response?.data[0];
 
       reset({
         roleName: role.roleName || "",
         isActive: role.isActive?.toString() || "",
-        faIconId: role.faIconId || "",
+        faIconId: role.faIconId || 0,
         roleId: role.roleId || roleId,
+        imagePath: role?.imagePath || "",
       });
     } catch (err) {
       console.error("Error while loading role for edit:", err);
@@ -106,6 +112,14 @@ const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDr
     }, 1000);
   };
 
+  // role icon select options
+
+  const roleIconsSelectOption = LOGOS.map(icon => ({
+    value: icon.id,
+    label: icon.label,
+    iconPath: icon.value,
+  }));
+
   if (!isOpen) return null;
 
   return (
@@ -135,9 +149,7 @@ const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDr
                 {...register("roleName")}
                 className="input-field"
               />
-              {errors.roleName && (
-                <p className="text-red-600 text-sm mt-1">{errors.roleName.message}</p>
-              )}
+              {errors.roleName && <p className="input-field-error">{errors.roleName.message}</p>}
             </InputField>
 
             {/* STATUS */}
@@ -147,26 +159,47 @@ const RoleMasterDrawer = ({ isOpen, onClose, drawerTitle, buttonTitle, onCloseDr
                 <option value="1">Active</option>
                 <option value="0">Inactive</option>
               </select>
-              {errors.isActive && (
-                <p className="text-red-600 text-sm mt-1">{errors.isActive.message}</p>
-              )}
+              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
 
             {/* ICON SELECT */}
+
             <InputField label="Role Icon" required>
-              <select {...register("faIconId")} className="input-field">
-                <option value="">Select Icon</option>
+              <Controller
+                name="imagePath"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={roleIconsSelectOption}
+                    placeholder="Select role icon"
+                    isSearchable
+                    isClearable
+                    getOptionLabel={option => option?.label}
+                    getOptionValue={option => option?.iconPath}
+                    formatOptionLabel={option => (
+                      <div className="flex items-center justify-between gap-4 mx-4">
+                        <span>{option?.label}</span>
+                        <img
+                          src={option?.iconPath}
+                          alt={option?.label}
+                          className="h-10 w-10 object-contain"
+                        />
+                      </div>
+                    )}
+                    /* map value back to option */
+                    value={roleIconsSelectOption.find(opt => opt.iconPath === field.value) || null}
+                    onChange={option => {
+                      field.onChange(option ? option?.iconPath : "");
+                      // setValue("faIconId", 0);
+                    }}
+                    classNames={SelectStyles}
+                    menuPortalTarget={document.body}
+                    menuPosition="fixed"
+                  />
+                )}
+              />
 
-                {iconsList.map(icon => (
-                  <option key={icon.id} value={icon.id}>
-                    {icon.iconName}
-                  </option>
-                ))}
-              </select>
-
-              {errors.faIconId && (
-                <p className="text-red-600 text-sm mt-1">{errors.faIconId.message}</p>
-              )}
+              {errors.imagePath && <p className="input-field-error">{errors.imagePath.message}</p>}
             </InputField>
 
             {/* SUBMIT BUTTON */}

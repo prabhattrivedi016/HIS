@@ -11,7 +11,7 @@ export const userNameAndMobileSchema = Yup.object().shape({
 });
 
 export const otpSchema = Yup.object().shape({
-  otp: Yup.string().required("Otp is required"),
+  otp: Yup.string().required("Otp is required").length(6, "Minimum 6 digits Otp is required"),
   userId: Yup.string().nullable(), // not required, but allowed
 });
 

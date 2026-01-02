@@ -10,7 +10,6 @@ import {
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
-import Button from "../customButton";
 import InputField from "../customInputField";
 
 const PageHeader = ({
@@ -159,15 +158,15 @@ const PageHeader = ({
               </button>
             )}
 
-            <Button
-              variant="addButtons"
+            <button
+              className="addNew-btn "
               type="submit"
               onClick={() => {
                 onAddNew?.();
               }}
             >
               <UserPlus size={16} /> {buttonTitle}
-            </Button>
+            </button>
           </div>
         </div>
       </div>

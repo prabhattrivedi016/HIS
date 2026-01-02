@@ -8,9 +8,50 @@
 }
 
 /* buttons */
+.login-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#4D34E9] text-white cursor-pointer active:scale-95;
+}
+
+.grid-active-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#0b5394] text-white cursor-pointer active:scale-95;
+}
+
+.grid-edit-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#9891ae] text-white cursor-pointer active:scale-95;
+}
+
+.grid-map-user-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#840000] text-white cursor-pointer active:scale-95;
+}
+
+.addNew-btn {
+  @apply px-2  py-2 flex flex-row gap-1 items-center rounded-lg font-semibold transition-all bg-[#0b5394] text-white cursor-pointer active:scale-95;
+}
+
+/* login component */
+.login-input-field {
+  @apply w-full px-3 py-2 sm:py-2 md:py-2 text-sm sm:text-base rounded-lg outline-none bg-transparent  text-gray-800  placeholder:text-gray-400 placeholder:opacity-70 focus:bg-transparent autofill:bg-transparent;
+}
+.input-field-error {
+  @apply text-sm text-red-500;
+}
+
+.welcome {
+  @apply text-indigo-600 font-medium;
+}
+
+.forgot-btn {
+  @apply text-indigo-600 hover:underline text-sm font-semibold cursor-pointer;
+}
+
+/* signup */
+.signup-input-field {
+  @apply px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition;
+}
+
+/* buttons */
 .add-tabPan-btn {
-  @apply mt-6 h-[38px] px-3 bg-blue-500 text-white rounded-lg 
-               hover:bg-blue-600 active:scale-95 flex items-center justify-center;
+  @apply mt-6 h-[38px] px-3 bg-blue-500 text-white rounded-lg  hover:bg-blue-600 active:scale-95 flex items-center justify-center;
 }
 .submit-btn {
   @apply text-white font-medium bg-[#1e6da1] hover:bg-blue-600 active:scale-95 m-2 w-full px-4 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
@@ -22,24 +63,44 @@
   @apply text-gray-600 hover:text-black text-3xl leading-none;
 }
 
-/* login page */
-.login-btn {
-  @apply bg-[#4F46E5] text-white;
-}
-.forgot-btn {
-  @apply text-indigo-600 hover:text-indigo-700;
-}
-.check-btn {
-  @apply accent-blue-600;
-}
-
-/* required-error message */
-.required-err {
-  @apply text-sm text-red-500;
-}
 /* header theme */
 .header-bg {
   @apply bg-[#0b5394];
+}
+.branch-box {
+  /* @apply w-full sm:w-40 md:w-60
+  bg-linear-to-br from-blue-300 to-purple-400
+  my-2
+  px-2 sm:px-3
+  py-1.5 sm:py-2
+  text-xs sm:text-sm md:text-lg
+  italic
+  rounded-lg
+  text-gray-700
+  text-center
+  border border-gray-300
+  truncate
+  focus:outline-none
+  focus:ring-2
+  focus:ring-indigo-400; */
+  @apply sm:w-40 md:w-60
+  bg-linear-to-br from-blue-300 to-purple-400
+  my-2
+  px-3 sm:px-4
+  py-2
+  text-xs sm:text-sm md:text-lg
+  italic
+  rounded-xl
+  text-gray-800
+  text-center
+  truncate
+
+  /* EMBEDDED EFFECT */
+  border border-[#083e6f]
+  shadow-inner
+  ring-1 ring-white/20
+
+  focus:outline-none;
 }
 
 /* page header */
@@ -109,7 +170,7 @@
   @apply text-red-600 text-sm mt-1;
 }
 
-/* usergroup master styles */
+/* user group master styles */
 .item-border {
   @apply border border-gray-200 p-2 mb-2 rounded bg-gray-50 text-sm cursor-move hover:bg-gray-100;
 }

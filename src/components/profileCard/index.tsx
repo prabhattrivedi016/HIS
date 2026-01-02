@@ -1,5 +1,4 @@
 import { MoreVertical } from "lucide-react";
-import Button from "../customButton";
 import { handleButtonClick } from "./helper";
 import { GridViewProps } from "./types";
 
@@ -30,7 +29,7 @@ const GridView = ({
 
   const cardIdValue = Array.isArray(cardId) ? cardId?.map(t => t?.value) : "-";
 
-  const getButtonLlabel = (btnLabel: string) => {
+  const getButtonLabel = (btnLabel: string) => {
     switch (btnLabel) {
       case "Active": {
         return cardLeftTop[0]?.value === 1 ? "Inactive" : "Active";
@@ -78,9 +77,13 @@ const GridView = ({
       </div>
 
       <div className="flex flex-col items-center">
-        <div className="card-avatar-size">
+        <div className="card-avatar-size shadow-lg">
           {cardAvatar ? (
-            <i className={`${cardAvatar} card-icon`} />
+            <img
+              src={cardAvatar}
+              alt="logo"
+              className="h-full w-full items-center object-contain rounded-full "
+            />
           ) : (
             <i className="fa-solid fa-user fa-2x text-gray-700" />
           )}
@@ -95,8 +98,8 @@ const GridView = ({
           <div className="flex flex-wrap divide-x divide-gray-300">
             {cardFooter.map((footer, idx) => (
               <div key={idx} className="px-2 py-1 text-center flex-1 min-w-[90px]">
-                <p className="footer-label">{footer.label}</p>
-                <p className="footer-value">{footer.value || "—"}</p>
+                <p className="footer-label">{footer?.label}</p>
+                <p className="footer-value">{footer?.value || "—"}</p>
               </div>
             ))}
           </div>
@@ -105,17 +108,33 @@ const GridView = ({
 
       {buttonSection.length > 0 && (
         <div className="flex gap-3 mt-4">
-          {buttonSection.map(btn => (
-            <Button
-              variant="primary"
-              key={btn.label}
-              className="btn-color"
-              color={btn.color || `var(--btn-${btn.label.toLowerCase()})`}
-              onClick={() => buttonHandler(btn.action)}
-            >
-              {getButtonLlabel(btn.label)}
-            </Button>
-          ))}
+          {buttonSection.map(btn => {
+            let btnClass = "grid-default-btn";
+
+            switch (btn?.label) {
+              case "Active":
+                btnClass = "grid-active-btn";
+                break;
+              case "Edit":
+                btnClass = "grid-edit-btn";
+                break;
+              case "Map User":
+                btnClass = "grid-map-user-btn";
+                break;
+              default:
+                btnClass = "";
+            }
+
+            return (
+              <button
+                key={btn?.label}
+                className={`w-full ${btnClass}`}
+                onClick={() => buttonHandler(btn?.action)}
+              >
+                {getButtonLabel(btn?.label)}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

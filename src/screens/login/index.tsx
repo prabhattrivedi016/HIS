@@ -1,27 +1,25 @@
 import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "../../../assets/svgIcons";
 
-import Button from "../../components/customButton";
-import Checkbox from "../../components/customCheckbox";
-import Select from "../../components/customSelect";
-import Input from "../../components/cutomInput";
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
 import AuthBackground from "../../components/layout";
 import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
+import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
-import { LoginFormData } from "./type";
+import { InputError, LoginFormData, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
+  const { setAuthorizedPages } = useAuthorizedPages();
 
   const [formData, setFormData] = useState<LoginFormData>({
     selectedBranchId: "",
@@ -30,51 +28,46 @@ const Login = () => {
     rememberMe: false,
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<InputError>({});
   const [openSignup, setOpenSignup] = useState(false);
   const [openForgot, setOpenForgot] = useState(false);
   const [animateSignup, setAnimateSignup] = useState(false);
   const [animateForgot, setAnimateForgot] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [userName, setUserName] = useState("");
-  const [email, setEmail] = useState("");
-  const [contact, setContact] = useState("");
-  const [isContact, setIsContact] = useState("");
-  const [isEmail, setIsEmail] = useState("");
-  const [userId, setUserId] = useState("");
+  const [userName, setUserName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [contact, setContact] = useState<string>("");
+  const [isContact, setIsContact] = useState<boolean | null>(null);
+  const [isEmail, setIsEmail] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const timerRef = useRef<any>(null);
 
   // Auto-select first branch
   useEffect(() => {
-    if (!branchList) return;
-
-    const firstBranch = branchList.data?.[0];
-    if (firstBranch) {
+    if (branchList?.data?.length) {
       setFormData(prev => ({
         ...prev,
-        selectedBranchId: firstBranch.branchId,
+        selectedBranchId: branchList.data[0].branchId,
       }));
     }
   }, [branchList]);
 
-  // Handle input + checkbox change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const target = e.target;
-
-    const value =
-      target instanceof HTMLInputElement && target.type === "checkbox"
-        ? target.checked
-        : target.value;
+  // handle form change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, checked, type } = e.target as HTMLInputElement;
 
     setFormData(prev => ({
       ...prev,
-      [target.name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // Branch Select Change
-  const handleBranchChange = (branchId: number) => {
+  // handle branch change
+
+  const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const branchId = Number(e.target.value);
+    // setBranchId(branchId);
     setFormData(prev => ({
       ...prev,
       selectedBranchId: branchId,
@@ -86,50 +79,68 @@ const Login = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors: Record<string, string> = {};
+    const newErrors: InputError = {};
 
-    if (!formData.userName.trim()) newErrors.userName = "User ID is required";
-    if (!formData.password.trim()) newErrors.password = "Password is required";
+    if (!formData.selectedBranchId) {
+      newErrors.branch = "Please select a branch";
+    }
+
+    if (!formData.userName.trim()) {
+      newErrors.userName = "Username is required";
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = "Password is required";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    const payload = {
-      branchId: Number(formData.selectedBranchId),
-      userName: formData.userName,
-      password: formData.password,
-      rememberMe: formData.rememberMe,
-    };
-    const response = await fetchApi("POST", ENDPOINTS.LOGIN, payload);
-    if (!response) return;
-    const { accessToken } = response?.data ?? {};
+    setErrors({});
 
-    localStorage.setItem("accessToken", accessToken);
+    try {
+      //login
+      const loginRes = await fetchApi("POST", ENDPOINTS.LOGIN, {
+        branchId: Number(formData.selectedBranchId),
+        userName: formData.userName,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
 
-    const api = response?.data;
+      if (!loginRes) return;
 
-    setUserName(api?.userName);
-    setEmail(api?.email);
-    setContact(api?.contact);
-    setIsContact(api?.isContactVerified);
-    setIsEmail(api?.isEmailVerified);
-    setUserId(api?.userId);
+      const { accessToken, branchId, userId } = loginRes.data;
 
-    if (api?.isContactVerified && api?.isEmailVerified) {
-      setSuccessMessage(response.message);
-      timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
-    } else {
-      setShowOtpModal(true);
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("branchId", String(branchId));
+      localStorage.setItem("userId", String(userId));
+
+      setUserName(loginRes.data.userName);
+      setEmail(loginRes.data.email);
+      setContact(loginRes.data.contact);
+      setIsContact(loginRes.data.isContactVerified);
+      setIsEmail(loginRes.data.isEmailVerified);
+      setUserId(userId);
+
+      // fetch user roles
+      const roleId = await fetchUserAssignedRoles(branchId);
+
+      // fetch authorized pages
+      await fetchAuthorizedPages(branchId, roleId);
+
+      // navigate to dashboard
+      if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {
+        setSuccessMessage(loginRes.message);
+        timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
+      } else {
+        setShowOtpModal(true);
+      }
+    } catch (err) {
+      console.error("Login flow failed", err);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
 
   // Drawer Logic
   const openDrawer = (type: string) => {
@@ -152,8 +163,56 @@ const Login = () => {
     }
   };
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
     setShowOtpModal(false);
+  }, []);
+
+  const fetchUserAssignedRoles = async (branchId: number) => {
+    const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
+
+    const roleId = response?.data?.[0]?.roleId;
+    const roleName = response?.data?.[0]?.roleName;
+
+    if (!roleId) throw new Error("Role not found");
+
+    localStorage.setItem("selectedRole", roleName);
+
+    return roleId;
+  };
+
+  const fetchAuthorizedPages = async (branchId: number, roleId: number) => {
+    const response = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
+      {},
+      { params: { branchId, roleId } }
+    );
+
+    const tabs = response.data?.tabs ?? [];
+    const subMenus = response.data?.subMenus ?? [];
+    const favoriteSubMenus = response.data?.favoriteSubMenus ?? [];
+
+    const quickLinksTab = {
+      tabName: {
+        tabId: 0,
+        tabName: "Quick Links",
+        iconClass: "fa-solid fa-star",
+      },
+      pages: favoriteSubMenus.map((item: PageItem) => ({ ...item, tabId: 0 })),
+      selectedRoleId: roleId,
+    };
+
+    const normalTabs = tabs.map((tab: TabItem) => ({
+      tabName: {
+        tabId: tab.tabId,
+        tabName: tab.tabName.trim(),
+        iconClass: tab.iconClass,
+      },
+      pages: subMenus.filter((page: PageItem) => page.tabId === tab.tabId),
+      selectedRoleId: roleId,
+    }));
+
+    setAuthorizedPages([quickLinksTab, ...normalTabs]);
   };
 
   return (
@@ -167,15 +226,7 @@ const Login = () => {
       >
         <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
           <div className="text-center mb-6">
-            <div
-              className="
-      mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white
-      w-full max-w-[300px]    /* width */
-      h-[150px]               /* height */
-      sm:max-w-[400px] sm:h-[200px]
-      md:max-w-[400px] md:h-[200px]
-    "
-            >
+            <div className="mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white w-full max-[300px] h-[150px] sm:max-w-[400px] sm:h-[200px] md:max-w-[400px] md:h-[200px] ">
               <img
                 src="/assets/logo.jpg"
                 alt="Hospital Logo"
@@ -183,65 +234,92 @@ const Login = () => {
               />
             </div>
 
-            <p className="text-indigo-600 font-medium">!! Welcome Back !!</p>
+            <p className="welcome">!! Welcome Back !!</p>
           </div>
           {error && <ErrorMessage text={error} />}
           {successMessage && <SuccessMessage text={successMessage} />}
           {branchListError && <ErrorMessage text={branchListError} />}
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <Select
-              icon={Building2}
-              placeholder="Select Branch"
-              value={formData.selectedBranchId}
-              onChange={handleBranchChange}
-              options={branchList?.data.map(branch => ({
-                value: branch.branchId,
-                label: branch.branchName,
-              }))}
-              error={errors.branch}
-            />
+            <div className="w-full">
+              <div className="relative flex items-center border-2 rounded-lg transition border-gray-300 bg-white ">
+                <div className="pl-3 text-gray-500 flex items-center">
+                  <Building2 size={20} className="min-w-20px" />
+                </div>
 
-            {errors.branch && <p className="text-sm text-red-500">{errors.branch}</p>}
+                <select
+                  className=" login-input-field text-sm sm:text-base appearance-none"
+                  onChange={handleBranchChange}
+                  value={formData.selectedBranchId}
+                >
+                  <option value="">Select</option>
+                  {branchList?.data?.map(b => (
+                    <option key={b?.branchId} value={b?.branchId}>
+                      {b?.branchName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <Input
-              icon={User}
-              type="text"
-              name="userName"
-              placeholder="User Name"
-              value={formData.userName}
-              onChange={handleChange}
-            />
-            {errors.userName && <p className="text-sm text-red-500 mt-1">{errors.userName}</p>}
+            {errors.branch && <p className="input-field-error">{errors.branch}</p>}
 
-            <Input
-              icon={Lock}
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-            {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
+            <div className="w-full">
+              <div className="relative flex items-center border-2 rounded-lg border-gray-300 bg-white">
+                <div className="pl-3 text-gray-500 flex items-center">
+                  <User size={20} />
+                </div>
+
+                <input
+                  type="text"
+                  name="userName"
+                  placeholder="User Name"
+                  value={formData.userName}
+                  onChange={handleChange}
+                  className="login-input-field"
+                />
+              </div>
+
+              {errors.userName && <p className="input-field-error">{errors.userName}</p>}
+            </div>
+
+            <div className="w-full">
+              <div className="relative flex items-center border-2 rounded-lg border-gray-300 bg-white">
+                <div className="pl-3 text-gray-500 flex items-center">
+                  <Lock size={20} />
+                </div>
+
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className=" login-input-field"
+                />
+              </div>
+
+              {errors.password && <p className="input-field-error">{errors.password}</p>}
+            </div>
 
             <div className="flex justify-between items-center">
-              <Checkbox
-                label="Remember me"
-                name="rememberMe"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-              />
-              <button
-                type="button"
-                onClick={() => openDrawer("forgot")}
-                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
-              >
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  checked={formData?.rememberMe}
+                  onChange={handleChange}
+                  className="h-4 w-4 accent-indigo-600"
+                />
+                <span>Remember Me</span>
+              </label>
+              <button type="button" onClick={() => openDrawer("forgot")} className="forgot-btn">
                 Forgot Password?
               </button>
             </div>
 
-            <Button
+            <button
               type="submit"
-              className="w-full flex justify-center gap-2 items-center"
+              className=" login-btn  flex items-center justify-center gap-2 "
               disabled={loading}
             >
               {loading ? (
@@ -255,17 +333,13 @@ const Login = () => {
                   LOGIN
                 </>
               )}
-            </Button>
+            </button>
           </form>
 
           <div className="mt-6 pt-4 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-500">
               New User?{" "}
-              <button
-                type="button"
-                onClick={() => openDrawer("signup")}
-                className="text-indigo-600 hover:underline font-medium cursor-pointer"
-              >
+              <button type="button" onClick={() => openDrawer("signup")} className="forgot-btn">
                 Sign Up
               </button>
             </p>
@@ -276,24 +350,12 @@ const Login = () => {
       {/* Drawer UI  */}
       {openSignup && (
         <div
-          className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
-            animateSignup ? "opacity-100" : "opacity-0"
-          }`}
+          className={`animate-signup ${animateSignup ? "opacity-100" : "opacity-0"}`}
           onClick={e => {
             if (e.target === e.currentTarget) closeDrawer("signup");
           }}
         >
-          <div
-            className={`bg-white w-full sm:w-1/2 h-full p-6 relative transform transition-transform duration-300 ${
-              animateSignup ? "translate-x-0" : "translate-x-full"
-            }`}
-          >
-            <button
-              onClick={() => closeDrawer("signup")}
-              className="absolute top-4 right-4 text-xl text-gray-600 hover:text-black"
-            >
-              ✕
-            </button>
+          <div className={`animate-forgot ${animateSignup ? "translate-x-0" : "translate-x-full"}`}>
             <Signup onLoginClick={() => closeDrawer("signup")} />
           </div>
         </div>
@@ -301,31 +363,23 @@ const Login = () => {
 
       {openForgot && (
         <div
-          className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end transition-opacity duration-300 ${
-            animateForgot ? "opacity-100" : "opacity-0"
-          }`}
+          className={`animate-signup ${animateForgot ? "opacity-100" : "opacity-0"}`}
           onClick={e => {
             if (e.target === e.currentTarget) closeDrawer("forgot");
           }}
         >
           <div
-            className={`bg-white w-full sm:w-1/3 h-full p-6 relative transform transition-transform duration-300 ${
+            className={`forgot-animate-size ${
               animateForgot ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <button
-              onClick={() => closeDrawer("forgot")}
-              className="absolute top-4 right-4 text-xl text-gray-600 hover:text-black"
-            >
-              ✕
-            </button>
             <ForgotPassword onClose={() => closeDrawer("forgot")} />
           </div>
         </div>
       )}
 
       {/* otp verification modal */}
-      {showOtpModal && (
+      {showOtpModal ? (
         <VerifyOtp
           userId={userId}
           userName={userName}
@@ -337,6 +391,8 @@ const Login = () => {
           isEmail={isEmail}
           onClose={onClose}
         />
+      ) : (
+        <></>
       )}
     </AuthBackground>
   );

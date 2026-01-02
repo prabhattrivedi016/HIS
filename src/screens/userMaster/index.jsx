@@ -59,33 +59,26 @@ const UserMaster = () => {
 
   // fetch user master list
   const fetchUserMasterListData = async (userId = "") => {
-    try {
-      const options = userId ? { params: { userId } } : {};
-      const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
+    const options = userId ? { params: { userId } } : {};
+    const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, options);
 
-      if (!response) {
-        setErrorMessage(error || "Something went wrong");
-        return;
-      }
-
-      setErrorMessage("");
-
-      const apiResponse = response || [];
-      const activeConfig = configDataValue || userMasterConfig;
-      const transformedData = transformDataWithConfig(activeConfig, apiResponse);
-
-      setUserMasterGridData(transformedData?.gridView || []);
-      setUserMasterListData(transformedData?.listView || []);
-      setGridFilteredData(transformedData?.gridView || []);
-      setListFilteredData(transformedData?.listView || []);
-    } catch (err) {
-      console.error("Error fetching User Master list:", err);
+    if (!response) {
+      return;
     }
+
+    const apiResponse = response || [];
+    const activeConfig = configDataValue || userMasterConfig;
+    const transformedData = transformDataWithConfig(activeConfig, apiResponse);
+
+    setUserMasterGridData(transformedData?.gridView || []);
+    setUserMasterListData(transformedData?.listView || []);
+    setGridFilteredData(transformedData?.gridView || []);
+    setListFilteredData(transformedData?.listView || []);
   };
 
   useEffect(() => {
     fetchUserMasterListData();
-  }, [configDataValue]); // refetch when config becomes available
+  }, []);
 
   // initialize column visibility when list data arrives
   useEffect(() => {
@@ -106,17 +99,12 @@ const UserMaster = () => {
 
   // update user status
   const updateUserMasterStatus = async ({ isActive, userId }) => {
-    try {
-      const options = { params: { userId, isActive } };
-      const response = await fetchApi("PATCH", ENDPOINTS.UPDATE_USER_MASTER_STATUS, {}, options);
-      if (!response) {
-        console.error("Failed to update user master status");
-        return;
-      }
-      fetchUserMasterListData();
-    } catch (err) {
-      console.error("Error updating status:", err);
+    const options = { params: { userId, isActive } };
+    const response = await fetchApi("PATCH", ENDPOINTS.UPDATE_USER_MASTER_STATUS, {}, options);
+    if (!response) {
+      return;
     }
+    fetchUserMasterListData();
   };
 
   // handle refresh
@@ -192,7 +180,7 @@ const UserMaster = () => {
 
   // render helper
   const renderComponent = view => {
-    if (errorMessage || error) {
+    if (error) {
       return <ErrorMessage text={errorMessage || error} />;
     }
     if (loading) {

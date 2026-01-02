@@ -65,6 +65,7 @@ type AddTabFormFields = {
   tabId: number | string;
   tabName: string;
   faIconId: number | string;
+  imagePath: string;
 };
 
 type PageMappingProps = {

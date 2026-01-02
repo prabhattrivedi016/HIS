@@ -78,7 +78,7 @@ export type CorporateMappingItem = {
 export type RoleTableItem = {
   type: "roleName";
   branchId: number;
-  typeId: string;
+  typeId: number;
   userId: number;
   data: RoleDataItem[];
 };
@@ -86,7 +86,7 @@ export type RoleTableItem = {
 export type UserRightTableItem = {
   type: "userRightName";
   branchId: number;
-  typeId: string;
+  typeId: number;
   userId: number;
   roleId: number;
   data: UserRightsItem[];
@@ -95,7 +95,7 @@ export type UserRightTableItem = {
 export type UserDashboardTableItem = {
   type: "userDashboard";
   branchId: number;
-  typeId: string;
+  typeId: number;
   userId: number;
   roleId: number;
   data: UserDashboardItem[];
@@ -104,7 +104,7 @@ export type UserDashboardTableItem = {
 export type BedMappingTableItem = {
   type: "bedMapping";
   branchId: number;
-  typeId: string;
+  typeId: number;
   userId: number;
   data: BedMappingItem[];
 };
@@ -121,7 +121,7 @@ export type PageAccessTableItem = {
 export type CorporateMappingTableItem = {
   type: "corporateMapping";
   branchId: number;
-  typeId: string;
+  typeId: number;
   userId: number;
   roleId: number;
   data: CorporateMappingItem[];
@@ -145,12 +145,12 @@ export type FilteredData =
   | CorporateMappingItem[]
   | BedMappingItem[];
 
-// Table Props (Fully Type Safe)
 export type TableProps = {
   tableData: TableData;
   filteredData: FilteredData;
   onChangeFilter: (data: FilteredData) => void;
   onChangeMessage: (msg: string) => void;
+  selectedButton: string;
 };
 
 // Pick Master

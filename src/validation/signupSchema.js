@@ -12,7 +12,12 @@ const signupSchema = Yup.object().shape({
     .trim()
     .matches(emailRegex, "Enter a valid email")
     .required("Email is required"),
-  dob: Yup.date().required("Date of Birth is required").typeError("Enter a valid date"),
+  dob: Yup.string()
+    .required("Date of Birth is required")
+    .test("valid-date", "Invalid date", value => {
+      return value ? !isNaN(new Date(value).getTime()) : false;
+    }),
+
   contact: Yup.string()
     .matches(contactRegex, "Enter a valid 10-digit contact number")
     .required("Contact is required"),

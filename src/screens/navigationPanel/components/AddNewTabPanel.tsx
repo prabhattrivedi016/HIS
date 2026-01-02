@@ -1,12 +1,14 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { addNewTabSchema } from "../../../validation/addNewTabSchema";
+
 import {
   AddNewTabPanelProps,
   AddTabFormFields,
@@ -20,12 +22,9 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
 
   const [faIcons, setFaIcons] = useState<IconListItem[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<IconListItem | null>(null);
-  const [showIconDropdown, setShowIconDropdown] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [tabUpdateData, setTabUpdateData] = useState<tabDropdownItem[]>([]);
-  const [iconSearch, setIconSearch] = useState("");
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -33,7 +32,6 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
     handleSubmit,
     reset,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<AddTabFormFields>({
     resolver: yupResolver(addNewTabSchema),
@@ -49,70 +47,57 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
     if (response) setTabUpdateData(response.data);
   };
 
-  useEffect(() => {
-    getTabMasterData();
-  }, [tabId]);
-
   const getIcons = async () => {
     const response = await fetchApi("GET", ENDPOINTS.FA_ICON_LIST);
-    if (response) setFaIcons(response.data);
+    if (response) setFaIcons(response.data ?? []);
   };
 
   useEffect(() => {
-    getIcons();
-  }, []);
+    if (isOpenTab) {
+      getTabMasterData();
+      getIcons();
+    }
+  }, [isOpenTab]);
 
+  // Edit mode
   useEffect(() => {
-    if (!tabId || !faIcons.length || !tabUpdateData.length) return;
+    if (!tabId || !faIcons?.length || !tabUpdateData?.length) return;
 
-    const selectedTab = tabUpdateData.find(t => t.tabId === tabId);
+    const selectedTab = tabUpdateData?.find(t => t?.tabId === tabId);
     if (!selectedTab) return;
 
-    const icon = faIcons.find(i => i.id === selectedTab.faIconId) ?? null;
+    const icon = faIcons?.find(i => i?.id === selectedTab?.faIconId) ?? null;
 
     setSelectedIcon(icon);
 
     reset({
-      tabId: selectedTab.tabId,
-      tabName: selectedTab.tabName,
-      faIconId: icon ? String(icon.id) : "",
+      tabId: String(selectedTab?.tabId),
+      tabName: selectedTab?.tabName,
+      faIconId: icon ? String(icon?.id) : "",
     });
   }, [tabId, faIcons, tabUpdateData, reset]);
 
+  // Cleanup timer
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowIconDropdown(false);
-      }
+    return () => {
+      if (timerRef?.current) clearTimeout(timerRef?.current);
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  //submit
   const onSubmit = async (payload: NewTabProps) => {
     const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_NAVIGATION_TAB_MASTER, payload);
 
     if (!response) return;
 
-    setSuccessMessage(response.message);
+    setSuccessMessage(response?.message);
 
     timerRef.current = setTimeout(() => {
       onCloseTab();
+      reset();
+      setSelectedIcon(null);
+      setSuccessMessage("");
     }, 1000);
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  // search icons
-  const filteredIcons = faIcons.filter(icon =>
-    icon.iconName.toLowerCase().includes(iconSearch.toLowerCase())
-  );
 
   if (!isOpenTab) return null;
 
@@ -125,7 +110,7 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
       <div className={`central-drawer ${isOpenTab ? "opacity-full" : ""}`}>
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Add New Tab</h2>
+          <h2 className="text-lg font-semibold">{tabId ? "Update Tab" : "Add New Tab"}</h2>
           <button onClick={onCloseTab} className="close-drawer-btn">
             ×
           </button>
@@ -134,84 +119,54 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
         {successMessage && <SuccessMessage text={successMessage} />}
         {error && <ErrorMessage text={error} />}
 
-        <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
-          <InputField label="Add Tab">
+        <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          {/* Tab Name */}
+          <InputField label="Tab Name">
             <input
               type="text"
-              placeholder="Add New Tab"
+              placeholder="Enter tab name"
               {...register("tabName")}
               className="input-field"
             />
-            {errors.tabName && <p className="input-field-error">{errors.tabName.message}</p>}
+            {errors?.tabName && <p className="input-field-error">{errors?.tabName?.message}</p>}
           </InputField>
 
-          <InputField label="Add Icon">
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowIconDropdown(p => !p)}
-                className="input-field flex justify-between items-center"
-              >
-                {selectedIcon ? (
-                  <div className="flex items-center gap-10">
-                    <span>{selectedIcon.iconName}</span>
+          <InputField label="Select Icon">
+            <select
+              className="input-field"
+              {...register("faIconId")}
+              onChange={e => {
+                setValue("faIconId", e.target.value, { shouldValidate: true });
+                const icon = faIcons.find(i => String(i.id) === e.target.value);
+                setSelectedIcon(icon ?? null);
+              }}
+            >
+              <option value="">Select icon</option>
+              {faIcons?.map(icon => (
+                <option key={icon?.id} value={icon?.id}>
+                  {icon?.iconName}
+                </option>
+              ))}
+            </select>
 
-                    <i className={selectedIcon.iconClass} />
-                  </div>
-                ) : (
-                  <span>Select Icon</span>
-                )}
-                <span>▾</span>
-              </button>
+            {errors?.faIconId && <p className="input-field-error">{errors?.faIconId?.message}</p>}
+          </InputField>
 
-              {showIconDropdown && (
-                <div className="absolute z-50 w-full bg-white border rounded shadow">
-                  {/* 🔍 Search */}
-                  <div className="p-2">
-                    <input
-                      type="text"
-                      placeholder="Search icons..."
-                      value={iconSearch}
-                      onChange={e => setIconSearch(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-
-                  {/* Icon list */}
-                  <ul className="max-h-56 overflow-y-auto">
-                    {filteredIcons.length > 0 ? (
-                      filteredIcons.map(icon => (
-                        <li
-                          key={icon.id}
-                          onClick={() => {
-                            setSelectedIcon(icon);
-                            setValue("faIconId", String(icon.id), { shouldValidate: true });
-                            setShowIconDropdown(false);
-                            setIconSearch(""); // reset search
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-100"
-                        >
-                          <i className={icon.iconClass} />
-                          <span>{icon.iconName}</span>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-3 py-2 text-gray-500 text-sm">No icons found</li>
-                    )}
-                  </ul>
-                </div>
-              )}
+          {/* <InputField label="Icon Preview"> */}
+          {selectedIcon ? (
+            <div className="flex items-center justify-between">
+              <span className="text-xl">{"Icon Preview :"}</span>
+              <i className={`${selectedIcon?.iconClass}  text-4xl`}></i>
             </div>
+          ) : (
+            <h1>Please select any Icons</h1>
+          )}
+          {/* </InputField> */}
 
-            {/* hidden input for RHF */}
-            <input type="hidden" {...register("faIconId")} />
-
-            {errors.faIconId && <p className="input-field-error">{errors.faIconId.message}</p>}
-          </InputField>
-
-          {/* ACTIONS */}
-          <div className="flex gap-2 mt-4">
-            <button className="submit-btn">Save</button>
+          <div className="flex gap-3 mt-6">
+            <button type="submit" className="submit-btn">
+              Save
+            </button>
             <button type="button" className="cancel-btn" onClick={onCloseTab}>
               Cancel
             </button>
@@ -219,7 +174,7 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
         </form>
       </div>
 
-      {loading && <CustomLoader isLoading />}
+      {loading && <CustomLoader isLoading={loading} />}
     </>
   );
 };
