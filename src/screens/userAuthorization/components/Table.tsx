@@ -41,8 +41,6 @@ const Table = ({
       ? "Room Name"
       : "Table Name";
 
-  console.log("tableDatatableDatatableDatatableDatatableData", tableData);
-
   //  filter handler
   const allFilterHandler = () => {
     if (!tableData?.data) return onChangeFilter([]);

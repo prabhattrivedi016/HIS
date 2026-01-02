@@ -9,10 +9,11 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import Header from "../../header";
+import { PageItem, TabItem } from "../types";
 
 const Sidebar = () => {
   const { authorizedPages } = useAuthorizedPages();
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const branchId = localStorage?.getItem("branchId");
   const roleId = localStorage?.getItem("selectedRoleId");
   const userId = localStorage?.getItem("userId");
@@ -99,17 +100,18 @@ const Sidebar = () => {
   }, [search, filteredTabs]);
 
   useEffect(() => {
-    const closeMenu = e => {
-      if (e.target.closest("[data-context-menu]")) return;
+    const closeMenu = (e: MouseEvent) => {
+      if (!(e.target instanceof HTMLElement)) return;
+
+      if (e.target?.closest("[data-context-menu]")) return;
       setContextMenu(null);
     };
-
     document.addEventListener("mousedown", closeMenu);
     return () => document.removeEventListener("mousedown", closeMenu);
-  }, []);
+  });
 
   // right click button handler
-  const rightClickButtonHandler = async page => {
+  const rightClickButtonHandler = async (page: PageItem) => {
     const response = await fetchApi("POST", ENDPOINTS.SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU, {
       branchId,
       userId,
@@ -157,13 +159,13 @@ const Sidebar = () => {
             </InputField>
           )}
 
-          {filteredTabs.map(tab => {
+          {filteredTabs.map((tab: TabItem) => {
             const tabId = tab?.tabName?.tabId;
             const isOpen = openTabs[tabId];
 
             return (
               <div key={tabId} className="relative group mb-2">
-                {/* -------- TAB BUTTON -------- */}
+                {/*tab button */}
                 <button
                   onClick={() => sidebarOpen && toggleTab(tabId)}
                   className={`

@@ -56,8 +56,6 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
 
   // Open Popup
   const handleListLeftButton = (e, rowData) => {
-    console.log("rowDatarowDatarowDatarowDatarowDatarowData", rowData);
-
     e.stopPropagation();
     setOpenListMenu(prev => (prev?.id === rowData?.id ? null : rowData));
   };

@@ -33,7 +33,6 @@ const UserMasterDrawer = ({ isOpen, onClose, buttonTitle, drawerTitle }) => {
 
   const onSubmit = e => {
     e.preventDefault();
-    console.log("submit button is clicked!!");
   };
 
   return (

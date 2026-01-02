@@ -119,7 +119,7 @@ const UserAuthorization = () => {
       "GET",
       ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
       {},
-      { params: { branchId, typeId, userId: selected?.value } }
+      { params: { branchId, typeId, userId } }
     );
 
     if (!response) {

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type RoleInfo = {
   tabId: number;
@@ -28,99 +29,14 @@ export type AuthorizedPagesState = {
   setAuthorizedPages: (data: TabItem[]) => void;
 };
 
-export const useAuthorizedPages = create<AuthorizedPagesState>(set => ({
-  authorizedPages: [
-    // quick links
+export const useAuthorizedPages = create(
+  persist<AuthorizedPagesState>(
+    set => ({
+      authorizedPages: [],
+      setAuthorizedPages: data => set({ authorizedPages: data }),
+    }),
     {
-      tabName: {
-        tabId: 0,
-        tabName: "Quick Links",
-        iconClass: "",
-      },
-      pages: [
-        { subMenuId: 1, subMenuName: "User Group", url: "user-group", tabId: 0 },
-        { subMenuId: 2, subMenuName: "User Master", url: "user-master", tabId: 0 },
-        { subMenuId: 7, subMenuName: "Role Master", url: "role-master", tabId: 0 },
-      ],
-    },
-
-    // admin
-    {
-      tabName: {
-        tabId: 1,
-        tabName: "Admin",
-        iconClass: "fa-brands fa-accessible-icon",
-      },
-      pages: [
-        { subMenuId: 11, subMenuName: "Dashboard", url: "dashboard", tabId: 1 },
-        { subMenuId: 1, subMenuName: "User Group", url: "user-group", tabId: 1 },
-        { subMenuId: 2, subMenuName: "User Master", url: "user-master", tabId: 1 },
-        { subMenuId: 7, subMenuName: "Role Master", url: "role-master", tabId: 1 },
-        { subMenuId: 12, subMenuName: "User Department", url: "user-department", tabId: 1 },
-        { subMenuId: 13, subMenuName: "User Authorization", url: "user-authorization", tabId: 1 },
-        { subMenuId: 14, subMenuName: "Navigation Pane", url: "navigation-pane", tabId: 1 },
-      ],
-      selectedRole: {
-        roleId: 2,
-        roleName: "Admin",
-        iconClass: "fa-brands fa-accessible-icon",
-      },
-    },
-
-    // reports
-    {
-      tabName: {
-        tabId: 3,
-        tabName: "Reports",
-        iconClass: "fa-brands fa-airbnb",
-      },
-      pages: [{ subMenuId: 4, subMenuName: "Stock Report", url: "stock-report", tabId: 3 }],
-    },
-
-    //opd display
-    {
-      tabName: {
-        tabId: 4,
-        tabName: "OPD Display",
-        iconClass: "fa-solid fa-2",
-      },
-      pages: [{ subMenuId: 5, subMenuName: "OPD Patients", url: "opd-patients", tabId: 4 }],
-    },
-
-    // cancellation
-    {
-      tabName: {
-        tabId: 6,
-        tabName: "Cancellation",
-        iconClass: "fa-brands fa-accusoft",
-      },
-      pages: [
-        {
-          subMenuId: 6,
-          subMenuName: "Bill Receipt Cancel",
-          url: "bill-receipt-cancel",
-          tabId: 6,
-        },
-      ],
-    },
-
-    // rate master
-    {
-      tabName: {
-        tabId: 7,
-        tabName: "Rate Master",
-        iconClass: "fa-solid fa-9",
-      },
-      pages: [
-        {
-          subMenuId: 8,
-          subMenuName: "Rate List Master",
-          url: "rate-list-master",
-          tabId: 7,
-        },
-      ],
-    },
-  ],
-
-  setAuthorizedPages: data => set({ authorizedPages: data }),
-}));
+      name: "authorized-pages", // localStorage key
+    }
+  )
+);

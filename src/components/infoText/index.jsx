@@ -9,7 +9,6 @@ const InfoMessage = ({ text = "info" }) => (
 );
 
 const ErrorMessage = ({ text }) => {
-  console.log(text);
   return (
     <p className="text-red-500 text-md text-center bg-red-200 p-2 rounded-lg m-2 border border-red-500 font-medium ">
       {text}
@@ -18,7 +17,6 @@ const ErrorMessage = ({ text }) => {
 };
 
 const HintMessage = ({ text }) => {
-  //   console.log(text);
   return <p className="text-gray-500 text-sm font-sm  m-2">{text}</p>;
 };
 
