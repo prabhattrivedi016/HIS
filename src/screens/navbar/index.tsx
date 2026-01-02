@@ -8,7 +8,7 @@ const Navbar = () => {
   const { authorizedPages } = useAuthorizedPages();
 
   return (
-    <Router>
+    <Router basename="/GWSNHIS">
       <Routes>
         {/* Public */}
         <Route path="/" element={<Login />} />
