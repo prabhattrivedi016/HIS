@@ -99,8 +99,6 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
     }, 1000);
   };
 
-  console.log("selectedIconselectedIconselectedIconselectedIcon", selectedIcon);
-
   if (!isOpenTab) return null;
 
   return (

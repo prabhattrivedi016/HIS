@@ -180,7 +180,7 @@ const UserMaster = () => {
 
   // render helper
   const renderComponent = view => {
-    if (errorMessage || error) {
+    if (error) {
       return <ErrorMessage text={errorMessage || error} />;
     }
     if (loading) {

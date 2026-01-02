@@ -61,7 +61,7 @@ const useGlobalApi = () => {
           throw new Error("Invalid HTTP method from global api provided");
       }
 
-      return response.data;
+      return response?.data;
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       setError(err?.response?.data?.message);

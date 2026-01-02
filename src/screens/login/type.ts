@@ -24,6 +24,19 @@ type InputError = {
   branch?: string;
 };
 
+interface TabItem {
+  tabId: number;
+  tabName: string;
+  iconClass: string;
+}
+
+interface PageItem {
+  subMenuId: number;
+  subMenuName: string;
+  url: string;
+  tabId: number;
+}
+
 type VerifyOtpProps = {
   userId: number | null;
   userName: string;
@@ -71,6 +84,8 @@ export type {
   InputError,
   LoginFormData,
   MobileProps,
+  PageItem,
   ResendButtonProps,
+  TabItem,
   VerifyOtpProps,
 };

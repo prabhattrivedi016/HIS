@@ -159,7 +159,7 @@ const PageHeader = ({
             )}
 
             <button
-              className="login-btn w-full"
+              className="addNew-btn "
               type="submit"
               onClick={() => {
                 onAddNew?.();

@@ -12,7 +12,7 @@ export const usePickMaster = ({ fieldName }: { fieldName: string }) => {
       });
       setPickMasterValue(res?.data);
     } catch (err) {
-      console.log("error while fetching pick master value", err);
+      console.error("error while fetching pick master value", err);
     }
   };
 

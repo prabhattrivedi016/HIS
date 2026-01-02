@@ -12,7 +12,7 @@ import { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem } from "../types";
 
 const SELECTED_ROLE_KEY = "selectedRoleId";
 
-const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
+const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const { setAuthorizedPages } = useAuthorizedPages();
 
@@ -30,14 +30,16 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
   // / role → pages mapping
   const fetchRoleMapping = async (role: RoleMapItem, shouldClose: boolean) => {
     setSelectedRole(role);
+    roleChange(role?.roleName);
 
-    localStorage.setItem(SELECTED_ROLE_KEY, String(role.roleId));
+    localStorage.setItem("selectedRoleId", String(role?.roleId));
+    localStorage.setItem("selectedRole", String(role?.roleName));
 
     const response = await fetchApi(
       "GET",
       ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
       {},
-      { params: { branchId, roleId: role.roleId } }
+      { params: { branchId, roleId: role?.roleId } }
     );
 
     if (!response) return;
@@ -137,6 +139,8 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
   };
 
   // debounced api call for favorite role
+
+  // debounced api call for favorite role
   useEffect(() => {
     if (!favoriteRole?.length) return;
 
@@ -150,7 +154,6 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
 
     return () => clearTimeout(timer);
   }, [favoriteRole]);
-
   if (!isOpen) return null;
 
   return (
@@ -166,7 +169,7 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div className="flex justify-center w-full">
-              <InputField className="w-full sm:w-64">
+              <InputField className="w-full sm:w-80 md:w-120 lg:w-28rem">
                 <input
                   placeholder="Search Modules..."
                   className="input-field w-full"
@@ -193,7 +196,7 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
                   <div
                     key={role?.roleId}
                     onClick={() => fetchRoleMapping(role, true)}
-                    className={`group cursor-pointer relative rounded-xl border p-8 transition-all duration-200 shadow-lg hover:shadow-2xl flex flex-col items-center justify-center ${
+                    className={`group cursor-pointer relative rounded-xl border p-8 transition-all duration-200 shadow-lg hover:shadow-2xl flex flex-col items-center justify-center  ${
                       isActive
                         ? "border-green-600 bg-linear-to-br from-green-50 to-blue-50 scale-[1.02]"
                         : "border-gray-200 bg-white hover:bg-linear-to-br from-blue-100 to-green-100"
@@ -216,13 +219,17 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
                     </button>
 
                     <div
-                      className={`flex items-center justify-center w-16 h-16 rounded-full mb-3 transition ${
+                      className={`flex items-center justify-center w-20 h-20 mb-3 rounded-full transition ${
                         isActive
                           ? "bg-green-100 text-green-700"
                           : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
                       }`}
                     >
-                      <i className={`${role.iconClass ?? "fa-solid fa-user"} text-3xl`} />
+                      <img
+                        src={role?.imagePath}
+                        alt="logo"
+                        className=" object-contain w-20 h-20 rounded-full "
+                      />
                     </div>
 
                     <div
@@ -240,7 +247,7 @@ const RoleBindPage = ({ isOpen, onClose }: RoleBindPageProps) => {
           </div>
         </motion.div>
 
-        {loading && <CustomLoader isLoading />}
+        {loading ? <CustomLoader isLoading /> : <></>}
       </div>
     </>
   );

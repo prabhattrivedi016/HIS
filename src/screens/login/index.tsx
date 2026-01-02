@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "../../../assets/svgIcons";
 
@@ -9,15 +9,17 @@ import AuthBackground from "../../components/layout";
 import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
+import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
-import { InputError, LoginFormData } from "./type";
+import { InputError, LoginFormData, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
+  const { setAuthorizedPages } = useAuthorizedPages();
 
   const [formData, setFormData] = useState<LoginFormData>({
     selectedBranchId: "",
@@ -42,15 +44,11 @@ const Login = () => {
   const timerRef = useRef<any>(null);
 
   // Auto-select first branch
-  const firstBranchId = useMemo(() => {
-    return branchList?.data?.[0]?.branchId;
-  }, [branchList]);
-
   useEffect(() => {
-    if (firstBranchId) {
+    if (branchList?.data?.length) {
       setFormData(prev => ({
         ...prev,
-        selectedBranchId: firstBranchId,
+        selectedBranchId: branchList.data[0].branchId,
       }));
     }
   }, [branchList]);
@@ -66,10 +64,13 @@ const Login = () => {
   };
 
   // handle branch change
+
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const branchId = Number(e.target.value);
+    // setBranchId(branchId);
     setFormData(prev => ({
       ...prev,
-      selectedBranchId: Number(e.target.value),
+      selectedBranchId: branchId,
     }));
   };
 
@@ -78,53 +79,68 @@ const Login = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors: Record<string, string> = {};
+    const newErrors: InputError = {};
 
-    if (!formData.userName.trim()) newErrors.userName = "User ID is required";
-    if (!formData.password.trim()) newErrors.password = "Password is required";
+    if (!formData.selectedBranchId) {
+      newErrors.branch = "Please select a branch";
+    }
+
+    if (!formData.userName.trim()) {
+      newErrors.userName = "Username is required";
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = "Password is required";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    const payload = {
-      branchId: Number(formData?.selectedBranchId),
-      userName: formData?.userName,
-      password: formData?.password,
-      rememberMe: formData?.rememberMe,
-    };
+    setErrors({});
 
-    const response = await fetchApi("POST", ENDPOINTS?.LOGIN, payload);
+    try {
+      //login
+      const loginRes = await fetchApi("POST", ENDPOINTS.LOGIN, {
+        branchId: Number(formData.selectedBranchId),
+        userName: formData.userName,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
 
-    if (!response) return;
+      if (!loginRes) return;
 
-    const { accessToken } = response?.data ?? {};
+      const { accessToken, branchId, userId } = loginRes.data;
 
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("branchId", String(response?.data?.branchId) ?? "");
-    localStorage.setItem("userId", String(response?.data?.userId) ?? "");
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("branchId", String(branchId));
+      localStorage.setItem("userId", String(userId));
 
-    setUserName(response?.data.userName ?? "");
-    setEmail(response?.data?.email ?? "");
-    setContact(response?.data?.contact ?? "");
-    setIsContact(response?.data?.isContactVerified ?? false);
-    setIsEmail(response?.data?.isEmailVerified ?? false);
-    setUserId(response?.data?.userId ?? null);
+      setUserName(loginRes.data.userName);
+      setEmail(loginRes.data.email);
+      setContact(loginRes.data.contact);
+      setIsContact(loginRes.data.isContactVerified);
+      setIsEmail(loginRes.data.isEmailVerified);
+      setUserId(userId);
 
-    if (response?.data?.isContactVerified && response?.data?.isEmailVerified) {
-      setSuccessMessage(response?.message);
-      timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
-    } else {
-      setShowOtpModal(true);
+      // fetch user roles
+      const roleId = await fetchUserAssignedRoles(branchId);
+
+      // fetch authorized pages
+      await fetchAuthorizedPages(branchId, roleId);
+
+      // navigate to dashboard
+      if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {
+        setSuccessMessage(loginRes.message);
+        timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
+      } else {
+        setShowOtpModal(true);
+      }
+    } catch (err) {
+      console.error("Login flow failed", err);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef?.current) clearTimeout(timerRef?.current);
-    };
-  }, []);
 
   // Drawer Logic
   const openDrawer = (type: string) => {
@@ -150,6 +166,54 @@ const Login = () => {
   const onClose = useCallback(() => {
     setShowOtpModal(false);
   }, []);
+
+  const fetchUserAssignedRoles = async (branchId: number) => {
+    const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
+
+    const roleId = response?.data?.[0]?.roleId;
+    const roleName = response?.data?.[0]?.roleName;
+
+    if (!roleId) throw new Error("Role not found");
+
+    localStorage.setItem("selectedRole", roleName);
+
+    return roleId;
+  };
+
+  const fetchAuthorizedPages = async (branchId: number, roleId: number) => {
+    const response = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
+      {},
+      { params: { branchId, roleId } }
+    );
+
+    const tabs = response.data?.tabs ?? [];
+    const subMenus = response.data?.subMenus ?? [];
+    const favoriteSubMenus = response.data?.favoriteSubMenus ?? [];
+
+    const quickLinksTab = {
+      tabName: {
+        tabId: 0,
+        tabName: "Quick Links",
+        iconClass: "fa-solid fa-star",
+      },
+      pages: favoriteSubMenus.map((item: PageItem) => ({ ...item, tabId: 0 })),
+      selectedRoleId: roleId,
+    };
+
+    const normalTabs = tabs.map((tab: TabItem) => ({
+      tabName: {
+        tabId: tab.tabId,
+        tabName: tab.tabName.trim(),
+        iconClass: tab.iconClass,
+      },
+      pages: subMenus.filter((page: PageItem) => page.tabId === tab.tabId),
+      selectedRoleId: roleId,
+    }));
+
+    setAuthorizedPages([quickLinksTab, ...normalTabs]);
+  };
 
   return (
     <AuthBackground>
