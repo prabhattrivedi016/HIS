@@ -119,7 +119,7 @@ const UserAuthorization = () => {
       "GET",
       ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
       {},
-      { params: { branchId, typeId, userId } }
+      { params: { branchId, typeId, userId: localStorage.getItem("userId") } }
     );
 
     if (!response) {
@@ -447,14 +447,6 @@ const UserAuthorization = () => {
 
         {userRightsDropdown && (
           <InputField label="Role">
-            {/* <select className="input-field" onChange={userRightsDropdownHandler}>
-              <option value={0}>All</option>
-              {userRightsGrantedRoles?.map(role => (
-                <option key={role.roleId} value={role.roleId}>
-                  {role.roleName}
-                </option>
-              ))}
-            </select> */}
             <Select
               options={roleSelectOption}
               placeholder="Select..."
