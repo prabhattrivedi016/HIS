@@ -3,9 +3,9 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss()],
-
   base: "/GWSNHIS",
+
+  plugins: [react(), tailwindcss()],
 
   server: {
     port: 5173,
@@ -15,6 +15,15 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist",
     assetsDir: "assets",
+    emptyOutDir: true,
+
+    rollupOptions: {
+      output: {
+        assetFileNames: "assets/RoleIcon/[name][extname]",
+        chunkFileNames: "assets/RoleIcon/[name].js",
+        entryFileNames: "assets/RoleIcon/[name].js",
+      },
+    },
   },
 
   esbuild:

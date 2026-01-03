@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { ENDPOINTS } from "../../config/defaults";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
-import { RoleValue, SubMenuValue, TabValue } from "./types";
+import { useFavoriteRoles } from "../../store/useFavouriteRole";
+import { RoleValue } from "./types";
 
 const FavRoleButtonToggle = () => {
   const branchId = localStorage.getItem("branchId");
@@ -10,31 +10,13 @@ const FavRoleButtonToggle = () => {
   const { fetchApi } = useGlobalApi();
   const { setAuthorizedPages } = useAuthorizedPages();
 
-  const [favRole, setFavRole] = useState<RoleValue[]>([]);
-  const [tabs, setTabs] = useState<TabValue[]>([]);
-  const [subMenu, setSubMenu] = useState<SubMenuValue[]>([]);
-  const [favoriteSubMenu, setFavoriteSubMenu] = useState<SubMenuValue[]>([]);
-  const [selectedRole, setSelectedRole] = useState<RoleValue | null>(null);
+  //  single source of truth
+  const favoriteRoles = useFavoriteRoles(state => state.favoriteRoles);
 
-  const getRoles = async () => {
-    const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
-
-    if (!response) return;
-
-    const favoriteRoles =
-      response.data?.filter((role: RoleValue) => role.isFavoriteRole === 1) ?? [];
-
-    setFavRole(favoriteRoles);
-  };
-
-  useEffect(() => {
-    if (!branchId) return;
-    getRoles();
-  }, [branchId]);
+  //  nothing to render
+  if (!favoriteRoles?.length) return null;
 
   const favRoleHandler = async (role: RoleValue) => {
-    setSelectedRole(role);
-
     const response = await fetchApi(
       "GET",
       ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
@@ -44,43 +26,42 @@ const FavRoleButtonToggle = () => {
 
     if (!response) return;
 
-    setTabs(response.data?.tabs ?? []);
-    setSubMenu(response.data?.subMenus ?? []);
-    setFavoriteSubMenu(response.data?.favoriteSubMenus ?? []);
-  };
+    const tabs = response.data?.tabs ?? [];
+    const subMenus = response.data?.subMenus ?? [];
+    const favoriteSubMenus = response.data?.favoriteSubMenus ?? [];
 
-  useEffect(() => {
-    if (!selectedRole || !tabs.length) return;
-
+    //  quick links
     const quickLinksTab = {
       tabName: {
         tabId: 0,
         tabName: "Quick Links",
         iconClass: "fa-solid fa-star",
       },
-      pages: favoriteSubMenu.map(item => ({
+      pages: favoriteSubMenus.map((item: any) => ({
         ...item,
         tabId: 0,
       })),
-      selectedRole,
+      selectedRole: role,
     };
 
-    const normalTabs = tabs.map(tab => ({
+    //  normal tabs
+    const normalTabs = tabs.map((tab: any) => ({
       tabName: {
         tabId: tab.tabId,
         tabName: tab.tabName.trim(),
         iconClass: tab.iconClass,
       },
-      pages: subMenu.filter(page => page.tabId === tab.tabId),
-      selectedRole,
+      pages: subMenus.filter((page: any) => page.tabId === tab.tabId),
+      selectedRole: role,
     }));
 
+    //  single state update
     setAuthorizedPages([quickLinksTab, ...normalTabs]);
-  }, [tabs, subMenu, favoriteSubMenu, selectedRole]);
+  };
 
   return (
     <div className="fixed right-2 md:right-4 top-1/2 -translate-y-1/2 z-999 flex flex-col items-end gap-3">
-      {favRole.map(role => (
+      {favoriteRoles.map(role => (
         <div key={role.roleId} className="group">
           <button
             onClick={() => favRoleHandler(role)}
@@ -90,7 +71,7 @@ const FavRoleButtonToggle = () => {
             <span className="flex items-center justify-center w-12 h-12 shrink-0">
               <img
                 src={role?.imagePath}
-                alt="logo"
+                alt={role?.roleName}
                 className="w-7 h-7 md:w-8 md:h-8 object-contain"
               />
             </span>
