@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent } from "react";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -10,7 +10,6 @@ import {
   CorporateMappingItem,
   PageAccessItem,
   RoleDataItem,
-  TableData,
   TableProps,
   UserDashboardItem,
   UserRightsItem,
@@ -23,8 +22,7 @@ const Table = ({
   onChangeMessage,
   selectedButton,
 }: TableProps) => {
-  const { loading, error, fetchApi } = useGlobalApi();
-  const [selectedBtn, setSelectedBtn] = useState<string>("");
+  const { loading, fetchApi } = useGlobalApi();
 
   const tableName =
     tableData?.type === "roleName"
@@ -41,277 +39,288 @@ const Table = ({
       ? "Room Name"
       : "Table Name";
 
-  //  filter handler
   const allFilterHandler = () => {
-    if (!tableData?.data) return onChangeFilter([]);
-
     onChangeFilter(tableData.data);
   };
 
   const remainingFilterHandler = () => {
-    if (!tableData?.data) return onChangeFilter([]);
-    const remainingFiltered = tableData.data.filter(u => u.isGranted === 0);
-    onChangeFilter(remainingFiltered as any);
+    onChangeFilter(tableData.data.filter(item => item.isGranted === 0));
   };
 
   const grantedFilterHandler = () => {
-    if (!tableData?.data) return onChangeFilter([]);
-    const grantedFiltered = tableData.data.filter(u => u.isGranted === 1);
-    onChangeFilter(grantedFiltered as any);
+    onChangeFilter(tableData.data.filter(item => item.isGranted === 1));
   };
 
-  // search handler
+  //search handler
   const onSearchHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim().toLowerCase();
-
-    if (!tableData?.data) return onChangeFilter([]);
 
     switch (tableData.type) {
       case "roleName":
         return onChangeFilter(
-          tableData.data.filter((item: RoleDataItem) =>
-            item.roleName?.toLowerCase()?.includes(value)
+          tableData.data.filter((i: RoleDataItem) => i.roleName?.toLowerCase().includes(value))
+        );
+
+      case "userRightName":
+        return onChangeFilter(
+          tableData.data.filter((i: UserRightsItem) =>
+            i.userRightName?.toLowerCase().includes(value)
           )
         );
 
-      case "userRightName": {
+      case "userDashboard":
         return onChangeFilter(
-          tableData?.data?.filter((item: UserRightsItem) =>
-            item?.userRightName?.toLowerCase()?.includes(value)
+          tableData.data.filter((i: UserDashboardItem) =>
+            i.userRightName?.toLowerCase().includes(value)
           )
         );
-      }
-      case "userDashboard": {
+
+      case "pageAccess":
         return onChangeFilter(
-          tableData?.data?.filter((item: UserDashboardItem) =>
-            item?.userRightName?.toLowerCase()?.includes(value)
+          tableData.data.filter((i: PageAccessItem) => i.subMenuName?.toLowerCase().includes(value))
+        );
+
+      case "corporateMapping":
+        return onChangeFilter(
+          tableData.data.filter((i: CorporateMappingItem) =>
+            i.corporateName?.toLowerCase().includes(value)
           )
         );
-      }
-      case "pageAccess": {
+
+      case "bedMapping":
         return onChangeFilter(
-          tableData.data.filter((item: PageAccessItem) =>
-            item.subMenuName?.toLowerCase()?.includes(value)
-          )
+          tableData.data.filter((i: BedMappingItem) => i.name?.toLowerCase().includes(value))
         );
-      }
-      case "corporateMapping": {
-        return onChangeFilter(
-          tableData.data.filter((item: CorporateMappingItem) =>
-            item.corporateName?.toLowerCase()?.includes(value)
-          )
-        );
-      }
-      case "bedMapping": {
-        return onChangeFilter(
-          tableData.data.filter((item: BedMappingItem) => item.name?.toLowerCase()?.includes(value))
-        );
-      }
 
       default:
-        return onChangeFilter(tableData?.data);
+        return onChangeFilter(tableData.data);
     }
   };
 
+  //toggle all
   const toggleAllHandler = () => {
-    if (!filteredData?.length) return;
+    if (!filteredData.length) return;
 
-    const shouldGrantAll = filteredData.some(item => item.isGranted === 0);
+    const shouldGrantAll = filteredData.some(i => i.isGranted === 0);
 
-    const updatedFiltered = filteredData.map(item => ({
-      ...item,
-      isGranted: shouldGrantAll ? 1 : 0,
-    }));
+    const updated = tableData.data.map(item => {
+      const isMatch = filteredData.some(f => {
+        switch (tableData.type) {
+          case "corporateMapping":
+            return f.corporateId === item.corporateId;
+          case "bedMapping":
+            return f.serviceItemId === item.serviceItemId;
+          case "pageAccess":
+            return f.subMenuId === item.subMenuId;
+          case "userRightName":
+            return f.userRightId === item.userRightId;
+          case "userDashboard":
+            return f.userRightId === item.userRightId;
+          case "roleName":
+            return f.roleId === item.roleId;
+          default:
+            return false;
+        }
+      });
 
-    // Update UI list
-    onChangeFilter(updatedFiltered as any);
-
-    // Update full table data consistently
-    tableData.data = tableData?.data?.map(item => {
-      const key = item?.roleId || item?.userRightId || item?.subMenuId || item?.serviceItemId;
-      const match = updatedFiltered?.find(
-        f => (f?.roleId || f.userRightId || f?.subMenuId || f?.serviceItemId) === key
-      );
-      return match || item;
+      return isMatch ? { ...item, isGranted: shouldGrantAll ? 1 : 0 } : item;
     });
+
+    tableData.data = updated;
+    onChangeFilter(updated);
   };
 
-  // single toggle button handler
-  const toggleSingleHandler = index => {
-    const updated = filteredData.map((item, idx) =>
-      idx === index ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
-    );
+  // toggle single
+  const toggleSingleHandler = (id: number) => {
+    const updated = tableData.data.map(item => {
+      switch (tableData.type) {
+        case "corporateMapping":
+          return item.corporateId === id
+            ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+            : item;
 
-    // update filtered data
-    onChangeFilter(updated as any);
+        case "bedMapping":
+          return item.serviceItemId === id
+            ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+            : item;
 
-    // update main tableData
-    tableData.data = tableData.data.map((item, idx) =>
-      idx === index ? { ...item, isGranted: updated[idx].isGranted } : item
-    );
+        case "pageAccess":
+          return item.subMenuId === id
+            ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+            : item;
+
+        case "userRightName":
+          return item.userRightId === id
+            ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+            : item;
+
+        case "userDashboard":
+          return item.userRightId === id
+            ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+            : item;
+
+        case "roleName":
+          return item.roleId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item;
+
+        default:
+          return item;
+      }
+    });
+
+    tableData.data = updated;
+    onChangeFilter(updated);
   };
 
-  // on save handler
-  const onSaveHandler = async (tableData: TableData) => {
-    switch (tableData?.type) {
+  // save handler
+  const onSaveHandler = async () => {
+    switch (tableData.type) {
       case "roleName": {
-        const payload = {
-          branchId: tableData?.branchId,
-          typeId: tableData?.typeId,
-          userId: tableData?.userId,
-          userRoleMappings: tableData?.data
-            ?.filter((u: RoleDataItem) => u.isGranted === 1)
-            ?.map((u: RoleDataItem) => ({
-              branchId: tableData?.branchId,
-              typeId: tableData?.typeId,
-              userId: tableData?.userId,
-              roleId: u.roleId,
-            })),
-        };
-        setSelectedBtn("all");
-        const response = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, payload);
-        if (!response) return;
-        onChangeMessage(response?.message);
+        const roles = tableData.data
+          .filter((u: RoleDataItem) => u.isGranted === 1)
+          .map(u => ({
+            branchId: tableData.branchId,
+            typeId: Number(tableData.typeId),
+            userId: tableData.userId,
+            roleId: u.roleId,
+          }));
+
+        await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
+          branchId: tableData.branchId,
+          typeId: Number(tableData.typeId),
+          userId: tableData.userId,
+          userRoleMappings: roles,
+        });
+
+        onChangeMessage("Saved successfully");
         return;
       }
 
       case "userRightName": {
-        const payload = {
-          branchId: tableData?.branchId,
-          typeId: tableData?.typeId,
-          userId: tableData?.userId,
-          roleId: tableData?.roleId,
-          userRights: tableData?.data
-            ?.filter((u: UserRightsItem) => u.isGranted === 1)
-            ?.map((u: UserRightsItem) => ({
-              branchId: tableData?.branchId,
-              typeId: tableData?.typeId,
-              userId: tableData?.userId,
-              roleId: tableData?.roleId,
-              userRightId: u?.userRightId,
-            })),
-        };
+        const rights = tableData?.data
+          .filter((u: UserRightsItem) => u?.isGranted === 1)
+          .map(u => ({
+            branchId: tableData?.branchId,
+            typeId: Number(tableData?.typeId),
+            userId: tableData?.userId,
+            roleId: tableData?.roleId,
+            userRightId: u?.userRightId,
+          }));
+        if (!tableData?.roleId) return;
 
-        const response = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_RIGHT_MAPPING, payload);
-        if (!response) return;
-        onChangeMessage(response?.message);
+        await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_RIGHT_MAPPING, {
+          branchId: tableData.branchId,
+          typeId: Number(tableData.typeId),
+          userId: tableData.userId,
+          roleId: tableData.roleId,
+          userRights: rights,
+        });
+
+        onChangeMessage("Saved successfully");
         return;
       }
+
       case "userDashboard": {
-        const payload = {
+        const dashboards = tableData?.data
+          .filter((u: UserDashboardItem) => u?.isGranted === 1)
+          .map(u => ({
+            branchId: tableData?.branchId,
+            typeId: Number(tableData?.typeId),
+            userId: tableData?.userId,
+            roleId: tableData?.roleId,
+            userRightId: u?.userRightId,
+          }));
+        if (!tableData?.roleId) return;
+
+        await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING, {
           branchId: tableData?.branchId,
-          typeId: tableData?.typeId,
+          typeId: Number(tableData?.typeId),
           userId: tableData?.userId,
           roleId: tableData?.roleId,
-          dashboardUserRights: tableData?.data
-            ?.filter((u: UserDashboardItem) => u.isGranted === 1)
-            ?.map((u: UserDashboardItem) => ({
-              branchId: tableData?.branchId,
-              typeId: tableData?.typeId,
-              userId: tableData?.userId,
-              roleId: tableData?.roleId,
-              userRightId: u?.userRightId,
-            })),
-        };
+          dashboardUserRights: dashboards,
+        });
 
-        const response = await fetchApi(
-          "POST",
-          ENDPOINTS.SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING,
-          payload
-        );
-        if (!response) return;
-        onChangeMessage(response?.message);
-
+        onChangeMessage("Saved successfully");
         return;
       }
 
       case "pageAccess": {
-        //  Filter granted menus
         const menus = tableData?.data
-          ?.filter((u: PageAccessItem) => u.isGranted === 1)
-          ?.map((u: PageAccessItem) => ({
+          .filter((u: PageAccessItem) => u?.isGranted === 1)
+          .map(u => ({
             branchId: tableData?.branchId,
-            typeId: tableData?.typeId,
+            typeId: Number(tableData?.typeId),
             userId: tableData?.userId,
             roleId: tableData?.roleId,
             subMenuId: u?.subMenuId,
           }));
+        if (!tableData?.roleId) return;
 
         const chunks = chunkArray(menus, 50);
 
-        //  Send chunked payloads
         for (let i = 0; i < chunks.length; i++) {
-          const payload = {
-            branchId: tableData?.branchId,
-            typeId: tableData?.typeId,
-            userId: tableData?.userId,
-            roleId: tableData?.roleId,
+          await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, {
+            branchId: tableData.branchId,
+            typeId: Number(tableData.typeId),
+            userId: tableData.userId,
+            roleId: tableData.roleId,
             isFirst: i === 0 ? 1 : 0,
             userMenus: chunks[i],
-          };
-
-          const response = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, payload);
-          if (!response) return;
-          onChangeMessage(response?.message);
+          });
         }
+
+        onChangeMessage("Saved successfully");
         return;
       }
+
       case "corporateMapping": {
-        const corporate = tableData?.data
-          ?.filter((u: CorporateMappingItem) => u.isGranted === 1)
-          ?.map((u: CorporateMappingItem) => ({
+        const corporates = tableData?.data
+          .filter((u: CorporateMappingItem) => u?.isGranted === 1)
+          .map(u => ({
             branchId: tableData?.branchId,
             typeId: Number(tableData?.typeId),
             userId: tableData?.userId,
             corporateId: u?.corporateId,
           }));
 
-        const chunks = chunkArray(corporate, 50);
-        //send chunk payload
+        const chunks = chunkArray(corporates, 50);
+
         for (let i = 0; i < chunks.length; i++) {
-          const payload = {
-            branchId: tableData?.branchId,
-            typeId: tableData?.typeId,
-            userId: tableData?.userId,
+          await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_CORPORATE_MAPPING, {
+            branchId: tableData.branchId,
+            typeId: Number(tableData.typeId),
+            userId: tableData.userId,
             isFirst: i === 0 ? 1 : 0,
             userCorporates: chunks[i],
-          };
-
-          const response = await fetchApi(
-            "POST",
-            ENDPOINTS.SAVE_UPDATE_USER_CORPORATE_MAPPING,
-            payload
-          );
-          if (!response) return;
-          onChangeMessage(response?.message);
+          });
         }
 
+        onChangeMessage("Saved successfully");
         return;
       }
+
       case "bedMapping": {
-        const beds = tableData?.data
-          ?.filter((u: BedMappingItem) => u.isGranted === 1)
-          ?.map((u: BedMappingItem) => ({
+        const beds = tableData.data
+          .filter((u: BedMappingItem) => u?.isGranted === 1)
+          .map(u => ({
             branchId: tableData?.branchId,
-            typeId: tableData?.typeId,
+            typeId: Number(tableData?.typeId),
             userId: tableData?.userId,
             serviceItemId: u?.serviceItemId,
           }));
 
         const chunks = chunkArray(beds, 50);
-        // send chunk payload
+
         for (let i = 0; i < chunks.length; i++) {
-          const payload = {
+          await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, {
             branchId: tableData?.branchId,
-            typeId: tableData?.typeId,
+            typeId: Number(tableData?.typeId),
             userId: tableData?.userId,
             isFirst: i === 0 ? 1 : 0,
             userBeds: chunks[i],
-          };
-          const response = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, payload);
-          if (!response) return;
-          onChangeMessage(response?.message);
+          });
         }
+
+        onChangeMessage("Saved successfully");
         return;
       }
 
@@ -335,10 +344,7 @@ const Table = ({
           </button>
         </div>
 
-        <button
-          className="table-header-button text-white bg-[#0b5394]"
-          onClick={() => onSaveHandler(tableData)}
-        >
+        <button className="table-header-button text-white bg-[#0b5394]" onClick={onSaveHandler}>
           Save
         </button>
       </div>
@@ -348,97 +354,95 @@ const Table = ({
           <thead className="bg-blue-50 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 text-center font-semibold">#</div>
-
-                  <div className="flex-1 flex items-center justify-between gap-3">
-                    {selectedButton === "pageAccess" ? (
-                      <>
-                        {/* <span>{"Navigation Name"}</span> */}
-                        <span className="font-semibold truncate"> {tableName}</span>
-                      </>
-                    ) : (
-                      <span className="font-semibold truncate">{tableName}</span>
-                    )}
-
-                    <InputField>
-                      <input
-                        className="input-field w-40"
-                        placeholder="Search..."
-                        onChange={onSearchHandler}
-                      />
-                    </InputField>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate">{tableName}</span>
+                  <InputField>
+                    <input
+                      className="input-field w-40"
+                      placeholder="Search..."
+                      onChange={onSearchHandler}
+                    />
+                  </InputField>
                 </div>
               </th>
 
-              <th className="px-4 py-3 font-semibold text-gray-700 w-32">
-                <div className="flex items-center justify-center gap-2">
-                  <ToggleButton
-                    checked={
-                      filteredData.length > 0 && filteredData.every(item => item.isGranted === 1)
-                    }
-                    disabled={filteredData.length === 0}
-                    onClick={() => toggleAllHandler(filteredData)}
-                  />
-                  <span>All</span>
-                </div>
+              <th className="px-4 py-3 font-semibold text-gray-700 w-32 text-center">
+                <ToggleButton
+                  checked={
+                    filteredData.length > 0 && filteredData.every(item => item.isGranted === 1)
+                  }
+                  disabled={filteredData.length === 0}
+                  onClick={toggleAllHandler}
+                />
               </th>
             </tr>
           </thead>
 
+          {/* <tbody>
+            {filteredData.map((item, idx) => (
+              <tr key={idx} className="hover:bg-gray-100">
+                <td className="px-4 py-3">
+                  {item.roleName ||
+                    item.userRightName ||
+                    item.subMenuName ||
+                    item.corporateName ||
+                    item.name}
+                </td>
+
+                <td className="px-4 py-3 text-center">
+                  <ToggleButton
+                    checked={item.isGranted === 1}
+                    disabled={false}
+                    onClick={() => {
+                      if (tableData.type === "corporateMapping")
+                        toggleSingleHandler(item.corporateId);
+                      else if (tableData.type === "bedMapping")
+                        toggleSingleHandler(item.serviceItemId);
+                      else if (tableData.type === "pageAccess") toggleSingleHandler(item.subMenuId);
+                      else if (tableData.type === "userRightName")
+                        toggleSingleHandler(item.userRightId);
+                      else if (tableData.type === "roleName") toggleSingleHandler(item.roleId);
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody> */}
           <tbody>
-            {filteredData && filteredData.length > 0 ? (
-              filteredData.map((item, idx) => {
-                const name =
-                  item?.roleName ||
-                  item?.userRightName ||
-                  item?.subMenuName ||
-                  item?.corporateName ||
-                  item?.name;
+            {filteredData.length > 0 ? (
+              filteredData.map((item, idx) => (
+                <tr key={idx} className="hover:bg-gray-100">
+                  <td className="px-4 py-3">
+                    {item.roleName ||
+                      item.userRightName ||
+                      item.subMenuName ||
+                      item.corporateName ||
+                      item.name}
+                  </td>
 
-                return (
-                  <tr key={idx} className="hover:bg-gray-100">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 text-center text-gray-600">{idx + 1}</div>
-
-                        <div className=" flex items-center justify-center gap-3">
-                          {selectedButton === "pageAccess" ? (
-                            <div className="flex items-center w-full">
-                              {/* <h1 className="text-md  truncate">{item?.tabName}</h1> */}
-                              <span className="text-md  truncate text-right">{name}</span>
-                            </div>
-                          ) : (
-                            <span className="truncate">{name}</span>
-                          )}
-
-                          {selectedButton === "userRight" && (
-                            <i
-                              className="fa-solid fa-info text-gray-400 hover:text-gray-600"
-                              title={item?.description}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center">
-                        <ToggleButton
-                          checked={item.isGranted === 1}
-                          disabled={false}
-                          onClick={() => toggleSingleHandler(idx)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+                  <td className="px-4 py-3 text-center">
+                    <ToggleButton
+                      checked={item.isGranted === 1}
+                      disabled={false}
+                      onClick={() => {
+                        if (tableData.type === "corporateMapping")
+                          toggleSingleHandler(item.corporateId);
+                        else if (tableData.type === "bedMapping")
+                          toggleSingleHandler(item.serviceItemId);
+                        else if (tableData.type === "pageAccess")
+                          toggleSingleHandler(item.subMenuId);
+                        else if (tableData.type === "userRightName")
+                          toggleSingleHandler(item.userRightId);
+                        else if (tableData.type === "roleName") toggleSingleHandler(item.roleId);
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan={2} className="text-gray-500 text-center p-4">
-                  No data found.
+                <td colSpan={2} className="px-4 py-6 text-center text-gray-500 italic">
+                  No data found
                 </td>
               </tr>
             )}
@@ -446,7 +450,7 @@ const Table = ({
         </table>
       </div>
 
-      {loading && <CustomLoader isLoading={loading} />}
+      {loading && <CustomLoader isLoading />}
     </div>
   );
 };

@@ -14,9 +14,13 @@ import { PageItem, TabItem } from "../types";
 const Sidebar = () => {
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
-  const branchId = localStorage?.getItem("branchId");
-  const roleId = localStorage?.getItem("selectedRoleId");
-  const userId = localStorage?.getItem("userId");
+  const branchId = localStorage?.getItem("branchId")
+    ? Number(localStorage?.getItem("branchId"))
+    : 0;
+  const roleId = localStorage?.getItem("selectedRoleId")
+    ? Number(localStorage?.getItem("selectedRoleId"))
+    : 0;
+  const userId = localStorage?.getItem("userId") ? Number(localStorage?.getItem("userId")) : 0;
 
   const location = useLocation();
   const sidebarRef = useRef(null);

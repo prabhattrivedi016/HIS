@@ -142,19 +142,14 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
     }
   };
 
-  // debounced api call
   useEffect(() => {
     if (!favoriteRoles.length) return;
 
-    const timer = setTimeout(() => {
-      fetchApi("POST", ENDPOINTS.SAVE_USER_FAVORITE_ROLES, {
-        branchId,
-        userId,
-        roleIds: favoriteRoles.map(r => r.roleId),
-      });
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    fetchApi("POST", ENDPOINTS.SAVE_USER_FAVORITE_ROLES, {
+      branchId,
+      userId,
+      roleIds: favoriteRoles.map(r => r.roleId),
+    });
   }, [favoriteRoles]);
 
   if (!isOpen) return null;
