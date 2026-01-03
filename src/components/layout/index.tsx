@@ -1,4 +1,4 @@
-import backgroundImage from "../../../assets/background.jpg";
+import backgroundImage from "../../../GWSNHIS/assets/background.jpg";
 
 const AuthBackground = ({ children }) => {
   return (

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Logo from "../../../assets/logo.jpg";
 import { Spinner } from "../../../assets/svgIcons";
 
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
@@ -10,9 +11,11 @@ import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
+import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
+
 import { InputError, LoginFormData, PageItem, TabItem } from "./type";
 
 const Login = () => {
@@ -20,6 +23,7 @@ const Login = () => {
   const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
   const { setAuthorizedPages } = useAuthorizedPages();
+  const { setFavoriteRoles, clearFavorites } = useFavoriteRoles();
 
   const [formData, setFormData] = useState<LoginFormData>({
     selectedBranchId: "",
@@ -167,6 +171,7 @@ const Login = () => {
     setShowOtpModal(false);
   }, []);
 
+  // Fetch user assigned roles and set it to the store
   const fetchUserAssignedRoles = async (branchId: number) => {
     const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
 
@@ -174,6 +179,11 @@ const Login = () => {
     const roleName = response?.data?.[0]?.roleName;
 
     if (!roleId) throw new Error("Role not found");
+
+    // set favorite roles
+    const favorites = response?.data?.filter((r: any) => r?.isFavoriteRole === 1);
+
+    setFavoriteRoles(favorites);
 
     localStorage.setItem("selectedRole", roleName);
 
@@ -215,6 +225,8 @@ const Login = () => {
     setAuthorizedPages([quickLinksTab, ...normalTabs]);
   };
 
+  console.log("🧪 Zustand snapshot:", useFavoriteRoles.getState().favoriteRoles);
+
   return (
     <AuthBackground>
       <motion.div
@@ -227,11 +239,7 @@ const Login = () => {
         <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
           <div className="text-center mb-6">
             <div className="mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white w-full max-[300px] h-[150px] sm:max-w-[400px] sm:h-[200px] md:max-w-[400px] md:h-[200px] ">
-              <img
-                src="/assets/logo.jpg"
-                alt="Hospital Logo"
-                className="w-full h-full object-contain"
-              />
+              <img src={Logo} alt="Hospital Logo" className="w-full h-full object-contain" />
             </div>
 
             <p className="welcome">!! Welcome Back !!</p>
