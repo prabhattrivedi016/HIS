@@ -9,9 +9,8 @@ import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../../store/useFavouriteRole";
 
+import { getAuthStorage } from "../../../utils/authStorage";
 import { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem } from "../types";
-
-const SELECTED_ROLE_KEY = "selectedRoleId";
 
 const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
   const { loading, fetchApi } = useGlobalApi();
@@ -27,22 +26,24 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
   const [subMenu, setSubMenu] = useState<subMenuItem[]>([]);
   const [favoriteSubMenu, setFavoriteSubMenu] = useState<subMenuItem[]>([]);
 
-  const branchId = localStorage.getItem("branchId");
-  const userId = localStorage.getItem("userId");
+  const storage = getAuthStorage();
+
+  const branchId = storage.getItem("branchId");
+  const userId = storage.getItem("userId");
 
   //role-> page mapping
   const fetchRoleMapping = async (role: RoleMapItem, shouldClose: boolean) => {
     setSelectedRole(role);
     roleChange(role.roleName);
 
-    localStorage.setItem(SELECTED_ROLE_KEY, String(role.roleId));
-    localStorage.setItem("selectedRole", role.roleName);
+    storage.setItem("roleId", String(role?.roleId));
+    storage.setItem("roleName", role?.roleName);
 
     const response = await fetchApi(
       "GET",
       ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
       {},
-      { params: { branchId, roleId: role.roleId } }
+      { params: { branchId, roleId: role?.roleId } }
     );
 
     if (!response) return;
@@ -75,8 +76,8 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
     const favRoles = roles.filter(r => r?.isFavoriteRole === 1);
     setFavoriteRoles(favRoles);
 
-    /* Restore selected role */
-    const cachedRoleId = localStorage.getItem(SELECTED_ROLE_KEY);
+    // Restore selected role
+    const cachedRoleId = storage.getItem("selectedRole");
     const restoredRole = roles.find(r => String(r.roleId) === cachedRoleId) ?? roles[0];
 
     if (restoredRole) {
