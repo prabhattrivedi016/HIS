@@ -16,6 +16,7 @@ import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 
+import { getAuthStorage } from "../../utils/authStorage";
 import { InputError, LoginFormData, PageItem, TabItem } from "./type";
 
 const Login = () => {
@@ -113,19 +114,22 @@ const Login = () => {
         rememberMe: formData.rememberMe,
       });
 
+      const storage = formData?.rememberMe ? localStorage : sessionStorage;
+
       if (!loginRes) return;
 
       const { accessToken, branchId, userId } = loginRes.data;
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("branchId", String(branchId));
-      localStorage.setItem("userId", String(userId));
+      storage.setItem("accessToken", accessToken);
+      storage.setItem("branchId", String(branchId));
+      storage.setItem("userId", String(userId));
+      storage.setItem("userDetails", JSON.stringify(loginRes?.data));
 
-      setUserName(loginRes.data.userName);
-      setEmail(loginRes.data.email);
-      setContact(loginRes.data.contact);
-      setIsContact(loginRes.data.isContactVerified);
-      setIsEmail(loginRes.data.isEmailVerified);
+      setUserName(loginRes?.data?.userName);
+      setEmail(loginRes?.data?.email);
+      setContact(loginRes?.data?.contact);
+      setIsContact(loginRes?.data?.isContactVerified);
+      setIsEmail(loginRes?.data?.isEmailVerified);
       setUserId(userId);
 
       // fetch user roles
@@ -173,6 +177,7 @@ const Login = () => {
 
   // Fetch user assigned roles and set it to the store
   const fetchUserAssignedRoles = async (branchId: number) => {
+    const storage = getAuthStorage();
     const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
 
     const roleId = response?.data?.[0]?.roleId;
@@ -185,7 +190,8 @@ const Login = () => {
 
     setFavoriteRoles(favorites);
 
-    localStorage.setItem("selectedRole", roleName);
+    storage.setItem("selectedRole", roleName);
+    storage.setItem("roleId", roleId);
 
     return roleId;
   };
@@ -224,8 +230,6 @@ const Login = () => {
 
     setAuthorizedPages([quickLinksTab, ...normalTabs]);
   };
-
-  console.log("🧪 Zustand snapshot:", useFavoriteRoles.getState().favoriteRoles);
 
   return (
     <AuthBackground>

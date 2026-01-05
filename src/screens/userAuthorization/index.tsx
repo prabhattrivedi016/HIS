@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select from "react-select";
 import InputField from "../../components/customInputField";
@@ -22,6 +22,7 @@ import {
 const UserAuthorization = () => {
   const { branchList } = useGetBranchList();
   const { pickMasterValue } = usePickMaster({ fieldName: "AuthorizationType" });
+
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [successMessage, setSuccessMessage] = useState<string>("");
@@ -34,7 +35,7 @@ const UserAuthorization = () => {
   const [branchId, setBranchId] = useState<number>(1);
   const [typeId, setTypeId] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
-  const [roleId, setRoleId] = useState<number>(0);
+  const [roleId, setRoleId] = useState<number | null>(0);
   const [pageView, setPageView] = useState(false);
 
   const [filteredData, setFilteredData] = useState<FilteredData>([]);
@@ -44,53 +45,18 @@ const UserAuthorization = () => {
   const [userRightsGrantedRoles, setUserRightGrantedRoles] = useState<RoleDataItem[]>([]);
 
   const [tableData, setTableData] = useState<TableData | null>(null);
-
-  //user group options
-  const userSelectOptions =
-    userGroupGrantedList?.map(u => ({
-      value: u?.id,
-      label: u?.firstName || u?.groupName,
-    })) || [];
-
-  const roleSelectOption =
-    userRightsGrantedRoles?.map(r => ({
-      value: r?.roleId,
-      label: r?.roleName,
-    })) || [];
+  const roleSelectRef = useRef<any>(null);
+  const rightSelectRef = useRef<any>(null);
 
   // branch handler
-  const branchHandler = (e: ChangeEvent<HTMLSelectElement>) => setBranchId(Number(e.target.value));
-
-  // authorization type
-  const typeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value;
-
-    setTypeId(id);
-
-    const selectedType =
-      pickMasterValue?.data?.find((t: PickMasterValueItem) => t?.key === id) ?? null;
-
-    setGroupType(selectedType);
-
-    setUserGroupGrantedList([]);
-    setFilteredData([]);
-    setSelectedButton("");
-    setUserRightsDropdown(false);
-
-    if (!selectedType) return;
-
-    if (selectedType.value === "Group Wise") getGroupList(id);
-    if (selectedType.value === "User Wise") getUserList(id);
-  };
+  const branchHandler = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => setBranchId(Number(e.target.value)),
+    []
+  );
 
   // fetch group list
-  const getGroupList = async (groupId: string) => {
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.USER_GROUP_LIST,
-      {},
-      { params: { id: groupId } }
-    );
+  const getGroupList = async () => {
+    const response = await fetchApi("GET", ENDPOINTS.USER_GROUP_LIST);
 
     if (!response) return;
 
@@ -98,109 +64,168 @@ const UserAuthorization = () => {
   };
 
   // fetch user list
-  const getUserList = async (id: string) => {
-    const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST, {}, { params: { id } });
+  const getUserList = async () => {
+    const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST);
     if (!response) return;
 
-    setUserGroupGrantedList(response.data.filter((u: UserGroupRoleItem) => u.isActive === 1));
+    setUserGroupGrantedList(response?.data?.filter((u: UserGroupRoleItem) => u.isActive === 1));
   };
 
-  // role button click
-  const selectUserGroupHandlerToBindRoles = async (
-    selected: { value: number; label: string } | null
-  ) => {
-    setPageView(true);
+  // authorization type for userList or groupList
+  const typeHandler = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      const id = Number(e.target.value);
 
-    setUserId(selected?.value);
-    setSelectedButton("roles");
-    setUserRightsDropdown(false);
+      setTypeId(id);
 
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
-      {},
-      { params: { branchId, typeId, userId: localStorage.getItem("userId") } }
+      const selectedType =
+        pickMasterValue?.data?.find((t: PickMasterValueItem) => t?.key === String(id)) ?? null;
+
+      setGroupType(selectedType);
+      roleSelectRef.current?.clearValue();
+
+      setUserGroupGrantedList([]);
+      setFilteredData([]);
+      setSelectedButton("");
+      setUserRightsDropdown(false);
+      setPageView(false);
+
+      if (!selectedType) return;
+
+      selectedType.value === "Group Wise" ? getGroupList() : getUserList();
+    },
+    [pickMasterValue, getGroupList, getUserList]
+  );
+
+  //user group or user master options for select dropdown
+  const userSelectOptions = useMemo(() => {
+    return (
+      userGroupGrantedList?.map((u: UserGroupGroupItem | UserGroupRoleItem) => ({
+        value: u?.id,
+        label: u?.firstName || u?.groupName,
+      })) || []
     );
+  }, [userGroupGrantedList]);
 
-    if (!response) {
+  //role dropdown select option
+  const roleSelectOption = useMemo(
+    () =>
+      userRightsGrantedRoles?.map(r => ({
+        value: r?.roleId,
+        label: r?.roleName,
+      })) || [],
+    [userRightsGrantedRoles]
+  );
+
+  const fetchRolesForUser = useCallback(
+    async (uid: number) => {
+      const response = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
+        {},
+        { params: { branchId, typeId, userId: uid } }
+      );
+
+      const data = response?.data ?? [];
+
       setTableData({
         type: "roleName",
         branchId,
         typeId: typeId!,
-        userId: selected?.value,
-        data: [],
+        userId: uid,
+        data,
       });
-      setFilteredData([]);
 
-      return;
-    }
+      setFilteredData(data);
+      setUserRightGrantedRoles(data.filter(r => r.isGranted === 1));
+    },
+    [branchId, typeId, fetchApi]
+  );
 
-    setTableData({
-      type: "roleName",
-      branchId,
-      typeId: typeId!,
-      userId: selected?.value,
-      data: response?.data,
-    });
+  const rolesButtonHandler = useCallback(() => {
+    if (!userId) return;
 
-    setFilteredData(response?.data);
+    setSelectedButton("roles");
+    setUserRightsDropdown(false);
+    setRoleId(0);
 
-    setUserRightGrantedRoles(response?.data?.filter((item: RoleDataItem) => item.isGranted === 1));
-  };
+    fetchRolesForUser(userId);
+  }, [userId, fetchRolesForUser]);
 
-  // fetch user right data
-  const fetchUserRightData = async (selectedRoleId: number) => {
-    if (!branchId || !typeId || !userId) return;
+  const selectUserGroupHandlerToBindRoles = useCallback(
+    async (selected: { value: number; label: string } | null) => {
+      const uid = selected?.value;
+      if (!uid) return;
 
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ASSIGN_USER_RIGHT_MAPPING,
-      {},
-      { params: { branchId, typeId, userId, roleId: selectedRoleId } }
-    );
+      setPageView(true);
+      setUserId(uid);
+      setSelectedButton("roles");
+      setUserRightsDropdown(false);
+      rightSelectRef.current?.clearValue();
 
-    if (!response) {
+      fetchRolesForUser(uid);
+    },
+    [fetchRolesForUser]
+  );
+
+  const fetchUserRightData = useCallback(
+    async (selectedRoleId: number) => {
+      const response = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_ASSIGN_USER_RIGHT_MAPPING,
+        {},
+        { params: { branchId, typeId, userId, roleId: selectedRoleId } }
+      );
+
+      const data = response?.data ?? [];
+
       setTableData({
         type: "userRightName",
         branchId,
-        typeId,
-        userId,
+        typeId: typeId!,
+        userId: userId!,
         roleId: selectedRoleId,
-        data: [],
+        data,
       });
-      setFilteredData([]);
 
-      return;
-    }
+      setFilteredData(data);
+    },
+    [branchId, typeId, userId, fetchApi]
+  );
 
-    setTableData({
-      type: "userRightName",
-      branchId,
-      typeId,
-      userId,
-      roleId: selectedRoleId,
-      data: response.data,
-    });
-
-    setFilteredData(response.data);
-  };
-
-  // user right buttons click
-  const userRightsButtonHandler = () => {
+  const userRightsButtonHandler = useCallback(() => {
     setSelectedButton("userRight");
     setUserRightsDropdown(true);
+    setRoleId(0);
+    rightSelectRef.current?.clearValue();
 
-    if (roleId !== null) fetchUserRightData(roleId);
-  };
+    if (roleId) fetchUserRightData(roleId);
+  }, [roleId, fetchUserRightData]);
 
-  // user rights dropdown change
-  const userRightsDropdownHandler = (selected: { value: number; label: string }) => {
-    setRoleId(selected?.value);
-  };
+  const userRightsDropdownHandler = useCallback(
+    (selected: { value: number; label: string } | null) => {
+      if (!selected) return;
 
+      const rid = selected.value;
+      setRoleId(rid);
+
+      if (selectedButton === "userRight") {
+        fetchUserRightData(rid);
+      }
+
+      if (selectedButton === "userDashboard") {
+        userDashboardTableData();
+      }
+
+      if (selectedButton === "pageAccess") {
+        pageAccessTableData();
+      }
+    },
+    [selectedButton, fetchUserRightData]
+  );
+
+  //user dashboard table data
   const userDashboardTableData = async () => {
-    if (!branchId || !typeId || !userId) return;
-
     const response = await fetchApi(
       "GET",
       ENDPOINTS.GET_ASSIGN_DASHBOARD_USER_RIGHT,
@@ -208,38 +233,27 @@ const UserAuthorization = () => {
       { params: { branchId, typeId, userId, roleId } }
     );
 
-    if (!response) {
-      setTableData({
-        type: "userDashboard",
-        branchId,
-        typeId,
-        userId,
-        roleId,
-        data: [],
-      });
-      setFilteredData([]);
-
-      return;
-    }
-
     setTableData({
       type: "userDashboard",
       branchId,
-      typeId,
-      userId,
+      typeId: typeId!,
+      userId: userId!,
       roleId,
-      data: response?.data,
+      data: response?.data ?? [],
     });
 
-    setFilteredData(response?.data);
+    setFilteredData(response?.data ?? []);
   };
 
   //user dashboard handler
   const userDashboardHandler = async () => {
     setSelectedButton("userDashboard");
     setUserRightsDropdown(true);
+    setRoleId(0);
+    rightSelectRef.current?.clearValue();
   };
 
+  // page access table data
   const pageAccessTableData = async () => {
     const response = await fetchApi(
       "GET",
@@ -248,35 +262,24 @@ const UserAuthorization = () => {
       { params: { branchId, typeId, userId, roleId } }
     );
 
-    if (!response) {
-      setTableData({
-        type: "pageAccess",
-        branchId,
-        typeId,
-        userId,
-        roleId,
-        data: [],
-      });
-      setFilteredData([]);
-      return;
-    }
-
     setTableData({
       type: "pageAccess",
       branchId,
-      typeId,
-      userId,
+      typeId: typeId!,
+      userId: userId!,
       roleId,
-      data: response?.data,
+      data: response?.data ?? [],
     });
 
-    setFilteredData(response?.data);
+    setFilteredData(response?.data ?? []);
   };
 
-  // page access
+  // page access handler
   const pageAccessHandler = async () => {
     setSelectedButton("pageAccess");
     setUserRightsDropdown(true);
+    setRoleId(0);
+    rightSelectRef.current?.clearValue();
   };
 
   useEffect(() => {
@@ -304,6 +307,7 @@ const UserAuthorization = () => {
   const corporateMappingHandler = async () => {
     setSelectedButton("corporateMapping");
     setUserRightsDropdown(false);
+    setRoleId(0);
 
     if (!branchId || !typeId || !userId) return;
 
@@ -314,36 +318,23 @@ const UserAuthorization = () => {
       { params: { branchId, typeId, userId } }
     );
 
-    if (!response) {
-      setTableData({
-        type: "corporateMapping",
-        branchId,
-        typeId,
-        userId,
-        roleId,
-        data: [],
-      });
-      setFilteredData([]);
-
-      return;
-    }
-
     setTableData({
       type: "corporateMapping",
       branchId,
       typeId,
       userId,
       roleId,
-      data: response?.data,
+      data: response?.data ?? [],
     });
 
-    setFilteredData(response?.data);
+    setFilteredData(response?.data ?? []);
   };
 
   // user bed mapping handler
   const userBedMappingHandler = async () => {
     setSelectedButton("bedMapping");
     setUserRightsDropdown(false);
+    setRoleId(0);
 
     const response = await fetchApi(
       "GET",
@@ -352,28 +343,15 @@ const UserAuthorization = () => {
       { params: { branchId, typeId, userId } }
     );
 
-    if (!response) {
-      setTableData({
-        type: "bedMapping",
-        branchId,
-        typeId,
-        userId,
-        data: [],
-      });
-      setFilteredData([]);
-
-      return;
-    }
-
     setTableData({
       type: "bedMapping",
       branchId,
       typeId,
       userId,
-      data: response?.data,
+      data: response?.data ?? [],
     });
 
-    setFilteredData(response?.data);
+    setFilteredData(response?.data ?? []);
   };
 
   return (
@@ -408,7 +386,7 @@ const UserAuthorization = () => {
           <select className="input-field" value={typeId || ""} onChange={typeHandler}>
             <option value="">Select Type</option>
 
-            {pickMasterValue?.data?.map(t => (
+            {pickMasterValue?.data?.map((t: PickMasterValueItem) => (
               <option key={t?.id} value={t?.key}>
                 {t?.value}
               </option>
@@ -425,15 +403,8 @@ const UserAuthorization = () => {
               : "Select Authorization"
           }
         >
-          {/* <Select
-            options={selectOptions}
-            placeholder="Select..."
-            isSearchable
-            isClearable={false}
-            classNames={SelectStyles}
-            onChange={selectUserGroupHandlerToBindRoles}
-          /> */}
           <Select
+            ref={roleSelectRef}
             options={userSelectOptions}
             placeholder="Select..."
             isSearchable
@@ -448,6 +419,7 @@ const UserAuthorization = () => {
         {userRightsDropdown && (
           <InputField label="Role">
             <Select
+              ref={rightSelectRef}
               options={roleSelectOption}
               placeholder="Select..."
               isSearchable
@@ -468,7 +440,7 @@ const UserAuthorization = () => {
               className={`table-header-button ${
                 selectedButton === "roles" ? "bg-blue-600 text-white" : ""
               }`}
-              onClick={() => selectUserGroupHandlerToBindRoles(null)}
+              onClick={rolesButtonHandler}
             >
               Roles
             </button>
@@ -526,6 +498,7 @@ const UserAuthorization = () => {
               onChangeFilter={data => setFilteredData(data)}
               onChangeMessage={setSuccessMessage}
               selectedButton={selectedButton}
+              setTableData={setTableData}
             />
           )}
         </>

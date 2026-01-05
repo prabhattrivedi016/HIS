@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAuthStorage } from "..//utils/authStorage";
 
 const axiosInstance = axios.create({
   baseURL: "http://103.217.247.236/HISWEBAPI/Api",
@@ -10,7 +11,8 @@ const axiosInstance = axios.create({
 //attach token
 axiosInstance.interceptors.request.use(
   config => {
-    const token = localStorage.getItem("accessToken");
+    const storage = getAuthStorage();
+    const token = storage.getItem("accessToken");
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
