@@ -8,19 +8,17 @@ import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
+import { getAuthStorage } from "../../../utils/authStorage";
 import Header from "../../header";
 import { PageItem, TabItem } from "../types";
 
 const Sidebar = () => {
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
-  const branchId = localStorage?.getItem("branchId")
-    ? Number(localStorage?.getItem("branchId"))
-    : 0;
-  const roleId = localStorage?.getItem("selectedRoleId")
-    ? Number(localStorage?.getItem("selectedRoleId"))
-    : 0;
-  const userId = localStorage?.getItem("userId") ? Number(localStorage?.getItem("userId")) : 0;
+  const storage = getAuthStorage();
+  const branchId = storage?.getItem("branchId") ? Number(storage?.getItem("branchId")) : 0;
+  const roleId = storage?.getItem("roleId") ? Number(storage?.getItem("roleId")) : 0;
+  const userId = storage?.getItem("userId") ? Number(storage?.getItem("userId")) : 0;
 
   const location = useLocation();
   const sidebarRef = useRef(null);

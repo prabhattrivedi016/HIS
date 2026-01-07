@@ -50,5 +50,11 @@ export const handleButtonClick = ({
       drawerTitle("Update Existing Department");
       openDrawer(id);
     }
+    //branch master
+    case "toggleBranchEdit": {
+      buttonTitle("Update Department");
+      drawerTitle("Update Existing Department");
+      openDrawer(id);
+    }
   }
 };

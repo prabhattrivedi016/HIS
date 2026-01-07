@@ -54,8 +54,18 @@ const ENDPOINTS = {
   GET_USER_TAB_SUB_MENU_MAPPING: "User/getUserTabAndSubMenuMapping",
   SAVE_USER_FAVORITE_ROLES: "User/saveUserFavoriteRoles",
   SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU: "User/saveRoleWiseUserFavoriteSubMenu",
+
+  //branch master
+  GET_BRANCH_DETAILS: "Admin/getBranchDetails",
+  GET_COUNTRY_MASTER: "Home/getCountryMaster",
+  GET_STATE_MASTER: "Home/getStateMaster",
+  GET_DISTRICT_MASTER: "Home/getDistrictMaster",
+  GET_CITY_MASTER: "Home/getCityMaster",
+  GET_ALL_INSURANCE_COMPANY_LIST: "Home/getAllInsuranceCompanyList",
+  GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID: "Home/getCorporateListByInsuranceCompanyId",
+  CREATE_UPDATE_BRANCH_MASTER: "Admin/createUpdateBranchMaster",
 };
 
 export { ENDPOINTS };
 
-// http://103.217.247.236/HISWEBAPI/api/User/saveUserFavoriteRoles
+//http://103.217.247.236/HISWEBAPI/api/Admin/createUpdateBranchMaster
