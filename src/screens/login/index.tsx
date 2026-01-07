@@ -17,7 +17,7 @@ import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 
 import { getAuthStorage } from "../../utils/authStorage";
-import { InputError, LoginFormData, PageItem, TabItem } from "./type";
+import { InputError, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const { loading, error, fetchApi } = useGlobalApi();
@@ -26,12 +26,11 @@ const Login = () => {
   const { setAuthorizedPages } = useAuthorizedPages();
   const { setFavoriteRoles, clearFavorites } = useFavoriteRoles();
 
-  const [formData, setFormData] = useState<LoginFormData>({
-    selectedBranchId: "",
-    userName: "",
-    password: "",
-    rememberMe: false,
-  });
+  const userNameRef = useRef("");
+  const passwordRef = useRef("");
+
+  const [selectedBranchId, setSelectedBranchId] = useState<number | "">("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [errors, setErrors] = useState<InputError>({});
   const [openSignup, setOpenSignup] = useState(false);
@@ -48,57 +47,33 @@ const Login = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const timerRef = useRef<any>(null);
 
-  // Auto-select first branch
+  /* ---------------- auto select branch (gws-his)----------------------- */
   useEffect(() => {
-    if (branchList?.data?.length) {
-      setFormData(prev => ({
-        ...prev,
-        selectedBranchId: branchList.data[0].branchId,
-      }));
-    }
+    if (!branchList?.data?.length) return;
+
+    const defaultBranch = branchList.data.find(b => b.branchId === 1) || branchList.data[0];
+
+    setSelectedBranchId(defaultBranch.branchId);
   }, [branchList]);
 
-  // handle form change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, checked, type } = e.target as HTMLInputElement;
-
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  // handle branch change
-
+  /* ----------------------------- handlers---------------------------------- */
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const branchId = Number(e.target.value);
-    // setBranchId(branchId);
-    setFormData(prev => ({
-      ...prev,
-      selectedBranchId: branchId,
-    }));
+    setSelectedBranchId(Number(e.target.value));
   };
-
-  // handle submit
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    const userNameVal = userNameRef.current;
+    const passwordVal = passwordRef.current;
+
     const newErrors: InputError = {};
 
-    if (!formData.selectedBranchId) {
-      newErrors.branch = "Please select a branch";
-    }
+    if (!selectedBranchId) newErrors.branch = "Please select a branch";
+    if (!userNameVal.trim()) newErrors.userName = "Username is required";
+    if (!passwordVal.trim()) newErrors.password = "Password is required";
 
-    if (!formData.userName.trim()) {
-      newErrors.userName = "Username is required";
-    }
-
-    if (!formData.password.trim()) {
-      newErrors.password = "Password is required";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
@@ -106,39 +81,33 @@ const Login = () => {
     setErrors({});
 
     try {
-      //login
       const loginRes = await fetchApi("POST", ENDPOINTS.LOGIN, {
-        branchId: Number(formData.selectedBranchId),
-        userName: formData.userName,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
+        branchId: Number(selectedBranchId),
+        userName: userNameVal,
+        password: passwordVal,
+        rememberMe,
       });
-
-      const storage = formData?.rememberMe ? localStorage : sessionStorage;
 
       if (!loginRes) return;
 
+      const storage = rememberMe ? localStorage : sessionStorage;
       const { accessToken, branchId, userId } = loginRes.data;
 
       storage.setItem("accessToken", accessToken);
       storage.setItem("branchId", String(branchId));
       storage.setItem("userId", String(userId));
-      storage.setItem("userDetails", JSON.stringify(loginRes?.data));
+      storage.setItem("userDetails", JSON.stringify(loginRes.data));
 
-      setUserName(loginRes?.data?.userName);
-      setEmail(loginRes?.data?.email);
-      setContact(loginRes?.data?.contact);
-      setIsContact(loginRes?.data?.isContactVerified);
-      setIsEmail(loginRes?.data?.isEmailVerified);
+      setUserName(loginRes.data.userName);
+      setEmail(loginRes.data.email);
+      setContact(loginRes.data.contact);
+      setIsContact(loginRes.data.isContactVerified);
+      setIsEmail(loginRes.data.isEmailVerified);
       setUserId(userId);
 
-      // fetch user roles
       const roleId = await fetchUserAssignedRoles(branchId);
-
-      // fetch authorized pages
       await fetchAuthorizedPages(branchId, roleId);
 
-      // navigate to dashboard
       if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {
         setSuccessMessage(loginRes.message);
         timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
@@ -146,11 +115,11 @@ const Login = () => {
         setShowOtpModal(true);
       }
     } catch (err) {
-      console.error("Login flow failed", err);
+      console.error("Login failed", err);
     }
   };
 
-  // Drawer Logic
+  /*---------------------------------drawer logic-------------------------------------- */
   const openDrawer = (type: string) => {
     if (type === "signup") {
       setOpenSignup(true);
@@ -175,7 +144,7 @@ const Login = () => {
     setShowOtpModal(false);
   }, []);
 
-  // Fetch user assigned roles and set it to the store
+  /*--------------------------user assign roles on page mount----------------------------------------- */
   const fetchUserAssignedRoles = async (branchId: number) => {
     const storage = getAuthStorage();
     const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
@@ -259,14 +228,14 @@ const Login = () => {
                 </div>
 
                 <select
-                  className=" login-input-field text-sm sm:text-base appearance-none"
+                  className="login-input-field"
+                  value={selectedBranchId}
                   onChange={handleBranchChange}
-                  value={formData.selectedBranchId}
                 >
                   <option value="">Select</option>
                   {branchList?.data?.map(b => (
-                    <option key={b?.branchId} value={b?.branchId}>
-                      {b?.branchName}
+                    <option key={b.branchId} value={b.branchId}>
+                      {b.branchName}
                     </option>
                   ))}
                 </select>
@@ -283,10 +252,8 @@ const Login = () => {
 
                 <input
                   type="text"
-                  name="userName"
                   placeholder="User Name"
-                  value={formData.userName}
-                  onChange={handleChange}
+                  onChange={e => (userNameRef.current = e.target.value)}
                   className="login-input-field"
                 />
               </div>
@@ -302,11 +269,9 @@ const Login = () => {
 
                 <input
                   type="password"
-                  name="password"
                   placeholder="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className=" login-input-field"
+                  onChange={e => (passwordRef.current = e.target.value)}
+                  className="login-input-field"
                 />
               </div>
 
@@ -317,9 +282,8 @@ const Login = () => {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
-                  name="rememberMe"
-                  checked={formData?.rememberMe}
-                  onChange={handleChange}
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
                   className="h-4 w-4 accent-indigo-600"
                 />
                 <span>Remember Me</span>

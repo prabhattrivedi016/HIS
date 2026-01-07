@@ -25,10 +25,16 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    if (branchList?.data?.length && !selectedBranch) {
-      setSelectedBranch(branchList.data[0]);
-    }
-  }, [branchList, selectedBranch]);
+    if (!branchList?.data?.length) return;
+
+    const storedBranchId = Number(storage.getItem("branchId"));
+
+    const defaultBranch =
+      branchList.data.find(b => b.branchId === storedBranchId) ||
+      branchList.data.find(b => b.branchId === 1);
+
+    setSelectedBranch(defaultBranch);
+  }, [branchList, storage]);
 
   const calculateProfilePosition = useCallback(() => {
     if (!profileBtnRef.current) return;
@@ -95,13 +101,15 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   const logoutHandler = () => {
     const storage = getAuthStorage();
     storage.removeItem("accessToken");
-    storage.removeItem("authorized-pages");
     storage.removeItem("branchId");
-    storage.removeItem("favorite-roles");
     storage.removeItem("selectedRole");
     storage.removeItem("userDetails");
     storage.removeItem("userId");
     storage.removeItem("roleId");
+    storage.removeItem("roleName");
+
+    localStorage.removeItem("authorized-pages");
+    localStorage.removeItem("favorite-roles");
 
     delete axios.defaults.headers.common["Authorization"];
     navigate("/");

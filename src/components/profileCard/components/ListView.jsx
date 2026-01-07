@@ -121,27 +121,47 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
     return typeof value === "string" ? value?.toLowerCase() : value;
   };
 
-  // action menu
-  const renderActionMenu = (rowData, isActive) => (
-    <ul className="text-sm">
-      <li>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-          onClick={() => openDrawerHandler(rowData)}
-        >
-          Edit
-        </button>
-      </li>
-      <li>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-          onClick={() => handleStatusChange(rowData)}
-        >
-          {isActive ? "Inactive" : "Active"}
-        </button>
-      </li>
-    </ul>
-  );
+  const renderActionMenu = (rowData, isActive) => {
+    switch (rowData?.type) {
+      case "branchMaster": {
+        return (
+          <ul className="text-sm">
+            <li>
+              <button
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => openDrawerHandler(rowData)}
+              >
+                Edit
+              </button>
+            </li>
+          </ul>
+        );
+      }
+
+      default: {
+        return (
+          <ul className="text-sm">
+            <li>
+              <button
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => openDrawerHandler(rowData)}
+              >
+                Edit
+              </button>
+            </li>
+            <li>
+              <button
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => handleStatusChange(rowData)}
+              >
+                {isActive ? "Inactive" : "Active"}
+              </button>
+            </li>
+          </ul>
+        );
+      }
+    }
+  };
 
   return (
     <div className="w-full px-3 py-4 sm:px-6 md:px-8">
