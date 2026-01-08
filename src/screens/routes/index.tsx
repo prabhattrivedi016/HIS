@@ -1,5 +1,6 @@
 import BranchMaster from "../branchMaster";
 import Dashboard from "../dashboard";
+import LocationMaster from "../loactionMaster";
 import NavigationPanel from "../navigationPanel";
 import RoleMaster from "../roleMaster";
 import UserAuthorization from "../userAuthorization";
@@ -16,4 +17,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "user-authorization": <UserAuthorization />,
   "navigation-pane": <NavigationPanel />,
   "branch-master": <BranchMaster />,
+  "location-master": <LocationMaster />,
 };

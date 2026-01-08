@@ -64,8 +64,13 @@ const ENDPOINTS = {
   GET_ALL_INSURANCE_COMPANY_LIST: "Home/getAllInsuranceCompanyList",
   GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID: "Home/getCorporateListByInsuranceCompanyId",
   CREATE_UPDATE_BRANCH_MASTER: "Admin/createUpdateBranchMaster",
+
+  //location master
+  CREATE_UPDATE_STATE_MASTER: "Admin/createUpdateStateMaster",
+  CREATE_UPDATE_DISTRICT_MASTER: "Admin/createUpdateDistrictMaster",
+  CREATE_UPDATE_CITY_MASTER: "Admin/createUpdateCityMaster",
+  CREATE_UPDATE_PINCODE_MASTER: "Admin/createUpdatePincodeMaster",
+  GET_PINCODE_MASTER: "Home/getPincodeMaster",
 };
 
 export { ENDPOINTS };
-
-//http://103.217.247.236/HISWEBAPI/api/Admin/createUpdateBranchMaster

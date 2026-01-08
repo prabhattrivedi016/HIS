@@ -102,6 +102,7 @@ type SelectItem = {
   value: number;
   label: string;
 };
+
 export type {
   BranchMasterGridItem,
   BranchMasterListItem,
