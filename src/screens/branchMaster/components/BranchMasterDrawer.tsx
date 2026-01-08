@@ -34,6 +34,7 @@ const BranchMasterDrawer = React.memo(
     const [defaultCorporate, setDefaultCorporate] = useState<DefaultCorporate[]>([]);
 
     /* -------------------- selected Ids-------------------- */
+    const [monthId, setMonthId] = useState<string>("");
     const [countryId, setCountryId] = useState<number | null>(null);
     const [stateId, setStateId] = useState<number | null>(null);
     const [districtId, setDistrictId] = useState<number | null>(null);
@@ -48,8 +49,7 @@ const BranchMasterDrawer = React.memo(
       handleSubmit,
       register,
       reset,
-      control,
-      watch,
+      setValue,
       formState: { errors },
     } = useForm({
       resolver: yupResolver(branchMasterSchema),
@@ -61,29 +61,13 @@ const BranchMasterDrawer = React.memo(
         contactNo1: "",
         contactNo2: "",
         address: "",
-        isActive: 0,
+        isActive: null,
         fyStartFrom: "",
       },
     });
 
     /* -------------------- financial month start from -------------------- */
     const financialYear = usePickMaster({ fieldName: "FinancialYear" });
-
-    const monthSelectOption = useMemo(
-      () =>
-        financialYear?.pickMasterValue?.data?.map(y => ({
-          value: String(y.key),
-          label: y.value,
-        })) || [],
-      [financialYear]
-    );
-
-    const fyValue = watch("fyStartFrom");
-
-    const selectedMonthOption = useMemo(() => {
-      if (!monthSelectOption.length || !fyValue) return null;
-      return monthSelectOption.find(o => String(o.value) === String(fyValue)) || null;
-    }, [monthSelectOption, fyValue]);
 
     /* -------------------- api handlers -------------------- */
     const getCountryName = useCallback(async () => {
@@ -187,7 +171,9 @@ const BranchMasterDrawer = React.memo(
           isActive: b.isActive,
           fyStartFrom: String(b.fyStartFrom),
         });
+        setMonthId(String(b.fyStartFrom));
       },
+
       [reset, getStateName, getDistrictName, getCityName, getDefaultCorporate]
     );
 
@@ -196,6 +182,16 @@ const BranchMasterDrawer = React.memo(
     }, [branchId, loadBranchForEdit]);
 
     /* -------------------- options -------------------- */
+
+    const monthSelectOption = useMemo(
+      () =>
+        financialYear?.pickMasterValue?.data?.map(y => ({
+          value: String(y.key),
+          label: y.value,
+        })) || [],
+      [financialYear]
+    );
+
     const countrySelectOption = countryList.map(c => ({
       value: c.countryId,
       label: c.countryName,
@@ -215,6 +211,8 @@ const BranchMasterDrawer = React.memo(
       label: c.corporateName,
     }));
 
+    const selectedMonthOption = monthSelectOption.find(o => o.value === monthId) || null;
+
     const selectedCountryOption = countrySelectOption.find(o => o.value === countryId) || null;
     const selectedStateOption = stateSelectOption.find(o => o.value === stateId) || null;
     const selectedDistrictOption = districtSelectOption.find(o => o.value === districtId) || null;
@@ -225,6 +223,18 @@ const BranchMasterDrawer = React.memo(
       defaultCorporateSelectOption.find(o => o.value === corporateId) || null;
 
     /* -------------------- dropdown handlers -------------------- */
+
+    const monthDropDownHandler = (option: SelectItem) => {
+      const v = option?.value ?? "";
+      setMonthId(v);
+
+      // 🔥 sync with react-hook-form
+      setValue("fyStartFrom", v, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    };
+
     const countryDropDownHandler = (option: SelectItem) => {
       const v = option?.value ?? null;
       setCountryId(v);
@@ -274,7 +284,7 @@ const BranchMasterDrawer = React.memo(
     const onSubmit = async data => {
       const payload = {
         ...data,
-        fyStartFrom: String(data.fyStartFrom),
+        fyStartFrom: monthId,
         defaultCountryId: countryId,
         defaultStateId: stateId,
         defaultDistrictId: districtId,
@@ -286,7 +296,7 @@ const BranchMasterDrawer = React.memo(
       const res = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_BRANCH_MASTER, payload);
       if (!res) return;
 
-      setSuccessMessage(res.message);
+      setSuccessMessage(res?.message);
       onCloseDrawer?.();
       setTimeout(onClose, 1200);
     };
@@ -386,37 +396,16 @@ const BranchMasterDrawer = React.memo(
                   </InputField>
 
                   <InputField label="Financial Year Start From" required>
-                    {/* <Controller
-                      name="fyStartFrom"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          options={monthSelectOption}
-                          value={selectedMonthOption}
-                          placeholder="Select..."
-                          isSearchable
-                          isClearable
-                          classNames={SelectStyles}
-                          menuPortalTarget={document.body}
-                          menuPosition="fixed"
-                          onChange={option => field.onChange(option?.value ?? null)}
-                        />
-                      )}
-                    /> */}
                     <Select
                       options={monthSelectOption}
-                      value={selectedMonthOption} // ✅ API PREFILLED
+                      value={selectedMonthOption}
                       placeholder="Select..."
                       isSearchable
                       isClearable
                       classNames={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
-                      onChange={option => {
-                        const v = option?.value ?? null;
-                        setFyStartFrom(v); // local state
-                        setValue("fyStartFrom", v); // RHF sync
-                      }}
+                      onChange={monthDropDownHandler}
                     />
                     {errors.fyStartFrom && (
                       <p className="input-field-error">{errors.fyStartFrom.message}</p>
