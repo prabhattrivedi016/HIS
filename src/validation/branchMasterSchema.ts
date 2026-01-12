@@ -9,7 +9,7 @@ export const branchMasterSchema = Yup.object().shape({
   contactNo2: Yup.string().trim().nullable(),
   address: Yup.string().trim().nullable(),
   isActive: Yup.number().required("Status is required"),
-  fyStartFrom: Yup.string().trim().required("Month is required"),
+  fyStartFrom: Yup.string().trim().nullable(),
   defaultCountryId: Yup.number().nullable(),
   defaultStateId: Yup.number().nullable(),
   defaultDistrictId: Yup.number().nullable(),

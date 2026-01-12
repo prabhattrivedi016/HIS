@@ -28,8 +28,8 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
 
   const storage = getAuthStorage();
 
-  const branchId = storage.getItem("branchId");
-  const userId = storage.getItem("userId");
+  const branchId = Number(storage.getItem("branchId"));
+  const userId = Number(storage.getItem("userId"));
 
   //role-> page mapping
   const fetchRoleMapping = async (role: RoleMapItem, shouldClose: boolean) => {
@@ -144,7 +144,7 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
   };
 
   useEffect(() => {
-    if (!favoriteRoles.length) return;
+    if (!branchId) return;
 
     fetchApi("POST", ENDPOINTS.SAVE_USER_FAVORITE_ROLES, {
       branchId,

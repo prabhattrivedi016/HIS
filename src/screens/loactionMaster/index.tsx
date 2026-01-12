@@ -27,8 +27,6 @@ const LocationMaster = () => {
 
   const [popupValue, setPopupValue] = useState(null);
 
-  console.log("pinCodeListpinCodeList", pinCodeList);
-
   /* -------------------- api handlers -------------------- */
   const getCountryName = useCallback(async () => {
     const res = await fetchApi(

@@ -71,6 +71,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_CITY_MASTER: "Admin/createUpdateCityMaster",
   CREATE_UPDATE_PINCODE_MASTER: "Admin/createUpdatePincodeMaster",
   GET_PINCODE_MASTER: "Home/getPincodeMaster",
+
+  //header footer master
+  GET_HEADER_MASTER: "Admin/getHeaderMaster",
+  CREATE_UPDATE_HEADER_MASTER: "Admin/createUpdateHeaderMaster",
 };
 
 export { ENDPOINTS };

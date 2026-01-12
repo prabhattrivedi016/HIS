@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
@@ -12,22 +14,36 @@ import { getAuthStorage } from "../../../utils/authStorage";
 import Header from "../../header";
 import { PageItem, TabItem } from "../types";
 
+type HoverPopupState = {
+  top: number;
+  left: number;
+  tab: TabItem;
+};
+
 const Sidebar = () => {
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
+
   const storage = getAuthStorage();
-  const branchId = storage?.getItem("branchId") ? Number(storage?.getItem("branchId")) : 0;
-  const roleId = storage?.getItem("roleId") ? Number(storage?.getItem("roleId")) : 0;
-  const userId = storage?.getItem("userId") ? Number(storage?.getItem("userId")) : 0;
+  const branchId = Number(storage.getItem("branchId") || 0);
+  const roleId = Number(storage.getItem("roleId") || 0);
+  const userId = Number(storage.getItem("userId") || 0);
 
   const location = useLocation();
-  const sidebarRef = useRef(null);
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [openTabs, setOpenTabs] = useState({});
+  const [openTabs, setOpenTabs] = useState<Record<number, boolean>>({});
   const [search, setSearch] = useState("");
-  const [contextMenu, setContextMenu] = useState(null);
-  const [marked, setMarked] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const [hoverPopup, setHoverPopup] = useState<HoverPopupState | null>(null);
+
+  /* ---------------- Responsive Sidebar ---------------- */
 
   useEffect(() => {
     const resize = () => setSidebarOpen(window.innerWidth >= 768);
@@ -37,16 +53,19 @@ const Sidebar = () => {
   }, []);
 
   useEffect(() => {
-    if (!sidebarOpen) setOpenTabs({});
+    if (!sidebarOpen) {
+      setOpenTabs({});
+      setHoverPopup(null);
+    }
   }, [sidebarOpen]);
 
   useEffect(() => {
-    const handleOutsideClick = e => {
+    const handleOutsideClick = (e: MouseEvent) => {
       if (
         window.innerWidth < 768 &&
         sidebarOpen &&
         sidebarRef.current &&
-        !sidebarRef.current.contains(e.target)
+        !sidebarRef.current.contains(e.target as Node)
       ) {
         setSidebarOpen(false);
         setOpenTabs({});
@@ -57,16 +76,7 @@ const Sidebar = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [sidebarOpen]);
 
-  const toggleTab = tabId => {
-    setOpenTabs(prev => (prev[tabId] ? {} : { [tabId]: true }));
-  };
-
-  const closeOnMobile = () => {
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
-      setOpenTabs({});
-    }
-  };
+  /* ---------------- Filtering ---------------- */
 
   const filteredTabs = useMemo(() => {
     if (!authorizedPages) return [];
@@ -76,15 +86,10 @@ const Sidebar = () => {
         const filteredPages = tab.pages?.filter(page =>
           page.subMenuName.toLowerCase().includes(search.toLowerCase())
         );
-
         if (!filteredPages || filteredPages.length === 0) return null;
-
-        return {
-          ...tab,
-          pages: filteredPages,
-        };
+        return { ...tab, pages: filteredPages };
       })
-      .filter(Boolean);
+      .filter(Boolean) as TabItem[];
   }, [authorizedPages, search]);
 
   useEffect(() => {
@@ -93,40 +98,37 @@ const Sidebar = () => {
       return;
     }
 
-    const autoOpenTabs = {};
-    filteredTabs?.forEach(tab => {
-      autoOpenTabs[tab?.tabName?.tabId] = true;
+    const autoOpen: Record<number, boolean> = {};
+    filteredTabs.forEach(tab => {
+      autoOpen[tab.tabName.tabId] = true;
     });
-
-    setOpenTabs(autoOpenTabs);
+    setOpenTabs(autoOpen);
   }, [search, filteredTabs]);
+
+  /* ---------------- Context Menu ---------------- */
 
   useEffect(() => {
     const closeMenu = (e: MouseEvent) => {
       if (!(e.target instanceof HTMLElement)) return;
-
-      if (e.target?.closest("[data-context-menu]")) return;
+      if (e.target.closest("[data-context-menu]")) return;
       setContextMenu(null);
     };
     document.addEventListener("mousedown", closeMenu);
     return () => document.removeEventListener("mousedown", closeMenu);
-  });
+  }, []);
 
-  // right click button handler
   const rightClickButtonHandler = async (page: PageItem) => {
-    const response = await fetchApi("POST", ENDPOINTS.SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU, {
+    await fetchApi("POST", ENDPOINTS.SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU, {
       branchId,
       userId,
       roleId,
-      subMenuId: page?.subMenuId,
+      subMenuId: page.subMenuId,
     });
-    if (!response) return;
-    setMarked(true);
   };
 
   return (
     <div className="flex min-h-screen">
-      {/* side bar */}
+      {/*------------------------------------sidebar-------------------------------------- */}
       <aside
         ref={sidebarRef}
         className={`
@@ -138,9 +140,6 @@ const Sidebar = () => {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Right border */}
-        <div className="absolute right-0 top-[10vh] h-[90vh]  bg-gray-300" />
-
         {/* Header */}
         <div className="h-16 bg-[#0b5394] flex items-center justify-between px-3">
           <button onClick={() => setSidebarOpen(false)} className="md:hidden text-white text-xl">
@@ -161,76 +160,41 @@ const Sidebar = () => {
             </InputField>
           )}
 
-          {filteredTabs.map((tab: TabItem) => {
-            const tabId = tab?.tabName?.tabId;
+          {filteredTabs.map(tab => {
+            const tabId = tab.tabName.tabId;
             const isOpen = openTabs[tabId];
 
             return (
               <div key={tabId} className="relative group mb-2">
-                {/*tab button */}
+                {/* tab menu */}
                 <button
-                  onClick={() => sidebarOpen && toggleTab(tabId)}
+                  onClick={() => sidebarOpen && setOpenTabs(p => ({ [tabId]: !p[tabId] }))}
+                  onMouseEnter={e => {
+                    if (sidebarOpen) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHoverPopup({
+                      top: rect.top - 2,
+                      left: rect.right - 5,
+                      tab,
+                    });
+                  }}
+                  onMouseLeave={() => setHoverPopup(null)}
                   className={`
-                    w-full flex items-center py-2 rounded duration-1000
+                    w-full flex items-center py-2 rounded
                     ${sidebarOpen ? "justify-between px-3" : "justify-center"}
                   `}
                 >
                   <div className="flex items-center gap-2">
-                    {tab?.tabName?.iconClass && (
-                      <i className={`text-xl ${tab?.tabName?.iconClass}`} />
-                    )}
-                    {sidebarOpen && (
-                      <span className="text-md font-bold">{tab?.tabName?.tabName}</span>
-                    )}
+                    <i className={`text-xl ${tab.tabName.iconClass}`} />
+                    {sidebarOpen && <span className="font-bold">{tab.tabName.tabName}</span>}
                   </div>
 
                   {sidebarOpen && (
                     <span>{isOpen ? <ChevronLeft size={18} /> : <ChevronDown size={18} />}</span>
                   )}
                 </button>
-                {/* hover popup*/}
-                {!sidebarOpen && (
-                  <div
-                    className=" left-7 ml-1 
-                        pointer-events-none
-                        group-hover:pointer-events-auto
-                        group-hover:opacity-100
-                        opacity-0
-                        transition-opacity duration-200
-                        fixed z-20
-                      "
-                  >
-                    {/* popup on hovering on icons */}
 
-                    <div className="relative bg-gray-800 text-white rounded-lg shadow-xl min-w-[220px]">
-                      {/* small connector dot */}
-                      <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-gray-800 rotate-45" />
-
-                      {/* Title */}
-                      <p className="font-semibold px-4 py-2 border-b border-white/10">
-                        {tab?.tabName?.tabName}
-                      </p>
-
-                      {/* Pages */}
-                      <div className="flex flex-col gap-1 max-h-60 overflow-auto p-1">
-                        {tab?.pages?.map(page => (
-                          <NavLink
-                            key={page?.subMenuId}
-                            to={`/${page?.url}`}
-                            onClick={closeOnMobile}
-                            className={() =>
-                              "text-sm  py-1.5 px-4 rounded transition-colors duration-150 hover:bg-white/20"
-                            }
-                          >
-                            {page?.subMenuName}
-                          </NavLink>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* authorized pages */}
-
+                {/* ------------------------------pages------------------------ */}
                 <AnimatePresence>
                   {sidebarOpen && isOpen && (
                     <motion.div
@@ -238,19 +202,16 @@ const Sidebar = () => {
                       animate={{ height: "auto", opacity: 0.5 }}
                       exit={{ height: 0, opacity: 0.5 }}
                       transition={{ duration: 0.5, ease: "easeInOut" }}
-                      className="m-2 bg-gray-50 pl-5 text-black-600 font-semibold text-md flex flex-col overflow-hidden"
+                      className="m-2 bg-gray-50 pl-5 font-semibold flex flex-col overflow-hidden"
                     >
-                      {tab?.pages?.map(page => {
-                        const path = `/${page?.url}`;
-
+                      {tab.pages.map(page => {
+                        const path = `/${page.url}`;
                         return (
-                          <div key={page?.subMenuId} className="relative flex">
+                          <div key={page.subMenuId} className="relative flex">
                             <NavLink
                               to={path}
-                              onClick={closeOnMobile}
                               onContextMenu={e => {
                                 e.preventDefault();
-                                // e.stopPropagation();
                                 setContextMenu({
                                   id: page.subMenuId,
                                   x: e.clientX,
@@ -258,7 +219,7 @@ const Sidebar = () => {
                                 });
                               }}
                               className={({ isActive }) =>
-                                `block w-full px-3 py-2 rounded transition hover:bg-gray-300 ${
+                                `block w-full px-3 py-2 rounded hover:bg-gray-300 ${
                                   isActive || location.pathname.startsWith(path)
                                     ? "bg-gray-200"
                                     : ""
@@ -268,7 +229,7 @@ const Sidebar = () => {
                               {page.subMenuName}
                             </NavLink>
 
-                            {/* RIGHT CLICK MENU */}
+                            {/* -----------------------context menu---------------------------*/}
                             <AnimatePresence>
                               {contextMenu?.id === page.subMenuId && (
                                 <motion.div
@@ -282,10 +243,10 @@ const Sidebar = () => {
                                     top: contextMenu.y,
                                     left: contextMenu.x,
                                   }}
-                                  className="w-40 bg-gray bg-linear-to-br from-indigo-700 to-blue-700 shadow-lg rounded-md z-9999"
+                                  className="w-40 bg-linear-to-br from-indigo-700 to-blue-700 shadow-lg rounded-md z-999"
                                 >
                                   <button
-                                    className="w-full px-4 py-2 text-center text-white active:scale-95 hover:scale-105"
+                                    className="w-full px-4 py-2 text-white"
                                     onClick={() => {
                                       rightClickButtonHandler(page);
                                       setContextMenu(null);
@@ -308,22 +269,52 @@ const Sidebar = () => {
         </div>
       </aside>
 
-      <div
-        className={`
-          flex-1 flex flex-col transition-all duration-300
-          ${sidebarOpen ? "md:ml-60" : "md:ml-16"}
-        `}
-      >
+      {/* -----------------------------------main---------------------------------- */}
+      <div className={`flex-1 flex flex-col ${sidebarOpen ? "md:ml-60" : "md:ml-16"}`}>
         <Header toggleSidebar={() => setSidebarOpen(p => !p)} isSidebarOpen={sidebarOpen} />
-
-        {/* fav role toggle button  */}
         <FavRoleButtonToggle />
-        {/* page content */}
         <main className="flex-1 bg-gray-50 p-4 pt-20 overflow-auto">
           <Outlet />
         </main>
       </div>
-      {loading ? <CustomLoader isLoading={loading} /> : <></>}
+
+      {/* -----------------------portal hover menu---------------------------------- */}
+      {hoverPopup &&
+        createPortal(
+          <div
+            className="fixed z-999"
+            style={{
+              top: hoverPopup.top,
+              left: hoverPopup.left,
+            }}
+            onMouseEnter={() => setHoverPopup(hoverPopup)}
+            onMouseLeave={() => setHoverPopup(null)}
+          >
+            <div className="relative bg-gray-800 text-white rounded-lg shadow-xl min-w-[220px]">
+              {/* Arrow at top */}
+              <span className="absolute -left-1 top-4 w-2 h-2 bg-gray-800 rotate-45" />
+
+              <p className="font-semibold px-4 py-2 border-b border-white/10">
+                {hoverPopup.tab.tabName.tabName}
+              </p>
+
+              <div className="flex flex-col gap-1 max-h-60 overflow-auto p-1">
+                {hoverPopup.tab.pages.map(page => (
+                  <NavLink
+                    key={page.subMenuId}
+                    to={`/${page.url}`}
+                    className="px-4 py-1.5 rounded hover:bg-white/20"
+                  >
+                    {page.subMenuName}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {loading && <CustomLoader isLoading />}
     </div>
   );
 };
