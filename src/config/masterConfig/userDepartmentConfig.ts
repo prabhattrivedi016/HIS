@@ -5,13 +5,12 @@ export const userDepartmentConfig = {
     type: "userDepartment",
     cardType: "userDepartmentGrid",
     cardViewType: "grid",
-    id: "0",
+
+    recordIdKey: "id",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
     gridRightTop: [{ label: "toggle", action: "ListToggleButton" }],
-
-    gridAvatar: [{ label: "profile", keyFromApi: "iconName" }],
 
     gridId: [{ label: "Dept ID", keyFromApi: "id" }],
 
@@ -33,13 +32,14 @@ export const userDepartmentConfig = {
     type: "userDepartment",
     cardType: "userDepartmentList",
     cardViewType: "list",
-    id: "0",
+
+    recordIdKey: "id",
 
     listLeftButton: [{ label: "Action", action: "listToggleActive" }],
 
     columns: [
       {
-        label: "DeptID",
+        label: "Dept ID",
         keyFromApi: "id",
         isSortable: true,
         isSearchable: true,
@@ -47,15 +47,17 @@ export const userDepartmentConfig = {
         isMasked: true,
       },
       {
-        label: "Dept Name",
+        label: "Department Name",
         keyFromApi: "departmentName",
+        isSortable: true,
+        isSearchable: true,
       },
       { label: "Status", keyFromApi: "isActive" },
       { label: "Created By", keyFromApi: "createdBy" },
       { label: "Created On", keyFromApi: "createdOn" },
       { label: "Last Modified By", keyFromApi: "lastModifiedBy" },
       { label: "Last Modified On", keyFromApi: "lastModifiedOn" },
-      { label: "Ip Address", keyFromApi: "ipAddress" },
+      { label: "IP Address", keyFromApi: "ipAddress" },
     ],
   },
 };

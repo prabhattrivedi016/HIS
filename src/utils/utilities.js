@@ -33,6 +33,7 @@ const transformDataWithConfig = (config, apiResponse) => {
       type: viewConfig.type,
       cardType: viewConfig.cardType || null,
       cardViewType: viewConfig.cardViewType || null,
+      recordIdKey: viewConfig.recordIdKey || null,
     };
 
     Object.entries(map).forEach(([rawKey, normalizedKey]) => {
@@ -49,22 +50,32 @@ const transformDataWithConfig = (config, apiResponse) => {
         .join(" ")
         .trim();
     }
-    if (field.keyFromApi) return item[field.keyFromApi] ?? field.default ?? null;
+
+    if (field.keyFromApi) {
+      return item[field.keyFromApi] ?? field.default ?? null;
+    }
+
     return null;
   };
 
   const buildCard = (item, cfg, isGrid) => {
+    const recordIdKey = cfg.recordIdKey;
+
+    if (!recordIdKey) {
+      console.error(" recordIdKey missing in config", cfg);
+    }
+
+    const recordId = recordIdKey ? item[recordIdKey] : null;
+
+    if (recordId === undefined || recordId === null) {
+      console.error(" Missing record ID from API", recordIdKey, item);
+    }
+
     const out = {
       type: cfg.type,
       cardType: cfg.cardType,
       cardViewType: cfg.cardViewType,
-      id:
-        item[config.listCardView?.recordIdKey] ||
-        item[config.gridCardView?.recordIdKey] ||
-        item.employeeID ||
-        item.roleId ||
-        item.id ||
-        null,
+      id: recordId ?? null,
     };
 
     if (isGrid) {
@@ -72,27 +83,37 @@ const transformDataWithConfig = (config, apiResponse) => {
         label: f.label,
         value: item[f.keyFromApi] ?? null,
       }));
+
       out.cardRightTop = cfg.cardRightTop || null;
+
       out.cardAvatar = cfg.cardAvatar?.length ? item[cfg.cardAvatar[0].keyFromApi] ?? null : null;
+
       out.cardId = mapOrNull(cfg.cardId, f => ({
         label: f.label,
         value: item[f.keyFromApi] ?? null,
       }));
+
       out.cardTitle = mapOrNull(cfg.cardTitle, f => ({
         label: f.label,
         value: item[f.keyFromApi] ?? null,
       }));
+
       out.cardFooter = mapOrNull(cfg.cardFooter, f => ({
         label: f.label,
         value: item[f.keyFromApi] ?? null,
       }));
+
       out.buttonSection = cfg.buttonSection || null;
     }
 
     if (!isGrid) {
       out.listLeftButton = cfg.listLeftButton || null;
+
       out.columns = cfg.columns
-        ? cfg.columns.map(col => ({ ...col, value: getFieldValue(item, col) }))
+        ? cfg.columns.map(col => ({
+            ...col,
+            value: getFieldValue(item, col),
+          }))
         : null;
     }
 

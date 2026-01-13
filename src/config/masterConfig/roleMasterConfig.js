@@ -5,7 +5,8 @@ export const roleMasterConfig = {
     type: "roleMaster",
     cardType: "roleMasterGrid",
     cardViewType: "grid",
-    id: "0",
+
+    recordIdKey: "roleId",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
@@ -33,7 +34,7 @@ export const roleMasterConfig = {
     type: "roleMaster",
     cardType: "roleMasterList",
     cardViewType: "list",
-    id: "0",
+
     recordIdKey: "roleId",
 
     listLeftButton: [{ label: "Action", action: "toggleActive" }],
@@ -47,7 +48,12 @@ export const roleMasterConfig = {
         allowColumnFilter: true,
         isMasked: true,
       },
-      { label: "Role Name", keyFromApi: "roleName" },
+      {
+        label: "Role Name",
+        keyFromApi: "roleName",
+        isSortable: true,
+        isSearchable: true,
+      },
       { label: "Status", keyFromApi: "isActive" },
       { label: "Created By", keyFromApi: "createdBy" },
       { label: "Last Modified", keyFromApi: "lastModifiedOn" },

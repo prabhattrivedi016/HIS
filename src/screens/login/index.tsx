@@ -24,10 +24,9 @@ const Login = () => {
   const { branchList, branchListError } = useGetBranchList();
   const navigate = useNavigate();
   const { setAuthorizedPages } = useAuthorizedPages();
-  const { setFavoriteRoles, clearFavorites } = useFavoriteRoles();
+  const { setFavoriteRoles } = useFavoriteRoles();
 
-  const userNameRef = useRef("");
-  const passwordRef = useRef("");
+  const [password, setPassword] = useState<string>("");
 
   const [selectedBranchId, setSelectedBranchId] = useState<number | "">("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -56,6 +55,18 @@ const Login = () => {
     setSelectedBranchId(defaultBranch.branchId);
   }, [branchList]);
 
+  useEffect(() => {
+    const savedRemember = localStorage.getItem("remember") === "true";
+
+    if (savedRemember) {
+      const savedUser = localStorage.getItem("userLogin") || "";
+      const savedPass = localStorage.getItem("passLogin") || "";
+
+      setUserName(savedUser);
+      setPassword(savedPass);
+      setRememberMe(true);
+    }
+  }, []);
   /* ----------------------------- handlers---------------------------------- */
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedBranchId(Number(e.target.value));
@@ -64,14 +75,23 @@ const Login = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const userNameVal = userNameRef.current;
-    const passwordVal = passwordRef.current;
-
     const newErrors: InputError = {};
 
     if (!selectedBranchId) newErrors.branch = "Please select a branch";
-    if (!userNameVal.trim()) newErrors.userName = "Username is required";
-    if (!passwordVal.trim()) newErrors.password = "Password is required";
+    if (!userName.trim()) newErrors.userName = "Username is required";
+    if (!password.trim()) newErrors.password = "Password is required";
+
+    /*--------------------------saved to local storage-------------------- */
+
+    if (rememberMe === true) {
+      localStorage.setItem("userLogin", userName);
+      localStorage.setItem("passLogin", password);
+      localStorage.setItem("remember", String(rememberMe));
+    } else {
+      localStorage.removeItem("userLogin");
+      localStorage.removeItem("passLogin");
+      localStorage.removeItem("remember");
+    }
 
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
@@ -83,9 +103,9 @@ const Login = () => {
     try {
       const loginRes = await fetchApi("POST", ENDPOINTS.LOGIN, {
         branchId: Number(selectedBranchId),
-        userName: userNameVal,
-        password: passwordVal,
-        rememberMe,
+        userName: userName,
+        password: password,
+        rememberMe: rememberMe,
       });
 
       if (!loginRes) return;
@@ -253,7 +273,8 @@ const Login = () => {
                 <input
                   type="text"
                   placeholder="User Name"
-                  onChange={e => (userNameRef.current = e.target.value)}
+                  value={userName}
+                  onChange={e => setUserName(e.target.value)}
                   className="login-input-field"
                 />
               </div>
@@ -270,7 +291,8 @@ const Login = () => {
                 <input
                   type="password"
                   placeholder="Password"
-                  onChange={e => (passwordRef.current = e.target.value)}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="login-input-field"
                 />
               </div>

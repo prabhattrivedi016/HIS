@@ -1,4 +1,13 @@
-import { ChangeEvent, lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NavLink } from "react-router-dom";
 
 import InputField from "../../components/customInputField";
@@ -6,7 +15,9 @@ import { ENDPOINTS } from "../../config/defaults";
 import useGlobalApi from "../../hooks/useGlobalApi";
 
 import DOMPurify from "dompurify";
+import Select from "react-select";
 import CustomLoader from "../../components/customLoader";
+import { SelectStyles } from "../../components/customSelect";
 import {
   BranchId,
   DefaultRoleHeaderFooterMaster,
@@ -15,7 +26,14 @@ import {
 } from "../../constants/constants";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { usePickMaster } from "../../hooks/usePickMaster";
-import { BranchItem, HeaderFooterFormData, ReportItem, RoleItem, VariableNameItem } from "./types";
+import {
+  BranchItem,
+  HeaderFooterFormData,
+  ReportItem,
+  RoleItem,
+  SelectItem,
+  VariableNameItem,
+} from "./types";
 
 const TextEditor = lazy(() => import("../../components/ckEditor"));
 
@@ -29,8 +47,7 @@ const HeaderFooterMaster = () => {
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(HeaderFooterTabName?.HEADER);
 
-  //  State for role datalist input
-  const [roleInput, setRoleInput] = useState<string>("");
+  const roleSelectRef = useRef(null);
 
   /* -------------------- form state-------------------- */
   const [formData, setFormData] = useState<HeaderFooterFormData>({
@@ -96,19 +113,25 @@ const HeaderFooterMaster = () => {
     getRoles();
   }, [getRoles]);
 
-  /* --------------------  Sync roleInput with roleId -------------------- */
-  useEffect(() => {
-    if (formData?.roleId === 0) {
-      setRoleInput("");
-    } else {
-      const role = roles?.find(r => r?.roleId === formData?.roleId);
-      if (role) {
-        setRoleInput(role?.roleName);
-      }
-    }
-  }, [formData.roleId, roles]);
+  const roleSelectOption = useMemo(
+    () => [
+      { label: "Default", value: 0 },
+      ...(roles?.map(r => ({
+        label: r?.roleName,
+        value: r?.roleId,
+      })) ?? []),
+    ],
+    [roles]
+  );
 
   /* -------------------- input handler -------------------- */
+
+  const roleChangeHandler = (option: SelectItem) => {
+    setFormData({
+      ...formData,
+      roleId: option?.value,
+    });
+  };
   const inputHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const target = e.target as HTMLSelectElement;
     const { name, value, selectedOptions } = target;
@@ -127,18 +150,6 @@ const HeaderFooterMaster = () => {
     });
   };
 
-  const handleRoleInput = (e: ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    setRoleInput(inputValue);
-
-    const matchedRole = roles.find(r => r.roleName.toLowerCase() === inputValue.toLowerCase());
-
-    setFormData(prev => ({
-      ...prev,
-      roleId: matchedRole ? matchedRole.roleId : 0,
-    }));
-  };
-
   /* -------------------- header variable -------------------- */
   const headerVariableHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedVariable(e.target.value);
@@ -146,25 +157,36 @@ const HeaderFooterMaster = () => {
 
   /* -------------------- submit  handler -------------------- */
   const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
+    setIsSubmitted(true);
+
     try {
       e.preventDefault();
-      setIsSubmitted(true);
       setSubmitLoading(true);
+      setIsSubmitted(false);
 
-      const sanitizedHtml = DOMPurify.sanitize(formData?.headerBody);
-
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = sanitizedHtml;
-
-      const plainText = tempDiv.textContent || tempDiv.innerText || "";
+      const sanitizedHtml = DOMPurify.sanitize(content);
 
       const payload = {
         ...formData,
-        headerBody: plainText,
+        headerBody: sanitizedHtml,
       };
 
       const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_HEADER_MASTER, payload);
       if (!response) return;
+
+      setContent("");
+      roleSelectRef?.current?.clearValue();
+
+      setFormData({
+        headerId: 0,
+        roleId: Number(DefaultRoleHeaderFooterMaster?.DEFAULT) || 0,
+        branchId: null,
+        typeId: null,
+        type: "",
+        isHeader: Status.ACTIVE,
+        headerBody: content,
+        isActive: Status.ACTIVE,
+      });
     } catch (error) {
       setSubmitLoading(false);
       console.error("Error while submitting the header-footer-master-form", error);
@@ -191,7 +213,21 @@ const HeaderFooterMaster = () => {
       }
     );
 
-    if (!response) return;
+    if (!response) {
+      setContent("");
+      roleSelectRef?.current?.clearValue();
+      setFormData({
+        headerId: 0,
+        roleId: Number(DefaultRoleHeaderFooterMaster?.DEFAULT) || 0,
+        branchId: null,
+        typeId: null,
+        type: "",
+        isHeader: Status.ACTIVE,
+        headerBody: "",
+        isActive: Status.ACTIVE,
+      });
+      return;
+    }
 
     const data = response?.data?.[0] ?? [];
     setContent(data?.headerBody);
@@ -214,7 +250,6 @@ const HeaderFooterMaster = () => {
 
   /*-------------------------cancel button handler------------------ */
   const cancelHandler = () => {
-    console.log("cancel handler button is clicked");
     setIsSubmitted(false);
     setContent("");
 
@@ -314,25 +349,18 @@ const HeaderFooterMaster = () => {
                 )}
               </InputField>
 
-              {/* Role - UPDATED TO DATALIST */}
               <InputField label="Role">
-                <input
-                  type="text"
-                  list="roles-datalist"
-                  name="roleInput"
-                  className="input-field"
-                  onChange={handleRoleInput}
-                  value={roleInput}
-                  placeholder="Type or select a role..."
-                  autoComplete="off"
+                <Select
+                  ref={roleSelectRef}
+                  options={roleSelectOption}
+                  placeholder="Select..."
+                  isSearchable
+                  isClearable
+                  onChange={roleChangeHandler}
+                  classNames={SelectStyles}
+                  menuPortalTarget={document?.body}
+                  menuPosition="fixed"
                 />
-                <datalist id="roles-datalist">
-                  {/* <option value="">Default</option> */}
-                  <option value={DefaultRoleHeaderFooterMaster?.DEFAULT_NAME} />
-                  {roles?.map(r => (
-                    <option key={r?.roleId} value={r?.roleName} />
-                  ))}
-                </datalist>
               </InputField>
 
               {/* Header / Footer */}

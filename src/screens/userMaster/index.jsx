@@ -26,7 +26,7 @@ const UserMaster = () => {
   const [gridFilteredData, setGridFilteredData] = useState([]);
   const [listFilteredData, setListFilteredData] = useState([]);
 
-  const [openFormComponent, setOpenFormComponent] = useState("");
+  const [userIdToEdit, setUserIdToEdit] = useState(null);
   const [drawerButtonTitle, setDrawerButtonTitle] = useState("Create New User");
   const [userDrawerTitle, setUserDrawerTitle] = useState("Add New User");
   const [openAddNewUser, setOpenAddNewUser] = useState(false);
@@ -133,20 +133,20 @@ const UserMaster = () => {
     if (typeof userId === "number") {
       setDrawerButtonTitle("Update User");
       setUserDrawerTitle("Update Existing User");
-      setOpenFormComponent(userId);
+      setUserIdToEdit(userId);
       setOpenAddNewUser(false);
     } else {
       setOpenAddNewUser(true);
       setDrawerButtonTitle("Add New User");
       setUserDrawerTitle("Add New User");
-      setOpenFormComponent("");
+      setUserIdToEdit(null);
     }
   };
 
   // show form drawer flag
   const showFormDrawer = useMemo(() => {
-    return !!openFormComponent || openAddNewUser;
-  }, [openFormComponent, openAddNewUser]);
+    return !!userIdToEdit || openAddNewUser;
+  }, [userIdToEdit, openAddNewUser]);
 
   // DOWNLOAD POPUP HANDLER
   const downloadHandler = e => {
@@ -256,13 +256,13 @@ const UserMaster = () => {
           <FormComponent
             isOpen={showFormDrawer}
             onClose={() => {
-              setOpenFormComponent("");
+              setUserIdToEdit("");
               setOpenAddNewUser(false);
             }}
             buttonTitle={drawerButtonTitle}
             drawerTitle={userDrawerTitle}
             formConfig={formConfig}
-            userId={openFormComponent}
+            userId={userIdToEdit}
             refreshData={fetchUserMasterListData}
           />
         </div>

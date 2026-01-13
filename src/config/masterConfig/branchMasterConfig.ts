@@ -5,7 +5,8 @@ export const branchMasterConfig = {
     type: "branchMaster",
     cardType: "branchMasterGrid",
     cardViewType: "grid",
-    id: "0",
+
+    recordIdKey: "branchId",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
@@ -30,7 +31,7 @@ export const branchMasterConfig = {
     type: "branchMaster",
     cardType: "branchMasterList",
     cardViewType: "list",
-    id: "0",
+
     recordIdKey: "branchId",
 
     listLeftButton: [{ label: "Action", action: "toggleActive" }],
@@ -44,13 +45,36 @@ export const branchMasterConfig = {
         allowColumnFilter: true,
         isMasked: true,
       },
-      { label: "Branch Name", keyFromApi: "branchName" },
-      { label: "Status", keyFromApi: "isActive" },
-      { label: "BranchCode", keyFromApi: "branchCode" },
-      { label: "Email", keyFromApi: "email" },
-      { label: "Contact-1", keyFromApi: "contactNo1" },
-      { label: "Contact-2", keyFromApi: "contactNo2" },
-      { label: "Address", keyFromApi: "address" },
+      {
+        label: "Branch Name",
+        keyFromApi: "branchName",
+        isSortable: true,
+        isSearchable: true,
+      },
+      {
+        label: "Status",
+        keyFromApi: "isActive",
+      },
+      {
+        label: "Branch Code",
+        keyFromApi: "branchCode",
+      },
+      {
+        label: "Email",
+        keyFromApi: "email",
+      },
+      {
+        label: "Contact-1",
+        keyFromApi: "contactNo1",
+      },
+      {
+        label: "Contact-2",
+        keyFromApi: "contactNo2",
+      },
+      {
+        label: "Address",
+        keyFromApi: "address",
+      },
     ],
   },
 };

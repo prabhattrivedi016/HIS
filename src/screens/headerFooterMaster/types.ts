@@ -41,4 +41,16 @@ type HeaderFooterFormData = {
   isActive: number;
 };
 
-export type { BranchItem, HeaderFooterFormData, ReportItem, RoleItem, VariableNameItem };
+interface SelectItem {
+  label: string;
+  value: number;
+}
+
+export type {
+  BranchItem,
+  HeaderFooterFormData,
+  ReportItem,
+  RoleItem,
+  SelectItem,
+  VariableNameItem,
+};

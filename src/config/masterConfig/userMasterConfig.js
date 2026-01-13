@@ -5,7 +5,8 @@ export const userMasterConfig = {
     type: "userMaster",
     cardType: "userMasterGrid",
     cardViewType: "grid",
-    id: "0",
+
+    recordIdKey: "id",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
@@ -34,15 +35,15 @@ export const userMasterConfig = {
     type: "userMaster",
     cardType: "userMasterList",
     cardViewType: "list",
-    id: "0",
-    recordIdKey: "employeeID",
+
+    recordIdKey: "id",
 
     listLeftButton: [{ label: "Action", action: "listToggleActive" }],
 
     columns: [
       {
         label: "UserID",
-        keyFromApi: "employeeID",
+        keyFromApi: "employeeID", // display only
         isSortable: true,
         isSearchable: true,
         allowColumnFilter: true,
