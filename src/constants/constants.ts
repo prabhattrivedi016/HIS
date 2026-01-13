@@ -4,8 +4,8 @@ export const VIEWTYPE = {
 };
 
 export enum HeaderFooterTabName {
-  HEADER = "Header",
-  FOOTER = "Footer",
+  HEADER = "Header-Footer",
+  FOOTER = "Sequence Mapping",
 }
 
 export enum BranchId {

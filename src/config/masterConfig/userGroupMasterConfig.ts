@@ -5,18 +5,16 @@ export const userGroupMaster = {
     type: "userGroupMaster",
     cardType: "userGroupMasterGrid",
     cardViewType: "grid",
-    id: "0",
+
+    recordIdKey: "id",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "isActive" }],
 
     gridRightTop: [{ label: "toggle", action: "umgGridRightButton" }],
 
-    gridId: [{ label: "GroupID", keyFromApi: "id" }],
+    gridId: [{ label: "Group ID", keyFromApi: "id" }],
 
-    gridTitle: [
-      { label: "First Name", keyFromApi: "groupName" },
-      { label: "Last Name", keyFromApi: "lastName" },
-    ],
+    gridTitle: [{ label: "Group Name", keyFromApi: "groupName" }],
 
     gridFooterSection: [
       { label: "Created By", keyFromApi: "createdBy" },
@@ -29,17 +27,19 @@ export const userGroupMaster = {
       { label: "Edit", action: "umgGridEdit" },
     ],
   },
+
   listCardView: {
     type: "userGroupMaster",
     cardType: "userGroupMasterList",
     cardViewType: "list",
-    id: "0",
+
+    recordIdKey: "id",
 
     listLeftButton: [{ label: "Action", action: "listToggleActive" }],
 
     columns: [
       {
-        label: "GroupID",
+        label: "Group ID",
         keyFromApi: "id",
         isSortable: true,
         isSearchable: true,
@@ -49,13 +49,33 @@ export const userGroupMaster = {
       {
         label: "Group Name",
         keyFromApi: "groupName",
+        isSortable: true,
+        isSearchable: true,
       },
-      { label: "Status", keyFromApi: "isActive" },
-      { label: "Created By", keyFromApi: "createdBy" },
-      { label: "Created On", keyFromApi: "createdOn" },
-      { label: "Last Modified By", keyFromApi: "lastModifiedBy" },
-      { label: "last Modified On", keyFromApi: "lastModifiedOn" },
-      { label: "Ip Address", keyFromApi: "ipAddress" },
+      {
+        label: "Status",
+        keyFromApi: "isActive",
+      },
+      {
+        label: "Created By",
+        keyFromApi: "createdBy",
+      },
+      {
+        label: "Created On",
+        keyFromApi: "createdOn",
+      },
+      {
+        label: "Last Modified By",
+        keyFromApi: "lastModifiedBy",
+      },
+      {
+        label: "Last Modified On",
+        keyFromApi: "lastModifiedOn",
+      },
+      {
+        label: "IP Address",
+        keyFromApi: "ipAddress",
+      },
     ],
   },
 };
