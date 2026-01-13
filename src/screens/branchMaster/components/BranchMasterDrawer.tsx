@@ -44,12 +44,13 @@ const BranchMasterDrawer = React.memo(
 
     const [successMessage, setSuccessMessage] = useState("");
 
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
     /* -------------------- drawer  form -------------------- */
     const {
       handleSubmit,
       register,
       reset,
-      setValue,
       formState: { errors },
     } = useForm({
       resolver: yupResolver(branchMasterSchema),
@@ -144,34 +145,35 @@ const BranchMasterDrawer = React.memo(
         const b = res?.data?.[0];
         if (!b) return;
 
-        setCountryId(b.defaultCountryId);
-        await getStateName(b.defaultCountryId);
+        setCountryId(b?.defaultCountryId);
+        await getStateName(b?.defaultCountryId);
 
-        setStateId(b.defaultStateId);
-        await getDistrictName(b.defaultStateId);
+        setStateId(b?.defaultStateId);
+        await getDistrictName(b?.defaultStateId);
 
-        setDistrictId(b.defaultDistrictId);
-        await getCityName(b.defaultDistrictId);
+        setDistrictId(b?.defaultDistrictId);
+        await getCityName(b?.defaultDistrictId);
 
-        setCityId(b.defaultCityId);
+        setCityId(b?.defaultCityId);
 
-        setInsuranceCompanyId(b.defaultInsuranceCompanyId);
-        await getDefaultCorporate(b.defaultInsuranceCompanyId);
+        setInsuranceCompanyId(b?.defaultInsuranceCompanyId);
+        await getDefaultCorporate(b?.defaultInsuranceCompanyId);
 
-        setCorporateId(b.defaultCorporateId);
+        setCorporateId(b?.defaultCorporateId);
+
+        setMonthId(b?.fyStartMonth);
 
         reset({
-          branchId: b.branchId,
-          branchName: b.branchName,
-          branchCode: b.branchCode,
-          email: b.email,
-          contactNo1: b.contactNo1,
-          contactNo2: b.contactNo2,
-          address: b.address,
-          isActive: b.isActive,
-          fyStartFrom: String(b.fyStartFrom),
+          branchId: b?.branchId,
+          branchName: b?.branchName,
+          branchCode: b?.branchCode,
+          email: b?.email,
+          contactNo1: b?.contactNo1,
+          contactNo2: b?.contactNo2,
+          address: b?.address,
+          isActive: b?.isActive,
+          fyStartFrom: b?.fyStartFrom,
         });
-        setMonthId(String(b.fyStartFrom));
       },
 
       [reset, getStateName, getDistrictName, getCityName, getDefaultCorporate]
@@ -227,12 +229,6 @@ const BranchMasterDrawer = React.memo(
     const monthDropDownHandler = (option: SelectItem) => {
       const v = option?.value ?? "";
       setMonthId(v);
-
-      // 🔥 sync with react-hook-form
-      setValue("fyStartFrom", v, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
     };
 
     const countryDropDownHandler = (option: SelectItem) => {
@@ -282,6 +278,8 @@ const BranchMasterDrawer = React.memo(
 
     /* -------------------- SUBMIT -------------------- */
     const onSubmit = async data => {
+      setIsSubmitting(true);
+      if (!monthId) return;
       const payload = {
         ...data,
         fyStartFrom: monthId,
@@ -314,7 +312,7 @@ const BranchMasterDrawer = React.memo(
           </div>
 
           <div className="p-4">
-            {/* SUCCESS / ERROR MESSAGES */}
+            {/* success & error message*/}
             <div className="mb-2">
               {successMessage && <SuccessMessage text={successMessage} />}
               {error && <ErrorMessage text={error} />}
@@ -407,8 +405,8 @@ const BranchMasterDrawer = React.memo(
                       menuPosition="fixed"
                       onChange={monthDropDownHandler}
                     />
-                    {errors.fyStartFrom && (
-                      <p className="input-field-error">{errors.fyStartFrom.message}</p>
+                    {isSubmitting && !monthId && (
+                      <p className="input-field-error">Month is required</p>
                     )}
                   </InputField>
                 </div>
