@@ -7,6 +7,11 @@
   --btn-edit: #6f94c7;
 }
 
+.ck.ck-editor__editable_inline {
+  max-width: 100%;
+  min-height: 200px;
+  margin: 0 auto;
+}
 /* buttons */
 .login-btn {
   @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#4D34E9] text-white cursor-pointer active:scale-95;

@@ -75,6 +75,11 @@ const ENDPOINTS = {
   //header footer master
   GET_HEADER_MASTER: "Admin/getHeaderMaster",
   CREATE_UPDATE_HEADER_MASTER: "Admin/createUpdateHeaderMaster",
+
+  //sequence mapping
+  GET_SEQUENCE_TYPE_LIST: "Admin/getSequenceTypeList",
+  GET_SEQUENCE_MASTER: "Admin/getSequenceMaster",
+  CREATE_UPDATE_SEQUENCE_MASTER: "/Admin/createUpdateSequenceMaster ",
 };
 
 export { ENDPOINTS };

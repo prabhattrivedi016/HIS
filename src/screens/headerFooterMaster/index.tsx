@@ -26,12 +26,16 @@ import {
 } from "../../constants/constants";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { usePickMaster } from "../../hooks/usePickMaster";
+import SequenceDrawer from "./components/SequenceDrawer";
 import {
   BranchItem,
   HeaderFooterFormData,
   ReportItem,
   RoleItem,
   SelectItem,
+  SequenceDropDownItem,
+  SequenceEditItem,
+  SequenceTypeItem,
   VariableNameItem,
 } from "./types";
 
@@ -46,6 +50,17 @@ const HeaderFooterMaster = () => {
   const [content, setContent] = useState<string>("");
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(HeaderFooterTabName?.HEADER);
+  const [sequenceTypeList, setSequenceTypeList] = useState<SequenceTypeItem[]>([]);
+  const [sequenceId, setSequenceId] = useState<number | null>(null);
+  const [sequenceType, setSequenceType] = useState<string>("");
+  const [sequenceDropDown, setSequenceDropDown] = useState<SequenceDropDownItem[]>([]);
+
+  const [sequenceToEdit, setSequenceToEdit] = useState<SequenceEditItem | null>(null);
+  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+
+  const [selectedSequenceType, setSelectedSequenceType] = useState<SelectItem | null>(null);
+  const [selectedSequenceId, setSelectedSequenceId] = useState<number | "">("");
+  const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
 
   const roleSelectRef = useRef(null);
 
@@ -126,11 +141,12 @@ const HeaderFooterMaster = () => {
 
   /* -------------------- input handler -------------------- */
 
-  const roleChangeHandler = (option: SelectItem) => {
-    setFormData({
-      ...formData,
-      roleId: option?.value,
-    });
+  const roleChangeHandler = (option: SelectItem | null) => {
+    setSelectedRole(option);
+    setFormData(prev => ({
+      ...prev,
+      roleId: option?.value ?? 0,
+    }));
   };
   const inputHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const target = e.target as HTMLSelectElement;
@@ -176,6 +192,7 @@ const HeaderFooterMaster = () => {
 
       setContent("");
       roleSelectRef?.current?.clearValue();
+      setSelectedRole(null);
 
       setFormData({
         headerId: 0,
@@ -265,52 +282,119 @@ const HeaderFooterMaster = () => {
     });
   };
 
-  return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Header Footer Master</h1>
-        <nav className="text-sm text-gray-500 flex gap-2 mt-1">
-          <NavLink to="/dashboard">Home</NavLink>
-          <span>››</span>
-          <span>Header Footer Master</span>
-        </nav>
-      </div>
-      <div className="flex gap-2 border-b border-gray-200 mb-4 shadow-lg m-2 ">
-        <button
-          type="button"
-          onClick={() => setActiveTab(HeaderFooterTabName?.HEADER)}
-          className={`px-4 py-2 text-md font-semibold transition
-      ${
-        activeTab === HeaderFooterTabName?.HEADER
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
-        >
-          {HeaderFooterTabName?.HEADER}
-        </button>
+  /*----------------------------sequence type------------------------------ */
+  const getSequenceType = useCallback(async () => {
+    const resp = await fetchApi("GET", ENDPOINTS.GET_SEQUENCE_TYPE_LIST, {}, {});
+    if (!resp) return;
 
-        <button
-          type="button"
-          onClick={() => setActiveTab(HeaderFooterTabName?.FOOTER)}
-          className={`px-4 py-2 text-md font-semibold transition 
-      ${
-        activeTab === HeaderFooterTabName?.FOOTER
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
-        >
-          {HeaderFooterTabName?.FOOTER}
-        </button>
-      </div>
+    setSequenceTypeList(resp?.data ?? []);
+  }, []);
 
-      {activeTab === HeaderFooterTabName.HEADER ? (
+  const selectSequenceOption = useMemo(
+    () =>
+      sequenceTypeList?.map(s => ({
+        value: s?.typeId,
+        label: s?.typeName,
+      })),
+    [sequenceTypeList]
+  );
+
+  const sequenceChangeHandler = (option: SelectItem | null) => {
+    setSelectedSequenceType(option);
+
+    setSequenceId(option?.value ?? null);
+    setSequenceType(option?.label ?? "");
+
+    setSequenceDropDown([]);
+    setSequenceToEdit(null);
+    setSelectedSequenceId("");
+  };
+
+  /*-------------------------sequence master--------------- */
+  const fetchSequenceMaster = useCallback(async (id: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SEQUENCE_MASTER,
+      {},
+      {
+        params: { sequenceTypeId: id },
+      }
+    );
+
+    setSequenceDropDown(resp?.data ?? []);
+  }, []);
+
+  useEffect(() => {
+    getSequenceType();
+    if (sequenceId) {
+      fetchSequenceMaster(sequenceId);
+    }
+  }, [sequenceId]);
+
+  /*-------------------- */
+  const previewChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const id = Number(e.target.value) || "";
+
+    setSelectedSequenceId(id);
+
+    if (!id) {
+      setSequenceToEdit(null);
+      return;
+    }
+
+    const editableSequence = sequenceDropDown.find(v => v.sequenceId === id);
+
+    if (editableSequence) {
+      setSequenceToEdit(editableSequence);
+    }
+  };
+
+  /*-------------------add/update sequence---------------- */
+  const handleAddSequence = () => {
+    if (!sequenceId) return;
+
+    if (!sequenceToEdit || !sequenceToEdit?.sequenceId) {
+      setSequenceToEdit({
+        typeId: sequenceId,
+        typeName: sequenceType,
+      });
+    }
+
+    setOpenDrawer(true);
+  };
+
+  const closeHandler = () => [setOpenDrawer(false)];
+
+  /*------------------reset value--------------------------- */
+  const resetSequenceSelection = () => {
+    setSequenceId(null);
+    setSequenceType("");
+    setSequenceDropDown([]);
+    setSequenceToEdit(null);
+
+    setSelectedSequenceType(null);
+    setSelectedSequenceId("");
+  };
+
+  useEffect(() => {
+    // whenever tab changes, reset react-select values
+    setSelectedRole(null);
+    setSelectedSequenceType(null);
+    setSelectedSequenceId("");
+
+    setSequenceDropDown([]);
+    setSequenceToEdit(null);
+  }, [activeTab]);
+
+  /*----------------------render component------------------------ */
+  const renderComponent = (tabName: string) => {
+    if (tabName === HeaderFooterTabName?.HEADER) {
+      return (
         <div className="shadow-lg m-2 p-6 rounded-lg">
           <form onSubmit={submitHandler}>
             <h2 className="mb-4 text-xl font-semibold">Header Details</h2>
 
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 lg:grid-cols-4 ">
               {/* Branch */}
               <InputField label="Branch" required>
                 <select
@@ -351,7 +435,7 @@ const HeaderFooterMaster = () => {
 
               <InputField label="Role">
                 <Select
-                  ref={roleSelectRef}
+                  value={selectedRole}
                   options={roleSelectOption}
                   placeholder="Select..."
                   isSearchable
@@ -377,7 +461,7 @@ const HeaderFooterMaster = () => {
               </InputField>
             </div>
 
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Status */}
               <InputField label="Status" required>
                 <select
@@ -412,26 +496,164 @@ const HeaderFooterMaster = () => {
                   className="input-field"
                 />
               </InputField>
+              <div className="flex w-full gap-3 mt-5">
+                <button type="submit" className="grid-active-btn">
+                  Submit
+                </button>
+                <button type="button" className="grid-edit-btn" onClick={cancelHandler}>
+                  Cancel
+                </button>
+              </div>
             </div>
             <Suspense fallback={<p>Loading Editor</p>}>
               <TextEditor value={content} onChange={setContent} />
             </Suspense>
+          </form>
+        </div>
+      );
+    }
 
-            <div className="flex w-full gap-3 mt-5">
-              <button type="submit" className="grid-active-btn">
-                Submit
-              </button>
-              <button type="button" className="grid-edit-btn" onClick={cancelHandler}>
-                Cancel
-              </button>
+    if (tabName === HeaderFooterTabName?.FOOTER)
+      return (
+        <div className="shadow-lg m-2 p-6 rounded-lg">
+          <form onSubmit={submitHandler}>
+            <h2 className="mb-4 text-xl font-semibold">Sequence Mapping </h2>
+
+            <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Branch */}
+              <InputField label="Branch" required>
+                <select
+                  name="branchId"
+                  className="input-field"
+                  onChange={inputHandler}
+                  value={formData?.branchId ?? 0}
+                >
+                  <option value={0}>Select</option>
+                  {branches?.map(b => (
+                    <option key={b?.branchId} value={b?.branchId}>
+                      {b?.branchName}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
+              {/* Role */}
+              <InputField label="Role" required={false}>
+                <Select
+                  ref={roleSelectRef}
+                  options={roleSelectOption}
+                  placeholder="Select..."
+                  isSearchable
+                  isClearable
+                  onChange={roleChangeHandler}
+                  classNames={SelectStyles}
+                  menuPortalTarget={document?.body}
+                  menuPosition="fixed"
+                />
+              </InputField>
+
+              {/* sequence type */}
+              <InputField label="Sequence Type" required={false}>
+                <Select
+                  value={selectedSequenceType}
+                  options={selectSequenceOption}
+                  placeholder="Select..."
+                  isSearchable
+                  isClearable
+                  onChange={sequenceChangeHandler}
+                  classNames={SelectStyles}
+                  menuPortalTarget={document?.body}
+                  menuPosition="fixed"
+                />
+              </InputField>
+
+              {/* sequence*/}
+              <div className="flex flex-row gap-2 items-end w-full">
+                <InputField label="Sequence" className="w-full" required={false}>
+                  <div className="flex items-center gap-2">
+                    <select
+                      name="sequence"
+                      className="input-field"
+                      onChange={previewChangeHandler}
+                      value={selectedSequenceId}
+                    >
+                      <option value="">Select</option>
+                      {sequenceDropDown?.map((v: SequenceDropDownItem) => (
+                        <option key={v?.typeId} value={v?.sequenceId}>
+                          {v?.preview}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={handleAddSequence}
+                      title="Add Sequence"
+                      className="scale-95"
+                    >
+                      <i className="fa-solid fa-circle-plus fa-xl  "></i>
+                    </button>
+                  </div>
+                </InputField>
+              </div>
             </div>
           </form>
         </div>
-      ) : (
-        <h1> this is the footer section</h1>
-      )}
+      );
+  };
+
+  return (
+    <div className="bg-gray-50 min-h-screen px-3 py-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">Header Footer Master</h1>
+        <nav className="text-sm text-gray-500 flex gap-2 mt-1">
+          <NavLink to="/dashboard">Home</NavLink>
+          <span>››</span>
+          <span>Header Footer Master</span>
+        </nav>
+      </div>
+      <div className="flex gap-2 border-b border-gray-200 mb-4 shadow-lg m-2 ">
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.HEADER)}
+          className={`px-4 py-2 text-md font-semibold transition
+      ${
+        activeTab === HeaderFooterTabName?.HEADER
+          ? "border-b-2 border-blue-600 text-blue-600"
+          : "text-gray-500 hover:text-blue-600"
+      }
+    `}
+        >
+          {HeaderFooterTabName?.HEADER}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.FOOTER)}
+          className={`px-4 py-2 text-md font-semibold transition 
+      ${
+        activeTab === HeaderFooterTabName?.FOOTER
+          ? "border-b-2 border-blue-600 text-blue-600"
+          : "text-gray-500 hover:text-blue-600"
+      }
+    `}
+        >
+          {HeaderFooterTabName?.FOOTER}
+        </button>
+      </div>
+
+      {renderComponent(activeTab)}
 
       {submitLoading && <CustomLoader isLoading={submitLoading} />}
+
+      {/* -----------------drawer for add & update sequence----------------- */}
+      {openDrawer && sequenceToEdit && (
+        <SequenceDrawer
+          data={sequenceToEdit}
+          onClose={closeHandler}
+          onSuccess={resetSequenceSelection}
+        />
+      )}
     </div>
   );
 };
