@@ -178,7 +178,7 @@ const LocationMaster = () => {
       </div>
       <div className=" shadow-lg m-2 p-6 rounded-lg   ">
         <h1 className="mb-4 text-xl font-semibold">Location Details</h1>
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
           <InputField label="Country" required={true}>
             <Select
               options={countrySelectOption}
@@ -235,7 +235,7 @@ const LocationMaster = () => {
             </div>
           </InputField>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <InputField label="City" required={true}>
             <div className="flex gap-2 items-center">
               <Select

@@ -46,11 +46,54 @@ interface SelectItem {
   value: number;
 }
 
+interface SequenceTypeItem {
+  typeId: number;
+  typeName: string;
+}
+
+interface SequenceDropDownItem {
+  sequenceId: number;
+  name: string;
+  typeId: number;
+  typeName: string;
+  prefix: string;
+  firstSeprator: string;
+  fyFormatId: number;
+  fyFormat: string;
+  secondSeprator: string;
+  length: number;
+  preview: string;
+}
+
+type SequenceDrawerProps = {
+  data: SequenceEditItem | null;
+  onClose: () => void;
+  onSuccess: () => void;
+};
+
+type SequenceEditItem = {
+  sequenceId?: number;
+  name?: string;
+  typeId?: number;
+  typeName?: string;
+  prefix?: string;
+  firstSeprator?: string;
+  fyFormatId?: number;
+  fyFormat?: string;
+  secondSeprator?: string;
+  length?: number;
+  preview?: string;
+};
+
 export type {
   BranchItem,
   HeaderFooterFormData,
   ReportItem,
   RoleItem,
   SelectItem,
+  SequenceDrawerProps,
+  SequenceDropDownItem,
+  SequenceEditItem,
+  SequenceTypeItem,
   VariableNameItem,
 };
