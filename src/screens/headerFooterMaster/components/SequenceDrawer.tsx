@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
@@ -6,7 +6,7 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { SequenceDrawerProps } from "../types";
 
-const SequenceDrawer = ({ data, onClose, onSuccess }: SequenceDrawerProps) => {
+const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const isEdit = Boolean(data?.sequenceId);
@@ -226,6 +226,6 @@ const SequenceDrawer = ({ data, onClose, onSuccess }: SequenceDrawerProps) => {
       {loading ? <CustomLoader isLoading={loading} /> : <></>}
     </div>
   );
-};
+});
 
 export default SequenceDrawer;

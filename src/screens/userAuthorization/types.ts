@@ -161,139 +161,14 @@ export type PickMasterValueItem = {
   key: string;
 };
 
+export type SelectItem = {
+  label: string;
+  value: number;
+};
+
 export interface PickMasterItem {
   id: Number;
   fieldName: string;
   value: string;
   key: Number;
 }
-
-/*
-{
-    "type": "roleName",
-    "branchId": 1,
-    "typeId": 1,
-    "userId": 2,
-    "data": [
-        {
-            "isGranted": 1,
-            "roleName": "IPD Billing",
-            "roleId": 4
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Pharmacy",
-            "roleId": 5
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Laboratory",
-            "roleId": 6
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Transport",
-            "roleId": 14
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Medical Store",
-            "roleId": 15
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Emergency",
-            "roleId": 16
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Vaccine Department",
-            "roleId": 17
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Nursing Ward",
-            "roleId": 18
-        },
-        {
-            "isGranted": 1,
-            "roleName": "CT-Scan",
-            "roleId": 19
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Ultrasound",
-            "roleId": 20
-        },
-        {
-            "isGranted": 1,
-            "roleName": "MRD",
-            "roleId": 21
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Radiology",
-            "roleId": 22
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Operation Theatre",
-            "roleId": 23
-        },
-        {
-            "isGranted": 1,
-            "roleName": "EMR",
-            "roleId": 24
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Quality Control",
-            "roleId": 25
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Camp",
-            "roleId": 26
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Canteen",
-            "roleId": 27
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Bio-Medical Department",
-            "roleId": 28
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Blood Bank",
-            "roleId": 29
-        },
-        {
-            "isGranted": 1,
-            "roleName": "Cardiology",
-            "roleId": 30
-        },
-        {
-            "isGranted": 1,
-            "roleName": "string",
-            "roleId": 31
-        },
-        {
-            "isGranted": 1,
-            "roleName": "XXXXXXXX",
-            "roleId": 1014
-        },
-        {
-            "isGranted": 0,
-            "roleName": "Admin ",
-            "roleId": 2
-        },
-        {
-            "isGranted": 0,
-            "roleName": "Front Office",
-            "roleId": 3
-        }
-    ]
-} */

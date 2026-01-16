@@ -24,7 +24,9 @@ const Table = React.memo(
     onChangeMessage,
     selectedButton,
     setTableData,
-  }: TableProps) => {
+    onSubmitPage,
+  }: // onRoleChange,
+  TableProps) => {
     const { loading, fetchApi } = useGlobalApi();
 
     console.log("tableDatatableDatatableData", tableData);
@@ -226,6 +228,8 @@ const Table = React.memo(
         }
 
         case "pageAccess": {
+          onSubmitPage(null);
+          // onRoleChange(null);
           const menus = tableData?.data
             .filter((u: PageAccessItem) => u?.isGranted === 1)
             .map(u => ({

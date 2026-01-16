@@ -26,6 +26,7 @@ import {
 } from "../../constants/constants";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { usePickMaster } from "../../hooks/usePickMaster";
+import DoctorSignature from "./components/DoctorSignature";
 import SequenceDrawer from "./components/SequenceDrawer";
 import {
   BranchItem,
@@ -62,7 +63,11 @@ const HeaderFooterMaster = () => {
   const [selectedSequenceId, setSelectedSequenceId] = useState<number | "">("");
   const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
 
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+
   const roleSelectRef = useRef(null);
+
+  const buttonTitle = isEditMode ? "Update" : "Create";
 
   /* -------------------- form state-------------------- */
   const [formData, setFormData] = useState<HeaderFooterFormData>({
@@ -213,8 +218,9 @@ const HeaderFooterMaster = () => {
   };
 
   /* -------------------- pre filled data -------------------- */
+
   const getHeaderMaster = useCallback(async () => {
-    if (!formData?.roleId || !formData?.branchId || !formData?.typeId) return;
+    if (!formData?.branchId || !formData?.roleId || !formData?.typeId) return;
 
     const response = await fetchApi(
       "GET",
@@ -222,44 +228,38 @@ const HeaderFooterMaster = () => {
       {},
       {
         params: {
-          branchId: formData?.branchId,
-          roleId: formData?.roleId,
-          typeId: formData?.typeId,
-          isHeader: formData?.isHeader,
+          branchId: formData.branchId,
+          roleId: formData.roleId,
+          typeId: formData.typeId,
+          isHeader: formData.isHeader,
         },
       }
     );
 
-    if (!response) {
+    const data = response?.data?.[0];
+
+    if (!data) {
+      setIsEditMode(false);
       setContent("");
-      roleSelectRef?.current?.clearValue();
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         headerId: 0,
-        roleId: Number(DefaultRoleHeaderFooterMaster?.DEFAULT) || 0,
-        branchId: null,
-        typeId: null,
-        type: "",
-        isHeader: Status.ACTIVE,
         headerBody: "",
         isActive: Status.ACTIVE,
-      });
+      }));
       return;
     }
 
-    const data = response?.data?.[0] ?? [];
-    setContent(data?.headerBody);
+    setIsEditMode(true);
+    setContent(data.headerBody);
 
-    setFormData({
-      headerId: data?.headerId,
-      roleId: formData?.roleId,
-      branchId: formData?.branchId,
-      typeId: formData?.typeId,
-      type: formData?.type,
-      isHeader: formData?.isHeader,
-      headerBody: content,
-      isActive: data?.isActive,
-    });
-  }, [formData?.branchId, formData?.roleId, formData?.typeId]);
+    setFormData(prev => ({
+      ...prev,
+      headerId: data.headerId,
+      headerBody: data.headerBody,
+      isActive: data.isActive,
+    }));
+  }, [formData.branchId, formData.roleId, formData.typeId, formData.isHeader]);
 
   useEffect(() => {
     getHeaderMaster();
@@ -403,7 +403,7 @@ const HeaderFooterMaster = () => {
                   onChange={inputHandler}
                   value={formData?.branchId ?? 0}
                 >
-                  <option value={0}>Select</option>
+                  <option value={0}>Default</option>
                   {branches?.map(b => (
                     <option key={b?.branchId} value={b?.branchId}>
                       {b?.branchName}
@@ -436,6 +436,7 @@ const HeaderFooterMaster = () => {
               <InputField label="Role">
                 <Select
                   value={selectedRole}
+                  isMulti
                   options={roleSelectOption}
                   placeholder="Select..."
                   isSearchable
@@ -498,7 +499,7 @@ const HeaderFooterMaster = () => {
               </InputField>
               <div className="flex w-full gap-3 mt-5">
                 <button type="submit" className="grid-active-btn">
-                  Submit
+                  {buttonTitle}
                 </button>
                 <button type="button" className="grid-edit-btn" onClick={cancelHandler}>
                   Cancel
@@ -528,7 +529,7 @@ const HeaderFooterMaster = () => {
                   onChange={inputHandler}
                   value={formData?.branchId ?? 0}
                 >
-                  <option value={0}>Select</option>
+                  <option value={0}>Default</option>
                   {branches?.map(b => (
                     <option key={b?.branchId} value={b?.branchId}>
                       {b?.branchName}
@@ -600,6 +601,9 @@ const HeaderFooterMaster = () => {
           </form>
         </div>
       );
+    if (tabName === HeaderFooterTabName?.DOCTOR) {
+      return <DoctorSignature />;
+    }
   };
 
   return (
@@ -639,6 +643,20 @@ const HeaderFooterMaster = () => {
     `}
         >
           {HeaderFooterTabName?.FOOTER}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.DOCTOR)}
+          className={`px-4 py-2 text-md font-semibold transition 
+      ${
+        activeTab === HeaderFooterTabName?.DOCTOR
+          ? "border-b-2 border-blue-600 text-blue-600"
+          : "text-gray-500 hover:text-blue-600"
+      }
+    `}
+        >
+          {HeaderFooterTabName?.DOCTOR}
         </button>
       </div>
 

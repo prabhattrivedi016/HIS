@@ -6,6 +6,7 @@ export const VIEWTYPE = {
 export enum HeaderFooterTabName {
   HEADER = "Header-Footer",
   FOOTER = "Sequence Mapping",
+  DOCTOR = "Doctor Signature",
 }
 
 export enum BranchId {
@@ -21,3 +22,8 @@ export enum DefaultRoleHeaderFooterMaster {
   DEFAULT = 0,
   DEFAULT_NAME = "Default",
 }
+
+export const FILE_UPLOAD_RULES = {
+  MAX_FILE_SIZE: 2 * 1024 * 1024, // 2MB
+  ALLOWED_TYPES: ["image/png", "image/jpeg", "image/jpg"],
+} as const;
