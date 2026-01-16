@@ -14,6 +14,7 @@ import {
   FilteredData,
   PickMasterValueItem,
   RoleDataItem,
+  SelectItem,
   TableData,
   UserGroupGroupItem,
   UserGroupRoleItem,
@@ -45,13 +46,24 @@ const UserAuthorization = () => {
   const [userRightsGrantedRoles, setUserRightGrantedRoles] = useState<RoleDataItem[]>([]);
 
   const [tableData, setTableData] = useState<TableData | null>(null);
+
+  const [selectedUser, setSelectedUser] = useState<SelectItem | null>(null);
+  const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
+
   const roleSelectRef = useRef<any>(null);
   const rightSelectRef = useRef<any>(null);
 
-  // branch handler
-  const branchHandler = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => setBranchId(Number(e.target.value)),
-    []
+  const branchChangeHandler = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      setBranchId(Number(e.target.value));
+      setTypeId(null);
+      setUserId(null);
+      setRoleId(null);
+      setSelectedUser(null);
+      setSelectedRole(null);
+      setPageView(false);
+    },
+    [branchId]
   );
 
   // fetch group list
@@ -89,6 +101,8 @@ const UserAuthorization = () => {
       setSelectedButton("");
       setUserRightsDropdown(false);
       setPageView(false);
+      setSelectedRole(null);
+      setSelectedUser(null);
 
       if (!selectedType) return;
 
@@ -155,6 +169,8 @@ const UserAuthorization = () => {
   const selectUserGroupHandlerToBindRoles = useCallback(
     async (selected: { value: number; label: string } | null) => {
       const uid = selected?.value;
+      setSelectedUser(selected);
+      setSelectedRole(null);
       if (!uid) return;
 
       setPageView(true);
@@ -198,6 +214,7 @@ const UserAuthorization = () => {
     setUserRightsDropdown(true);
     setRoleId(0);
     rightSelectRef.current?.clearValue();
+    setSelectedRole(null);
 
     if (roleId) fetchUserRightData(roleId);
   }, [roleId, fetchUserRightData]);
@@ -205,6 +222,7 @@ const UserAuthorization = () => {
   const userRightsDropdownHandler = useCallback(
     (selected: { value: number; label: string } | null) => {
       if (!selected) return;
+      setSelectedRole(selected);
 
       const rid = selected.value;
       setRoleId(rid);
@@ -251,6 +269,7 @@ const UserAuthorization = () => {
     setUserRightsDropdown(true);
     setRoleId(0);
     rightSelectRef.current?.clearValue();
+    setSelectedRole(null);
   };
 
   // page access table data
@@ -280,6 +299,8 @@ const UserAuthorization = () => {
     setUserRightsDropdown(true);
     setRoleId(0);
     rightSelectRef.current?.clearValue();
+    setSelectedRole(null);
+    setRoleId(null);
   };
 
   useEffect(() => {
@@ -373,7 +394,7 @@ const UserAuthorization = () => {
         } gap-4 bg-white rounded-xl p-4 shadow-md`}
       >
         <InputField label="Branch Name">
-          <select className="input-field" onChange={branchHandler} value={branchId}>
+          <select className="input-field" onChange={branchChangeHandler} value={branchId}>
             {branchList?.data?.map(b => (
               <option key={b.branchId} value={b.branchId}>
                 {b.branchName}
@@ -404,7 +425,8 @@ const UserAuthorization = () => {
           }
         >
           <Select
-            ref={roleSelectRef}
+            // ref={roleSelectRef}
+            value={selectedUser}
             options={userSelectOptions}
             placeholder="Select..."
             isSearchable
@@ -419,7 +441,8 @@ const UserAuthorization = () => {
         {userRightsDropdown && (
           <InputField label="Role">
             <Select
-              ref={rightSelectRef}
+              // ref={rightSelectRef}
+              value={selectedRole}
               options={roleSelectOption}
               placeholder="Select..."
               isSearchable
@@ -499,6 +522,8 @@ const UserAuthorization = () => {
               onChangeMessage={setSuccessMessage}
               selectedButton={selectedButton}
               setTableData={setTableData}
+              onSubmitPage={setSelectedRole}
+              onRoleChange={setRoleId}
             />
           )}
         </>
