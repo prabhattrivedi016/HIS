@@ -7,7 +7,15 @@ import Select from "react-select";
 import { SelectStyles } from "../../components/customSelect";
 import { ENDPOINTS } from "../../config/defaults";
 import LocationMasterDrawer from "./components/locationMasterDrawer";
-import { CityItem, CountryItem, DistrictItem, SelectItem, StateItem } from "./types";
+import {
+  CityItem,
+  CountryItem,
+  DistrictItem,
+  PinCodeItem,
+  PopUpValueItem,
+  SelectItem,
+  StateItem,
+} from "./types";
 
 const LocationMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
@@ -25,7 +33,7 @@ const LocationMaster = () => {
   const [cityId, setCityId] = useState<number | null>(null);
   const [pincodeId, setPincodeId] = useState<number | null>(null);
 
-  const [popupValue, setPopupValue] = useState(null);
+  const [popupValue, setPopupValue] = useState<PopUpValueItem | null>(null);
 
   /* -------------------- api handlers -------------------- */
   const getCountryName = useCallback(async () => {
@@ -87,7 +95,8 @@ const LocationMaster = () => {
   }, []);
 
   /* -------------------- dropdown handlers -------------------- */
-  const countryDropDownHandler = (option: SelectItem) => {
+  const countryDropDownHandler = (newValue: unknown) => {
+    const option = newValue as SelectItem;
     const v = option?.value ?? null;
     setCountryId(v);
     setStateId(null);
@@ -99,7 +108,9 @@ const LocationMaster = () => {
     if (v) getStateName(v);
   };
 
-  const stateDropDownHandler = (option: SelectItem) => {
+  const stateDropDownHandler = (newValue: unknown) => {
+    const option = newValue as SelectItem;
+
     const v = option?.value ?? null;
     setStateId(v);
     setDistrictId(null);
@@ -109,7 +120,9 @@ const LocationMaster = () => {
     if (v) getDistrictName(v);
   };
 
-  const distDropDownHandler = (option: SelectItem) => {
+  const distDropDownHandler = (newValue: unknown) => {
+    const option = newValue as SelectItem;
+
     const v = option?.value ?? null;
     setDistrictId(v);
     setCityId(null);
@@ -117,7 +130,9 @@ const LocationMaster = () => {
     if (v) getCityName(v);
   };
 
-  const cityDropDownHandler = (option: SelectItem) => {
+  const cityDropDownHandler = (newValue: unknown) => {
+    const option = newValue as SelectItem;
+
     const v = option?.value ?? null;
     setCityId(v);
     setPincodeId(null);
@@ -125,7 +140,11 @@ const LocationMaster = () => {
     if (v) getPinCodeName(v);
   };
 
-  const pinCodeDropDownHandler = (option: SelectItem) => setPincodeId(option?.value ?? null);
+  const pinCodeDropDownHandler = (newValue: unknown) => {
+    const option = newValue as SelectItem;
+
+    setPincodeId(option?.value ?? null);
+  };
 
   const countrySelectOption = countryList.map(c => ({
     value: c.countryId,
@@ -137,7 +156,10 @@ const LocationMaster = () => {
     label: d.districtName,
   }));
   const citySelectOption = cityList.map(c => ({ value: c.cityId, label: c.cityName }));
-  const pinCodeSelectOption = pinCodeList.map(p => ({ value: p.pincodeId, label: p.pincode }));
+  const pinCodeSelectOption = pinCodeList.map((p: PinCodeItem) => ({
+    value: p.pincodeId,
+    label: p.pincode,
+  }));
 
   const selectedCountryOption = countrySelectOption.find(o => o.value === countryId) || null;
   const selectedStateOption = stateSelectOption.find(o => o.value === stateId) || null;
@@ -145,7 +167,7 @@ const LocationMaster = () => {
   const selectedCityOption = citySelectOption.find(o => o.value === cityId) || null;
   const selectedPinCodeOption = pinCodeSelectOption.find(o => o.value === pincodeId) || null;
 
-  const popupHandler = ({ type }) => {
+  const popupHandler = ({ type }: { type: string }) => {
     setPopupValue({
       type,
       countryId: selectedCountryOption?.value ?? null,

@@ -1,3 +1,4 @@
+import BankMaster from "../bankMaster";
 import BranchMaster from "../branchMaster";
 import Dashboard from "../dashboard";
 import HeaderFooterMaster from "../headerFooterMaster";
@@ -20,4 +21,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "branch-master": <BranchMaster />,
   "location-master": <LocationMaster />,
   "header-footer-master": <HeaderFooterMaster />,
+  "bank-master": <BankMaster />,
 };

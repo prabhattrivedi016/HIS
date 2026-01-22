@@ -1,14 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
+import {
+  CityItem,
+  CityPopUpItem,
+  DistrictItem,
+  DistrictPopUpItem,
+  LocationMasterDrawerProps,
+  PinCodeItem,
+  PinCodePopUpItem,
+  StateItem,
+  StatePopUpItem,
+} from "../types";
 
-const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
+const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [stateForm, setStateForm] = useState({
     stateId: 0,
@@ -41,7 +53,9 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
 
   const isEditMode = Boolean(data?.value);
 
-  const extractHeader = data => {
+  const extractHeader = (
+    data: StatePopUpItem | DistrictPopUpItem | CityPopUpItem | PinCodePopUpItem
+  ) => {
     if (!data?.type) return "Add New";
 
     switch (data.type) {
@@ -77,7 +91,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
         params: { countryId: data.countryId, isActive: 1 },
       }
     );
-    const state = resp?.data?.find(s => s?.stateId === data?.stateId);
+    const state = resp?.data?.find((s: StateItem) => s?.stateId === data?.stateId);
     setStateForm({
       stateId: state?.stateId,
       countryId: state?.countryId,
@@ -94,7 +108,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
       { params: { stateId: data?.stateId, isActive: 1 } }
     );
     if (!res) return;
-    const dist = res?.data?.find(d => d?.districtId === data?.districtId);
+    const dist = res?.data?.find((d: DistrictItem) => d?.districtId === data?.districtId);
     setDistrictForm({
       districtId: dist?.districtId,
       stateId: dist?.stateId,
@@ -112,7 +126,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
       { params: { districtId: data?.districtId, isActive: 1 } }
     );
     if (!res) return;
-    const city = res?.data?.find(c => c?.cityId === data?.cityId);
+    const city = res?.data?.find((c: CityItem) => c?.cityId === data?.cityId);
 
     setCityForm({
       cityId: city?.cityId,
@@ -135,7 +149,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
       { params: { cityId: data?.cityId } }
     );
 
-    const pin = res?.data?.find(p => p?.pincodeId === data?.pincodeId);
+    const pin = res?.data?.find((p: PinCodeItem) => p?.pincodeId === data?.pincodeId);
 
     setPinCodeForm({
       pincodeId: pin?.pincodeId,
@@ -178,7 +192,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
   ]);
 
   /*--------------------------------form handler----------------------- */
-  const stateHandler = e => {
+  const stateHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setStateForm(prev => ({
       ...prev,
@@ -186,7 +200,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
     }));
   };
 
-  const districtHandler = e => {
+  const districtHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setDistrictForm(prev => ({
       ...prev,
@@ -194,7 +208,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
     }));
   };
 
-  const cityHandler = e => {
+  const cityHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setCityForm(prev => ({
       ...prev,
@@ -202,7 +216,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
     }));
   };
 
-  const pinCodeHandler = e => {
+  const pinCodeHandler = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setPinCodeForm(prev => ({
       ...prev,
@@ -211,82 +225,123 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
   };
 
   /*-----------------------------submit handlers------------------------------------- */
-  const submitStateHandler = async e => {
+  const submitStateHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_STATE_MASTER, stateForm);
-    if (!response) return;
-    setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
 
-    setTimeout(() => {
-      onCloseTab();
-    }, 1000);
-    setStateForm({
-      stateId: 0,
-      countryId: data?.countryId,
-      stateName: "",
-      isActive: null,
-    });
+    setIsSubmitting(true);
+    if (!stateForm?.stateName || !stateForm?.isActive) return;
+
+    try {
+      const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_STATE_MASTER, stateForm);
+      if (!response) return;
+      setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
+
+      setTimeout(() => {
+        onCloseTab();
+      }, 1000);
+      setStateForm({
+        stateId: 0,
+        countryId: data?.countryId,
+        stateName: "",
+        isActive: null,
+      });
+    } catch (error) {
+      console.error("Error while submitting State", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const submitDistrictHandler = async e => {
+  const submitDistrictHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_DISTRICT_MASTER, districtForm);
-    if (!response) return;
-    setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
+    if (!districtForm?.districtName || !districtForm?.isActive) return;
 
-    setTimeout(() => {
-      onCloseTab();
-    }, 1000);
-    setDistrictForm({
-      districtId: 0,
-      stateId: data?.stateId,
-      countryId: data?.countryId,
-      districtName: "",
-      isActive: null,
-    });
+    try {
+      const response = await fetchApi(
+        "POST",
+        ENDPOINTS.CREATE_UPDATE_DISTRICT_MASTER,
+        districtForm
+      );
+      if (!response) return;
+      setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
+
+      setTimeout(() => {
+        onCloseTab();
+      }, 1000);
+      setDistrictForm({
+        districtId: 0,
+        stateId: data?.stateId,
+        countryId: data?.countryId,
+        districtName: "",
+        isActive: null,
+      });
+    } catch (error) {
+      console.error("Error while submitting District", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const submitCityHandler = async e => {
+  const submitCityHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_CITY_MASTER, cityForm);
-    if (!response) return;
-    setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
+    if (!cityForm?.cityName || !cityForm?.isActive) return;
 
-    setTimeout(() => {
-      onCloseTab();
-    }, 1000);
+    try {
+      const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_CITY_MASTER, cityForm);
+      if (!response) return;
+      setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
 
-    setCityForm({
-      cityId: 0,
-      districtId: data?.districtId,
-      stateId: data?.stateId,
-      countryId: data?.countryId,
-      cityName: "",
-      pincode: "",
-      isActive: null,
-    });
+      setTimeout(() => {
+        onCloseTab();
+      }, 1000);
+
+      setCityForm({
+        cityId: 0,
+        districtId: data?.districtId,
+        stateId: data?.stateId,
+        countryId: data?.countryId,
+        cityName: "",
+        pincode: "",
+        isActive: null,
+      });
+    } catch (error) {
+      console.error("Error while submitting City", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const submitPinCodeHandler = async e => {
+  const submitPinCodeHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_PINCODE_MASTER, pinCodeForm);
-    if (!response) return;
+    if (!pinCodeForm?.pincode || !pinCodeForm?.isActive) return;
 
-    setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
+    try {
+      const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_PINCODE_MASTER, pinCodeForm);
+      if (!response) return;
 
-    setTimeout(() => {
-      onCloseTab();
-    }, 1000);
+      setSuccessMessage(isEditMode ? "Updated successfully" : "Created successfully");
 
-    setPinCodeForm({
-      pincodeId: 0,
-      cityId: data?.cityId,
-      pincode: "",
-      isActive: null,
-    });
+      setTimeout(() => {
+        onCloseTab();
+      }, 1000);
+
+      setPinCodeForm({
+        pincodeId: 0,
+        cityId: data?.cityId,
+        pincode: "",
+        isActive: null,
+      });
+    } catch (error) {
+      console.error("Error while submitting PinCode", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /*---------------------------render form based on condition------------------------ */
@@ -304,11 +359,15 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 onChange={stateHandler}
                 name="stateName"
               />
+
+              {!stateForm?.stateName && isSubmitting && (
+                <p className="input-field-error">State Name is required</p>
+              )}
             </InputField>
             <InputField label="Status" required>
               <select
                 className="input-field"
-                value={stateForm?.isActive}
+                value={stateForm?.isActive ?? ""}
                 name="isActive"
                 onChange={stateHandler}
               >
@@ -316,6 +375,9 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
+              {!stateForm?.isActive && isSubmitting && (
+                <p className="input-field-error">Status is required</p>
+              )}
             </InputField>
             <div className="flex gap-3 mt-6">
               <button type="submit" className="submit-btn">
@@ -340,11 +402,14 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 onChange={districtHandler}
                 name="districtName"
               />
+              {!districtForm?.districtName && isSubmitting && (
+                <p className="input-field-error">District Name is required</p>
+              )}
             </InputField>
             <InputField label="Status" required>
               <select
                 className="input-field"
-                value={districtForm?.isActive}
+                value={districtForm?.isActive ?? ""}
                 onChange={districtHandler}
                 name="isActive"
               >
@@ -352,6 +417,9 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
+              {!districtForm?.isActive && isSubmitting && (
+                <p className="input-field-error">Status is required</p>
+              )}
             </InputField>
             <div className="flex gap-3 mt-6">
               <button type="submit" className="submit-btn">
@@ -376,18 +444,24 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 value={cityForm?.cityName}
                 name="cityName"
               />
+              {!cityForm?.cityName && isSubmitting && (
+                <p className="input-field-error">City Name is required</p>
+              )}
             </InputField>
             <InputField label="Status" required>
               <select
                 className="input-field"
                 onChange={cityHandler}
-                value={cityForm?.isActive}
+                value={cityForm?.isActive ?? ""}
                 name={"isActive"}
               >
                 <option value="">Select</option>
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
+              {!cityForm?.isActive && isSubmitting && (
+                <p className="input-field-error">Status is required</p>
+              )}
             </InputField>
             <div className="flex gap-3 mt-6">
               <button type="submit" className="submit-btn">
@@ -412,19 +486,25 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
                 name="pincode"
                 value={pinCodeForm?.pincode}
               />
+              {!pinCodeForm?.pincode && isSubmitting && (
+                <p className="input-field-error">PinCode is required</p>
+              )}
             </InputField>
 
             <InputField label="Status" required>
               <select
                 className="input-field"
                 onChange={pinCodeHandler}
-                value={pinCodeForm?.isActive}
+                value={pinCodeForm?.isActive ?? ""}
                 name={"isActive"}
               >
                 <option value="">Select</option>
                 <option value={1}>Active</option>
                 <option value={0}>Select</option>
               </select>
+              {!pinCodeForm?.isActive && isSubmitting && (
+                <p className="input-field-error">Status is required</p>
+              )}
             </InputField>
             <div className="flex gap-3 mt-6">
               <button type="submit" className="submit-btn">
@@ -466,4 +546,4 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }) => {
   );
 };
 
-export default LocationMasterDrawer;
+export default React.memo(LocationMasterDrawer);

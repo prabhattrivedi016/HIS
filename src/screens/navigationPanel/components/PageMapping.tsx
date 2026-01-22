@@ -268,7 +268,6 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
 
       <div
         className={`drawer-layout drawer-bg 
-        w-full sm:w-[380px] md:w-[450px] lg:w-[520px]
         ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex items-start justify-between p-4 gap-4">

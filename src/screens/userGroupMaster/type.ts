@@ -26,9 +26,18 @@ type SearchHandlerProps = {
   selectedValue: string;
 };
 
+type UserItem = {
+  isGranted: number;
+  groupId: number;
+  userId: number;
+  groupName: string;
+  userName: string;
+};
+
 export type {
   FormSubmitProps,
   SearchHandlerProps,
   updateUserGroupStatusProps,
   UserGroupDrawerProps,
+  UserItem,
 };

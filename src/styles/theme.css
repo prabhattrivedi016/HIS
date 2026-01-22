@@ -71,6 +71,9 @@
 .close-drawer-btn {
   @apply text-gray-600 hover:text-black text-3xl leading-none;
 }
+.btn-not-allowed {
+  @apply bg-gray-400 cursor-not-allowed;
+}
 
 /* header theme */
 .header-bg {

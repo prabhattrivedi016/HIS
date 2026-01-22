@@ -172,3 +172,29 @@ export interface PickMasterItem {
   value: string;
   key: Number;
 }
+
+//branch
+export interface BranchItem {
+  branchId: number;
+  branchName: string;
+}
+
+export interface AuthItem {
+  value: string;
+  key: string;
+}
+
+type ChildProps = {
+  branchId: number | null;
+  typeId: number | null;
+  userId: number | null;
+};
+
+type PageAccessProps = {
+  branchId: number | null;
+  typeId: number | null;
+  userId: number | null;
+  roleId?: number | null;
+};
+
+export type { ChildProps, PageAccessProps };
