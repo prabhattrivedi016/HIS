@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState } from "react";
+import React, { ChangeEvent, useMemo, useState } from "react";
 import InputField from "../../../components/customInputField";
 import { FILE_UPLOAD_RULES } from "../../../constants/constants";
 import useGetBranchList from "../../../hooks/useGetBranchList";
@@ -60,11 +60,6 @@ const DoctorSignature = () => {
   const handleDoctorSignature = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.signDoc) {
-      alert("Please upload signature file");
-      return;
-    }
-
     const payload = new FormData();
     payload.append("branchId", String(formData.branchId));
     payload.append("docName", formData.docName);
@@ -75,8 +70,6 @@ const DoctorSignature = () => {
     for (const [key, value] of payload.entries()) {
       console.log(key, value);
     }
-
-    // send to backend here
   };
 
   return (
@@ -84,7 +77,7 @@ const DoctorSignature = () => {
       <form onSubmit={handleDoctorSignature}>
         <h2 className="mb-4 text-xl font-semibold">Doctor Signature </h2>
 
-        <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="form-grid-4">
           <InputField label="Branch Name">
             <select
               className="input-field"
@@ -133,8 +126,6 @@ const DoctorSignature = () => {
               value={formData?.yAxis}
             />
           </InputField>
-        </div>
-        <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
           <InputField label="Signature Upload">
             <input
               type="file"
@@ -143,7 +134,7 @@ const DoctorSignature = () => {
               name="signDoc"
               className="file-upload"
             />
-            {fileError && <p className="mt-1 text-sm text-red-600">{fileError}</p>}
+            {fileError && <p className="input-field-error">{fileError}</p>}
           </InputField>
         </div>
         <button type="submit" className="grid-active-btn">
@@ -154,4 +145,4 @@ const DoctorSignature = () => {
   );
 };
 
-export default DoctorSignature;
+export default React.memo(DoctorSignature);

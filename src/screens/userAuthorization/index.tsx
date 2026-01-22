@@ -1,78 +1,140 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select from "react-select";
 import InputField from "../../components/customInputField";
 import CustomLoader from "../../components/customLoader";
 import { SelectStyles } from "../../components/customSelect";
+import ToggleButton from "../../components/toggleButton";
 import { ENDPOINTS } from "../../config/defaults";
+import { Active, DefaultBranch } from "../../constants/constants";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { usePickMaster } from "../../hooks/usePickMaster";
-import Table from "./components/Table";
-
+import CorporateMapping from "./components/CorporateMapping";
+import PageAccess from "./components/PageAccess";
+import RoomMapping from "./components/RoomMapping";
+import UserDashboard from "./components/UserDashboard";
+import UserRightData from "./components/UserRightData";
 import {
-  FilteredData,
-  PickMasterValueItem,
+  AuthItem,
+  BranchItem,
   RoleDataItem,
   SelectItem,
-  TableData,
   UserGroupGroupItem,
   UserGroupRoleItem,
 } from "./types";
 
 const UserAuthorization = () => {
-  const { branchList } = useGetBranchList();
-  const { pickMasterValue } = usePickMaster({ fieldName: "AuthorizationType" });
+  /*---------------------------branch lists------------------ */
 
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [successMessage, setSuccessMessage] = useState<string>("");
+  const branchLists = useGetBranchList();
+  const { pickMasterValue } = usePickMaster({ fieldName: "AuthorizationType" });
 
-  const [groupType, setGroupType] = useState<PickMasterValueItem | null>(null);
-  const [userGroupGrantedList, setUserGroupGrantedList] = useState<
-    (UserGroupRoleItem | UserGroupGroupItem)[]
-  >([]);
-
-  const [branchId, setBranchId] = useState<number>(1);
+  const [branchId, setBranchId] = useState<number | null>(null);
   const [typeId, setTypeId] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
-  const [roleId, setRoleId] = useState<number | null>(0);
-  const [pageView, setPageView] = useState(false);
-
-  const [filteredData, setFilteredData] = useState<FilteredData>([]);
-  const [selectedButton, setSelectedButton] = useState("");
-
-  const [userRightsDropdown, setUserRightsDropdown] = useState(false);
-  const [userRightsGrantedRoles, setUserRightGrantedRoles] = useState<RoleDataItem[]>([]);
-
-  const [tableData, setTableData] = useState<TableData | null>(null);
-
-  const [selectedUser, setSelectedUser] = useState<SelectItem | null>(null);
+  const [roleId, setRoleId] = useState<number | null>(null);
+  const [groupType, setGroupType] = useState<AuthItem | null>(null);
+  const [userGroupGrantedList, setUserGroupGrantedList] = useState<
+    UserGroupGroupItem[] | UserGroupRoleItem[] | null
+  >(null);
+  const [selectedUserGroup, setSelectedUserGroup] = useState<SelectItem | null>(null);
   const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
+  const [pageView, setPageView] = useState<boolean>(false);
+  const [selectedButton, setSelectedButton] = useState<string>("");
+  const [filteredData, setFilteredData] = useState<RoleDataItem[]>([]);
+  const [showRoleSelect, setShowRoleSelect] = useState<boolean>(false);
+  const [roleData, setRoleData] = useState<RoleDataItem[]>([]);
 
-  const roleSelectRef = useRef<any>(null);
-  const rightSelectRef = useRef<any>(null);
+  // branches
+  const branches = useMemo(() => branchLists?.branchList?.data, [branchLists]);
 
-  const branchChangeHandler = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      setBranchId(Number(e.target.value));
-      setTypeId(null);
-      setUserId(null);
-      setRoleId(null);
-      setSelectedUser(null);
+  const defaultBranch = useMemo<BranchItem | undefined>(() => {
+    return branches?.find((b: BranchItem) => b.branchId === DefaultBranch.BRANCH);
+  }, [branches]);
+
+  useEffect(() => {
+    if (defaultBranch?.branchId && branchId === null) {
+      setBranchId(defaultBranch?.branchId);
+    }
+  }, [defaultBranch, branchId]);
+
+  //authorization type
+  const authSelectOption = useMemo(() => pickMasterValue?.data ?? [], [pickMasterValue]);
+
+  /*------------------------------------ handler------------------------- */
+  const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    setBranchId(Number(e.target.value) ?? null);
+    setPageView(false);
+    setSelectedUserGroup(null);
+    setSelectedRole(null);
+    setTypeId(null);
+    setUserId(null);
+    setRoleId(null);
+    setShowRoleSelect(false);
+  };
+
+  const authChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const selectedKey = e.target.value;
+
+    setTypeId(Number(selectedKey));
+
+    const selectedGroup = pickMasterValue?.data?.find(
+      (o: AuthItem) => String(o.key) === selectedKey
+    );
+
+    setGroupType(selectedGroup ?? {});
+    setSelectedUserGroup(null);
+    setPageView(false);
+    setShowRoleSelect(false);
+  };
+
+  useEffect(() => {
+    if (!groupType?.value) return;
+
+    groupType.value === "Group Wise" ? getGroupList() : getUserList();
+  }, [groupType]);
+
+  //user group or user master options for select dropdown
+  const userSelectOptions = useMemo(() => {
+    return (
+      userGroupGrantedList?.map((u: UserGroupGroupItem | UserGroupRoleItem) => ({
+        value: u?.id,
+        label: "firstName" in u ? u.firstName : u.groupName,
+      })) || []
+    );
+  }, [userGroupGrantedList]);
+
+  //selected user or groups
+  const selectUserGroupHandlerToBindRoles = useCallback(
+    (option: unknown) => {
+      const selectedOption = option as SelectItem | null;
+      setSelectedUserGroup(selectedOption);
+      setUserId(selectedOption?.value ?? null);
       setSelectedRole(null);
-      setPageView(false);
+      setShowRoleSelect(false);
     },
-    [branchId]
+    [selectedUserGroup]
   );
 
+  useEffect(() => {
+    if (!selectedUserGroup) return;
+
+    fetchRolesForUser(selectedUserGroup?.value);
+  }, [selectedUserGroup]);
+
+  /*----------------------------------api calls------------------------------- */
   // fetch group list
   const getGroupList = async () => {
     const response = await fetchApi("GET", ENDPOINTS.USER_GROUP_LIST);
 
     if (!response) return;
 
-    setUserGroupGrantedList(response?.data?.filter((g: UserGroupGroupItem) => g.isActive === 1));
+    setUserGroupGrantedList(
+      response?.data?.filter((g: UserGroupGroupItem) => g.isActive === Active?.isActive) ?? []
+    );
   };
 
   // fetch user list
@@ -80,59 +142,16 @@ const UserAuthorization = () => {
     const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST);
     if (!response) return;
 
-    setUserGroupGrantedList(response?.data?.filter((u: UserGroupRoleItem) => u.isActive === 1));
+    setUserGroupGrantedList(
+      response?.data?.filter((u: UserGroupRoleItem) => u.isActive === Active?.isActive) ?? []
+    );
   };
 
-  // authorization type for userList or groupList
-  const typeHandler = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      const id = Number(e.target.value);
-
-      setTypeId(id);
-
-      const selectedType =
-        pickMasterValue?.data?.find((t: PickMasterValueItem) => t?.key === String(id)) ?? null;
-
-      setGroupType(selectedType);
-      roleSelectRef.current?.clearValue();
-
-      setUserGroupGrantedList([]);
-      setFilteredData([]);
-      setSelectedButton("");
-      setUserRightsDropdown(false);
-      setPageView(false);
-      setSelectedRole(null);
-      setSelectedUser(null);
-
-      if (!selectedType) return;
-
-      selectedType.value === "Group Wise" ? getGroupList() : getUserList();
-    },
-    [pickMasterValue, getGroupList, getUserList]
-  );
-
-  //user group or user master options for select dropdown
-  const userSelectOptions = useMemo(() => {
-    return (
-      userGroupGrantedList?.map((u: UserGroupGroupItem | UserGroupRoleItem) => ({
-        value: u?.id,
-        label: u?.firstName || u?.groupName,
-      })) || []
-    );
-  }, [userGroupGrantedList]);
-
-  //role dropdown select option
-  const roleSelectOption = useMemo(
-    () =>
-      userRightsGrantedRoles?.map(r => ({
-        value: r?.roleId,
-        label: r?.roleName,
-      })) || [],
-    [userRightsGrantedRoles]
-  );
-
+  //user list role data
   const fetchRolesForUser = useCallback(
     async (uid: number) => {
+      setSelectedButton("roles");
+      setPageView(true);
       const response = await fetchApi(
         "GET",
         ENDPOINTS.GET_ASSIGN_ROLES_FOR_USER_AUTHORIZATION,
@@ -140,245 +159,273 @@ const UserAuthorization = () => {
         { params: { branchId, typeId, userId: uid } }
       );
 
-      const data = response?.data ?? [];
-
-      setTableData({
-        type: "roleName",
-        branchId,
-        typeId: typeId!,
-        userId: uid,
-        data,
-      });
-
-      setFilteredData(data);
-      setUserRightGrantedRoles(data.filter(r => r.isGranted === 1));
+      setFilteredData(response?.data ?? []);
+      setRoleData(response?.data ?? []);
     },
-    [branchId, typeId, fetchApi]
+    [branchId, typeId]
   );
 
-  const rolesButtonHandler = useCallback(() => {
-    if (!userId) return;
+  //select option for roles
+  const roleSelectOption = useMemo(() => {
+    return (
+      roleData?.map((r: RoleDataItem) => ({
+        value: r?.roleId,
+        label: r?.roleName,
+      })) || []
+    );
+  }, [roleData]);
 
+  const roleSelectHandler = (selected: { label: string; value: number }) => {
+    setRoleId(selected?.value);
+    setSelectedRole(selected);
+  };
+  /*---------------------button handlers---------------------- */
+
+  const roleButtonHandler = async () => {
     setSelectedButton("roles");
-    setUserRightsDropdown(false);
-    setRoleId(0);
+    setShowRoleSelect(false);
+    setRoleId(null);
 
-    fetchRolesForUser(userId);
-  }, [userId, fetchRolesForUser]);
+    if (!selectedUserGroup?.value) return;
 
-  const selectUserGroupHandlerToBindRoles = useCallback(
-    async (selected: { value: number; label: string } | null) => {
-      const uid = selected?.value;
-      setSelectedUser(selected);
-      setSelectedRole(null);
-      if (!uid) return;
-
-      setPageView(true);
-      setUserId(uid);
-      setSelectedButton("roles");
-      setUserRightsDropdown(false);
-      rightSelectRef.current?.clearValue();
-
-      fetchRolesForUser(uid);
-    },
-    [fetchRolesForUser]
-  );
-
-  const fetchUserRightData = useCallback(
-    async (selectedRoleId: number) => {
-      const response = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_ASSIGN_USER_RIGHT_MAPPING,
-        {},
-        { params: { branchId, typeId, userId, roleId: selectedRoleId } }
-      );
-
-      const data = response?.data ?? [];
-
-      setTableData({
-        type: "userRightName",
-        branchId,
-        typeId: typeId!,
-        userId: userId!,
-        roleId: selectedRoleId,
-        data,
-      });
-
-      setFilteredData(data);
-    },
-    [branchId, typeId, userId, fetchApi]
-  );
-
-  const userRightsButtonHandler = useCallback(() => {
-    setSelectedButton("userRight");
-    setUserRightsDropdown(true);
-    setRoleId(0);
-    rightSelectRef.current?.clearValue();
-    setSelectedRole(null);
-
-    if (roleId) fetchUserRightData(roleId);
-  }, [roleId, fetchUserRightData]);
-
-  const userRightsDropdownHandler = useCallback(
-    (selected: { value: number; label: string } | null) => {
-      if (!selected) return;
-      setSelectedRole(selected);
-
-      const rid = selected.value;
-      setRoleId(rid);
-
-      if (selectedButton === "userRight") {
-        fetchUserRightData(rid);
-      }
-
-      if (selectedButton === "userDashboard") {
-        userDashboardTableData();
-      }
-
-      if (selectedButton === "pageAccess") {
-        pageAccessTableData();
-      }
-    },
-    [selectedButton, fetchUserRightData]
-  );
-
-  //user dashboard table data
-  const userDashboardTableData = async () => {
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ASSIGN_DASHBOARD_USER_RIGHT,
-      {},
-      { params: { branchId, typeId, userId, roleId } }
-    );
-
-    setTableData({
-      type: "userDashboard",
-      branchId,
-      typeId: typeId!,
-      userId: userId!,
-      roleId,
-      data: response?.data ?? [],
-    });
-
-    setFilteredData(response?.data ?? []);
+    await fetchRolesForUser(selectedUserGroup.value);
   };
 
-  //user dashboard handler
-  const userDashboardHandler = async () => {
-    setSelectedButton("userDashboard");
-    setUserRightsDropdown(true);
-    setRoleId(0);
-    rightSelectRef.current?.clearValue();
-    setSelectedRole(null);
-  };
-
-  // page access table data
-  const pageAccessTableData = async () => {
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_USER_WISE_MENU_MASTER,
-      {},
-      { params: { branchId, typeId, userId, roleId } }
-    );
-
-    setTableData({
-      type: "pageAccess",
-      branchId,
-      typeId: typeId!,
-      userId: userId!,
-      roleId,
-      data: response?.data ?? [],
-    });
-
-    setFilteredData(response?.data ?? []);
-  };
-
-  // page access handler
-  const pageAccessHandler = async () => {
-    setSelectedButton("pageAccess");
-    setUserRightsDropdown(true);
-    setRoleId(0);
-    rightSelectRef.current?.clearValue();
+  const userRightsButtonHandler = () => {
+    setShowRoleSelect(true);
     setSelectedRole(null);
     setRoleId(null);
+
+    setSelectedButton("userRights");
   };
 
-  useEffect(() => {
-    if (!branchId || !typeId || !userId) return;
+  const userDashboardHandler = () => {
+    setShowRoleSelect(true);
+    setSelectedRole(null);
+    setRoleId(null);
 
-    switch (selectedButton) {
-      case "userRight":
-        fetchUserRightData(roleId);
-        break;
+    setSelectedButton("userDashboard");
+  };
 
-      case "userDashboard":
-        userDashboardTableData();
-        break;
+  const pageAccessHandler = () => {
+    setShowRoleSelect(true);
+    setSelectedRole(null);
+    setRoleId(null);
 
-      case "pageAccess":
-        pageAccessTableData();
-        break;
+    setSelectedButton("pageAccess");
+  };
 
-      default:
-        break;
-    }
-  }, [selectedButton, roleId, branchId, typeId, userId]);
+  const corporateMappingHandler = () => {
+    setShowRoleSelect(false);
+    setSelectedRole(null);
+    setRoleId(null);
 
-  // corporate mapping handler
-  const corporateMappingHandler = async () => {
     setSelectedButton("corporateMapping");
-    setUserRightsDropdown(false);
-    setRoleId(0);
+  };
+  const roomMappingHandler = () => {
+    setShowRoleSelect(false);
+    setSelectedRole(null);
+    setRoleId(null);
 
-    if (!branchId || !typeId || !userId) return;
-
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_USER_WISE_CORPORATE_MAPPING,
-      {},
-      { params: { branchId, typeId, userId } }
-    );
-
-    setTableData({
-      type: "corporateMapping",
-      branchId,
-      typeId,
-      userId,
-      roleId,
-      data: response?.data ?? [],
-    });
-
-    setFilteredData(response?.data ?? []);
+    setSelectedButton("roomMapping");
   };
 
-  // user bed mapping handler
-  const userBedMappingHandler = async () => {
-    setSelectedButton("bedMapping");
-    setUserRightsDropdown(false);
-    setRoleId(0);
+  /*--------------------------role handlers---------------------------- */
 
-    const response = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_USER_WISE_BED_MAPPING,
-      {},
-      { params: { branchId, typeId, userId } }
+  //toggle single handler
+  const toggleSingleHandler = (id: number) => {
+    setRoleData(prev =>
+      prev.map(item =>
+        item?.roleId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+      )
     );
 
-    setTableData({
-      type: "bedMapping",
+    setFilteredData(prev =>
+      prev.map(item =>
+        item?.roleId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+      )
+    );
+  };
+
+  //toggle all handler
+  const toggleAllHandler = () => {
+    const allGranted = roleData.length > 0 && roleData.every(item => item.isGranted === 1);
+
+    const updated = roleData.map(item => ({
+      ...item,
+      isGranted: allGranted ? 0 : 1,
+    }));
+
+    setRoleData(updated);
+    setFilteredData(updated);
+  };
+
+  //search handler
+  const onSearchHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const filteredRole = roleData?.filter((u: RoleDataItem) =>
+      u?.roleName?.toLowerCase()?.includes(value?.toLowerCase())
+    );
+    setFilteredData(filteredRole);
+  };
+
+  //All handler
+  const filterAllHandler = () => {
+    setFilteredData(roleData || []);
+  };
+
+  // remaining handler
+  const remainingHandler = () => {
+    const remaining = roleData?.filter(r => r?.isGranted === 0) || [];
+    setFilteredData(remaining);
+  };
+
+  // granted
+  const grantedHandler = () => {
+    const granted = roleData.filter(item => item.isGranted === 1) || [];
+    setFilteredData(granted);
+  };
+
+  /* --------------------save------------------------- */
+  const saveRoleMappingHandler = async () => {
+    const roles = roleData
+      .filter(r => r.isGranted === 1)
+      .map(r => ({
+        branchId,
+        typeId,
+        userId,
+        roleId: r.roleId,
+      }));
+
+    const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
       branchId,
       typeId,
       userId,
-      data: response?.data ?? [],
+      userRoleMappings: roles,
     });
+  };
 
-    setFilteredData(response?.data ?? []);
+  /*------------------------------------render components------------------------- */
+  const renderTableData = (buttonType: string) => {
+    switch (buttonType) {
+      case "roles": {
+        return (
+          <div className="bg-white rounded-2xl shadow-md mt-2 p-2">
+            {/* HEADER */}
+            <div className="flex justify-between flex-wrap gap-3 mb-2">
+              <div className="flex gap-1">
+                <button className="table-header-button" onClick={filterAllHandler}>
+                  All
+                </button>
+                <button className="table-header-button" onClick={remainingHandler}>
+                  Remaining
+                </button>
+                <button className="table-header-button" onClick={grantedHandler}>
+                  Granted
+                </button>
+              </div>
+
+              <button
+                className="table-header-button text-white bg-[#0b5394]"
+                onClick={saveRoleMappingHandler}
+              >
+                Save
+              </button>
+            </div>
+
+            {/* TABLE */}
+            <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
+              <table className="min-w-full table-fixed border-collapse">
+                <thead className="bg-blue-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">#</th>
+
+                    {/* Role Name + small search */}
+                    <th className="px-5 py-3 font-semibold text-gray-700">
+                      <div className="flex items-center gap-3">
+                        <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
+                          Role Name
+                        </span>
+                        <input
+                          className="input-field h-10 max-w-[250px] text-sm ml-20 "
+                          placeholder="search..."
+                          onChange={onSearchHandler}
+                        />
+                      </div>
+                    </th>
+
+                    {/* Toggle All */}
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700 w-32">
+                      <ToggleButton
+                        disabled={filteredData?.length === 0}
+                        checked={
+                          filteredData?.length > 0 &&
+                          filteredData?.every(item => item?.isGranted === 1)
+                        }
+                        onClick={toggleAllHandler}
+                      />
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredData.length > 0 ? (
+                    filteredData.map((item, idx) => (
+                      <tr key={item.roleId} className="border-t border-gray-200 hover:bg-gray-50">
+                        <td className="px-4 py-3">{idx + 1}</td>
+                        <td className="px-4 py-3">{item.roleName}</td>
+                        <td className="px-4 py-3 text-center">
+                          <ToggleButton
+                            checked={item?.isGranted === 1}
+                            onClick={() => toggleSingleHandler(item?.roleId)}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-gray-500 italic">
+                        No data found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {loading && <CustomLoader isLoading={loading} />}
+          </div>
+        );
+      }
+      case "userRights": {
+        return (
+          <UserRightData branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />
+        );
+      }
+      case "userDashboard": {
+        return (
+          <UserDashboard branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />
+        );
+      }
+      case "pageAccess": {
+        return <PageAccess branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />;
+      }
+      case "corporateMapping": {
+        return <CorporateMapping branchId={branchId} typeId={typeId} userId={userId} />;
+      }
+      case "roomMapping": {
+        return <RoomMapping branchId={branchId} typeId={typeId} userId={userId} />;
+      }
+      default:
+        return;
+    }
   };
 
   return (
     <div className="bg-gray-50 min-h-screen px-3 py-4">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900">User Authorization</h1>
+
         <nav className="text-sm text-gray-500 flex gap-2 mt-1">
           <NavLink to="/dashboard" className="hover:underline">
             Home
@@ -386,91 +433,86 @@ const UserAuthorization = () => {
           <span>››</span>
           <span>User Authorization</span>
         </nav>
-      </div>
 
-      <div
-        className={`grid grid-cols-1 sm:grid-cols-2 ${
-          userRightsDropdown ? "lg:grid-cols-4" : "lg:grid-cols-4"
-        } gap-4 bg-white rounded-xl p-4 shadow-md`}
-      >
-        <InputField label="Branch Name">
-          <select className="input-field" onChange={branchChangeHandler} value={branchId}>
-            {branchList?.data?.map(b => (
-              <option key={b.branchId} value={b.branchId}>
-                {b.branchName}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white rounded-xl p-4 shadow-md mt-4">
+          <InputField label="Branch Name" required>
+            <select className="input-field" onChange={branchChangeHandler} value={branchId ?? ""}>
+              <option value="" disabled>
+                Select
               </option>
-            ))}
-          </select>
-        </InputField>
-
-        <InputField label="Authorization Type">
-          <select className="input-field" value={typeId || ""} onChange={typeHandler}>
-            <option value="">Select Type</option>
-
-            {pickMasterValue?.data?.map((t: PickMasterValueItem) => (
-              <option key={t?.id} value={t?.key}>
-                {t?.value}
-              </option>
-            ))}
-          </select>
-        </InputField>
-
-        <InputField
-          label={
-            groupType?.value
-              ? groupType.value === "User Wise"
-                ? "Users"
-                : "Groups"
-              : "Select Authorization"
-          }
-        >
-          <Select
-            // ref={roleSelectRef}
-            value={selectedUser}
-            options={userSelectOptions}
-            placeholder="Select..."
-            isSearchable
-            isClearable
-            onChange={selectUserGroupHandlerToBindRoles}
-            classNames={SelectStyles}
-            menuPortalTarget={document?.body}
-            menuPosition="fixed"
-          />
-        </InputField>
-
-        {userRightsDropdown && (
-          <InputField label="Role">
+              {branches?.map((b: BranchItem) => (
+                <option key={b.branchId} value={b.branchId}>
+                  {b.branchName}
+                </option>
+              ))}
+            </select>
+          </InputField>
+          <InputField label="Authorization Type" required>
+            <select className="input-field" onChange={authChangeHandler} value={typeId ?? ""}>
+              <option value="">Select Type</option>
+              {authSelectOption?.map((o: AuthItem) => (
+                <option key={o.key} value={o.key}>
+                  {o.value}
+                </option>
+              ))}
+            </select>
+          </InputField>
+          <InputField
+            label={
+              groupType?.value
+                ? groupType.value === "User Wise"
+                  ? "Users"
+                  : "Groups"
+                : "Select Authorization"
+            }
+          >
             <Select
-              // ref={rightSelectRef}
-              value={selectedRole}
-              options={roleSelectOption}
+              value={selectedUserGroup}
+              options={userSelectOptions}
               placeholder="Select..."
               isSearchable
               isClearable
-              onChange={userRightsDropdownHandler}
+              onChange={selectUserGroupHandlerToBindRoles}
               classNames={SelectStyles}
-              menuPortalTarget={document?.body}
+              menuPortalTarget={document.body}
               menuPosition="fixed"
             />
           </InputField>
-        )}
-      </div>
 
-      {pageView ? (
+          {!!showRoleSelect && showRoleSelect ? (
+            <InputField label="Role">
+              <Select
+                value={selectedRole}
+                options={roleSelectOption}
+                placeholder="Select..."
+                isSearchable
+                isClearable
+                onChange={roleSelectHandler}
+                classNames={SelectStyles}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+            </InputField>
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+      {pageView && (
         <>
-          <div className="flex gap-1 mt-2">
+          <div className="flex gap-1 mt-3">
             <button
               className={`table-header-button ${
                 selectedButton === "roles" ? "bg-blue-600 text-white" : ""
               }`}
-              onClick={rolesButtonHandler}
+              onClick={roleButtonHandler}
             >
               Roles
             </button>
 
             <button
               className={`table-header-button ${
-                selectedButton === "userRight" ? "bg-blue-600 text-white" : ""
+                selectedButton === "userRights" ? "bg-blue-600 text-white" : ""
               }`}
               onClick={userRightsButtonHandler}
             >
@@ -506,30 +548,20 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "bedMapping" ? "bg-blue-600 text-white" : ""
+                selectedButton === "roomMapping" ? "bg-blue-600 text-white" : ""
               }`}
-              onClick={userBedMappingHandler}
+              onClick={roomMappingHandler}
             >
               Room Mapping
             </button>
           </div>
-
-          {tableData && (
-            <Table
-              tableData={tableData}
-              filteredData={filteredData}
-              onChangeFilter={data => setFilteredData(data)}
-              onChangeMessage={setSuccessMessage}
-              selectedButton={selectedButton}
-              setTableData={setTableData}
-              onSubmitPage={setSelectedRole}
-              onRoleChange={setRoleId}
-            />
-          )}
+          {/* render components */}
+          {renderTableData(selectedButton)}
         </>
-      ) : null}
+      )}
 
-      {loading && <CustomLoader isLoading={loading} />}
+      {/* custom loader */}
+      {!!loading ? <CustomLoader isLoading={loading} /> : <></>}
     </div>
   );
 };

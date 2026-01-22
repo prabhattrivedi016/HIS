@@ -1,32 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { ArrowRightLeftIcon } from "lucide-react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { Spinner } from "../../../../assets/svgIcons";
-import Button from "../../../components/customButton";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader/index";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
-import { MapToUserDrawerProps } from "./types";
+import { UserItem } from "../type";
+import { MapToUserDrawerProps, UserGroupItem } from "./types";
 
 const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const [userGroupList, setUserGroupList] = useState([]);
-  const [grantedUsers, setGrantedUsers] = useState([]);
-  const [notGrantedUsers, setNotGrantedUsers] = useState([]);
-  const [draggedUser, setDraggedUser] = useState(null);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [pendingUsers, setPendingUsers] = useState([]);
-  const [mappedUsers, setMappedUsers] = useState([]);
+  const [userGroupList, setUserGroupList] = useState<UserGroupItem[]>([]);
+  const [grantedUsers, setGrantedUsers] = useState<UserGroupItem[]>([]);
+  const [notGrantedUsers, setNotGrantedUsers] = useState<UserGroupItem[]>([]);
+  const [draggedUser, setDraggedUser] = useState<UserItem | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [pendingUsers, setPendingUsers] = useState<UserGroupItem[]>([]);
+  const [mappedUsers, setMappedUsers] = useState<UserGroupItem[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   //  double-tap handler (for mobile & desktop touch)
   const lastTapRef = useRef(0);
-  const handleDoubleTap = callback => {
+  const handleDoubleTap = (callback: () => void) => {
     const now = Date.now();
     const timeSince = now - lastTapRef.current;
 
     if (timeSince > 0 && timeSince < 300) {
-      callback(); // double tap detected
+      callback();
     }
 
     lastTapRef.current = now;
@@ -34,23 +35,19 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
 
   // Fetch user group member list
   const getUserGroupMemberList = async () => {
-    try {
-      const response = await fetchApi(
-        "GET",
-        ENDPOINTS.USER_GROUP_MEMBER_LIST,
-        {},
-        { params: { groupId } }
-      );
+    const response = await fetchApi(
+      "GET",
+      ENDPOINTS.USER_GROUP_MEMBER_LIST,
+      {},
+      { params: { groupId } }
+    );
 
-      setUserGroupList(response?.data || []);
-    } catch (error) {
-      console.error("Error fetching user group member list");
-    }
+    setUserGroupList(response?.data ?? []);
   };
 
   useEffect(() => {
     if (groupId) getUserGroupMemberList();
-  }, []);
+  }, [groupId]);
 
   // Filter granted / not granted users
   useEffect(() => {
@@ -65,11 +62,11 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
   }, [userGroupList]);
 
   // drag handler
-  const onDragStart = user => {
+  const onDragStart = (user: UserItem) => {
     setDraggedUser(user);
   };
 
-  const onDragOver = e => e.preventDefault();
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => e.preventDefault();
 
   const onDropGranted = () => {
     if (!draggedUser) return;
@@ -96,7 +93,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
   };
 
   // double click / double tap handler
-  const onUserDoubleClick = (user, isGranted) => {
+  const onUserDoubleClick = (user: UserItem, isGranted: boolean) => {
     if (isGranted) {
       setNotGrantedUsers(prev => [...prev, user]);
       setGrantedUsers(prev => prev.filter(u => u.userId !== user.userId));
@@ -118,30 +115,29 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
       groupId,
       userIds: grantedUsers.map(user => user.userId),
     };
-    try {
-      const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_USER_GROUP_MEMBER, payload);
-      if (!response) return;
-      setSuccessMessage(response?.message);
-      timerRef.current = setTimeout(() => {
-        onClose();
-      }, 1200);
-    } catch (error) {
-      setSuccessMessage("");
-      console.error("Error while updating the user group member", error);
-    }
+    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_USER_GROUP_MEMBER, payload);
+    if (!response) return;
+    setSuccessMessage(response?.message);
+    timerRef.current = setTimeout(() => {
+      onClose();
+    }, 1200);
   };
 
   useEffect(() => {
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
   }, []);
 
   // search filter
-  const filterUsers = (value, users) => {
+  const filterUsers = (value: string, users: UserItem[]) => {
     return users.filter(user => user?.userName?.toLowerCase().includes(value));
   };
 
   // mapped search
-  const onChangeMappedUser = e => {
+  const onChangeMappedUser = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim().toLowerCase();
 
     if (!value) {
@@ -153,7 +149,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
   };
 
   // pending search
-  const onChangePendingUser = e => {
+  const onChangePendingUser = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim().toLowerCase();
 
     if (!value) {
@@ -164,8 +160,29 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
     setPendingUsers(filterUsers(value, notGrantedUsers));
   };
 
+  const moveAll = () => {
+    // move pending → mapped
+    if (pendingUsers.length > 0) {
+      setGrantedUsers(prev => [...prev, ...pendingUsers]);
+      setMappedUsers(prev => [...prev, ...pendingUsers]);
+
+      setNotGrantedUsers([]);
+      setPendingUsers([]);
+      return;
+    }
+
+    // move mapped → pending
+    if (mappedUsers.length > 0) {
+      setNotGrantedUsers(prev => [...prev, ...mappedUsers]);
+      setPendingUsers(prev => [...prev, ...mappedUsers]);
+
+      setGrantedUsers([]);
+      setMappedUsers([]);
+    }
+  };
+
   return (
-    <div className={`fixed inset-0 z-999 overflow-hidden`}>
+    <div className="drawer-container">
       <div
         className={`drawer-bg-fade
         ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
@@ -173,8 +190,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
       />
 
       <div
-        className={`drawer-layout drawer-bg
-          w-full sm:w-[380px] md:w-[450px] lg:w-[520px]
+        className={`drawer-layout drawer-bg   
           ${isOpen ? "translate-x-0" : "translate-x-full"}
         `}
       >
@@ -219,6 +235,17 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
                 ))}
               </div>
 
+              {/* single button to move all */}
+              <div className="flex flex-col justify-center items-center gap-1 ">
+                <button
+                  className="submit-btn px-3 py-2"
+                  onClick={moveAll}
+                  disabled={pendingUsers.length === 0 && mappedUsers.length === 0}
+                >
+                  <ArrowRightLeftIcon size={20} />
+                </button>
+              </div>
+
               {/* granted users */}
               <div className="box-border" onDragOver={onDragOver} onDrop={onDropGranted}>
                 <InputField>
@@ -252,7 +279,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
             </div>
 
             <div className=" p-3">
-              <Button variant="primary" className="w-full" onClick={handleSave}>
+              <button className="w-full submit-btn" onClick={handleSave}>
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <Spinner />
@@ -261,7 +288,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
                 ) : (
                   "Save"
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

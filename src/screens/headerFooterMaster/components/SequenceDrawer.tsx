@@ -124,7 +124,7 @@ const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerP
             {error && <ErrorMessage text={error} />}
           </div>
           <form className="" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-2">
+            <div className="form-grid-2">
               <InputField label="Name" required={true}>
                 <input
                   name="name"
@@ -148,7 +148,7 @@ const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerP
                 />
               </InputField>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="form-grid-3">
               <InputField label="Prefix" required={false}>
                 <input
                   type="text"
@@ -183,7 +183,7 @@ const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerP
                 </select>
               </InputField>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="form-grid-3">
               <InputField label="2nd Separator" required={false}>
                 <select
                   className="input-field"
@@ -228,4 +228,4 @@ const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerP
   );
 });
 
-export default SequenceDrawer;
+export default React.memo(SequenceDrawer);

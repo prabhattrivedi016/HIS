@@ -37,14 +37,25 @@
   @apply opacity-0 scale-50 -translate-x-1/2 -translate-y-1/2;
 }
 
-/* right drawer  */
-/* drawer layout */
+/* right side drawer layout */
+.drawer-container {
+  @apply fixed inset-0 z-999 overflow-hidden;
+}
 .drawer-layout {
   @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
 }
 .drawer-bg-fade {
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
           transition-opacity duration-500 ease-out;
+}
+.form-grid-4 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4;
+}
+.form-grid-3 {
+  @apply grid grid-cols-2 gap-3 mb-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+.form-grid-2 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-2;
 }
 
 /* login page */
@@ -76,5 +87,3 @@
 .card-avatar-size {
   @apply w-20 h-20 rounded-full border border-gray-300 flex items-center justify-center bg-gray-50;
 }
-
-/* className="overflow-x-auto overflow-y-auto rounded-lg border min-h-[300px] max-h-[400px];" */
