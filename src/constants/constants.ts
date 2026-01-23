@@ -30,6 +30,16 @@ export const BankDetailsTableHeader = [
   "Edit",
 ];
 
+export const VendorDetailsTableHeader = [
+  "#",
+  "Vendor Name",
+  "Contact Number",
+  "GSTIN No.",
+  "Address",
+  "Status",
+  "Edit",
+];
+
 export enum BranchId {
   DEFAULT = 1,
 }

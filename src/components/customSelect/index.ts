@@ -1,5 +1,3 @@
-import { ClassNamesConfig } from "react-select";
-
 export const SelectStyles: ClassNamesConfig = {
   container: () => "w-full",
 
@@ -13,9 +11,14 @@ export const SelectStyles: ClassNamesConfig = {
     ${isFocused ? "!border-gray-700 !ring-1 !ring-indigo-500" : ""}
     `,
 
-  valueContainer: () => "!px-4 !py-0 !h-[40px] !flex !items-center overflow-hidden",
+  valueContainer: () =>
+    "!px-4 !py-0 !h-[40px] !flex !items-center !flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide",
 
   input: () => "!m-0 !p-0 !text-sm !leading-[40px]",
+
+  multiValue: () => "!flex-shrink-0 !mr-1",
+
+  multiValueLabel: () => "!max-w-[120px] !truncate",
 
   singleValue: () => "!text-slate-900 !m-0 !p-0 !leading-[40px] !truncate",
 
@@ -27,10 +30,8 @@ export const SelectStyles: ClassNamesConfig = {
 
   indicatorSeparator: () => "!h-5 !bg-slate-300 !mx-2",
 
-  /* ❌ REMOVE CROSS BUTTON COMPLETELY */
   clearIndicator: () => "hidden",
 
-  /* 🔥 KEY FIX FOR OVERFLOW */
   menuPortal: () => "!z-[9999]",
 
   menu: () => "rounded-[10px] border border-slate-200 bg-white shadow-xl",
@@ -39,8 +40,12 @@ export const SelectStyles: ClassNamesConfig = {
 
   option: ({ isFocused, isSelected }) =>
     `
-    px-3 py-2 rounded-md cursor-pointer
-    ${isSelected ? "bg-indigo-500 text-white" : ""}
-    ${isFocused && !isSelected ? "bg-indigo-100 text-slate-900" : ""}
+    !bg-transparent
+    !text-gray-800
+    cursor-pointer
+    px-2 py-2 rounded-md
+
+    ${isFocused ? "bg-gray-100" : ""}
+    ${isSelected ? "bg-transparent" : ""}
     `,
 };
