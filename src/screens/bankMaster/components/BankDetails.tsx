@@ -182,7 +182,7 @@ const BankDetails = () => {
                   <thead className="bg-gray-100">
                     <tr>
                       {BankDetailsTableHeader.map((h, index) => (
-                        <th key={index} className="border px-4 py-2 text-left whitespace-nowrap">
+                        <th key={index} className="border-b px-4 py-2 text-left whitespace-nowrap">
                           {h}
                         </th>
                       ))}
@@ -192,24 +192,24 @@ const BankDetails = () => {
                   <tbody>
                     {bankDetailsTableData.map((item, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
-                        <td className="border px-4 py-2 whitespace-nowrap">{idx + 1}</td>
+                        <td className="border-b px-4 py-2">{idx + 1}</td>
 
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.payeeName}</td>
+                        <td className="border-b px-4 py-2">{item.payeeName}</td>
 
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.panNumber}</td>
+                        <td className="border-b px-4 py-2">{item.panNumber}</td>
 
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.bankName}</td>
+                        <td className="border-b px-4 py-2">{item.bankName}</td>
 
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
 
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
-                        <td className="border px-4 py-2 whitespace-nowrap">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
+                        <td className="border-b px-4 py-2">{item.accountNumber}</td>
                       </tr>
                     ))}
                   </tbody>

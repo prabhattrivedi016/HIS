@@ -9,6 +9,7 @@ import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
 import UserGroupMaster from "../userGroupMaster";
 import UserMaster from "../userMaster";
+import VendorMaster from "../vendorMaster";
 
 export const authorizedRouteMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -22,4 +23,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "location-master": <LocationMaster />,
   "header-footer-master": <HeaderFooterMaster />,
   "bank-master": <BankMaster />,
+  "vendor-master": <VendorMaster />,
 };
