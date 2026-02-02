@@ -422,7 +422,7 @@ const UserAuthorization = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4">
+    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-6">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900">User Authorization</h1>
 
@@ -500,7 +500,7 @@ const UserAuthorization = () => {
       </div>
       {pageView && (
         <>
-          <div className="flex gap-1 mt-3">
+          <div className="flex gap-1 mt-3 ">
             <button
               className={`table-header-button ${
                 selectedButton === "roles" ? "bg-blue-600 text-white" : ""

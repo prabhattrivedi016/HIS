@@ -27,16 +27,14 @@ import {
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import DoctorSignature from "./components/DoctorSignature";
-import SequenceDrawer from "./components/SequenceDrawer";
+import LetterHead from "./components/LetterHead";
+import SequenceMapping from "./components/SequenceMapping";
 import {
   BranchItem,
   HeaderFooterFormData,
   ReportItem,
   RoleItem,
   SelectItem,
-  SequenceDropDownItem,
-  SequenceEditItem,
-  SequenceTypeItem,
   VariableNameItem,
 } from "./types";
 
@@ -51,18 +49,7 @@ const HeaderFooterMaster = () => {
   const [content, setContent] = useState<string>("");
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(HeaderFooterTabName?.HEADER);
-  const [sequenceTypeList, setSequenceTypeList] = useState<SequenceTypeItem[]>([]);
-  const [sequenceId, setSequenceId] = useState<number | null>(null);
-  const [sequenceType, setSequenceType] = useState<string>("");
-  const [sequenceDropDown, setSequenceDropDown] = useState<SequenceDropDownItem[]>([]);
-
-  const [sequenceToEdit, setSequenceToEdit] = useState<SequenceEditItem | null>(null);
-  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
-
-  const [selectedSequenceType, setSelectedSequenceType] = useState<SelectItem | null>(null);
-  const [selectedSequenceId, setSelectedSequenceId] = useState<number | "">("");
   const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
-
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const roleSelectRef = useRef(null);
@@ -250,7 +237,6 @@ const HeaderFooterMaster = () => {
       return;
     }
 
-    setIsEditMode(true);
     setContent(data.headerBody);
 
     setFormData(prev => ({
@@ -281,110 +267,6 @@ const HeaderFooterMaster = () => {
       isActive: Status.ACTIVE,
     });
   };
-
-  /*----------------------------sequence type------------------------------ */
-  const getSequenceType = useCallback(async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_SEQUENCE_TYPE_LIST, {}, {});
-    if (!resp) return;
-
-    setSequenceTypeList(resp?.data ?? []);
-  }, []);
-
-  const selectSequenceOption = useMemo(
-    () =>
-      sequenceTypeList?.map(s => ({
-        value: s?.typeId,
-        label: s?.typeName,
-      })),
-    [sequenceTypeList]
-  );
-
-  const sequenceChangeHandler = (option: SelectItem | null) => {
-    setSelectedSequenceType(option);
-
-    setSequenceId(option?.value ?? null);
-    setSequenceType(option?.label ?? "");
-
-    setSequenceDropDown([]);
-    setSequenceToEdit(null);
-    setSelectedSequenceId("");
-  };
-
-  /*-------------------------sequence master--------------- */
-  const fetchSequenceMaster = useCallback(async (id: number) => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_SEQUENCE_MASTER,
-      {},
-      {
-        params: { sequenceTypeId: id },
-      }
-    );
-
-    setSequenceDropDown(resp?.data ?? []);
-  }, []);
-
-  useEffect(() => {
-    getSequenceType();
-    if (sequenceId) {
-      fetchSequenceMaster(sequenceId);
-    }
-  }, [sequenceId]);
-
-  /*-------------------- */
-  const previewChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const id = Number(e.target.value) || "";
-
-    setSelectedSequenceId(id);
-
-    if (!id) {
-      setSequenceToEdit(null);
-      return;
-    }
-
-    const editableSequence = sequenceDropDown.find(v => v.sequenceId === id);
-
-    if (editableSequence) {
-      setSequenceToEdit(editableSequence);
-    }
-  };
-
-  /*-------------------add/update sequence---------------- */
-  const handleAddSequence = () => {
-    if (!sequenceId) return;
-
-    if (!sequenceToEdit || !sequenceToEdit?.sequenceId) {
-      setSequenceToEdit({
-        typeId: sequenceId,
-        typeName: sequenceType,
-      });
-    }
-
-    setOpenDrawer(true);
-  };
-
-  const closeHandler = () => [setOpenDrawer(false)];
-
-  /*------------------reset value--------------------------- */
-  const resetSequenceSelection = () => {
-    setSequenceId(null);
-    setSequenceType("");
-    setSequenceDropDown([]);
-    setSequenceToEdit(null);
-
-    setSelectedSequenceType(null);
-    setSelectedSequenceId("");
-  };
-
-  useEffect(() => {
-    // whenever tab changes, reset react-select values
-    setSelectedRole(null);
-    setSelectedSequenceType(null);
-    setSelectedSequenceId("");
-
-    setSequenceDropDown([]);
-    setSequenceToEdit(null);
-  }, [activeTab]);
 
   /*----------------------render component------------------------ */
   const renderComponent = (tabName: string) => {
@@ -436,7 +318,6 @@ const HeaderFooterMaster = () => {
               <InputField label="Role">
                 <Select
                   value={selectedRole}
-                  isMulti
                   options={roleSelectOption}
                   placeholder="Select..."
                   isSearchable
@@ -514,106 +395,19 @@ const HeaderFooterMaster = () => {
       );
     }
 
-    if (tabName === HeaderFooterTabName?.FOOTER)
-      return (
-        <div className="shadow-lg m-2 p-6 rounded-lg">
-          <form onSubmit={submitHandler}>
-            <h2 className="mb-4 text-xl font-semibold">Sequence Mapping </h2>
-
-            <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Branch */}
-              <InputField label="Branch" required>
-                <select
-                  name="branchId"
-                  className="input-field"
-                  onChange={inputHandler}
-                  value={formData?.branchId ?? 0}
-                >
-                  <option value={0}>Default</option>
-                  {branches?.map(b => (
-                    <option key={b?.branchId} value={b?.branchId}>
-                      {b?.branchName}
-                    </option>
-                  ))}
-                </select>
-              </InputField>
-
-              {/* Role */}
-              <InputField label="Role" required={false}>
-                <Select
-                  ref={roleSelectRef}
-                  options={roleSelectOption}
-                  placeholder="Select..."
-                  isSearchable
-                  isClearable
-                  onChange={roleChangeHandler}
-                  classNames={SelectStyles}
-                  menuPortalTarget={document?.body}
-                  menuPosition="fixed"
-                />
-              </InputField>
-
-              {/* sequence type */}
-              <InputField label="Sequence Type" required={false}>
-                <Select
-                  value={selectedSequenceType}
-                  options={selectSequenceOption}
-                  placeholder="Select..."
-                  isSearchable
-                  isClearable
-                  onChange={sequenceChangeHandler}
-                  classNames={SelectStyles}
-                  menuPortalTarget={document?.body}
-                  menuPosition="fixed"
-                />
-              </InputField>
-
-              {/* sequence*/}
-              <div className="flex flex-row gap-2 items-end w-full">
-                <InputField label="Sequence" className="w-full" required={false}>
-                  <div className="flex items-center gap-2">
-                    <select
-                      name="sequence"
-                      className="input-field"
-                      onChange={previewChangeHandler}
-                      value={selectedSequenceId}
-                    >
-                      <option value="">Select</option>
-                      {sequenceDropDown?.map((v: SequenceDropDownItem) => (
-                        <option key={v?.typeId} value={v?.sequenceId}>
-                          {v?.preview}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={handleAddSequence}
-                      title="Add Sequence"
-                      className="scale-95"
-                    >
-                      <i className="fa-solid fa-circle-plus fa-xl  "></i>
-                    </button>
-                  </div>
-                </InputField>
-              </div>
-            </div>
-          </form>
-        </div>
-      );
-    if (tabName === HeaderFooterTabName?.DOCTOR) {
-      return <DoctorSignature />;
-    }
+    if (tabName === HeaderFooterTabName?.SEQUENCE) return <SequenceMapping />;
+    if (tabName === HeaderFooterTabName?.DOCTOR) return <DoctorSignature />;
+    if (tabName === HeaderFooterTabName?.LETTER) return <LetterHead />;
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4">
+    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-5">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Header Footer Master</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Print Settings</h1>
         <nav className="text-sm text-gray-500 flex gap-2 mt-1">
           <NavLink to="/dashboard">Home</NavLink>
           <span>››</span>
-          <span>Header Footer Master</span>
+          <span>Print Settings</span>
         </nav>
       </div>
       <div className="flex gap-2 border-b border-gray-200 mb-4 shadow-lg m-2 ">
@@ -633,16 +427,16 @@ const HeaderFooterMaster = () => {
 
         <button
           type="button"
-          onClick={() => setActiveTab(HeaderFooterTabName?.FOOTER)}
+          onClick={() => setActiveTab(HeaderFooterTabName?.SEQUENCE)}
           className={`px-4 py-2 text-md font-semibold transition 
       ${
-        activeTab === HeaderFooterTabName?.FOOTER
+        activeTab === HeaderFooterTabName?.SEQUENCE
           ? "border-b-2 border-blue-600 text-blue-600"
           : "text-gray-500 hover:text-blue-600"
       }
     `}
         >
-          {HeaderFooterTabName?.FOOTER}
+          {HeaderFooterTabName?.SEQUENCE}
         </button>
 
         <button
@@ -658,20 +452,25 @@ const HeaderFooterMaster = () => {
         >
           {HeaderFooterTabName?.DOCTOR}
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.LETTER)}
+          className={`px-4 py-2 text-md font-semibold transition 
+      ${
+        activeTab === HeaderFooterTabName?.LETTER
+          ? "border-b-2 border-blue-600 text-blue-600"
+          : "text-gray-500 hover:text-blue-600"
+      }
+    `}
+        >
+          {HeaderFooterTabName?.LETTER}
+        </button>
       </div>
 
       {renderComponent(activeTab)}
 
       {submitLoading && <CustomLoader isLoading={submitLoading} />}
-
-      {/* -----------------drawer for add & update sequence----------------- */}
-      {openDrawer && sequenceToEdit && (
-        <SequenceDrawer
-          data={sequenceToEdit}
-          onClose={closeHandler}
-          onSuccess={resetSequenceSelection}
-        />
-      )}
     </div>
   );
 };

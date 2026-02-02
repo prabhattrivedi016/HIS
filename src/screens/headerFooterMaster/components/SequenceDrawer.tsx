@@ -6,7 +6,7 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { SequenceDrawerProps } from "../types";
 
-const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerProps) => {
+const SequenceDrawer = React.memo(({ data, onClose }: SequenceDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const isEdit = Boolean(data?.sequenceId);
@@ -91,8 +91,7 @@ const SequenceDrawer = React.memo(({ data, onClose, onSuccess }: SequenceDrawerP
       setSuccessMessage(resp.message);
 
       setTimeout(() => {
-        onSuccess();
-        onClose;
+        onClose();
       }, 1000);
     } catch (err) {
       console.error(err);
