@@ -1,14 +1,10 @@
 import axios from "axios";
-import { getAuthStorage } from "..//utils/authStorage";
+import { getAuthStorage } from "../utils/authStorage";
 
 const axiosInstance = axios.create({
   baseURL: "http://103.217.247.236/HISWEBAPI/Api",
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
-//attach token
 axiosInstance.interceptors.request.use(
   config => {
     const storage = getAuthStorage();
@@ -18,13 +14,15 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    if (!(config.data instanceof FormData)) {
+      config.headers["Content-Type"] = "application/json";
+    } else {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
   error => Promise.reject(error)
 );
 
 export default axiosInstance;
-
-// http://103.217.247.236/HISWEBAPI/Api
-
-// http://1.22.197.24/HISWEBAPI/Api

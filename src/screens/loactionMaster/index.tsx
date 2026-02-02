@@ -187,7 +187,7 @@ const LocationMaster = () => {
   }, [editPopup]);
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4">
+    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-6">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Location Master</h1>
         <nav className="text-sm text-gray-500 flex  gap-2 mt-1">

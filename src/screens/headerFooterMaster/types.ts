@@ -68,7 +68,6 @@ interface SequenceDropDownItem {
 type SequenceDrawerProps = {
   data: SequenceEditItem | null;
   onClose: () => void;
-  onSuccess: () => void;
 };
 
 type SequenceEditItem = {
@@ -85,15 +84,71 @@ type SequenceEditItem = {
   preview?: string;
 };
 
+type SequenceMappingItem = {
+  mappingId: number;
+  branchId: number;
+  branchName: string;
+  roleId: number;
+  roleName: string;
+  typeId: number;
+  typeName: string;
+  sequenceId: number;
+  sequencePreview: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
+
+type PickMasterList = {
+  value: string;
+  key: number;
+};
+
+type LetterHeadItem = {
+  id: number;
+  branchId: number;
+  branchName: string;
+  typeId: number;
+  typeName: string;
+  paddingLeft: number;
+  paddingRight: number;
+  paddingTop: number;
+  paddingBottom: number;
+  letterHeadFilePath: string;
+  isActive: number;
+};
+
+type DoctorTableItem = {
+  id: number;
+  branchId: number;
+  branchName: string;
+  doctorId: number;
+  doctorName: string;
+  xSign: number;
+  ySign: number;
+  docSignPath: string;
+};
+
+type DoctorItem = {
+  doctorId: number;
+  name: string;
+};
+
 export type {
   BranchItem,
+  DoctorItem,
+  DoctorTableItem,
   HeaderFooterFormData,
+  LetterHeadItem,
+  PickMasterList,
   ReportItem,
   RoleItem,
   SelectItem,
   SequenceDrawerProps,
   SequenceDropDownItem,
   SequenceEditItem,
+  SequenceMappingItem,
   SequenceTypeItem,
   VariableNameItem,
 };

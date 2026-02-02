@@ -40,10 +40,7 @@ const PageHeader = ({
   };
 
   return (
-    <header
-      className="px-4 py-6 bg-gray-50 mx-2
-"
-    >
+    <header className="px-4 py-6 bg-gray-50 mx-2 -mt-8">
       <div
         className="
           flex

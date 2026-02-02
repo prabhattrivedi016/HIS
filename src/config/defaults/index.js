@@ -80,6 +80,45 @@ const ENDPOINTS = {
   GET_SEQUENCE_TYPE_LIST: "Admin/getSequenceTypeList",
   GET_SEQUENCE_MASTER: "Admin/getSequenceMaster",
   CREATE_UPDATE_SEQUENCE_MASTER: "/Admin/createUpdateSequenceMaster ",
+  CREATE_UPDATE_BRANCH_SEQUENCE_MAPPING: "Admin/createUpdateBranchSequenceMapping",
+  GET_BRANCH_SEQUENCE_MAPPING: "/Admin/getBranchSequenceMapping",
+
+  //letter head
+  CREATE_UPDATE_LAB_REPORT_LETTER_HEAD: "Admin/createUpdateLabReportLetterHead",
+  GET_LAB_REPORT_LETTER_HEAD_LIST: "Admin/getLabReportLetterHeadList",
+  DELETE_LETTER_HEAD_MASTER: "Admin/deleteLetterHeadMaster",
+  GET_FILE_AS_BASE_64: "Home/getFileAsBase64",
+  GET_IMAGE_FILE: "Home/getFile",
+
+  //doctor signature
+  GET_DOCTOR_SIGNATURE_MASTER_LAST: "Admin/getDoctorSignatureMasterList",
+  DELETE_DOCTOR_SIGNATURE_MASTER: "Admin/deleteDoctorSignatureMaster",
+  CREATE_UPDATE_DOCTOR_SIGNATURE_MASTER: "Admin/createUpdateDoctorSignatureMaster",
+  GET_DOCTOR_MASTER_LIST_BY_BRANCH_ID: "Home/getDoctorMasterListByBranchId",
+
+  //bank master
+  GET_BANK_LIST: "Admin/getBankList",
+  CREATE_UPDATE_BANK_MASTER: "Admin/createUpdateBankMaster",
+  GET_BANK_DETAIL_LIST: "Admin/getBankDetailList",
+  CREATE_UPDATE_BANK_DETAIL_MASTER: "Admin/createUpdateBankDetailMaster",
+
+  //vendor master
+  GET_VENDOR_MASTER_LIST: "Store/getVendorMasterList",
+  CREATE_UPDATE_VENDOR_MASTER: "Store/createUpdateVendorMaster",
+
+  //mrd location master
+  GET_MRD_ROOM_MASTER: "Admin/getMRDRoomMaster",
+  GET_MRD_RACK_MASTER: "Admin/getMRDRackMaster",
+  GET_MRD_SHELF_MASTER: "Admin/getMRDShelfMaster",
+  CREATE_UPDATE_MRD_ROOM_MASTER: "Admin/createUpdateMRDRoomMaster",
+  CREATE_UPDATE_MRD_RACK_MASTER: "Admin/createUpdateMRDRackMaster",
+  CREATE_UPDATE_MRD_SHELF_MASTER: "Admin/createUpdateMRDShelfMaster",
+
+  //doctor master
+  GET_DOCTOR_DEPARTMENT_LIST: "Doctor/getDoctorDepartmentList",
+  CREATE_UPDATE_DOCTOR_DEPARTMENT: "Doctor/createUpdateDoctorDepartment",
+  GET_DOCTOR_SPECIALIZATION_LIST: "Doctor/getDoctorSpecializationList",
+  CREATE_UPDATE_DOCTOR_SPECIALIZATION: "Doctor/createUpdateDoctorSpecialization",
 };
 
 export { ENDPOINTS };

@@ -35,4 +35,27 @@ type CityItem = {
   isActive: number;
 };
 
-export type { CityItem, CountryItem, DistrictItem, SelectItem, StateItem };
+type VendorItem = {
+  vendorId: number;
+  typeId: number;
+  type: string;
+  vendorName: string;
+  contactNo: string;
+  email: string;
+  dlno: string;
+  gstinNo: string;
+  address: string;
+  fullAddress: string;
+  countryId: number;
+  stateId: number;
+  districtId: number;
+  cityId: number;
+  mappingBranch: string;
+  isActive: number;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
+
+export type { CityItem, CountryItem, DistrictItem, SelectItem, StateItem, VendorItem };
