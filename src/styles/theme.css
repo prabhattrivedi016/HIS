@@ -119,8 +119,8 @@
 .ph-button-theme {
   @apply rounded border border-gray-200 bg-white text-gray-700 hover:bg-gray-200 active:scale-90;
 }
-.data-downlaod-popup-btn {
-  @apply w-full text-left px-1 py-1 mb-1 rounded bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all;
+.data-download-popup-btn {
+  @apply w-full text-left px-1 py-1 mb-1 rounded bg-gray-200 hover:bg-gray-200 active:scale-95 transition-all;
 }
 .btn-popup {
   @apply fixed z-50 p-2 bg-white 
@@ -180,6 +180,19 @@
 }
 .input-field-error {
   @apply text-red-600 text-sm mt-1;
+}
+.input-dob {
+  @apply [&::-webkit-datetime-edit]:uppercase
+      [&::-webkit-datetime-edit]:tracking-wide
+
+      [&:not(:valid)::-webkit-datetime-edit]:text-gray-300
+      [&:valid::-webkit-datetime-edit]:text-black;
+}
+.disabled-input-field {
+  @apply disabled:bg-gray-100
+      disabled:text-gray-400
+      disabled:cursor-not-allowed
+      disabled:border-gray-100;
 }
 
 /* user group master styles */
@@ -241,4 +254,133 @@
 /* header-footer */
 .file-upload {
   @apply w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md  file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500;
+}
+
+/*------------------- TAB HEADINGS ---------------- */
+.tab-container {
+  @apply flex gap-3  border-gray-200 shadow-lg rounded-lg bg-white;
+}
+
+.tab-btn {
+  @apply px-4 py-2 font-semibold transition
+         border-transparent;
+}
+
+.tab-btn-active {
+  @apply border-blue-600 text-blue-600 border-b-2;
+}
+
+.tab-btn-inactive {
+  @apply text-gray-500 hover:text-blue-600;
+}
+
+/*-------------------NORMAL PAGES ---------------- */
+.page-container {
+  @apply bg-gray-50 min-h-screen px-3 py-4 -mt-6;
+}
+.page-heading {
+  @apply text-2xl font-bold text-gray-900;
+}
+.helper-text {
+  @apply text-sm text-gray-500 flex gap-2 mt-1;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-lg p-6 mt-1 mb-2;
+}
+.card-title {
+  @apply text-xl font-semibold text-gray-800 text-left -mt-3 mb-2;
+}
+.card-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.form-actions-responsive {
+  @apply flex flex-col sm:flex-row gap-3 sm:justify-end;
+}
+
+/* Mobile behavior */
+@media (max-width: 640px) {
+  .form-actions-responsive {
+    @apply justify-center;
+  }
+}
+.save-btn {
+  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-6 h-10  text-base font-medium transition active:scale-90;
+}
+
+.cancel-button {
+  @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-6 h-10 text-base font-medium transition active:scale-90;
+}
+
+/*-------------------TABLE OF NORMAL PAGES ---------------- */
+
+.table-container {
+  @apply w-full border border-gray-200 rounded-xl;
+}
+
+/* BOTH vertical + horizontal scroll */
+.table-scroll-wrapper {
+  @apply max-h-[400px] overflow-auto;
+}
+
+/* Fixed layout + min-width */
+.base-table {
+  @apply w-full min-w-[1200px] table-fixed border-collapse text-sm;
+}
+
+/* Sticky header */
+.table-head {
+  @apply sticky top-0 z-10 bg-[#f5f9ff];
+}
+
+/* Header cells */
+.table-th {
+  @apply px-2 py-2 text-left font-semibold text-gray-800 whitespace-nowrap border-b border-gray-200;
+}
+
+/* Rows */
+.table-row {
+  @apply transition hover:bg-gray-100 even:bg-gray-50;
+}
+
+/* Cells */
+.table-td {
+  @apply px-3 py-2 text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis border-b border-gray-100;
+}
+
+/* Action column */
+.table-action {
+  @apply px-3 py-2  cursor-pointer hover:text-blue-800 whitespace-nowrap;
+}
+
+.table-empty {
+  @apply text-center py-6 text-gray-500;
+}
+
+.edit-icon {
+  @apply text-blue-800 cursor-pointer hover:text-blue-600;
+}
+
+/*--------------------- central popup----------------- */
+
+.popup-bg-overlay {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm 
+          transition-opacity duration-300 z-9998;
+}
+.central-popup {
+  @apply fixed top-1/2 left-1/2 z-9999
+          bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-md
+          transition-all duration-300 ease-out
+          transform;
+}
+.opacity-full {
+  @apply opacity-100 scale-100 -translate-x-1/2 -translate-y-1/2;
+}
+
+.popup-header {
+  @apply flex justify-between items-center mb-4;
+}
+.popup-helper-text {
+  @apply text-lg font-semibold;
 }

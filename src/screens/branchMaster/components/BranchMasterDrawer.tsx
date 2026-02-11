@@ -296,7 +296,7 @@ const BranchMasterDrawer = React.memo(
 
       setSuccessMessage(res?.message);
       onCloseDrawer?.();
-      setTimeout(onClose, 1200);
+      setTimeout(onClose, 1000);
     };
 
     return (
@@ -315,7 +315,7 @@ const BranchMasterDrawer = React.memo(
             {/* success & error message*/}
             <div className="mb-2">
               {successMessage && <SuccessMessage text={successMessage} />}
-              {error && <ErrorMessage text={error} />}
+              {error && <ErrorMessage text={error?.message} />}
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-2 ">
@@ -400,7 +400,7 @@ const BranchMasterDrawer = React.memo(
                       placeholder="Select..."
                       isSearchable
                       isClearable
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                       onChange={monthDropDownHandler}
@@ -424,7 +424,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={countryDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -438,7 +438,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={stateDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -452,7 +452,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={distDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -468,7 +468,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={cityDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -482,7 +482,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={insuranceDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -496,7 +496,7 @@ const BranchMasterDrawer = React.memo(
                       isSearchable
                       isClearable
                       onChange={corporateDropDownHandler}
-                      classNames={SelectStyles}
+                      styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />

@@ -37,6 +37,7 @@ const RoleMaster = () => {
 
   const [columnVisibility, setColumnVisibility] = useState({});
   const [hideShowColumn, setHideShowColumn] = useState(false);
+
   const [popupPos, setPopupPos] = useState(null);
 
   const [onDownload, setOnDownload] = useState(false);
@@ -68,7 +69,6 @@ const RoleMaster = () => {
     );
 
     if (!response) {
-      setErrorMessage(error);
       return;
     }
 

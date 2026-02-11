@@ -102,6 +102,27 @@ export const VendorMasterTableHeader = [
   "Edit",
 ];
 
+export const PatientDocumentTableHeader = [
+  "#",
+  "Document Name",
+  "Document Code",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last Modified By",
+  "Last Modified On",
+  "Edit",
+];
+
+export const DoctorTimingTableHeader = ["Branch", "Day", "Start Time", "End Time", "Remove"];
+
+export const DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA = {
+  documentId: 0,
+  documentName: "",
+  documentCode: "",
+  isActive: 1,
+};
+
 export enum BranchId {
   DEFAULT = 1,
 }

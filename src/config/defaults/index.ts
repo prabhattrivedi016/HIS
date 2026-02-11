@@ -105,6 +105,7 @@ const ENDPOINTS = {
   //vendor master
   GET_VENDOR_MASTER_LIST: "Store/getVendorMasterList",
   CREATE_UPDATE_VENDOR_MASTER: "Store/createUpdateVendorMaster",
+  GET_LOCATION_BY_PINCODE: "Home/getLocationByPincode",
 
   //mrd location master
   GET_MRD_ROOM_MASTER: "Admin/getMRDRoomMaster",
@@ -119,6 +120,18 @@ const ENDPOINTS = {
   CREATE_UPDATE_DOCTOR_DEPARTMENT: "Doctor/createUpdateDoctorDepartment",
   GET_DOCTOR_SPECIALIZATION_LIST: "Doctor/getDoctorSpecializationList",
   CREATE_UPDATE_DOCTOR_SPECIALIZATION: "Doctor/createUpdateDoctorSpecialization",
+  CREATE_UPDATE_DOCTOR_MASTER: "Doctor/createUpdateDoctorMaster",
+  GET_DOCTOR_MASTER: "Doctor/getDoctorMaster",
+  CREATE_UPDATE_DOCTOR_UNIT_MASTER: "Doctor/createUpdateDoctorUnitMaster",
+  UPDATE_DOCTOR_MASTER_STATUS: "Doctor/updateDoctorMasterStatus",
+  CREATE_UPDATE_DOCTOR_TIMING_DETAILS: "Doctor/createUpdateDoctorTimingDetails",
+  GET_DOCTOR_TIMING_DETAILS: "Doctor/getDoctorTimingDetails",
+  CREATE_UPDATE_DOCTOR_UNIT_MAPPING: "Doctor/createUpdateDoctorUnitMapping",
+  GET_DOCTOR_UNIT_MAPPING: "Doctor/getDoctorUnitMapping",
+
+  //patient document master
+  GET_PATIENT_DOCUMENT_MASTER: "Admin/getPatientDocumentMaster",
+  CREATE_UPDATE_PATIENT_DOCUMENT_MASTER: "Admin/createUpdatePatientDocumentMaster",
 };
 
 export { ENDPOINTS };

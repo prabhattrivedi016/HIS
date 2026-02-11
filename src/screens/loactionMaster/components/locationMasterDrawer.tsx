@@ -523,20 +523,20 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
   return (
     <>
       {/* Overlay */}
-      <div className={`drawer-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
+      <div className={`popup-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
 
       {/* Drawer */}
-      <div className={`central-drawer ${isOpenTab ? "opacity-full" : ""}`}>
+      <div className={`central-popup ${isOpenTab ? "opacity-full" : ""}`}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">{headerName}</h2>
+        <div className="popup-header">
+          <h2 className="popup-helper-text">{headerName}</h2>
           <button onClick={onCloseTab} className="close-drawer-btn">
             ×
           </button>
         </div>
 
         {successMessage && <SuccessMessage text={successMessage} />}
-        {error && <ErrorMessage text={error} />}
+        {error && <ErrorMessage text={error?.message} />}
 
         {/* render form based on conditions */}
         {renderForm()}

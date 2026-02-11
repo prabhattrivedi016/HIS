@@ -56,5 +56,16 @@ export const handleButtonClick = ({
       drawerTitle("Update Existing Department");
       openDrawer(id);
     }
+
+    //doctor master
+    case "toggleDoctorActive": {
+      return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, doctorId: id });
+    }
+
+    case "toggleDoctorEdit": {
+      buttonTitle("Update Doctor");
+      drawerTitle("Update Existing Doctor");
+      openDrawer(id);
+    }
   }
 };

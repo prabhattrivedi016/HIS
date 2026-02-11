@@ -1,247 +1,347 @@
-import { useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
-import Select from "react-select";
-import InputField from "../../components/customInputField";
-import CustomLoader from "../../components/customLoader";
-import { SelectStyles } from "../../components/customSelect";
+import { doctorMasterConfig } from "@/config/masterConfig/doctorMasterConfig";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import HideShowColumn from "../../components/buttonsPopup";
+import DownloadPopup from "../../components/buttonsPopup/components/DownloadPopup";
+import { ErrorMessage } from "../../components/infoText";
+import PageHeader from "../../components/pageHeader";
+import GridView from "../../components/profileCard";
+import ListView from "../../components/profileCard/components/ListView";
 import { ENDPOINTS } from "../../config/defaults";
+import { Status, VIEWTYPE } from "../../constants/constants";
+import { useConfigMaster } from "../../hooks/useConfigMaster";
 import useGlobalApi from "../../hooks/useGlobalApi";
-import DoctorMasterPopup from "./components/DoctorMasterPopup";
-import { DepartmentItem, SelectItem, SpecializationItem } from "./types";
+import { ColumnVisibility } from "../../types";
+import { exportListViewData } from "../../utils/exportUtils";
+import { filteredData } from "../../utils/filteredData";
+import { transformDataWithConfig } from "../../utils/utilities";
+import CardRightButtonPopup from "./components/CardRightButtonPopup";
+import DoctorMasterDrawer from "./components/DoctorMasterDrawer";
+import UnitMasterDrawer from "./components/UnitMasterDrawer";
+import { DoctorMasterGridCard, DoctorMasterListCard } from "./types";
 
 const DoctorMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [departmentId, setDepartmentId] = useState<number | null>(null);
-  const [specializationId, setSpecializationId] = useState<number | null>(null);
+  const configData = useConfigMaster("doctorMasterConfig");
+  const doctorConfig = configData?.configDataValue;
 
-  const [departmentList, setDepartmentList] = useState<DepartmentItem[]>([]);
-  const [specializationList, setSpecializationList] = useState<SpecializationItem[]>([]);
+  const [doctorMasterGridData, setDoctorMasterGridData] = useState<DoctorMasterGridCard[]>([]);
+  const [doctorMasterListData, setDoctorMasterListData] = useState<DoctorMasterListCard[]>([]);
 
-  const [selectedDepartmentOption, setSelectedDepartmentOption] = useState<SelectItem | null>(null);
-  const [selectedSpecializationOption, setSelectedSpecializationOption] =
-    useState<SelectItem | null>(null);
+  const [gridFilteredData, setGridFilteredData] = useState<DoctorMasterGridCard[]>([]);
+  const [listFilteredData, setListFilteredData] = useState<DoctorMasterListCard[]>([]);
 
-  const [popUpOpen, setPopUpOpen] = useState<boolean>(false);
-  const [popupType, setPopupType] = useState<"department" | "specialization" | null>(null);
-  const [popupData, setPopupData] = useState<DepartmentItem | SpecializationItem | null>(null);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
-  /*------------------------------department--------------------------- */
-  const getDepartmentLists = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_DOCTOR_DEPARTMENT_LIST, {}, {});
-    const data = resp?.data ?? [];
-    setDepartmentList(data);
-    return data;
-  };
+  const [cardView, setCardView] = useState(VIEWTYPE?.GRID);
 
-  const departmentSelectOption = useMemo(() => {
-    return departmentList.map(item => ({
-      value: item?.departmentId,
-      label: item?.department,
-    }));
-  }, [departmentList]);
+  const [openUnitDrawer, setOpenUnitDrawer] = useState<boolean>(false);
 
-  const selectDepartmentHandler = (option: SelectItem | null) => {
-    setSelectedDepartmentOption(option);
-    setDepartmentId(option ? option?.value : null);
-  };
+  const [openDoctorDrawer, setOpenDoctorDrawer] = useState<boolean>(false);
+  const [drawerButtonTitle, setDrawerButtonTitle] = useState<string>("Create");
+  const [doctorDrawerTitle, setDoctorDrawerTitle] = useState<string>("Add New Doctor");
+  const [doctorIdToEdit, setDoctorIdToEdit] = useState<number | null>(null);
 
-  /*-------------------------------specialization------------------- */
-  const getSpecializationLists = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_DOCTOR_SPECIALIZATION_LIST, {}, {});
-    const data = resp?.data ?? [];
-    setSpecializationList(data);
-    return data;
-  };
+  const [gridRightTopBtn, setGridRightTopBtn] = useState(false);
+  const [gridBtnPopup, setGridBtnPopup] = useState<{ top: number; left: number } | null>(null);
+  const [idGridBtn, setIdGridBtn] = useState<number | null>(null);
 
-  const specializationSelectOption = useMemo(() => {
-    return specializationList.map(item => ({
-      value: item?.specializationId,
-      label: item?.specialization,
-    }));
-  }, [specializationList]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const [onDownload, setOnDownload] = useState<boolean>(false);
+  const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
+
+  const downloadBtnRef = useRef<HTMLButtonElement>(null);
+
+  /*------------------doctor master list--------------------------- */
+  const getDoctorsLists = useCallback(async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_MASTER,
+      {},
+      { params: { isDoctorUnit: Status.INACTIVE } },
+      { component: "DoctorMaster" }
+    );
+
+    const activeConfig = doctorConfig || doctorMasterConfig;
+
+    const transformed = transformDataWithConfig(activeConfig, resp);
+
+    setDoctorMasterGridData(transformed?.gridView ?? []);
+    setDoctorMasterListData(transformed.listView ?? []);
+
+    setGridFilteredData(transformed.gridView ?? []);
+    setListFilteredData(transformed.listView ?? []);
+  }, [configData]);
 
   useEffect(() => {
-    getDepartmentLists();
-    getSpecializationLists();
+    getDoctorsLists();
   }, []);
 
-  const selectSpecializationHandler = (option: SelectItem | null) => {
-    setSelectedSpecializationOption(option);
-    setSpecializationId(option ? option?.value : null);
+  /*--------------------card view handler---------- */
+  const handleCardView = (view: string) => setCardView(view);
+
+  /*---------------------update doctor master status----------------- */
+  const updateDoctorMasterStatus = useCallback(
+    async ({ isActive, id }: { isActive: number; id?: number }) => {
+      if (id === undefined) return;
+      await fetchApi(
+        "PATCH",
+        ENDPOINTS.UPDATE_DOCTOR_MASTER_STATUS,
+        {},
+        { params: { doctorId: id, isActive } }
+      );
+      getDoctorsLists();
+    },
+    [getDoctorsLists]
+  );
+
+  /*----------------------------unit drawer handler------------------------ */
+  const addUnitHandler = () => {
+    setOpenUnitDrawer(true);
   };
 
-  const popupHandler = (type: "department" | "specialization") => {
-    let data: DepartmentItem | SpecializationItem | null = null;
+  const handleCloseDrawer = useCallback(() => {
+    setOpenUnitDrawer(false);
+  }, []);
 
-    if (type === "department" && departmentId) {
-      data = departmentList.find(d => d.departmentId === departmentId) || null;
-    } else if (type === "specialization" && specializationId) {
-      data = specializationList.find(s => s.specializationId === specializationId) || null;
+  /*------------------add update doctor master-------------------------- */
+  const addNewHandler = useCallback((id: number | null) => {
+    if (id) {
+      setDrawerButtonTitle("Update");
+      setDoctorDrawerTitle("Update Existing Doctor");
+      setDoctorIdToEdit(id);
+    } else {
+      setDrawerButtonTitle("Create");
+      setDoctorDrawerTitle("Add New Doctor");
+      setDoctorIdToEdit(null);
     }
+    setOpenDoctorDrawer(true);
+  }, []);
 
-    setPopupType(type);
-    setPopupData(data);
-    setPopUpOpen(true);
+  /*------------------handle refresh--------------------- */
+  const handleRefresh = useCallback(async () => {
+    await getDoctorsLists();
+    setSearchQuery("");
+  }, [getDoctorsLists]);
+
+  /*--------------search handler---------------- */
+  const searchHandler = useCallback(
+    (keyInput: string, selectedValue: string) => {
+      const value = keyInput?.toLowerCase()?.trim();
+      setSearchQuery(keyInput);
+
+      filteredData({
+        value,
+        selectedValue,
+        listData: doctorMasterListData,
+        gridData: doctorMasterGridData,
+        setListFilteredData,
+        setGridFilteredData,
+      });
+    },
+    [doctorMasterListData, doctorMasterGridData]
+  );
+
+  /*-------------initial column visibility------------------- */
+  useEffect(() => {
+    if (listFilteredData.length > 0) {
+      const visibility: Record<string, boolean> = {};
+      listFilteredData[0].columns.forEach(col => {
+        visibility[col?.label] = true;
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [listFilteredData]);
+
+  // DOWNLOAD POPUP HANDLER
+  const downloadHandler = () => {
+    if (!downloadBtnRef.current) return;
+
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+
+    setOnDownload(prev => !prev);
   };
 
-  const closePopup = () => {
-    setPopUpOpen(false);
-    setPopupType(null);
-    setPopupData(null);
+  const [hideShowColumn, setHideShowColumn] = useState<boolean>(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+
+  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
+
+  // HIDE SHOW COLUMN HANDLER
+  const hideShowHandler = useCallback(() => {
+    if (hideShowBtnRef.current) {
+      const rect = hideShowBtnRef.current.getBoundingClientRect();
+      setPopupPos({
+        top: rect.bottom + 5,
+        left: rect.left,
+      });
+    }
+    setHideShowColumn(prev => !prev);
+  }, []);
+
+  // COLUMN NAMES
+  const columnNames = useMemo(() => {
+    if (cardView === VIEWTYPE?.LIST && listFilteredData.length > 0) {
+      return listFilteredData[0]?.columns?.map((col: any) => col?.label) || [];
+    }
+    return [];
+  }, [listFilteredData, cardView]);
+  // DROPDOWN FILTER
+  const filterDropDown = doctorMasterListData?.[0]?.columns;
+
+  /*---------------------card right button handler----------------- */
+  const cardRightTopHandler = (doctorId: number, rect: DOMRect) => {
+    if (gridRightTopBtn && idGridBtn === doctorId) {
+      setGridRightTopBtn(false);
+      return;
+    }
+    setGridBtnPopup({
+      top: rect.bottom + window.scrollY - 5,
+      left: rect.left + window.scrollX + 5,
+    });
+    setIdGridBtn(doctorId);
+    setGridRightTopBtn(true);
   };
 
-  const refreshData = async () => {
-    const d = await getDepartmentLists();
-    const s = await getSpecializationLists();
+  /*--------------render component handler----------- */
+  const renderComponent = (view: string) => {
+    if (error) return <ErrorMessage text={error?.message} />;
+    if (loading) return <div className="initial-message">Loading doctor master...</div>;
 
-    if (departmentId) {
-      const found = d?.find((i: DepartmentItem) => i.departmentId === departmentId);
-      setSelectedDepartmentOption(
-        found ? { value: found.departmentId, label: found.department } : null
+    if (view === VIEWTYPE?.GRID) {
+      if (!gridFilteredData.length) return <div className="no-data-message">No data found...</div>;
+      return (
+        <div className="grid-card-page-layout">
+          {gridFilteredData.map((doctor, idx) => (
+            <GridView
+              key={doctor?.id}
+              data={{
+                ...doctor,
+                cardLeftTop: doctor.cardLeftTop.map(item => ({
+                  ...item,
+                  value: typeof item.value === "string" ? undefined : item.value,
+                })),
+              }}
+              onStatusChange={updateDoctorMasterStatus}
+              openDrawer={addNewHandler}
+              buttonTitle={setDrawerButtonTitle}
+              drawerTitle={setDoctorDrawerTitle}
+              cardRightTopBtn={cardRightTopHandler}
+            />
+          ))}
+        </div>
       );
     }
 
-    if (specializationId) {
-      const found = s?.find((i: SpecializationItem) => i.specializationId === specializationId);
-      setSelectedSpecializationOption(
-        found ? { value: found.specializationId, label: found.specialization } : null
+    if (view === VIEWTYPE?.LIST) {
+      if (!listFilteredData?.length) return <div className="no-data-message">No data found...</div>;
+      return (
+        <div className="list-view-page-layout">
+          <ListView
+            data={listFilteredData}
+            onStatusChange={updateDoctorMasterStatus}
+            columnVisibility={columnVisibility}
+            openDrawer={addNewHandler}
+            buttonTitle={setDrawerButtonTitle}
+            drawerTitle={setDoctorDrawerTitle}
+          />
+        </div>
       );
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-5">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900"> Doctor Master</h1>
-        <nav className="text-sm text-gray-500 flex  gap-2 mt-1">
-          <NavLink to="/dashboard" className="hover:underline">
-            Home
-          </NavLink>
-          <span>››</span>
-          <span>Doctor Master</span>
-        </nav>
-      </div>
-      <div className=" shadow-lg m-2 p-6 rounded-lg   ">
-        <h1 className="mb-4 text-xl font-semibold">Doctor Details</h1>
-        <div className="form-grid-4">
-          <InputField label="Title" required>
-            <select className="input-field">
-              <option value="">Select</option>
-              <option value="">Dr.</option>
-              <option value="">Mr.</option>
-              <option value="">Mrs.</option>
-              <option value="">Ms.</option>
-            </select>
-          </InputField>
+    <div className="master-page-size">
+      <PageHeader
+        title="Doctor Master"
+        view={cardView}
+        onCardView={handleCardView}
+        buttonTitle="Add Doctor"
+        unitButton="Add Unit "
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
+        onAddNew={addNewHandler}
+        onAddUnit={addUnitHandler}
+        onDownload={downloadHandler}
+        onFilter={filterDropDown}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef}
+        downloadBtnRef={downloadBtnRef}
+      />
 
-          <InputField label="Doctor Name" required>
-            <input type="text" className="input-field" placeholder="Enter Doctor Name.." />
-          </InputField>
-          <InputField label="Gender" required>
-            <select className="input-field">
-              <option value="">Select</option>
-              <option value="">Male</option>
-              <option value="">Female</option>
-            </select>
-          </InputField>
-          <InputField label="Contact No." required>
-            <input type="text" className="input-field" placeholder="Enter Contact No.." />
-          </InputField>
-          <InputField label="Email">
-            <input type="email" className="input-field" placeholder="Enter Email.." />
-          </InputField>
-          <InputField label="Address">
-            <input type="text" className="input-field" placeholder="Enter Address.." />
-          </InputField>
-          <InputField label="DOB" required>
-            <input type="date" className="input-field" />
-          </InputField>
-          <InputField label="Specialization" required>
-            <div className="flex gap-2 items-center">
-              <Select
-                options={specializationSelectOption}
-                value={selectedSpecializationOption}
-                placeholder="Select..."
-                isSearchable
-                isClearable
-                onChange={selectSpecializationHandler}
-                classNames={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-              <button onClick={() => popupHandler("specialization")} className="active:scale-95">
-                <i className="fa-solid fa-circle-plus fa-xl"></i>
-              </button>
-            </div>
-          </InputField>
-          <InputField label="Department" required>
-            <div className="flex gap-2 items-center">
-              <Select
-                options={departmentSelectOption}
-                value={selectedDepartmentOption}
-                placeholder="Select..."
-                isSearchable
-                isClearable
-                onChange={selectDepartmentHandler}
-                classNames={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-              <button onClick={() => popupHandler("department")} className="active:scale-95">
-                <i className="fa-solid fa-circle-plus fa-xl"></i>
-              </button>
-            </div>
-          </InputField>
+      <div className="w-full">{renderComponent(cardView)}</div>
 
-          <InputField label="Profile Summary" required>
-            <input className="input-field" placeholder="Enter Profile Summary.." />
-          </InputField>
-          <InputField label="Registration No." required>
-            <input type="text" className="input-field" placeholder="Enter Registration No.." />
-          </InputField>
-          <InputField label="Status" required>
-            <select className="input-field">
-              <option value="1">Active</option>
-              <option value="0">Inactive</option>
-            </select>
-          </InputField>
-          <InputField label="OPD Room">
-            <input type="text" className="input-field" placeholder="Enter OPD Room No.." />
-          </InputField>
-          <InputField label="Can Approve Lab Reports">
-            <select className="input-field">
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </select>
-          </InputField>
-          <InputField label="Can Approve Discharge Summary">
-            <select className="input-field">
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </select>
-          </InputField>
-          <InputField label="Upload Doctor Photo">
-            <input type="number" className="input-field" placeholder="Enter Consultation Fee.." />
-          </InputField>
-        </div>
-      </div>
-      {popUpOpen && popupType && (
-        <DoctorMasterPopup
-          isOpenTab={popUpOpen}
-          headerName={
-            popupData
-              ? `Update ${popupType.charAt(0).toUpperCase() + popupType.slice(1)}`
-              : `Create ${popupType.charAt(0).toUpperCase() + popupType.slice(1)}`
-          }
-          onCloseTab={closePopup}
-          type={popupType}
-          data={popupData}
-          onSuccess={refreshData}
+      {openUnitDrawer && <UnitMasterDrawer isOpen={openUnitDrawer} onClose={handleCloseDrawer} />}
+
+      {openDoctorDrawer && (
+        <DoctorMasterDrawer
+          isOpen={openDoctorDrawer}
+          onClose={() => setOpenDoctorDrawer(false)}
+          buttonTitle={drawerButtonTitle}
+          drawerTitle={doctorDrawerTitle}
+          doctorId={doctorIdToEdit}
+          onCloseDrawer={handleRefresh}
         />
       )}
 
-      {loading ? <CustomLoader isLoading={loading} /> : <></>}
+      {/* Hide/Show Columns Popup */}
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef as React.RefObject<HTMLElement>}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
+      )}
+
+      {/* DOWNLOAD POPUP */}
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef as React.RefObject<HTMLElement>}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadPdf={() => {
+            const transformedData = listFilteredData.map(item => ({
+              ...item,
+              columns: item.columns.map(col => ({
+                ...col,
+                value: col.value ?? "",
+              })),
+            }));
+            exportListViewData(transformedData, "DoctorMasterList", "pdf");
+            setOnDownload(false);
+          }}
+          onDownloadExcel={() => {
+            const transformedData = listFilteredData.map(item => ({
+              ...item,
+              columns: item.columns.map(col => ({
+                ...col,
+                value: col.value ?? "",
+              })),
+            }));
+            exportListViewData(transformedData, "DoctorMasterList", "excel");
+            setOnDownload(false);
+          }}
+        />
+      )}
+
+      {/* grid right top button popup handler */}
+      {gridRightTopBtn ? (
+        <CardRightButtonPopup
+          doctorId={idGridBtn}
+          position={gridBtnPopup}
+          onClose={() => setGridRightTopBtn(false)}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

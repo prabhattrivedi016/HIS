@@ -69,4 +69,6 @@ interface ListItem {
   columns: ColumnItem[];
 }
 
-export type { GridItem, ListItem };
+type ColumnVisibility = Record<string, boolean>;
+
+export type { ColumnVisibility, GridItem, ListItem };

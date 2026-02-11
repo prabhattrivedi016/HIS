@@ -1,8 +1,10 @@
 import axios from "axios";
 import { getAuthStorage } from "../utils/authStorage";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const axiosInstance = axios.create({
-  baseURL: "http://103.217.247.236/HISWEBAPI/Api",
+  baseURL: API_BASE_URL,
 });
 
 axiosInstance.interceptors.request.use(

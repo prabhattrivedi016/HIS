@@ -4,7 +4,7 @@ import { useSortTableData } from "../../../hooks/useSortTableData";
 
 const Pagination = lazy(() => import("./Pagination"));
 
-const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) => {
+const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility = {} }) => {
   const [openListMenu, setOpenListMenu] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState([]);
   const [pageData, setPageData] = useState(10);
@@ -73,6 +73,8 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
 
   //  status change
   const handleStatusChange = rowData => {
+    console.log("rowData", rowData);
+
     const currentStatus = getIsActiveValue(rowData); // 1 or 0
     const newStatus = currentStatus === 1 ? 0 : 1;
 
@@ -88,6 +90,8 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
         ? { id: rowData.id }
         : type === "userdepartment"
         ? { id: rowData.id }
+        : type === "doctormaster"
+        ? { doctorId: rowData.id }
         : {}),
     };
 
@@ -164,66 +168,72 @@ const ListView = ({ data = [], onStatusChange, openDrawer, columnVisibility }) =
   };
 
   return (
-    <div className="w-full px-3 py-4 sm:px-6 md:px-8">
-      <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
-        <table className="w-full border-collapse text-sm text-gray-700">
-          <thead className="bg-blue-50 border-b border-blue-200 ">
-            <tr>
-              {headers.map(({ key, label }) =>
-                hiddenColumns.includes(key) || columnVisibility[label] === false ? null : (
-                  <th
-                    key={key}
-                    className={`px-2 py-2 font-semibold text-sm ${
-                      key !== "listLeftButton" ? "cursor-pointer" : ""
-                    }`}
-                    onClick={() => handleHeaderClick(key)}
-                  >
-                    <div className="flex items-center justify-between">
-                      {label}
-                      {sortConfig?.key === key && (sortConfig.direction === "asc" ? "🔺" : "🔻")}
-                    </div>
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
+    <div className="w-full max-w-[1230px] ">
+      <div className=" mx-auto w-full  max-w-[1200px]     h-[600px] sm:h-[420px] md:h-[520px] rounded-xl  border border-gray-200 bg-white shadow overflow-hidden">
+        <div className="w-full h-full overflow-auto">
+          <table className="w-full min-w-max  border-collapse text-sm text-gray-700">
+            <thead className="sticky top-0 z-20 border-b bg-blue-100 border-blue-200 ">
+              <tr>
+                {headers.map(({ key, label }) =>
+                  hiddenColumns.includes(key) || columnVisibility?.[label] === false ? null : (
+                    <th
+                      key={key}
+                      className={`px-4 py-3 text-left font-semibold whitespace-normal
+                      ${key !== "listLeftButton" ? "cursor-pointer" : ""}`}
+                      onClick={() => handleHeaderClick(key)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {label}
+                        {sortConfig?.key === key && (sortConfig.direction === "asc" ? "🔺" : "🔻")}
+                      </div>
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
 
-          <tbody>
-            {paginatedData.map((rowData, idx) => {
-              const isActive = getIsActiveValue(rowData) === 1;
+            <tbody>
+              {paginatedData.map((rowData, idx) => {
+                const isActive = getIsActiveValue(rowData) === 1;
 
-              return (
-                <tr key={idx}>
-                  {headers.map(header =>
-                    hiddenColumns.includes(header.key) ||
-                    columnVisibility?.[header.label] === false ? null : (
-                      <td key={header.key} className="px-2 py-3 align-top whitespace-nowrap ">
-                        {header.key === "listLeftButton" ? (
-                          <div className="relative">
-                            <button
-                              className="p-1 hover:bg-gray-200 rounded"
-                              onClick={e => handleListLeftButton(e, rowData)}
-                            >
-                              <MoreVertical size={18} className="text-gray-600" />
-                            </button>
-                            {/* toggle button popup */}
-                            {openListMenu?.id === rowData?.id && (
-                              <div className="absolute left-0 top-full mt-1 w-32 bg-white rounded-lg shadow z-50">
-                                {renderActionMenu(rowData, isActive)}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          getColumnValue(rowData, header.key)
-                        )}
-                      </td>
-                    )
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr key={idx} className="even:bg-gray-50 hover:bg-gray-100 transition">
+                    {headers.map(header =>
+                      hiddenColumns.includes(header.key) ||
+                      columnVisibility?.[header.label] === false ? null : (
+                        <td
+                          key={header.key}
+                          className=" px-4 py-3 whitespace-normal border-gray-100"
+                        >
+                          {header.key === "listLeftButton" ? (
+                            <div className="relative">
+                              <button
+                                className="p-2 hover:bg-gray-200 rounded"
+                                onClick={e => handleListLeftButton(e, rowData)}
+                              >
+                                <MoreVertical size={18} className="text-gray-600" />
+                              </button>
+                              {/* toggle button popup */}
+                              {openListMenu?.id === rowData?.id && (
+                                <div className="absolute left-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg z-50">
+                                  {renderActionMenu(rowData, isActive)}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="block truncate max-w-40 sm:max-w-none">
+                              {getColumnValue(rowData, header.key)}
+                            </span>
+                          )}
+                        </td>
+                      )
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
       {/* pagination helper function */}
       {tableData?.length > 20 ? (

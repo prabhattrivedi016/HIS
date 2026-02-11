@@ -38,12 +38,12 @@ const DownloadPopup = ({
       <h2 className="downlaod-text">Download As</h2>
 
       {/* PDF */}
-      <button className="data-downlaod-popup-btn" onClick={onDownloadPdf}>
+      <button className="data-download-popup-btn" onClick={onDownloadPdf}>
         📄 PDF
       </button>
 
       {/* Excel */}
-      <button className="data-downlaod-popup-btn" onClick={onDownloadExcel}>
+      <button className="data-download-popup-btn" onClick={onDownloadExcel}>
         📊 Excel
       </button>
     </div>

@@ -18,7 +18,9 @@ const FormComponent = ({
   refreshData,
 }) => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const { pickMasterValue } = usePickMaster({ fieldName: "gender" });
+  const genderValue = usePickMaster("gender");
+  const genderList = genderValue?.pickMasterValue ?? [];
+
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -173,7 +175,7 @@ const FormComponent = ({
     switch (fieldId) {
       case "gender":
         return (
-          pickMasterValue?.data?.map(g => ({
+          genderList.map(g => ({
             key: g.value,
             value: g.value,
           })) || []

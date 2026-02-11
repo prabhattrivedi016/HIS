@@ -1,4 +1,5 @@
-import { GridItem, ListItem } from "@/types/types";
+import { useConfigMaster } from "@/hooks/useConfigMaster";
+import { GridItem, ListItem } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import HideShowColumn from "../../components/buttonsPopup";
 import DownloadPopup from "../../components/buttonsPopup/components/DownloadPopup";
@@ -10,7 +11,6 @@ import ListView from "../../components/profileCard/components/ListView";
 import { ENDPOINTS } from "../../config/defaults";
 import { userGroupMaster } from "../../config/masterConfig/userGroupMasterConfig";
 import { VIEWTYPE } from "../../constants/constants";
-import { useConfigMaster } from "../../hooks/useConfigMaster";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { exportListViewData } from "../../utils/exportUtils";
 import { filteredData } from "../../utils/filteredData";
@@ -23,8 +23,9 @@ import { updateUserGroupStatusProps } from "./components/types";
 
 const UserGroupMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
+  const configData = useConfigMaster("userGroupMasterConfig");
+  const userGroupConfig = configData?.configDataValue;
 
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
   const [userGroupMaterGridData, setUserGroupMasterGridData] = useState<GridItem[]>([]);
   const [userGroupMasterListData, setUserGroupMasterListData] = useState<ListItem[]>([]);
   const [gridFilteredData, setGridFilteredData] = useState<GridItem[]>([]);
@@ -56,11 +57,6 @@ const UserGroupMaster = () => {
   const hideShowBtnRef = useRef<HTMLElement | null>(null);
   const downloadBtnRef = useRef<HTMLElement | null>(null);
 
-  // fetch config
-  useEffect(() => {
-    getConfigMasterValue("userGroupMasterConfig");
-  }, []);
-
   // fetch user group list
   const fetchUserGroupList = async () => {
     try {
@@ -70,7 +66,7 @@ const UserGroupMaster = () => {
         return;
       }
 
-      const activeConfig = configDataValue || userGroupMaster;
+      const activeConfig = userGroupConfig || userGroupMaster;
       const transformedData = transformDataWithConfig(activeConfig, response);
 
       setUserGroupMasterGridData(transformedData.gridView);

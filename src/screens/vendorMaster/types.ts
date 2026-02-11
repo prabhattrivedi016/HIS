@@ -58,4 +58,28 @@ type VendorItem = {
   lastModifiedOn: string;
 };
 
-export type { CityItem, CountryItem, DistrictItem, SelectItem, StateItem, VendorItem };
+type TypeItem = {
+  value: string;
+  key: string;
+};
+
+export interface VendorMasterPayload {
+  vendorId: number;
+  typeId: number;
+  type: string;
+  vendorName: string;
+  contactNo: string;
+  email: string;
+  dlno: string;
+  gstinNo: string;
+  address: string;
+  countryId: number;
+  stateId: number;
+  districtId: number;
+  cityId: number;
+  mappingBranch: string;
+  isActive: number;
+  pincode: number;
+}
+
+export type { CityItem, CountryItem, DistrictItem, SelectItem, StateItem, TypeItem, VendorItem };
