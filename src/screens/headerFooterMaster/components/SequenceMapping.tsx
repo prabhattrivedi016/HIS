@@ -271,7 +271,7 @@ const SequenceMapping = () => {
                 isSearchable
                 isClearable
                 onChange={roleSelectHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document?.body}
                 menuPosition="fixed"
               />
@@ -286,7 +286,7 @@ const SequenceMapping = () => {
                 isSearchable
                 isClearable
                 onChange={sequenceTypeChangeHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document?.body}
                 menuPosition="fixed"
               />

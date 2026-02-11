@@ -1,29 +1,35 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "jsx": "react-jsx",
-    "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "checkJs": true,
-    "allowJs": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    "jsx": "react-jsx",
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "allowJs": false,
+    "checkJs": false,
+
+    "types": ["vite/client"]
   },
+
   "include": ["src"],
-  "exclude": ["node_modules", "dist"],
-  "typeAcquisition": {
-    "enable": true,
-    "include": ["react", "react-dom"]
-  }
+  "exclude": ["node_modules", "dist"]
 }

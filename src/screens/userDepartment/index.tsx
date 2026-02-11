@@ -1,4 +1,5 @@
-import { GridItem, ListItem } from "@/types/types";
+import { userDepartmentConfig } from "@/config/masterConfig/userDepartmentConfig";
+import { GridItem, ListItem } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import HideShowColumn from "../../components/buttonsPopup";
 import DownloadPopup from "../../components/buttonsPopup/components/DownloadPopup";
@@ -7,7 +8,6 @@ import PageHeader from "../../components/pageHeader";
 import ListView from "../../components/profileCard/components/ListView";
 import GridView from "../../components/profileCard/index";
 import { ENDPOINTS } from "../../config/defaults";
-import { userDepartmentConfig } from "../../config/masterConfig/userDepartmentConfig";
 import { VIEWTYPE } from "../../constants/constants";
 import { useConfigMaster } from "../../hooks/useConfigMaster";
 import useGlobalApi from "../../hooks/useGlobalApi";
@@ -20,7 +20,8 @@ import UserDeptDrawer from "./components/UserDeptDrawer";
 
 const UserDepartment = () => {
   const { loading, fetchApi } = useGlobalApi();
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+  const configData = useConfigMaster("userDepartment");
+  const userDeptConfig = configData?.configDataValue;
 
   const [userDepartmentGrid, setUserDepartmentGrid] = useState<GridItem[]>([]);
   const [userDepartmentList, setUserDepartmentList] = useState<ListItem[]>([]);
@@ -44,18 +45,12 @@ const UserDepartment = () => {
   const hideShowBtnRef = useRef<HTMLElement | null>(null);
   const downloadBtnRef = useRef<HTMLElement | null>(null);
 
-  // config data value
-  // fetch config
-  useEffect(() => {
-    getConfigMasterValue("userDepartment");
-  }, []);
-
   //   fetch user department
   const getUserDepartmentList = async () => {
     try {
       const response = await fetchApi("GET", ENDPOINTS.GET_DEPARTMENT_LIST, {});
       if (!response) return;
-      const activeConfig = configDataValue || userDepartmentConfig;
+      const activeConfig = userDeptConfig || userDepartmentConfig;
       const transformedData = transformDataWithConfig(activeConfig, response);
       setUserDepartmentGrid(transformedData?.gridView);
       setUserDepartmentList(transformedData?.listView);

@@ -1,25 +1,35 @@
-import { components, OptionProps } from "react-select";
+import { OptionProps } from "react-select";
 
-interface SelectItem {
+export interface SelectItem {
   label: string;
-  valueL: number;
+  value: number;
 }
 
-const CheckboxOption = (props: OptionProps<SelectItem>) => {
-  return (
-    <components.Option {...props}>
-      <div className="flex items-center justify-between w-full px-2">
-        <span className="text-sm text-gray-800 select-none">{props.label}</span>
+const MultiCheckboxOption = (props: OptionProps<SelectItem, true>) => {
+  const { label, isSelected, innerRef, innerProps, isFocused } = props;
 
-        <input
-          type="checkbox"
-          checked={props.isSelected}
-          readOnly
-          className="w-4 h-4 cursor-pointer accent-indigo-600"
-        />
-      </div>
-    </components.Option>
+  return (
+    <div
+      ref={innerRef}
+      {...innerProps}
+      className={`
+        flex items-center justify-between w-full px-3 py-2
+        cursor-pointer
+        ${isFocused ? "bg-gray-100" : ""}
+      `}
+    >
+      {/* Label */}
+      <span className="text-sm text-gray-800 select-none">{label}</span>
+
+      {/* Checkbox */}
+      <input
+        type="checkbox"
+        checked={isSelected}
+        readOnly
+        className="w-4 h-4 accent-indigo-600 pointer-events-none"
+      />
+    </div>
   );
 };
 
-export default CheckboxOption;
+export default MultiCheckboxOption;

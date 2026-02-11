@@ -1,30 +1,40 @@
-import type { AxiosError } from "axios";
-import { useCallback, useEffect, useState } from "react";
-import axiosInstance from "../api/axiosInstance";
-import { ENDPOINTS } from "../config/defaults";
-import type { BranchListResponse } from "../screens/login/type";
+import { ENDPOINTS } from "@/config/defaults";
+import { useEffect, useState } from "react";
+import useGlobalApi from "./useGlobalApi";
+
+type BranchItem = {
+  branchId: number;
+  branchName: string;
+};
+
+interface ApiResp {
+  result: string;
+  messageType: string;
+  message: string;
+  data: BranchItem[];
+}
 
 const useGetBranchList = () => {
-  const [branchList, setBranchList] = useState<BranchListResponse | null>(null);
-  const [branchListError, setBranchListError] = useState<string>("");
+  const { error, fetchApi } = useGlobalApi();
 
-  const fetchBranchList = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get(ENDPOINTS.GET_BRANCHES);
-      setBranchList((res?.data as BranchListResponse) ?? []);
-    } catch (error) {
-      const err = error as AxiosError;
-      setBranchListError(
-        (err?.response?.data as string) || "Server not responding. Please retry in a moment"
-      );
-    }
-  }, [setBranchList, setBranchListError]);
+  const [branchList, setBranchList] = useState<ApiResp | null>(null);
+  const fetchBranchList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BRANCHES,
+      {},
+      {},
+      { component: "branchListHook" }
+    );
+
+    setBranchList(resp);
+  };
 
   useEffect(() => {
     fetchBranchList();
   }, []);
 
-  return { branchList, branchListError };
+  return { branchList };
 };
 
 export default useGetBranchList;

@@ -257,7 +257,7 @@ const DoctorSignature = () => {
                 isClearable
                 placeholder="Select..."
                 onChange={doctorChangeHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />

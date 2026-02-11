@@ -58,25 +58,47 @@ const transformDataWithConfig = (config, apiResponse) => {
     return null;
   };
 
-  const buildCard = (item, cfg, isGrid) => {
-    const recordIdKey = cfg.recordIdKey;
-
+  const normalizeRecordId = (item, recordIdKey) => {
     if (!recordIdKey) {
-      console.error(" recordIdKey missing in config", cfg);
+      console.error(" recordIdKey missing in config", item);
+      return null;
     }
 
-    const recordId = recordIdKey ? item[recordIdKey] : null;
+    const rawId = item[recordIdKey];
 
-    if (recordId === undefined || recordId === null) {
-      console.error(" Missing record ID from API", recordIdKey, item);
+    if (rawId === undefined || rawId === null) {
+      console.error(`Missing recordId "${recordIdKey}" in API item`, item);
+      return null;
     }
+
+    if (typeof rawId === "number") return rawId;
+
+    if (typeof rawId === "string") {
+      if (rawId.includes(",")) {
+        console.warn(` Invalid recordId "${rawId}" detected. Using first value only.`, item);
+        return Number(rawId.split(",")[0]);
+      }
+
+      return Number(rawId) || rawId;
+    }
+
+    return null;
+  };
+
+  const buildCard = (item, cfg, isGrid) => {
+    const recordId = normalizeRecordId(item, cfg.recordIdKey);
 
     const out = {
       type: cfg.type,
       cardType: cfg.cardType,
       cardViewType: cfg.cardViewType,
-      id: recordId ?? null,
     };
+
+    Object.defineProperty(out, "id", {
+      value: recordId,
+      writable: false,
+      enumerable: true,
+    });
 
     if (isGrid) {
       out.cardLeftTop = mapOrNull(cfg.cardLeftTop, f => ({

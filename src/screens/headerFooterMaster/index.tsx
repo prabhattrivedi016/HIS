@@ -96,16 +96,18 @@ const HeaderFooterMaster = () => {
   }, [content]);
 
   /* -------------------- header types -------------------- */
-  const headerReportType = usePickMaster({ fieldName: "headerReportType" });
+  const headerReportType = usePickMaster("headerReportType");
+
   const reportType = useMemo<ReportItem[]>(
-    () => headerReportType?.pickMasterValue?.data ?? [],
+    () => headerReportType?.pickMasterValue ?? [],
     [headerReportType]
   );
 
   /* -------------------- header variables -------------------- */
-  const headerVariables = usePickMaster({ fieldName: "headerVariable" });
+  const headerVariables = usePickMaster("headerVariable");
+
   const variableNames = useMemo<VariableNameItem[]>(
-    () => headerVariables?.pickMasterValue?.data ?? [],
+    () => headerVariables?.pickMasterValue ?? [],
     [headerVariables]
   );
 
@@ -323,7 +325,7 @@ const HeaderFooterMaster = () => {
                   isSearchable
                   isClearable
                   onChange={roleChangeHandler}
-                  classNames={SelectStyles}
+                  styles={SelectStyles}
                   menuPortalTarget={document?.body}
                   menuPosition="fixed"
                 />

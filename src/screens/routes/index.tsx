@@ -1,11 +1,13 @@
 import BankMaster from "../bankMaster";
 import BranchMaster from "../branchMaster";
+import CompanySetting from "../companySetting";
 import Dashboard from "../dashboard";
 import DoctorMaster from "../doctorMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import LocationMaster from "../loactionMaster";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
+import PatientDocumentMaster from "../patientDocumentMaster";
 import RoleMaster from "../roleMaster";
 import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
@@ -28,4 +30,6 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "vendor-master": <VendorMaster />,
   "mrd-location": <MrdLocationMaster />,
   "doctor-master": <DoctorMaster />,
+  "patient-document": <PatientDocumentMaster />,
+  "company-setting": <CompanySetting />,
 };

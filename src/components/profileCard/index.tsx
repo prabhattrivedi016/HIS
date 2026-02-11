@@ -89,7 +89,7 @@ const GridView = ({
           )}
         </div>
 
-        <p className="card-id"># {cardIdValue}</p>
+        <p className="card-id mb-3"># {cardIdValue}</p>
         <h2 className="card-title">{cardTitleName}</h2>
       </div>
 

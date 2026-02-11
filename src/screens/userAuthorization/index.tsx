@@ -30,7 +30,8 @@ const UserAuthorization = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const branchLists = useGetBranchList();
-  const { pickMasterValue } = usePickMaster({ fieldName: "AuthorizationType" });
+  const authValue = usePickMaster("AuthorizationType");
+  const authList = authValue?.pickMasterValue ?? [];
 
   const [branchId, setBranchId] = useState<number | null>(null);
   const [typeId, setTypeId] = useState<number | null>(null);
@@ -62,7 +63,7 @@ const UserAuthorization = () => {
   }, [defaultBranch, branchId]);
 
   //authorization type
-  const authSelectOption = useMemo(() => pickMasterValue?.data ?? [], [pickMasterValue]);
+  const authSelectOption = useMemo(() => authList ?? [], [authList]);
 
   /*------------------------------------ handler------------------------- */
   const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -81,9 +82,7 @@ const UserAuthorization = () => {
 
     setTypeId(Number(selectedKey));
 
-    const selectedGroup = pickMasterValue?.data?.find(
-      (o: AuthItem) => String(o.key) === selectedKey
-    );
+    const selectedGroup = authList?.find((o: AuthItem) => String(o.key) === selectedKey);
 
     setGroupType(selectedGroup ?? {});
     setSelectedUserGroup(null);
@@ -473,7 +472,7 @@ const UserAuthorization = () => {
               isSearchable
               isClearable
               onChange={selectUserGroupHandlerToBindRoles}
-              classNames={SelectStyles}
+              styles={SelectStyles}
               menuPortalTarget={document.body}
               menuPosition="fixed"
             />
@@ -488,7 +487,7 @@ const UserAuthorization = () => {
                 isSearchable
                 isClearable
                 onChange={roleSelectHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />

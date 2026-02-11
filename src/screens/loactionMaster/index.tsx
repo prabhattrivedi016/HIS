@@ -209,7 +209,7 @@ const LocationMaster = () => {
               isSearchable
               isClearable
               onChange={countryDropDownHandler}
-              classNames={SelectStyles}
+              styles={SelectStyles}
               menuPortalTarget={document.body}
               menuPosition="fixed"
             />
@@ -223,7 +223,7 @@ const LocationMaster = () => {
                 isSearchable
                 isClearable
                 onChange={stateDropDownHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
@@ -244,7 +244,7 @@ const LocationMaster = () => {
                 isSearchable
                 isClearable
                 onChange={distDropDownHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
@@ -267,7 +267,7 @@ const LocationMaster = () => {
                 isSearchable
                 isClearable
                 onChange={cityDropDownHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
@@ -289,7 +289,7 @@ const LocationMaster = () => {
                 isSearchable
                 isClearable
                 onChange={pinCodeDropDownHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />

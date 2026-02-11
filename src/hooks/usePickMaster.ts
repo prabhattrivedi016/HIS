@@ -1,24 +1,28 @@
-import { useEffect, useState } from "react";
-import axiosInstance from "../api/axiosInstance";
-import { ENDPOINTS } from "../config/defaults";
+import { ENDPOINTS } from "@/config/defaults";
+import { useCallback, useEffect, useState } from "react";
+import useGlobalApi from "./useGlobalApi";
 
-export const usePickMaster = ({ fieldName }: { fieldName: string }) => {
-  const [pickMasterValue, setPickMasterValue] = useState("");
+export const usePickMaster = (fieldName: string) => {
+  const { fetchApi } = useGlobalApi();
+  const [pickMasterValue, setPickMasterValue] = useState<any[]>([]);
 
-  const getPickMasterValue = async (fieldName: string) => {
-    try {
-      const res = await axiosInstance.get(ENDPOINTS.GET_PICKLIST_MASTER, {
-        params: { fieldName },
-      });
-      setPickMasterValue(res?.data);
-    } catch (err) {
-      console.error("error while fetching pick master value", err);
-    }
-  };
+  const getPickMasterValue = useCallback(async () => {
+    if (!fieldName) return;
+
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PICKLIST_MASTER,
+      {},
+      { params: { fieldName } },
+      { component: "pickMasterHook", silent: true }
+    );
+
+    setPickMasterValue(resp?.data ?? []);
+  }, [fieldName]);
 
   useEffect(() => {
-    getPickMasterValue(fieldName);
-  }, []);
+    getPickMasterValue();
+  }, [getPickMasterValue]);
 
   return { pickMasterValue };
 };

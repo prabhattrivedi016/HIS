@@ -23,9 +23,9 @@ const VerifyOtp = ({
       setTimeout(() => {
         onClose();
         navigate("/dashboard");
-      }, 1200);
+      }, 1000);
     }
-  }, []);
+  }, [isContact, isEmail, navigate, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

@@ -156,11 +156,7 @@ const MrdLocationMaster = () => {
         <div className="form-grid-4">
           <InputField label="Room">
             <div className="flex gap-2 items-center">
-              <select
-                className="input-field"
-                value={roomId || ""}
-                onChange={roomSelectHandler}
-              >
+              <select className="input-field" value={roomId || ""} onChange={roomSelectHandler}>
                 <option value="">Select</option>
                 {roomLists?.map(i => (
                   <option key={i?.roomId} value={i?.roomId}>
@@ -179,11 +175,7 @@ const MrdLocationMaster = () => {
 
           <InputField label="Rack">
             <div className="flex gap-2 items-center">
-              <select
-                className="input-field"
-                value={rackId || ""}
-                onChange={rackSelectHandler}
-              >
+              <select className="input-field" value={rackId || ""} onChange={rackSelectHandler}>
                 <option value="">Select</option>
                 {rackLists?.map(i => (
                   <option key={i?.rackId} value={i?.rackId}>
@@ -209,7 +201,7 @@ const MrdLocationMaster = () => {
                 isSearchable
                 isClearable
                 onChange={shelfSelectHandler}
-                classNames={SelectStyles}
+                styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />

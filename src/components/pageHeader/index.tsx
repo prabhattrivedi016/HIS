@@ -25,6 +25,8 @@ const PageHeader = ({
   hideShowBtnRef,
   onToggleColumnModal,
   downloadBtnRef,
+  unitButton,
+  onAddUnit,
 }) => {
   const [selectDropDown, setSelectDropDown] = useState("");
 
@@ -164,6 +166,20 @@ const PageHeader = ({
             >
               <UserPlus size={16} /> {buttonTitle}
             </button>
+
+            {unitButton ? (
+              <button
+                className="addNew-btn "
+                type="submit"
+                onClick={() => {
+                  onAddUnit?.();
+                }}
+              >
+                {unitButton}
+              </button>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       </div>

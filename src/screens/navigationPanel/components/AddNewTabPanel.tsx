@@ -104,20 +104,20 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
   return (
     <>
       {/* Overlay */}
-      <div className={`drawer-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
+      <div className={`popup-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
 
       {/* Drawer */}
-      <div className={`central-drawer ${isOpenTab ? "opacity-full" : ""}`}>
+      <div className={`central-popup ${isOpenTab ? "opacity-full" : ""}`}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">{tabId ? "Update Tab" : "Add New Tab"}</h2>
+        <div className="popup-header">
+          <h2 className="popup-header">{tabId ? "Update Tab" : "Add New Tab"}</h2>
           <button onClick={onCloseTab} className="close-drawer-btn">
             ×
           </button>
         </div>
 
         {successMessage && <SuccessMessage text={successMessage} />}
-        {error && <ErrorMessage text={error} />}
+        {error && <ErrorMessage text={error?.message} />}
 
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           {/* Tab Name */}

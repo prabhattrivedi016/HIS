@@ -1,51 +1,117 @@
-export const SelectStyles: ClassNamesConfig = {
-  container: () => "w-full",
+import { StylesConfig } from "react-select";
 
-  control: ({ isFocused }) =>
-    `
-    !h-[40px] !min-h-[40px]
-    !rounded-[10px]
-    !border !border-gray-500
-    !bg-white
-    !shadow-none
-    ${isFocused ? "!border-gray-700 !ring-1 !ring-indigo-500" : ""}
-    `,
+export interface SelectItem {
+  label: string;
+  value: number;
+}
 
-  valueContainer: () =>
-    "!px-4 !py-0 !h-[40px] !flex !items-center !flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide",
+export const SelectStyles: StylesConfig<SelectItem, true> = {
+  container: base => ({
+    ...base,
+    width: "100%",
+    maxWidth: "1000px",
+  }),
 
-  input: () => "!m-0 !p-0 !text-sm !leading-[40px]",
+  control: (base, state) => ({
+    ...base,
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    minHeight: "40px",
+    height: "40px",
+    borderRadius: "10px",
+    borderColor: state.isFocused ? "#6366f1" : "#6b7280",
+    boxShadow: state.isFocused ? "0 0 0 1px #6366f1" : "none",
+    backgroundColor: "#fff",
+    overflow: "hidden",
+  }),
 
-  multiValue: () => "!flex-shrink-0 !mr-1",
+  input: base => ({
+    ...base,
+    margin: 0,
+    padding: 0,
+    fontSize: "14px",
+  }),
 
-  multiValueLabel: () => "!max-w-[120px] !truncate",
+  multiValue: base => ({
+    ...base,
+    marginRight: "4px",
+    flexShrink: 0,
+  }),
 
-  singleValue: () => "!text-slate-900 !m-0 !p-0 !leading-[40px] !truncate",
+  multiValueLabel: base => ({
+    ...base,
+    maxWidth: "120px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
 
-  placeholder: () => "!text-slate-400 !m-0 !leading-[40px]",
+  singleValue: base => ({
+    ...base,
+    color: "#0f172a",
+    margin: 0,
+    padding: 0,
+    lineHeight: "40px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
 
-  indicatorsContainer: () => "!h-[40px] !flex !items-center !pr-2",
+  placeholder: base => ({
+    ...base,
+    color: "#94a3b8",
+    margin: 0,
+    lineHeight: "40px",
+  }),
 
-  dropdownIndicator: () => "!p-0 !text-slate-500",
+  indicatorsContainer: base => ({
+    ...base,
+    height: "40px",
+    paddingRight: "8px",
+  }),
 
-  indicatorSeparator: () => "!h-5 !bg-slate-300 !mx-2",
+  dropdownIndicator: base => ({
+    ...base,
+    padding: 0,
+    color: "#64748b",
+  }),
 
-  clearIndicator: () => "hidden",
+  indicatorSeparator: base => ({
+    ...base,
+    height: "20px",
+    backgroundColor: "#cbd5f5",
+    margin: "0 8px",
+  }),
 
-  menuPortal: () => "!z-[9999]",
+  clearIndicator: () => ({
+    display: "none",
+  }),
 
-  menu: () => "rounded-[10px] border border-slate-200 bg-white shadow-xl",
+  menuPortal: base => ({
+    ...base,
+    zIndex: 9999,
+  }),
 
-  menuList: () => "max-h-56 overflow-y-auto p-1",
+  menu: base => ({
+    ...base,
+    borderRadius: "10px",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+  }),
 
-  option: ({ isFocused, isSelected }) =>
-    `
-    !bg-transparent
-    !text-gray-800
-    cursor-pointer
-    px-2 py-2 rounded-md
+  menuList: base => ({
+    ...base,
+    maxHeight: "14rem",
+    padding: "4px",
+  }),
 
-    ${isFocused ? "bg-gray-100" : ""}
-    ${isSelected ? "bg-transparent" : ""}
-    `,
+  option: (base, state) => ({
+    ...base,
+    cursor: "pointer",
+    borderRadius: "6px",
+    padding: "8px",
+    backgroundColor: state.isFocused ? "#f3f4f6" : "transparent",
+    color: "#1f2937",
+  }),
 };

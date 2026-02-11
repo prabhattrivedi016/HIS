@@ -19,7 +19,9 @@ import { transformDataWithConfig } from "../../utils/utilities";
 
 const UserMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
+
+  const configData = useConfigMaster("userMaster");
+  const userMasterConfigValue = configData?.configDataValue;
 
   const [userMasterGridData, setUserMasterGridData] = useState([]);
   const [userMasterListData, setUserMasterListData] = useState([]);
@@ -44,19 +46,6 @@ const UserMaster = () => {
   const hideShowBtnRef = useRef(null);
   const downloadBtnRef = useRef(null);
 
-  // fetch config for user master
-  const fetchConfig = async () => {
-    try {
-      await getConfigMasterValue("userMaster");
-    } catch (err) {
-      console.error("Error fetching User Master config, using fallback:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchConfig();
-  }, []);
-
   // fetch user master list
   const fetchUserMasterListData = async (userId = "") => {
     const options = userId ? { params: { userId } } : {};
@@ -67,7 +56,7 @@ const UserMaster = () => {
     }
 
     const apiResponse = response || [];
-    const activeConfig = configDataValue || userMasterConfig;
+    const activeConfig = userMasterConfigValue || userMasterConfig;
     const transformedData = transformDataWithConfig(activeConfig, apiResponse);
 
     setUserMasterGridData(transformedData?.gridView || []);

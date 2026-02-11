@@ -5,7 +5,7 @@ type MessageProps = {
 };
 
 const SuccessMessage: React.FC<MessageProps> = ({ text = "" }) => (
-  <p className="text-green-500 text-sm text-center bg-green-200 p-2 rounded-lg m-2 border border-green-500 font-medium ">
+  <p className="text-green-500 text-sm text-center bg-green-200 p-2 rounded-lg m-2 border border-green-500 font-medium  ">
     {text}
   </p>
 );
@@ -16,7 +16,7 @@ const InfoMessage: React.FC<MessageProps> = ({ text = "" }) => (
 
 const ErrorMessage: React.FC<MessageProps> = ({ text = "" }) => {
   return (
-    <p className="text-red-500 text-md text-center bg-red-200 p-2 rounded-lg m-2 border border-red-500 font-medium ">
+    <p className="text-red-500 text-md text-center bg-red-200 p-2 rounded-lg m-2 border border-red-500 font-medium mb-3 ">
       {text}
     </p>
   );

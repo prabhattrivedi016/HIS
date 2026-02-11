@@ -20,19 +20,7 @@
 }
 
 /* drawer central*/
-.drawer-bg-overlay {
-  @apply fixed inset-0 bg-black/40 backdrop-blur-sm 
-          transition-opacity duration-300 z-9998;
-}
-.central-drawer {
-  @apply fixed top-1/2 left-1/2 z-9999
-          bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-md
-          transition-all duration-300 ease-out
-          transform;
-}
-.opacity-full {
-  @apply opacity-100 scale-100 -translate-x-1/2 -translate-y-1/2;
-}
+
 .no-opacity {
   @apply opacity-0 scale-50 -translate-x-1/2 -translate-y-1/2;
 }

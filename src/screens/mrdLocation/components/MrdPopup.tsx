@@ -139,17 +139,14 @@ const MrdPopUp = ({
   return (
     <>
       {/* Overlay */}
-      <div className="drawer-bg-overlay opacity-100 visible" onClick={onCloseTab} />
+      <div className="popup-bg-overlay opacity-100 visible" onClick={onCloseTab} />
 
       {/* Drawer */}
-      <div className="central-drawer opacity-full">
+      <div className="central-popup opacity-full">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">{headerName}</h2>
-          <button
-            onClick={onCloseTab}
-            className="text-gray-500 hover:text-gray-700 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
+        <div className="popup-header">
+          <h2 className="popup-helper-text">{headerName}</h2>
+          <button onClick={onCloseTab} className="close-drawer-btn">
             ×
           </button>
         </div>
@@ -167,7 +164,7 @@ const MrdPopUp = ({
               onChange={handleInputChange}
               name="name"
             />
-            {!formData.name && !! isSubmitting && (
+            {!formData.name && !!isSubmitting && (
               <p className="input-field-error">
                 {type.charAt(0).toUpperCase() + type.slice(1)} Name is required
               </p>
@@ -184,7 +181,7 @@ const MrdPopUp = ({
               <option value={1}>Active</option>
               <option value={0}>Inactive</option>
             </select>
-            {!formData.isActive && !! isSubmitting && (
+            {!formData.isActive && !!isSubmitting && (
               <p className="input-field-error">Status is required</p>
             )}
           </InputField>
@@ -203,13 +200,7 @@ const MrdPopUp = ({
           )}
           <div className="flex gap-3 mt-6">
             <button type="submit" className="submit-btn" disabled={loading}>
-              {loading
-                ? data
-                  ? "Updating..."
-                  : "Saving..."
-                : data
-                  ? "Update"
-                  : "Save"}
+              {loading ? (data ? "Updating..." : "Saving...") : data ? "Update" : "Save"}
             </button>
             <button type="button" className="cancel-btn" onClick={onCloseTab} disabled={loading}>
               Cancel

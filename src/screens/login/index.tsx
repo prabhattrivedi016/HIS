@@ -21,7 +21,8 @@ import { InputError, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const { branchList, branchListError } = useGetBranchList();
+  const { branchList } = useGetBranchList();
+
   const navigate = useNavigate();
   const { setAuthorizedPages } = useAuthorizedPages();
   const { setFavoriteRoles } = useFavoriteRoles();
@@ -237,9 +238,8 @@ const Login = () => {
 
             <p className="welcome">!! Welcome Back !!</p>
           </div>
-          {error && <ErrorMessage text={error} />}
+          {error && <ErrorMessage text={error?.message} />}
           {successMessage && <SuccessMessage text={successMessage} />}
-          {branchListError && <ErrorMessage text={branchListError} />}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="w-full">
               <div className="relative flex items-center border-2 rounded-lg transition border-gray-300 bg-white ">

@@ -78,7 +78,7 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
         left: position.left,
       }}
     >
-      <button onClick={activeHandler} className="data-downlaod-popup-btn">
+      <button onClick={activeHandler} className="data-download-popup-btn">
         {isActive !== null ? (isActive === 1 ? "Inactive" : "Active") : ""}
       </button>
 
