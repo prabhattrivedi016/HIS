@@ -1,14 +1,18 @@
-type OnStatusChange = (payload: {
+import React from "react";
+
+export type OnStatusChange = (payload: {
   isActive: number;
   userId?: number;
   roleId?: number;
   id?: number;
-}) => Promise<any>;
+  doctorId?: number;
+  referDoctorId?: number;
+}) => Promise<any> | void;
 
-type HandleButtonClickProps = {
+export type HandleButtonClickProps = {
   btnAction: string;
   onStatusChange: OnStatusChange;
-  cardLeftTop: { value?: number }[];
+  cardLeftTop: { value?: number | null }[];
   buttonTitle: (title: string) => void;
   drawerTitle: (title: string) => void;
   openDrawer: (id: number | null) => void;
@@ -16,14 +20,14 @@ type HandleButtonClickProps = {
   mapToUser?: (id: number) => void;
 };
 
-type ValueItem = {
+export type ValueItem = {
   label?: string;
   value?: string | number;
   keyFromApi?: string;
 };
 
-type GridViewData = {
-  cardLeftTop: { value?: number }[];
+export type GridViewData = {
+  cardLeftTop: { value?: number | null }[];
   cardRightTop: ValueItem[];
   cardAvatar?: string | null;
   cardId: ValueItem[];
@@ -37,7 +41,7 @@ type GridViewData = {
   id: number;
 };
 
-interface GridViewProps {
+export interface GridViewProps {
   data: GridViewData;
   onStatusChange: OnStatusChange;
   openDrawer: (id: number | null) => void;
@@ -48,7 +52,7 @@ interface GridViewProps {
   gridRightBtnRef?: React.RefObject<HTMLButtonElement>;
 }
 
-type ListColumn = {
+export type ListColumn = {
   label: string;
   keyFromApi?: string;
   value: string | number | null;
@@ -58,12 +62,12 @@ type ListColumn = {
   isSortable?: boolean;
 };
 
-type ListLeftButton = {
+export type ListLeftButton = {
   label: string;
   action: string;
 };
 
-type ListViewData = {
+export type ListViewData = {
   type: string;
   cardType: string;
   cardViewType: string;
@@ -72,11 +76,9 @@ type ListViewData = {
   listLeftButton: ListLeftButton[];
 };
 
-type ListViewProps = {
-  data: ListViewData;
-  onStatusChange: OnStatusChange;
-  openDrawer: (id: number | null) => void;
-  columnVisibility: (id: number | null) => Promise<any>;
-};
-
-export type { GridViewData, GridViewProps, HandleButtonClickProps, ListViewProps };
+export interface ListViewProps {
+  data?: ListViewData[];
+  onStatusChange?: (payload: { isActive: number; doctorId?: number }) => void;
+  openDrawer?: (id: number) => void;
+  columnVisibility?: Record<string, boolean>;
+}

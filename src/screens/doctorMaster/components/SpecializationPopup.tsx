@@ -4,6 +4,7 @@ import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { doctorSpecializationSchema } from "@/validation/doctorMasterPopup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useState } from "react";
@@ -34,6 +35,8 @@ const SpecializationPopup = ({
       isActive: 1,
     },
   });
+
+  useScrollLock(isOpen);
 
   const getSpecializationById = async (specializationId: number) => {
     const resp = await fetchApi(
@@ -75,6 +78,8 @@ const SpecializationPopup = ({
       }, 1000);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <>

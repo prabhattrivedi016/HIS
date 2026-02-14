@@ -18,28 +18,27 @@ const BankMaster = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-5">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Bank Master</h1>
-        <nav className="text-sm text-gray-500 flex  gap-2 mt-1">
-          <NavLink to="/dashboard" className="hover:underline">
-            Home
-          </NavLink>
-          <span>››</span>
-          <span>Bank Master</span>
-        </nav>
-      </div>
-      <div className="flex gap-2 border-b border-gray-200 mb-4 shadow-lg m-2 ">
+    <div className="page-container">
+      <h1 className="page-heading">Bank Master</h1>
+      <nav className="helper-text">
+        <NavLink to="/dashboard" className="hover:underline">
+          Home
+        </NavLink>
+        <span>››</span>
+        <span>Bank Master</span>
+      </nav>
+
+      <div className="tab-container rounded-lg">
         <button
           type="button"
           onClick={() => setActiveTab(BankMasterTabName?.BANK_MASTER)}
-          className={`px-4 py-2 text-md font-semibold transition
-              ${
-                activeTab === BankMasterTabName?.BANK_MASTER
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-500 hover:text-blue-600"
-              }
-            `}
+          className={` tab-btn transition
+                        ${
+                          activeTab === BankMasterTabName?.BANK_MASTER
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {BankMasterTabName?.BANK_MASTER}
         </button>
@@ -48,17 +47,17 @@ const BankMaster = () => {
           type="button"
           onClick={() => setActiveTab(BankMasterTabName?.BANK_DETAILS)}
           className={`px-4 py-2 text-md font-semibold transition
-              ${
-                activeTab === BankMasterTabName?.BANK_DETAILS
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-500 hover:text-blue-600"
-              }
-            `}
+                        ${
+                          activeTab === BankMasterTabName?.BANK_DETAILS
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {BankMasterTabName?.BANK_DETAILS}
         </button>
       </div>
-      {/* render tabs */}
+
       {renderTabs(activeTab)}
     </div>
   );

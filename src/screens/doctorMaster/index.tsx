@@ -1,3 +1,4 @@
+import CustomLoader from "@/components/customLoader";
 import { doctorMasterConfig } from "@/config/masterConfig/doctorMasterConfig";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HideShowColumn from "../../components/buttonsPopup";
@@ -51,6 +52,11 @@ const DoctorMaster = () => {
   const [onDownload, setOnDownload] = useState<boolean>(false);
   const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
 
+  const [hideShowColumn, setHideShowColumn] = useState<boolean>(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+
+  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
+
   const downloadBtnRef = useRef<HTMLButtonElement>(null);
 
   /*------------------doctor master list--------------------------- */
@@ -75,26 +81,32 @@ const DoctorMaster = () => {
   }, [configData]);
 
   useEffect(() => {
-    getDoctorsLists();
-  }, []);
+    if (doctorConfig) getDoctorsLists();
+  }, [doctorConfig]);
 
   /*--------------------card view handler---------- */
   const handleCardView = (view: string) => setCardView(view);
 
   /*---------------------update doctor master status----------------- */
-  const updateDoctorMasterStatus = useCallback(
-    async ({ isActive, id }: { isActive: number; id?: number }) => {
-      if (id === undefined) return;
-      await fetchApi(
-        "PATCH",
-        ENDPOINTS.UPDATE_DOCTOR_MASTER_STATUS,
-        {},
-        { params: { doctorId: id, isActive } }
-      );
-      getDoctorsLists();
-    },
-    [getDoctorsLists]
-  );
+  const updateDoctorMasterStatus = async ({
+    isActive,
+    doctorId,
+  }: {
+    isActive: number;
+    doctorId?: number;
+  }) => {
+    if (!doctorId) return;
+    await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_DOCTOR_MASTER_STATUS,
+      {},
+      { params: { doctorId, isActive } },
+      {
+        component: "DoctorMaster",
+      }
+    );
+    getDoctorsLists();
+  };
 
   /*----------------------------unit drawer handler------------------------ */
   const addUnitHandler = () => {
@@ -106,7 +118,7 @@ const DoctorMaster = () => {
   }, []);
 
   /*------------------add update doctor master-------------------------- */
-  const addNewHandler = useCallback((id: number | null) => {
+  const addNewHandler = (id: number | null) => {
     if (id) {
       setDrawerButtonTitle("Update");
       setDoctorDrawerTitle("Update Existing Doctor");
@@ -117,7 +129,7 @@ const DoctorMaster = () => {
       setDoctorIdToEdit(null);
     }
     setOpenDoctorDrawer(true);
-  }, []);
+  };
 
   /*------------------handle refresh--------------------- */
   const handleRefresh = useCallback(async () => {
@@ -154,7 +166,7 @@ const DoctorMaster = () => {
     }
   }, [listFilteredData]);
 
-  // DOWNLOAD POPUP HANDLER
+  /*-----------------download popup handler---------- */
   const downloadHandler = () => {
     if (!downloadBtnRef.current) return;
 
@@ -167,12 +179,7 @@ const DoctorMaster = () => {
     setOnDownload(prev => !prev);
   };
 
-  const [hideShowColumn, setHideShowColumn] = useState<boolean>(false);
-  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
-
-  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
-
-  // HIDE SHOW COLUMN HANDLER
+  /*----------------hide show column handler------------ */
   const hideShowHandler = useCallback(() => {
     if (hideShowBtnRef.current) {
       const rect = hideShowBtnRef.current.getBoundingClientRect();
@@ -184,14 +191,14 @@ const DoctorMaster = () => {
     setHideShowColumn(prev => !prev);
   }, []);
 
-  // COLUMN NAMES
+  /*--------------------column names--------------- */
   const columnNames = useMemo(() => {
     if (cardView === VIEWTYPE?.LIST && listFilteredData.length > 0) {
       return listFilteredData[0]?.columns?.map((col: any) => col?.label) || [];
     }
     return [];
   }, [listFilteredData, cardView]);
-  // DROPDOWN FILTER
+  /*---------------------drop down filter------------------- */
   const filterDropDown = doctorMasterListData?.[0]?.columns;
 
   /*---------------------card right button handler----------------- */
@@ -220,13 +227,7 @@ const DoctorMaster = () => {
           {gridFilteredData.map((doctor, idx) => (
             <GridView
               key={doctor?.id}
-              data={{
-                ...doctor,
-                cardLeftTop: doctor.cardLeftTop.map(item => ({
-                  ...item,
-                  value: typeof item.value === "string" ? undefined : item.value,
-                })),
-              }}
+              data={doctor}
               onStatusChange={updateDoctorMasterStatus}
               openDrawer={addNewHandler}
               buttonTitle={setDrawerButtonTitle}
@@ -247,8 +248,6 @@ const DoctorMaster = () => {
             onStatusChange={updateDoctorMasterStatus}
             columnVisibility={columnVisibility}
             openDrawer={addNewHandler}
-            buttonTitle={setDrawerButtonTitle}
-            drawerTitle={setDoctorDrawerTitle}
           />
         </div>
       );
@@ -289,7 +288,7 @@ const DoctorMaster = () => {
         />
       )}
 
-      {/* Hide/Show Columns Popup */}
+      {/*---------------- Hide/Show Columns Popup------------ */}
       {hideShowColumn && popupPos && (
         <HideShowColumn
           columnNames={columnNames}
@@ -301,7 +300,8 @@ const DoctorMaster = () => {
         />
       )}
 
-      {/* DOWNLOAD POPUP */}
+      {/*---------------download popup ------------*/}
+
       {onDownload && downloadPopup && (
         <DownloadPopup
           anchorRef={downloadBtnRef as React.RefObject<HTMLElement>}
@@ -333,15 +333,15 @@ const DoctorMaster = () => {
       )}
 
       {/* grid right top button popup handler */}
-      {gridRightTopBtn ? (
+      {!!gridRightTopBtn && idGridBtn ? (
         <CardRightButtonPopup
           doctorId={idGridBtn}
           position={gridBtnPopup}
           onClose={() => setGridRightTopBtn(false)}
         />
-      ) : (
-        <></>
-      )}
+      ) : null}
+
+      {!!loading ? <CustomLoader isLoading={loading} /> : <></>}
     </div>
   );
 };

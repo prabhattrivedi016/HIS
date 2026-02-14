@@ -4,10 +4,12 @@ import CompanySetting from "../companySetting";
 import Dashboard from "../dashboard";
 import DoctorMaster from "../doctorMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
+import LabMaster from "../labMaster";
 import LocationMaster from "../loactionMaster";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
+import ReferDoctorMaster from "../referDoctorMaster";
 import RoleMaster from "../roleMaster";
 import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
@@ -32,4 +34,6 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "doctor-master": <DoctorMaster />,
   "patient-document": <PatientDocumentMaster />,
   "company-setting": <CompanySetting />,
+  "refer-doctor-master": <ReferDoctorMaster />,
+  "lab-master": <LabMaster />,
 };

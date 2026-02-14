@@ -15,7 +15,6 @@ import { exportListViewData } from "../../utils/exportUtils";
 import { filteredData } from "../../utils/filteredData";
 import { getDownloadPopupPosition, getHideShowPopupPosition } from "../../utils/popUpPosition";
 import { transformDataWithConfig } from "../../utils/utilities";
-import { UpdateUserDeptStatusProps } from "./components/types";
 import UserDeptDrawer from "./components/UserDeptDrawer";
 
 const UserDepartment = () => {
@@ -48,8 +47,13 @@ const UserDepartment = () => {
   //   fetch user department
   const getUserDepartmentList = async () => {
     try {
-      const response = await fetchApi("GET", ENDPOINTS.GET_DEPARTMENT_LIST, {});
-      if (!response) return;
+      const response = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_DEPARTMENT_LIST,
+        {},
+        {},
+        { component: "UserDepartment" }
+      );
       const activeConfig = userDeptConfig || userDepartmentConfig;
       const transformedData = transformDataWithConfig(activeConfig, response);
       setUserDepartmentGrid(transformedData?.gridView);
@@ -92,7 +96,7 @@ const UserDepartment = () => {
   };
 
   //   status update handler
-  const updateUserDeptStatus = async ({ isActive, id }: UpdateUserDeptStatusProps) => {
+  const updateUserDeptStatus = async ({ isActive, id }: { isActive: number; id: number }) => {
     try {
       const response = await fetchApi(
         "PATCH",
@@ -172,8 +176,6 @@ const UserDepartment = () => {
               data={user}
               onStatusChange={updateUserDeptStatus}
               openDrawer={AddNewHandler}
-              buttonTitle={setDrawerButtonTitle}
-              drawerTitle={setDrawerTitle}
             />
           ))}
         </div>
@@ -190,8 +192,6 @@ const UserDepartment = () => {
             columnVisibility={columnVisibility}
             onStatusChange={updateUserDeptStatus}
             openDrawer={AddNewHandler}
-            buttonTitle={setDrawerButtonTitle}
-            drawerTitle={setDrawerTitle}
           />
         </div>
       );
@@ -215,17 +215,15 @@ const UserDepartment = () => {
         downloadBtnRef={downloadBtnRef}
         onDownload={downloadHandler}
       />
-      {/* render component */}
+
       <div className="w-full">{renderComponent(cardView)}</div>
-      {/* loader */}
-      {loading && <CustomLoader isLoading={loading} />}
+
       {/* user department drawer */}
+
       {openUserDeptDrawer ? (
         <UserDeptDrawer
           isOpen={openUserDeptDrawer}
           onClose={() => setOpenUserDeptDrawer(false)}
-          buttonTitle={drawerButtonTitle}
-          drawerTitle={drawerTitle}
           deptId={userDepIdToEdit}
         />
       ) : (
@@ -258,6 +256,8 @@ const UserDepartment = () => {
           }}
         />
       )}
+
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

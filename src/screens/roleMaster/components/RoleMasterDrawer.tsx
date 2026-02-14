@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
 
-import { Spinner } from "../../../../assets/svgIcons";
 import { LOGOS } from "../../../assets/logos";
 
 import InputField from "../../../components/customInputField";
@@ -11,23 +10,18 @@ import CustomLoader from "../../../components/customLoader";
 import { SelectStyles } from "../../../components/customSelect";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { roleMasterSchema } from "@/validation/roleMasterSchema";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
-import { roleMasterSchema } from "../../../validation/roleMasterSchema";
-import { RoleMasterProps } from "../type";
+import { Payload, RoleMasterProps } from "../type";
 
-const RoleMasterDrawer = ({
-  isOpen,
-  onClose,
-  drawerTitle,
-  buttonTitle,
-  onCloseDrawer,
-  roleId,
-}: RoleMasterProps) => {
+const RoleMasterDrawer = ({ isOpen, onClose, onCloseDrawer, roleId }: RoleMasterProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
+  const title = !!roleId ? "Update" : "Create";
+
   const [successMessage, setSuccessMessage] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const {
     register,
@@ -39,19 +33,22 @@ const RoleMasterDrawer = ({
     resolver: yupResolver(roleMasterSchema),
     defaultValues: {
       roleName: "",
-      isActive: "",
+      isActive: 1,
       faIconId: "0",
-      roleId: "0",
+      roleId: 0,
       imagePath: "",
     },
   });
+
+  useScrollLock(isOpen);
 
   const fetchRoleDetails = async (id: number) => {
     const response = await fetchApi(
       "GET",
       ENDPOINTS.ROLE_MASTER_LIST,
       {},
-      { params: { roleId: id } }
+      { params: { roleId: id } },
+      { component: "ROleMasterDrawer" }
     );
 
     if (!response) return;
@@ -60,7 +57,7 @@ const RoleMasterDrawer = ({
 
     reset({
       roleName: role?.roleName || "",
-      isActive: role?.isActive?.toString() || "",
+      isActive: role?.isActive || 1,
       faIconId: role?.faIconId || 0,
       roleId: role?.roleId || id,
       imagePath: role?.imagePath || "",
@@ -75,23 +72,30 @@ const RoleMasterDrawer = ({
     if (!roleId) {
       reset({
         roleName: "",
-        isActive: "",
+        isActive: 1,
         faIconId: "0",
-        roleId: "0",
+        roleId: 0,
         imagePath: "",
       });
     }
   }, [roleId, reset]);
 
-  const onSubmit = async (data: any) => {
-    const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_ROLE_MASTER, data);
+  const onSubmit = async (data: Payload) => {
+    const response = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_ROLE_MASTER,
+      data,
+      {},
+      { component: "RoleMasterDrawer" }
+    );
 
     if (!response) {
       return;
     }
 
-    setSuccessMessage(response?.message || "Saved successfully");
-    setErrorMessage("");
+    const msg = roleId ? "Updated successfully" : "Created successfully";
+
+    setSuccessMessage(response?.message || msg);
 
     onCloseDrawer?.();
 
@@ -118,77 +122,81 @@ const RoleMasterDrawer = ({
         {/* RIGHT DRAWER */}
         <div className={`drawer-layout drawer-bg ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="drawer-title-border">
-            <h2 className="drawer-title">{drawerTitle}</h2>
+            <h2 className="drawer-title">{title} Role Master</h2>
             <button onClick={onClose} className="drawer-close-btn">
               ×
             </button>
           </div>
 
-          <div className="p-4">
-            {successMessage && <SuccessMessage text={successMessage} />}
-            {errorMessage && <ErrorMessage text={errorMessage} />}
+          {successMessage && <SuccessMessage text={successMessage} />}
+          {error && <ErrorMessage text={error?.message} />}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Role Name */}
-              <InputField label="Role Name" required>
-                <input
-                  {...register("roleName")}
-                  className="input-field"
-                  placeholder="Enter role name"
-                />
-                {errors.roleName && <p className="input-field-error">{errors.roleName.message}</p>}
-              </InputField>
-
-              {/* Status */}
-              <InputField label="Status" required>
-                <select {...register("isActive")} className="input-field">
-                  <option value="">Select</option>
-                  <option value="1">Active</option>
-                  <option value="0">Inactive</option>
-                </select>
-                {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
-              </InputField>
-
-              {/* Icon */}
-              <InputField label="Role Icon" required>
-                <Controller
-                  name="imagePath"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      options={iconOptions}
-                      placeholder="Select icon"
-                      isSearchable
-                      isClearable
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      styles={SelectStyles}
-                      value={iconOptions.find(opt => opt.iconPath === field.value) || null}
-                      onChange={opt => field.onChange(opt ? opt.iconPath : "")}
-                      formatOptionLabel={opt => (
-                        <div className="flex items-center justify-between gap-4 px-2">
-                          <span>{opt.label}</span>
-                          <img src={opt.iconPath} className="h-8 w-8 object-contain" />
-                        </div>
-                      )}
-                    />
+          <div className="card m-2">
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="form-grid-2">
+                {/* Role Name */}
+                <InputField label="Role Name" required>
+                  <input
+                    {...register("roleName")}
+                    className="input-field"
+                    placeholder="Enter role name"
+                  />
+                  {errors.roleName && (
+                    <p className="input-field-error">{errors.roleName.message}</p>
                   )}
-                />
-                {errors.imagePath && (
-                  <p className="input-field-error">{errors.imagePath.message}</p>
-                )}
-              </InputField>
+                </InputField>
 
-              <button type="submit" disabled={loading} className="submit-btn w-full">
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <Spinner />
-                    Saving...
-                  </span>
-                ) : (
-                  buttonTitle
-                )}
-              </button>
+                {/* Status */}
+                <InputField label="Status" required>
+                  <select {...register("isActive")} className="input-field">
+                    <option value="">Select</option>
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                  </select>
+                  {errors.isActive && (
+                    <p className="input-field-error">{errors.isActive.message}</p>
+                  )}
+                </InputField>
+
+                {/* Icon */}
+                <InputField label="Role Icon" required>
+                  <Controller
+                    name="imagePath"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        options={iconOptions}
+                        placeholder="Select icon"
+                        isSearchable
+                        isClearable
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        styles={SelectStyles}
+                        value={iconOptions.find(opt => opt.iconPath === field.value) || null}
+                        onChange={opt => field.onChange(opt ? opt.iconPath : "")}
+                        formatOptionLabel={opt => (
+                          <div className="flex items-center justify-between gap-4 px-2">
+                            <span>{opt.label}</span>
+                            <img src={opt.iconPath} className="h-8 w-8 object-contain" />
+                          </div>
+                        )}
+                      />
+                    )}
+                  />
+                  {errors.imagePath && (
+                    <p className="input-field-error">{errors.imagePath.message}</p>
+                  )}
+                </InputField>
+              </div>
+
+              <div className="form-actions-responsive mt-5">
+                <button type="submit" className="save-btn">
+                  {title}
+                </button>
+                <button type="button" className="cancel-button ">
+                  Cancel
+                </button>
+              </div>
             </form>
           </div>
         </div>

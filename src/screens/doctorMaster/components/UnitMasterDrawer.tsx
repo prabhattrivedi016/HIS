@@ -1,5 +1,6 @@
 import MultiCheckboxOption from "@/components/multiSelectCheckBox";
 import { ENDPOINTS } from "@/config/defaults";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -47,6 +48,7 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
       doctorMappings: [],
     },
   });
+  useScrollLock(isOpen);
 
   const [unitNameList, setUnitNameList] = useState<DoctorMasterItem[]>([]);
 
@@ -416,6 +418,8 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
     setDoctorIds([]);
     setDepartmentId(null);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-999 ">

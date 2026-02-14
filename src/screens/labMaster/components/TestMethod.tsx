@@ -1,22 +1,23 @@
 import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import { BankMasterTableHeader } from "@/constants/constants";
-import { bankMasterSchema } from "@/validation/bankMasterSchema";
+import { ENDPOINTS } from "@/config/defaults";
+import { LabMethodTableHeader } from "@/constants/constants";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { testMethodSchema } from "@/validation/labMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { InferType } from "yup";
-import { ENDPOINTS } from "../../../config/defaults";
-import useGlobalApi from "../../../hooks/useGlobalApi";
-import { BankItem } from "../types";
-type BankMasterFormItem = InferType<typeof bankMasterSchema>;
+import { LabMethodItem } from "../types";
+type LabMethodFormItem = InferType<typeof testMethodSchema>;
 
-const BankMasterPage = () => {
+const TestMethod = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [bankLists, setBankLists] = useState<BankItem[]>([]);
+  const [labMethodsList, setLabMethodList] = useState<LabMethodItem[]>([]);
+  const [filteredList, setFilteredList] = useState<LabMethodItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
 
@@ -27,95 +28,107 @@ const BankMasterPage = () => {
     watch,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(bankMasterSchema),
+    resolver: yupResolver(testMethodSchema),
     defaultValues: {
-      bankId: 0,
-      bankName: "",
+      methodId: 0,
+      method: "",
       isActive: 1,
     },
   });
-  const bankId = watch("bankId");
-  const isEditMode = Boolean(bankId);
-  const buttonTitle = isEditMode ? "Update" : "Create";
+  const methodId = watch("methodId");
+  const isEdit = Boolean(methodId);
+  const buttonTitle = isEdit ? "Update" : "Create";
+
+  /*------------------get lab method master------------- */
+  const getLabMethod = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_LAB_METHOD_MASTER,
+      {},
+      {},
+      { component: "TestMethod" }
+    );
+    setLabMethodList(resp?.data ?? []);
+    setFilteredList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getLabMethod();
+  }, []);
 
   const tablePopupHandler = () => {
     setShowDetails(p => !p);
   };
 
-  /*-----------------bank master list----------------- */
-  const getBankLists = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_BANK_LIST);
-    setBankLists(resp?.data ?? []);
-  };
+  /*----------------submit handler-------------- */
+  const onsubmit = async (formData: LabMethodFormItem) => {
+    console.log("formData", formData);
+    if (!formData?.methodId) return;
 
-  useEffect(() => {
-    getBankLists();
-  }, []);
-
-  /*--------------------submit handler------------ */
-  const onSubmit = async (formData: BankMasterFormItem) => {
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.CREATE_UPDATE_BANK_MASTER,
+      ENDPOINTS.CREATE_UPDATE_LAB_METHOD_MASTER,
       formData,
       {},
-      { component: "BankMasterPage" }
+      { component: "TestMethod" }
     );
+
     if (!resp) return;
+
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      setSuccessMessage(resp?.message || "saved successfully");
       reset({
-        bankId: 0,
-        bankName: "",
+        methodId: 0,
+        method: "",
         isActive: 1,
       });
-      await getBankLists();
+      await getLabMethod();
     }
   };
 
-  /*-------------------------edit handler------------------- */
-  const editHandler = (item: BankItem) => {
-    if (!item) {
-      reset({
-        bankId: 0,
-        bankName: "",
-        isActive: 1,
-      });
-      return;
-    }
+  /*-----------------edit handler----------------- */
+  const editHandler = (item: LabMethodItem) => {
+    if (!item) return;
     reset({
-      bankId: item?.bankId || 0,
-      bankName: item?.bankName || "",
+      methodId: item?.methodId || 0,
+      method: item?.method || "",
       isActive: Number(item?.isActive ?? 1),
     });
   };
 
-  /*-----------------cancel handler-------------------- */
+  /*--------------------search handler-------------- */
+  const searchHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase();
+
+    const filtered = labMethodsList.filter(item => item?.method?.toLowerCase().includes(value));
+
+    setFilteredList(filtered);
+  };
+
   const cancelHandler = () => {
     reset({
-      bankId: 0,
-      bankName: "",
+      methodId: 0,
+      method: "",
       isActive: 1,
     });
   };
-
   return (
     <div className="-mt-2">
       <div className="card -mt-10">
-        <h2 className="card-title ">Sample Master Details</h2>
+        <h2 className="card-title ">Test Method Details</h2>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-4">
-            <InputField label="Bank Name" required>
+            <InputField label="Test Method Name" required>
               <input
                 className="input-field"
-                placeholder="Enter Bank name"
-                {...register("bankName")}
+                placeholder="Enter text method name"
+                {...register("method")}
               />
-              {errors.bankName && <p className="input-field-error">{errors.bankName.message}</p>}
+              {errors.method && <p className="input-field-error">{errors.method.message}</p>}
             </InputField>
 
-            <InputField label="Status" required>
+            <InputField label="Status">
               <select
                 className="input-field"
                 required
@@ -140,7 +153,7 @@ const BankMasterPage = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title ">Bank Master List</h2>
+          <h2 className="card-title ">Lab Method List</h2>
 
           <button onClick={tablePopupHandler}>
             {showDetails ? <Minus size={30} /> : <Plus size={30} />}
@@ -154,29 +167,39 @@ const BankMasterPage = () => {
                 <table className="base-table">
                   <thead className="table-head">
                     <tr>
-                      {BankMasterTableHeader.map((h, index) => (
-                        <th key={index} className="table-th ">
-                          {h}
+                      {LabMethodTableHeader.map((h, index) => (
+                        <th key={index} className="table-th align-top ">
+                          {h === "Method" ? (
+                            <div className="flex flex-col  ">
+                              <h2>{h}</h2>
+                              <input
+                                type="text"
+                                className="input-field lg:max-w-35 lg:max-h-7 mt-1 -ml-8"
+                                onChange={searchHandler}
+                              />
+                            </div>
+                          ) : (
+                            h
+                          )}
                         </th>
                       ))}
                     </tr>
                   </thead>
 
                   <tbody>
-                    {bankLists?.length === 0 && (
+                    {filteredList?.length === 0 && (
                       <tr>
-                        <td colSpan={bankLists.length} className="table-empty">
+                        <td colSpan={filteredList?.length} className="table-empty">
                           No records found
                         </td>
                       </tr>
                     )}
 
-                    {bankLists.map((item, idx) => (
+                    {filteredList.map((item, idx) => (
                       <tr key={idx} className="table-row">
                         <td className="table-td">{idx + 1}</td>
 
-                        <td className="table-td">{item?.bankName || "-"}</td>
-
+                        <td className="table-td">{item?.method || "-"}</td>
                         <td className="table-td">
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
@@ -203,4 +226,5 @@ const BankMasterPage = () => {
     </div>
   );
 };
-export default BankMasterPage;
+
+export default TestMethod;

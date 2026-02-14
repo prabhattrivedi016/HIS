@@ -3,16 +3,13 @@ import { CardRightButtonPopupProps } from "../types";
 import DoctorTimingModal from "./DoctorTimingModal";
 
 const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPopupProps) => {
-  console.log("doctorId", doctorId);
-  console.log("position", position);
-
   const [isTimingOpen, setIsTimingOpen] = useState<boolean>(false);
 
-  const popupRef = useRef(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = e => {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -24,6 +21,10 @@ const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPo
   const MapTimingHandler = () => {
     setIsTimingOpen(true);
   };
+  if (!position) {
+    return null;
+  }
+
   return (
     <div
       ref={popupRef}
@@ -37,7 +38,7 @@ const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPo
       <button className="data-download-popup-btn" onClick={MapTimingHandler}>
         Map Timing
       </button>
-      {isTimingOpen ? (
+      {isTimingOpen && doctorId !== null ? (
         <DoctorTimingModal
           isOpen={isTimingOpen}
           onClose={() => setIsTimingOpen(false)}

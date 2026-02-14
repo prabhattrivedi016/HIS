@@ -15,9 +15,17 @@ export enum BankMasterTabName {
   BANK_DETAILS = "Bank Details",
 }
 
+export enum LabMasterTabName {
+  SAMPLE_TYPE = "Sample Type",
+  TEST_METHOD = "Test Method",
+  SAMPLE_REJECTION = "Sample Rejection",
+  SAMPLE_REMARKS = "Sample Remarks",
+}
+
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",
+  "Status",
   "PAN Number",
   "Bank Name",
   "Account Number",
@@ -29,7 +37,6 @@ export const BankDetailsTableHeader = [
   "Create On",
   "Last Modified By",
   "Last Modified On",
-  "Status",
   "Edit",
 ];
 
@@ -115,6 +122,30 @@ export const PatientDocumentTableHeader = [
 ];
 
 export const DoctorTimingTableHeader = ["Branch", "Day", "Start Time", "End Time", "Remove"];
+
+export const SampleTypeMasterTableHeader = [
+  "#",
+  "Sample Type",
+  "Status",
+  "Color Name",
+  "Color",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
+];
+
+export const LabMethodTableHeader = [
+  "#",
+  "Method",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
+];
 
 export const DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA = {
   documentId: 0,

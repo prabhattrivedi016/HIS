@@ -1,4 +1,5 @@
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { toInputDate } from "@/utils/dateConvertHandler";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
@@ -58,7 +59,7 @@ const DoctorMasterDrawer = ({
 
   const [checked, setChecked] = useState<boolean>(false);
   const [disabled, setDisabled] = useState(false);
-  const [defaultTitle, setDefaultTitle] = useState();
+  const [defaultTitle, setDefaultTitle] = useState<TitleItem>();
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -100,6 +101,8 @@ const DoctorMasterDrawer = ({
       ConfirmPassword: "",
     },
   });
+
+  useScrollLock(isOpen);
 
   /*---------------------branches------------------------ */
   const getBranches = useGetBranchList();
@@ -288,7 +291,7 @@ const DoctorMasterDrawer = ({
     setChecked(false);
 
     if (defaultTitle) {
-      setValue("Title", defaultTitle);
+      setValue("Title", defaultTitle?.value);
     }
   };
 
@@ -427,6 +430,8 @@ const DoctorMasterDrawer = ({
 
     return null;
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-999">

@@ -1,16 +1,3 @@
-type RoleMasterProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onCloseDrawer?: () => void;
-  roleId?: number | null;
-};
-
-type IconOptionsItem = {
-  value: number;
-  label: string;
-  iconPath: string;
-};
-
 interface GridLeftTop {
   label: string;
   value: number | string | null;
@@ -42,7 +29,7 @@ interface GridButtonSection {
 
 type LabelAction = GridButtonSection;
 
-interface roleMasterGridItem {
+interface ReferDoctorMasterGridItem {
   type: string;
   cardType: string;
   cardViewType: string;
@@ -76,9 +63,9 @@ interface ListColumn {
   isMasked?: boolean;
 }
 
-interface roleMasterListItem {
-  type: "roleMaster";
-  cardType: "roleMasterList";
+interface ReferDoctorMasterListItem {
+  type: "referDoctorMaster";
+  cardType: "referDoctorMasterList";
   cardViewType: "list";
 
   id: number;
@@ -88,12 +75,36 @@ interface roleMasterListItem {
   columns: ListColumn[];
 }
 
-type Payload = {
-  roleName: string;
-  isActive: number;
-  faIconId: string;
-  roleId: number;
-  imagePath: string;
+type ReferDoctorMasterDrawerProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  referDoctorId?: number | null | undefined;
+  onCloseDrawer: () => void;
 };
 
-export type { IconOptionsItem, Payload, roleMasterGridItem, roleMasterListItem, RoleMasterProps };
+type TitleItem = {
+  value: string;
+  key: string;
+};
+type ProNameItem = {
+  proId: number;
+  name: string;
+  contactNo: string;
+  isActive: number;
+};
+
+type ProNamePopUpProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  proId?: number | null;
+  refreshProName: () => Promise<void>;
+};
+
+export type {
+  ProNameItem,
+  ProNamePopUpProps,
+  ReferDoctorMasterDrawerProps,
+  ReferDoctorMasterGridItem,
+  ReferDoctorMasterListItem,
+  TitleItem,
+};
