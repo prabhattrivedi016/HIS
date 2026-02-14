@@ -132,6 +132,21 @@ const ENDPOINTS = {
   //patient document master
   GET_PATIENT_DOCUMENT_MASTER: "Admin/getPatientDocumentMaster",
   CREATE_UPDATE_PATIENT_DOCUMENT_MASTER: "Admin/createUpdatePatientDocumentMaster",
+
+  // refer doctor master
+
+  CREATE_UPDATE_PRO_MASTER: "Doctor/createUpdateProMaster",
+  GET_PRO_LIST: "Doctor/getProList",
+  CREATE_UPDATE_REFER_DOCTOR: "Doctor/createUpdateReferDoctor",
+  GET_REFER_DOCTOR_LIST: "Doctor/getReferDoctorList",
+  UPDATE_REFER_DOCTOR_MASTER_STATUS: "Doctor/updateReferDoctorMasterStatus",
+
+  //lab master
+  GET_SAMPLE_CONTAINER_COLOR_MASTER: "Lab/getSampleContainerColorMaster",
+  GET_ALL_SAMPLE_TYPE_MASTER: "Lab/getAllSampleTypeMaster",
+  CREATE_UPDATE_SAMPLE_TYPE_MASTER: "Lab/createUpdateSampleTypeMaster",
+  CREATE_UPDATE_LAB_METHOD_MASTER: "Lab/createUpdateLabMethodMaster",
+  GET_LAB_METHOD_MASTER: "Lab/getLabMethodMaster",
 };
 
 export { ENDPOINTS };

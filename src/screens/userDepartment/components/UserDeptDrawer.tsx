@@ -1,5 +1,4 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { Spinner } from "../../../../assets/svgIcons";
 import InputField from "../../../components/customInputField/index";
 import CustomLoader from "../../../components/customLoader";
 import useGlobalApi from "../../../hooks/useGlobalApi";
@@ -9,20 +8,15 @@ import { useEffect, useRef, useState } from "react";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index";
 import { userDepartmentSchema } from "../../../validation/UserDepartmentSchema";
 
-import Button from "../../../components/customButton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { ENDPOINTS } from "../../../config/defaults";
-import { Payload, UserDeptDrawerProps } from "./types";
-const UserDeptDrawer = ({
-  isOpen,
-  onClose,
-  buttonTitle,
-  drawerTitle,
-  deptId,
-}: UserDeptDrawerProps) => {
+import { Payload, UserDeptDrawerProps } from "../types";
+const UserDeptDrawer = ({ isOpen, onClose, deptId }: UserDeptDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [successMessage, setSuccessMessage] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const title = deptId ? "Update" : "Create";
 
   //   add new or update department
   const {
@@ -35,9 +29,11 @@ const UserDeptDrawer = ({
     defaultValues: {
       id: "0",
       departmentName: "",
-      isActive: "",
+      isActive: 1,
     },
   });
+
+  useScrollLock(isOpen);
 
   //   create update  handle submit
   const onSubmit: SubmitHandler<Payload> = async (payload: Payload) => {
@@ -80,7 +76,7 @@ const UserDeptDrawer = ({
       reset({
         id: userDept?.id || "",
         departmentName: userDept?.departmentName || "",
-        isActive: userDept?.isActive?.toString() || "",
+        isActive: userDept?.isActive?.toString() || 1,
       });
     } catch (error) {
       console.error("Error while fetching the user department by id", error);
@@ -93,7 +89,7 @@ const UserDeptDrawer = ({
     } else {
       reset({
         id: "0",
-        isActive: "",
+        isActive: 1,
         departmentName: "",
       });
     }
@@ -110,48 +106,47 @@ const UserDeptDrawer = ({
 
         <div className={`drawer-layout drawer-bg ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="drawer-title-border">
-            <h2 className="drawer-title">{drawerTitle}</h2>
+            <h2 className="drawer-title">{title} User Department</h2>
             <button onClick={onClose} className="drawer-close-btn">
               ×
             </button>
           </div>
-          <div className="p-4">
-            <div className="mb-4">
-              {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
-              {error ? <ErrorMessage text={error} /> : <></>}
-            </div>
+          {!!successMessage ? <SuccessMessage text={successMessage} /> : <></>}
+          {!!error ? <ErrorMessage text={error?.message} /> : <></>}
+          <div className=" card m-2">
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="form-grid-2">
+                <InputField label="Department Name" required={true}>
+                  <input
+                    placeholder="Enter Department Name"
+                    className="input-field"
+                    {...register("departmentName")}
+                  />
+                  {errors.departmentName && (
+                    <p className="input-field-error">{errors.departmentName.message}</p>
+                  )}
+                </InputField>
 
-            <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-              <InputField label="Department Name" required={true}>
-                <input
-                  placeholder="Enter Department Name"
-                  className="input-field"
-                  {...register("departmentName")}
-                />
-                {errors.departmentName && (
-                  <p className="input-field-error">{errors.departmentName.message}</p>
-                )}
-              </InputField>
+                <InputField label="Status" required={true}>
+                  <select {...register("isActive")} className="input-field">
+                    <option value="">Select</option>
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                  </select>
+                  {errors.isActive && (
+                    <p className="input-field-error">{errors.isActive.message}</p>
+                  )}
+                </InputField>
+              </div>
 
-              <InputField label="Status" required={true}>
-                <select {...register("isActive")} className="input-field">
-                  <option value="">Select</option>
-                  <option value="1">Active</option>
-                  <option value="0">Inactive</option>
-                </select>
-                {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
-              </InputField>
-
-              <Button type="submit" variant="addButtons">
-                {loading ? (
-                  <>
-                    <Spinner />
-                    <span>Creating...</span>
-                  </>
-                ) : (
-                  buttonTitle
-                )}
-              </Button>
+              <div className="form-actions-responsive mt-5">
+                <button type="submit" className="save-btn">
+                  {title}
+                </button>
+                <button type="button" className="cancel-button ">
+                  Cancel
+                </button>
+              </div>
             </form>
           </div>
         </div>

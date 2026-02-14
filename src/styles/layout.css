@@ -60,16 +60,16 @@
 /* grid card responsive layout */
 
 .grid-card-page-layout {
-  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 mt-5  px-4 pb-10;
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 -mt-2  px-4 pb-10;
 }
 
 .list-view-page-layout {
-  @apply px-4 pb-8 overflow-x-auto;
+  @apply px-2 pb-8 overflow-x-auto -mt-2;
 }
 
 /* grid  view  */
 .card-layout {
-  @apply bg-white shadow-md rounded-xl p-4 flex flex-col transition hover:shadow-lg min-h-[260px];
+  @apply bg-white shadow-sm rounded-xl p-4 flex flex-col transition hover:shadow-lg min-h-[260px];
 }
 
 .card-avatar-size {

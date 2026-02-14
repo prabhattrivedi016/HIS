@@ -13,6 +13,7 @@ import CustomLoader from "../../../components/customLoader";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import doctorTimingSchema from "../../../validation/doctorTimingSchema";
 
+import { useScrollLock } from "@/hooks/useScrollLock";
 import InputField from "../..//../components/customInputField";
 import { DoctorTimingItem, DoctorTimingModalProps, SelectItem } from "../types";
 
@@ -108,6 +109,8 @@ const DoctorTimingModal = ({ isOpen, onClose, doctorId }: DoctorTimingModalProps
       endTiming: "01:00 PM",
     },
   });
+
+  useScrollLock(isOpen);
 
   const drawerTitle = "Doctor Timing ";
 
@@ -294,6 +297,8 @@ const DoctorTimingModal = ({ isOpen, onClose, doctorId }: DoctorTimingModalProps
       onClose();
     }, 1000);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 ">

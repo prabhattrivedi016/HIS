@@ -1,24 +1,24 @@
 import { GridItem, ListItem } from "@/types";
 
-export type FilteredDataProps = {
+export type FilteredDataProps<G extends GridItem = GridItem, L extends ListItem = ListItem> = {
   value: string;
   selectedValue: string;
-  listData?: ListItem[];
-  gridData: GridItem[];
+  listData?: L[];
+  gridData: G[];
 
-  setListFilteredData: React.Dispatch<React.SetStateAction<ListItem[]>>;
-  setGridFilteredData: React.Dispatch<React.SetStateAction<GridItem[]>>;
+  setListFilteredData: React.Dispatch<React.SetStateAction<L[]>>;
+  setGridFilteredData: React.Dispatch<React.SetStateAction<G[]>>;
 };
 
 // filter function
-export const filteredData = ({
+export const filteredData = <G extends GridItem = GridItem, L extends ListItem = ListItem>({
   value,
   selectedValue,
   listData,
   gridData,
   setListFilteredData,
   setGridFilteredData,
-}: FilteredDataProps): { filteredList: ListItem[]; filteredGrid: GridItem[] } => {
+}: FilteredDataProps<G, L>): { filteredList: L[]; filteredGrid: G[] } => {
   const searchValue = value.trim().toLowerCase();
 
   // Reset when no search and no column selection

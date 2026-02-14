@@ -7,10 +7,11 @@ import {
   Search,
   UserPlus,
 } from "lucide-react";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
 import InputField from "../customInputField";
+import { PageHeaderProps } from "./types";
 
 const PageHeader = ({
   title,
@@ -27,16 +28,16 @@ const PageHeader = ({
   downloadBtnRef,
   unitButton,
   onAddUnit,
-}) => {
-  const [selectDropDown, setSelectDropDown] = useState("");
+}: PageHeaderProps) => {
+  const [selectDropDown, setSelectDropDown] = useState<string>("");
 
   // dropdown select handler
-  const selectHandler = e => {
+  const selectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectDropDown(e.target.value);
   };
 
   // handle search
-  const handleSearch = e => {
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     onSearch(text, selectDropDown);
   };

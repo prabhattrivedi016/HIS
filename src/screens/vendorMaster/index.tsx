@@ -888,50 +888,49 @@ const VendorMaster = () => {
         </div>
 
         <Animation isOpen={showDetails}>
-          <div className="table-container">
+          <div className="table-container ">
             <div className="table-scroll-wrapper">
-              <table className="base-table">
-                <thead className="table-head">
-                  <tr>
-                    {VendorMasterTableHeader.map((h, index) => (
-                      <th key={index} className="table-th">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {vendorList.length === 0 && (
+              <div className="table-size">
+                <table className="base-table">
+                  <thead className="table-head">
                     <tr>
-                      <td colSpan={VendorMasterTableHeader.length} className="table-empty">
-                        No records found
-                      </td>
+                      {VendorMasterTableHeader.map((h, index) => (
+                        <th key={index} className="table-th">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  )}
+                  </thead>
 
-                  {vendorList.map((item, idx) => (
-                    <tr key={idx} className="table-row">
-                      <td className="table-td">{idx + 1}</td>
-                      <td className="table-td">{item.vendorName}</td>
-                      <td className="table-td">{item.type}</td>
-                      <td className="table-td">{item.contactNo}</td>
-                      <td className="table-td">{item.email}</td>
-                      <td className="table-td">{item.dlno}</td>
-                      <td className="table-td">{item.gstinNo}</td>
-                      <td className="table-td">{item.address}</td>
-                      <td className="table-td">{item.isActive ? "Active" : "Inactive"}</td>
-                      <td className="table-td">{item.createdBy}</td>
-                      <td className="table-td">{item.createdOn}</td>
-                      <td className="table-td">{item.lastModifiedBy}</td>
-                      <td className="table-td">{item.lastModifiedOn}</td>
-                      <td className="table-action" onClick={() => editHandler(item)}>
-                        <i className="fa-solid fa-edit text-xl active:scale-90" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  <tbody>
+                    {vendorList.length === 0 && (
+                      <tr>
+                        <td colSpan={VendorMasterTableHeader.length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {vendorList.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+
+                        <td className="table-td">{item.vendorName}</td>
+                        <td className="table-td">{item.type}</td>
+                        <td className="table-td">{item.contactNo}</td>
+                        <td className="table-td">{item.email}</td>
+                        <td className="table-td">{item.dlno}</td>
+                        <td className="table-td">{item.gstinNo}</td>
+                        <td className="table-td">{item.address}</td>
+
+                        <td className="table-td" onClick={() => editHandler(item)}>
+                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </Animation>

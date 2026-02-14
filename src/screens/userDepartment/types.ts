@@ -1,15 +1,13 @@
 type UserDeptDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
-  buttonTitle: string;
-  drawerTitle: string;
-  deptId?: number;
+  deptId?: number | null;
 };
 
 type Payload = {
   id: string | null | undefined;
   departmentName: string;
-  isActive: string;
+  isActive: number;
 };
 
 type UpdateUserDeptStatusProps = {

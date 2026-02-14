@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { doctorDepartmentSchema } from "@/validation/doctorMasterPopup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -43,6 +44,8 @@ const DepartmentPopup = ({
       isActive: 1,
     },
   });
+
+  useScrollLock(isOpen);
 
   /*------------------department by id---------------------- */
 
@@ -111,6 +114,7 @@ const DepartmentPopup = ({
     }
   };
 
+  if (!isOpen) return null;
   return (
     <>
       <div className={`popup-bg-overlay ${isOpen ? "opacity-100 visible" : ""}`} />

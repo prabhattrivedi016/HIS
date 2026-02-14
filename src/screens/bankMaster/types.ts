@@ -1,14 +1,14 @@
 type BankItem = {
   bankId: number;
   bankName: string;
-  isActive: string;
+  isActive: number;
   createdBy: string;
   createdOn: string;
   lastModifiedBy: string;
   lastModifiedOn: string;
 };
 
-type BankDetailsList = {
+type BankDetailsListItem = {
   id: number;
   payeeName: string;
   panNumber: string;
@@ -25,4 +25,4 @@ type BankDetailsList = {
   lastModifiedOn: string;
 };
 
-export type { BankDetailsList, BankItem };
+export type { BankDetailsListItem, BankItem };

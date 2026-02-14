@@ -1,61 +1,128 @@
-import { AnimatePresence, motion } from "framer-motion";
+import Animation from "@/components/animation";
+import { BankDetailsTableHeader } from "@/constants/constants";
+import { bankDetailsSchema } from "@/validation/bankMasterSchema";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { InferType } from "yup";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ENDPOINTS } from "../../../config/defaults";
-import { BankDetailsTableHeader } from "../../../constants/constants";
 import useGlobalApi from "../../../hooks/useGlobalApi";
-import { BankDetailsList } from "../types";
+import { BankDetailsListItem } from "../types";
+type BankDetailsFormItem = InferType<typeof bankDetailsSchema>;
 
 const BankDetails = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [bankDetailsList, setBankDetailsList] = useState<BankDetailsList[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [bankDetailsList, setBankDetailsList] = useState<BankDetailsListItem[]>([]);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const [bankForm, setBankForm] = useState({
-    bankId: 0,
-    payeeName: "",
-    panNumber: "",
-    bankName: "",
-    bankAccountNumber: "",
-    bankAddress: "",
-    ifscCode: "",
-    pinCode: "",
-    tinNumber: "",
-    isActive: 1,
+  const {
+    handleSubmit,
+    register,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(bankDetailsSchema),
+    defaultValues: {
+      bankId: 0,
+      payeeName: "",
+      panNumber: "",
+      bankName: "",
+      bankAccountNumber: "",
+      bankAddress: "",
+      ifscCode: "",
+      pinCode: "",
+      tinNumber: "",
+      isActive: 1,
+    },
   });
 
-  const buttonTitle = Number(bankForm.bankId) > 0 ? "Update" : "Save";
+  const bankId = watch("bankId");
+  const isEditMode = Boolean(bankId);
+  const buttonTitle = isEditMode ? "Update" : "Create";
 
-  const inputHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
-    setBankForm(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const tablePopupHandler = () => {
+    setShowDetails(p => !p);
   };
 
-  const buildPayload = () => ({
-    bankId: bankForm.bankId,
-    payeeName: bankForm.payeeName,
-    panNumber: bankForm.panNumber,
-    bankName: bankForm.bankName,
-    bankAccountNumber: bankForm.bankAccountNumber,
-    bankAddress: bankForm.bankAddress,
-    ifscCode: bankForm.ifscCode,
-    pinCode: bankForm.pinCode,
-    tinNumber: bankForm.tinNumber,
-    isActive: Number(bankForm.isActive),
-  });
+  /*----------------bank details list-------------------- */
+  const getBankDetailsList = async () => {
+    const resp = await fetchApi("GET", ENDPOINTS.GET_BANK_DETAIL_LIST, {}, {});
 
-  const showDetailPopUpHandler = () => {
-    setShowDetails(prev => !prev);
+    setBankDetailsList(resp?.data ?? []);
   };
 
-  const resetForm = () => {
-    setBankForm({
+  useEffect(() => {
+    getBankDetailsList();
+  }, []);
+
+  /*-------------------------edit handler------------------------ */
+  const editHandler = (item: BankDetailsListItem) => {
+    if (!item) {
+      reset({
+        bankId: 0,
+        payeeName: "",
+        panNumber: "",
+        bankName: "",
+        bankAccountNumber: "",
+        bankAddress: "",
+        ifscCode: "",
+        pinCode: "",
+        tinNumber: "",
+        isActive: 1,
+      });
+      return;
+    }
+    reset({
+      bankId: item?.id || 0,
+      payeeName: item?.payeeName,
+      panNumber: item?.panNumber,
+      bankName: item?.bankName || "",
+      bankAccountNumber: item?.bankAccountNumber,
+      bankAddress: item?.bankAddress,
+      ifscCode: item?.ifscCode,
+      pinCode: item?.pinCode,
+      tinNumber: item?.tinNumber,
+      isActive: Number(item?.isActive ?? 1),
+    });
+  };
+
+  /*---------------------submit handler------------------- */
+  const onSubmit = async (formData: BankDetailsFormItem) => {
+    console.log("formData", formData);
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_BANK_DETAIL_MASTER,
+      formData,
+      {},
+      { component: "BankDetails" }
+    );
+    if (!resp) return;
+    if (resp?.result) {
+      setSuccessMessage(resp?.message || "Saved successfully");
+      reset({
+        bankId: 0,
+        payeeName: "",
+        panNumber: "",
+        bankName: "",
+        bankAccountNumber: "",
+        bankAddress: "",
+        ifscCode: "",
+        pinCode: "",
+        tinNumber: "",
+        isActive: 1,
+      });
+    }
+    await getBankDetailsList();
+  };
+
+  /*-----------------cancel handler-------------------- */
+  const cancelHandler = () => {
+    reset({
       bankId: 0,
       payeeName: "",
       panNumber: "",
@@ -69,268 +136,176 @@ const BankDetails = () => {
     });
   };
 
-  const submitHandler = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    if (!bankForm?.payeeName) return;
-    try {
-      const payload = buildPayload();
-
-      const resp = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_BANK_DETAIL_MASTER, payload);
-      console.log("resp", resp);
-
-      resetForm();
-      getBankDetailsList();
-    } catch (error) {
-      console.error("Error while submitting Bank details form", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getBankDetailsList = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_BANK_DETAIL_LIST, {}, {});
-
-    setBankDetailsList(resp?.data ?? []);
-  };
-
-  useEffect(() => {
-    getBankDetailsList();
-  }, []);
-
-  /*-------------------------edit handler------------------------ */
-  const editHandler = (item: BankDetailsList) => {
-    setBankForm({
-      bankId: Number(item?.id),
-      payeeName: item?.payeeName,
-      panNumber: item?.panNumber,
-      bankName: item?.bankName,
-      bankAccountNumber: item?.bankAccountNumber,
-      bankAddress: item?.bankAddress,
-      ifscCode: item?.ifscCode,
-      pinCode: item?.pinCode,
-      tinNumber: item?.tinNumber,
-      isActive: item?.isActive,
-    });
-  };
-
   return (
-    <>
-      <div className="shadow-lg m-2 p-6 rounded-lg bg-white">
-        <h2 className="mb-4 text-xl font-semibold">Bank Details</h2>
+    <div className="-mt-2">
+      <div className="card -mt-10">
+        <h2 className="card-title ">Sample Master Details</h2>
 
-        <form onSubmit={submitHandler}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
             <InputField label="Payee Name" required>
               <input
                 className="input-field"
-                name="payeeName"
-                value={bankForm.payeeName}
-                onChange={inputHandler}
                 placeholder="Enter Payee Name"
+                {...register("payeeName")}
               />
-              {!!isSubmitting && !bankForm?.payeeName && (
-                <p className="input-field-error">Payee Name is required</p>
-              )}
+              {errors.payeeName && <p className="input-field-error">{errors.payeeName.message}</p>}
             </InputField>
 
             <InputField label="PAN Number" required>
               <input
                 className="input-field"
-                name="panNumber"
-                value={bankForm.panNumber}
-                onChange={inputHandler}
                 placeholder="Enter Pan number"
+                {...register("panNumber")}
               />
-              {!!isSubmitting && !bankForm?.panNumber && (
-                <p className="input-field-error">PAN is required</p>
-              )}
+              {errors.panNumber && <p className="input-field-error">{errors.panNumber.message}</p>}
             </InputField>
 
             <InputField label="Bank Name" required>
               <input
                 className="input-field"
-                name="bankName"
-                value={bankForm.bankName}
-                onChange={inputHandler}
                 placeholder="Enter bank name"
+                {...register("bankName")}
               />
-              {!!isSubmitting && !bankForm?.bankName && (
-                <p className="input-field-error">Bank Name is required</p>
-              )}
+              {errors.bankName && <p className="input-field-error">{errors.bankName.message}</p>}
             </InputField>
 
             <InputField label="Bank Account Number" required>
               <input
                 className="input-field"
-                name="bankAccountNumber"
-                value={bankForm.bankAccountNumber}
-                onChange={inputHandler}
                 placeholder="Enter bank account"
+                {...register("bankAccountNumber")}
               />
-              {!!isSubmitting && !bankForm?.bankAccountNumber && (
-                <p className="input-field-error">Bank Account is required</p>
+              {errors.bankAccountNumber && (
+                <p className="input-field-error">{errors.bankAccountNumber.message}</p>
               )}
             </InputField>
 
             <InputField label="Bank Address" required>
               <input
                 className="input-field"
-                name="bankAddress"
-                value={bankForm.bankAddress}
-                onChange={inputHandler}
                 placeholder="Enter bank address"
+                {...register("bankAddress")}
               />
-              {!!isSubmitting && !bankForm?.bankAddress && (
-                <p className="input-field-error">Bank Address is required</p>
+              {errors.bankAddress && (
+                <p className="input-field-error">{errors.bankAddress.message}</p>
               )}
             </InputField>
 
             <InputField label="IFSC Code" required>
-              <input
-                className="input-field"
-                name="ifscCode"
-                value={bankForm.ifscCode}
-                onChange={inputHandler}
-                placeholder="Enter ifsc"
-              />
-              {!!isSubmitting && !bankForm?.ifscCode && (
-                <p className="input-field-error">IFSC is required</p>
-              )}
+              <input className="input-field" placeholder="Enter ifsc" {...register("ifscCode")} />
+              {errors.ifscCode && <p className="input-field-error">{errors.ifscCode.message}</p>}
             </InputField>
 
             <InputField label="PIN Code" required>
               <input
                 className="input-field"
-                name="pinCode"
-                value={bankForm.pinCode}
-                onChange={inputHandler}
                 placeholder="Enter pin code"
+                {...register("pinCode")}
+                minLength={6}
+                maxLength={6}
               />
-              {!!isSubmitting && !bankForm?.pinCode && (
-                <p className="input-field-error">PIN is required</p>
-              )}
+              {errors.pinCode && <p className="input-field-error">{errors.pinCode.message}</p>}
             </InputField>
 
             <InputField label="TIN Number" required>
               <input
                 className="input-field"
-                name="tinNumber"
-                value={bankForm.tinNumber}
-                onChange={inputHandler}
-                placeholder="Enter TIN number"
+                placeholder="Enter tin number"
+                {...register("tinNumber")}
               />
-              {!!isSubmitting && !bankForm?.tinNumber && (
-                <p className="input-field-error">TIN is required</p>
-              )}
+              {errors.tinNumber && <p className="input-field-error">{errors.tinNumber.message}</p>}
             </InputField>
 
             <InputField label="Status" required>
               <select
                 className="input-field"
-                name="isActive"
-                value={bankForm.isActive}
-                onChange={inputHandler}
+                required
+                {...register("isActive", { valueAsNumber: true })}
               >
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
+              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
-
-            <div className="flex justify-end gap-3 mt-6  col-start-4">
-              <button type="submit" className="bg-[#0b5394] rounded-lg text-white min-w-20 h-10">
-                {buttonTitle}
-              </button>
-            </div>
+          </div>
+          <div className="form-actions-responsive mt-5">
+            <button type="submit" className="save-btn">
+              {buttonTitle}
+            </button>
+            <button type="button" className="cancel-button " onClick={cancelHandler}>
+              Cancel
+            </button>
           </div>
         </form>
       </div>
 
-      <div className="shadow-lg m-2 p-6 rounded-lg bg-white overflow-hidden">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Bank Details List</h2>
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title ">Bank Master List</h2>
 
-          <button
-            className="border border-gray-500 bg-[#1e6da1] rounded-lg text-white px-4 py-2 active:scale-95"
-            onClick={showDetailPopUpHandler}
-          >
-            {showDetails ? "Hide" : "Show"}
+          <button onClick={tablePopupHandler}>
+            {showDetails ? <Minus size={30} /> : <Plus size={30} />}
           </button>
         </div>
 
-        <AnimatePresence>
-          {showDetails && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className="max-w-290 w-full   rounded-xl shadow-lg border border-gray-200 mt-4 overflow-hidden bg-white">
-                <div className="max-h-80 overflow-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead className="bg-[#f5f9ff] sticky top-0 z-10 ">
-                      <tr>
-                        {BankDetailsTableHeader.map((h, index) => (
-                          <th
-                            key={index}
-                            className="px-2 py-3 text-left font-semibold text-gray-900 whitespace-nowrap"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {bankDetailsList.map((item, idx) => (
-                        <tr
-                          key={item?.id}
-                          className="hover:bg-gray-150 transition last:border-none"
-                        >
-                          <td className="px-2 py-3 text-gray-500">{idx + 1}</td>
-
-                          <td className="px-1 py-3 text-gray-500">{item?.payeeName}</td>
-
-                          <td className="px-1 py-3 text-gray-500">{item?.panNumber}</td>
-
-                          <td className="px-1 py-3 text-gray-500">{item?.bankName}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.bankAccountNumber}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.bankAddress}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.ifscCode}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.pinCode}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.tinNumber}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.createdBy}</td>
-                          <td className="px-1 py-3 text-gray-500">{item?.createdOn}</td>
-
-                          <td className="px-2 py-3 text-gray-500">{item?.lastModifiedBy}</td>
-
-                          <td className="px-2 py-3 text-gray-500">{item?.lastModifiedOn}</td>
-
-                          <td className="px-1 py-3 text-gray-500 ">
-                            {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
-                          </td>
-
-                          <td
-                            className="px-2 py-3 text-blue-500 active:scale-90"
-                            onClick={() => editHandler(item)}
-                          >
-                            <i className="fa-edit fa-solid fa-xl"></i>
-                          </td>
-                        </tr>
+        <Animation isOpen={showDetails}>
+          <div className="table-container lg:max-w-[1170px] ">
+            <div className="table-scroll-wrapper">
+              <div className="table-size ">
+                <table className="base-table ">
+                  <thead className="table-head">
+                    <tr>
+                      {BankDetailsTableHeader.map((h, index) => (
+                        <th key={index} className="table-th ">
+                          {h}
+                        </th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    </tr>
+                  </thead>
 
-        {loading ? <CustomLoader isLoading={loading} /> : <></>}
+                  <tbody>
+                    {bankDetailsList?.length === 0 && (
+                      <tr>
+                        <td colSpan={[].length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {bankDetailsList.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">{item?.payeeName || "-"}</td>
+                        <td className="table-td">
+                          {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
+                        </td>
+                        <td className="table-td">{item?.panNumber || "-"}</td>{" "}
+                        <td className="table-td">{item?.bankName || "-"}</td>{" "}
+                        <td className="table-td">{item?.bankAccountNumber || "-"}</td>{" "}
+                        <td className="table-td">{item?.bankAddress || "-"}</td>{" "}
+                        <td className="table-td">{item?.ifscCode || "-"}</td>
+                        <td className="table-td">{item?.pinCode || "-"}</td>
+                        <td className="table-td">{item?.tinNumber || "-"}</td>
+                        <td className="table-td">{item?.createdBy || "-"}</td>
+                        <td className="table-td">{item?.createdOn || "-"}</td>
+                        <td className="table-td">{item?.lastModifiedBy || "-"}</td>
+                        <td className="table-td">{item?.lastModifiedOn || "-"}</td>
+                        <td className="table-td" onClick={() => editHandler(item)}>
+                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </Animation>
+
+        {loading && <CustomLoader isLoading={loading} />}
       </div>
-    </>
+    </div>
   );
 };
 

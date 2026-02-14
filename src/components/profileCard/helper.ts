@@ -26,8 +26,6 @@ export const handleButtonClick = ({
       return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, roleId: id });
     }
     case "toggleEdit": {
-      buttonTitle("Update Role");
-      drawerTitle("Update Existing Role");
       openDrawer(id);
       return;
     }
@@ -46,14 +44,10 @@ export const handleButtonClick = ({
     }
 
     case "deptToggleEdit": {
-      buttonTitle("Update Department");
-      drawerTitle("Update Existing Department");
       openDrawer(id);
     }
     //branch master
     case "toggleBranchEdit": {
-      buttonTitle("Update Department");
-      drawerTitle("Update Existing Department");
       openDrawer(id);
     }
 
@@ -63,8 +57,16 @@ export const handleButtonClick = ({
     }
 
     case "toggleDoctorEdit": {
-      buttonTitle("Update Doctor");
-      drawerTitle("Update Existing Doctor");
+      openDrawer(id);
+    }
+
+    //refer doctor master
+
+    case "toggleReferDoctorActive": {
+      return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, referDoctorId: id });
+    }
+
+    case "toggleReferDoctorEdit": {
       openDrawer(id);
     }
   }

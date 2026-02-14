@@ -30,43 +30,64 @@ interface DoctorMasterItem {
   roomNo: string;
 }
 
-interface LabelValue {
+interface GridLeftTop {
   label: string;
-  value: string | number;
+  value: number | string | null;
 }
-
-interface LabelAction {
+interface GridRightTop {
   label: string;
   action: string;
 }
 
+interface GridId {
+  label: string;
+  value: number | string;
+}
+
+interface GridTitle {
+  label: string;
+  value: string;
+}
+
+interface GridFooterItem {
+  label: string;
+  value: string;
+}
+
+interface GridButtonSection {
+  label: string;
+  action: string;
+}
+
+type LabelAction = GridButtonSection;
+
 interface DoctorMasterGridCard {
-  type: "doctorMaster";
-  cardType: "doctorMasterGrid";
-  cardViewType: "grid";
+  type: string;
+  cardType: string;
+  cardViewType: string;
 
   id: number;
 
-  cardLeftTop: LabelValue[];
+  cardLeftTop: GridLeftTop[];
 
-  cardRightTop: LabelAction[];
+  cardRightTop: GridRightTop[];
 
-  cardAvatar: string;
+  cardAvatar: string | null;
 
-  cardId: LabelValue[];
+  cardId: GridId[];
 
-  cardTitle: LabelValue[];
+  cardTitle: GridTitle[];
 
-  cardFooter: LabelValue[];
+  cardFooter: GridFooterItem[];
 
-  buttonSection: LabelAction[];
+  cardButton: GridButtonSection[];
 }
 
 interface ListColumn {
   label: string;
   keyFromApi: string;
 
-  value?: string | number;
+  value: string | number | null;
 
   isSortable?: boolean;
   isSearchable?: boolean;
@@ -163,9 +184,9 @@ interface DoctorTimingModalProps {
 }
 
 interface CardRightButtonPopupProps {
-  position: { top: number; bottom: number };
+  position: { top: number; left: number } | null;
   onClose: () => void;
-  doctorId: number;
+  doctorId: number | null;
 }
 
 export type {
