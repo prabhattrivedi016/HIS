@@ -59,7 +59,7 @@ const VendorMaster = () => {
     reset,
     register,
     setValue,
-    getValues, // Added getValues
+    getValues,
     watch,
     clearErrors,
     formState: { errors },
@@ -196,7 +196,9 @@ const VendorMaster = () => {
     }
   };
 
-  const buttonTitle = watch("vendorId") ? "Update" : "Save";
+  const vendorId = watch("vendorId");
+  const isEdit = Boolean(vendorId);
+  const buttonTitle = isEdit ? "Update" : "Create";
 
   /*---------------------branches------------------------ */
   const branchList = useMemo(() => getBranches?.branchList?.data ?? [], [getBranches]);
@@ -895,7 +897,7 @@ const VendorMaster = () => {
                   <thead className="table-head">
                     <tr>
                       {VendorMasterTableHeader.map((h, index) => (
-                        <th key={index} className="table-th">
+                        <th key={index} className="table-th ">
                           {h}
                         </th>
                       ))}

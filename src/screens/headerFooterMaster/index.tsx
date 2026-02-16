@@ -16,7 +16,6 @@ import useGlobalApi from "../../hooks/useGlobalApi";
 
 import DOMPurify from "dompurify";
 import Select from "react-select";
-import CustomLoader from "../../components/customLoader";
 import { SelectStyles } from "../../components/customSelect";
 import {
   BranchId,
@@ -28,6 +27,7 @@ import useGetBranchList from "../../hooks/useGetBranchList";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import DoctorSignature from "./components/DoctorSignature";
 import LetterHead from "./components/LetterHead";
+import ReportFooterRemark from "./components/ReportFooterRemark";
 import SequenceMapping from "./components/SequenceMapping";
 import {
   BranchItem,
@@ -400,29 +400,31 @@ const HeaderFooterMaster = () => {
     if (tabName === HeaderFooterTabName?.SEQUENCE) return <SequenceMapping />;
     if (tabName === HeaderFooterTabName?.DOCTOR) return <DoctorSignature />;
     if (tabName === HeaderFooterTabName?.LETTER) return <LetterHead />;
+    if (tabName === HeaderFooterTabName?.FOOTER_REMARK) return <ReportFooterRemark />;
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-5">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Print Settings</h1>
-        <nav className="text-sm text-gray-500 flex gap-2 mt-1">
-          <NavLink to="/dashboard">Home</NavLink>
-          <span>››</span>
-          <span>Print Settings</span>
-        </nav>
-      </div>
-      <div className="flex gap-2 border-b border-gray-200 mb-4 shadow-lg m-2 ">
+    <div className="page-container">
+      <h1 className="page-heading">Lab Master</h1>
+      <nav className="helper-text">
+        <NavLink to="/dashboard" className="hover:underline">
+          Home
+        </NavLink>
+        <span>››</span>
+        <span>Lab Master</span>
+      </nav>
+
+      <div className="tab-container rounded-lg">
         <button
           type="button"
           onClick={() => setActiveTab(HeaderFooterTabName?.HEADER)}
-          className={`px-4 py-2 text-md font-semibold transition
-      ${
-        activeTab === HeaderFooterTabName?.HEADER
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
+          className={` tab-btn transition
+                        ${
+                          activeTab === HeaderFooterTabName?.HEADER
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {HeaderFooterTabName?.HEADER}
         </button>
@@ -430,13 +432,13 @@ const HeaderFooterMaster = () => {
         <button
           type="button"
           onClick={() => setActiveTab(HeaderFooterTabName?.SEQUENCE)}
-          className={`px-4 py-2 text-md font-semibold transition 
-      ${
-        activeTab === HeaderFooterTabName?.SEQUENCE
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.SEQUENCE
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {HeaderFooterTabName?.SEQUENCE}
         </button>
@@ -444,13 +446,13 @@ const HeaderFooterMaster = () => {
         <button
           type="button"
           onClick={() => setActiveTab(HeaderFooterTabName?.DOCTOR)}
-          className={`px-4 py-2 text-md font-semibold transition 
-      ${
-        activeTab === HeaderFooterTabName?.DOCTOR
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.DOCTOR
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {HeaderFooterTabName?.DOCTOR}
         </button>
@@ -458,21 +460,33 @@ const HeaderFooterMaster = () => {
         <button
           type="button"
           onClick={() => setActiveTab(HeaderFooterTabName?.LETTER)}
-          className={`px-4 py-2 text-md font-semibold transition 
-      ${
-        activeTab === HeaderFooterTabName?.LETTER
-          ? "border-b-2 border-blue-600 text-blue-600"
-          : "text-gray-500 hover:text-blue-600"
-      }
-    `}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.LETTER
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
         >
           {HeaderFooterTabName?.LETTER}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.FOOTER_REMARK)}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.FOOTER_REMARK
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
+        >
+          {HeaderFooterTabName?.FOOTER_REMARK}
         </button>
       </div>
 
       {renderComponent(activeTab)}
-
-      {submitLoading && <CustomLoader isLoading={submitLoading} />}
     </div>
   );
 };

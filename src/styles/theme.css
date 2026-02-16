@@ -247,7 +247,7 @@
 }
 
 .tab-btn {
-  @apply px-2 py-2 text-md font-semibold ;
+  @apply px-2 py-2 text-sm font-semibold;
 }
 
 .tab-btn-active {
@@ -255,7 +255,7 @@
 }
 
 .tab-btn-inactive {
-  @apply "text-gray-500 hover:text-gray-900;
+  @apply text-gray-500 hover:text-gray-900;
 }
 
 /*-------------------NORMAL PAGES ---------------- */
@@ -299,7 +299,6 @@
 
 /*-------------------tabs of normal pages-----------*/
 
-
 /* width of the table */
 
 .table-container {
@@ -327,7 +326,7 @@
 
 /* Header cells */
 .table-th {
-  @apply px-4 py-3 text-center  font-semibold whitespace-normal;
+  @apply px-4 py-3 text-left  font-semibold whitespace-normal;
 }
 
 /* Rows */

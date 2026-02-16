@@ -4,6 +4,7 @@ import CompanySetting from "../companySetting";
 import Dashboard from "../dashboard";
 import DoctorMaster from "../doctorMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
+import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
 import LocationMaster from "../loactionMaster";
 import MrdLocationMaster from "../mrdLocation";
@@ -36,4 +37,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "company-setting": <CompanySetting />,
   "refer-doctor-master": <ReferDoctorMaster />,
   "lab-master": <LabMaster />,
+  "lab-investigation-master": <LabInvestigationMaster />,
 };

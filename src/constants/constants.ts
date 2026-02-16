@@ -8,6 +8,7 @@ export enum HeaderFooterTabName {
   SEQUENCE = "Sequence Mapping",
   DOCTOR = "Doctor Signature",
   LETTER = "Letter Head",
+  FOOTER_REMARK = "Footer Remark",
 }
 
 export enum BankMasterTabName {
@@ -20,6 +21,7 @@ export enum LabMasterTabName {
   TEST_METHOD = "Test Method",
   SAMPLE_REJECTION = "Sample Rejection",
   SAMPLE_REMARKS = "Sample Remarks",
+  FIELD_BOY = "Field Boy",
 }
 
 export const BankDetailsTableHeader = [

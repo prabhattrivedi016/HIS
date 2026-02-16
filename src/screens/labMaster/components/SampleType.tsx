@@ -69,8 +69,10 @@ const SampleType = () => {
 
   useEffect(() => {
     getContainerColor();
-    getAllSampleType();
-  }, []);
+    if (showDetails) {
+      getAllSampleType();
+    }
+  }, [showDetails]);
 
   const tablePopupHandler = () => {
     setShowDetails(p => !p);
@@ -208,7 +210,7 @@ const SampleType = () => {
                               <h2>{h}</h2>
                               <input
                                 type="text"
-                                className="input-field lg:max-w-35 lg:max-h-7 mt-1 -ml-5"
+                                className="input-field lg:max-w-35 lg:max-h-7 mt-1 "
                                 onChange={searchHandler}
                               />
                             </div>
