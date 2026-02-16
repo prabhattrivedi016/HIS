@@ -49,8 +49,10 @@ const BankMasterPage = () => {
   };
 
   useEffect(() => {
-    getBankLists();
-  }, []);
+    if (showDetails) {
+      getBankLists();
+    }
+  }, [showDetails]);
 
   /*--------------------submit handler------------ */
   const onSubmit = async (formData: BankMasterFormItem) => {

@@ -53,8 +53,10 @@ const TestMethod = () => {
   };
 
   useEffect(() => {
-    getLabMethod();
-  }, []);
+    if (showDetails) {
+      getLabMethod();
+    }
+  }, [showDetails]);
 
   const tablePopupHandler = () => {
     setShowDetails(p => !p);
@@ -174,7 +176,7 @@ const TestMethod = () => {
                               <h2>{h}</h2>
                               <input
                                 type="text"
-                                className="input-field lg:max-w-35 lg:max-h-7 mt-1 -ml-8"
+                                className="input-field lg:max-w-35 lg:max-h-7 mt-1 "
                                 onChange={searchHandler}
                               />
                             </div>

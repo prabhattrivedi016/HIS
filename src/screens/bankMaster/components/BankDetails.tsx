@@ -57,8 +57,10 @@ const BankDetails = () => {
   };
 
   useEffect(() => {
-    getBankDetailsList();
-  }, []);
+    if (showDetails) {
+      getBankDetailsList();
+    }
+  }, [showDetails]);
 
   /*-------------------------edit handler------------------------ */
   const editHandler = (item: BankDetailsListItem) => {
