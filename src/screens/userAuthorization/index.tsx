@@ -421,19 +421,18 @@ const UserAuthorization = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">User Authorization</h1>
+    <div className="page-container">
+      <h1 className="page-heading">User Authorization</h1>
 
-        <nav className="text-sm text-gray-500 flex gap-2 mt-1">
-          <NavLink to="/dashboard" className="hover:underline">
-            Home
-          </NavLink>
-          <span>››</span>
-          <span>User Authorization</span>
-        </nav>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white rounded-xl p-4 shadow-md mt-4">
+      <nav className="helper-text">
+        <NavLink to="/dashboard" className="hover:underline">
+          Home
+        </NavLink>
+        <span>››</span>
+        <span>User Authorization</span>
+      </nav>
+      <div className="card">
+        <div className="form-grid-4">
           <InputField label="Branch Name" required>
             <select className="input-field" onChange={branchChangeHandler} value={branchId ?? ""}>
               <option value="" disabled>
@@ -486,7 +485,7 @@ const UserAuthorization = () => {
                 placeholder="Select..."
                 isSearchable
                 isClearable
-                onChange={roleSelectHandler}
+                onChange={(option: any) => roleSelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"

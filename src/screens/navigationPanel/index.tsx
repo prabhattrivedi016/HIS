@@ -1,4 +1,4 @@
-import { Edit } from "lucide-react";
+import { NavigationPaneHeader } from "@/constants/constants";
 import { ChangeEvent, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import InputField from "../../components/customInputField";
@@ -31,10 +31,7 @@ const NavigationPanel = () => {
     getNavigationMenu();
   }, []);
 
-  // headers
-  const headers = ["Tab Name", "SubMenu Name", "Url", "Status", "Ip Address"];
-
-  // map UI headers to API keys
+  // map UI NavigationPaneHeader to API keys
   const headerMapping: Record<string, keyof SubMenuItem> = {
     "Tab Name": "tabName",
     "SubMenu Name": "subMenuName",
@@ -79,11 +76,12 @@ const NavigationPanel = () => {
 
   return (
     <>
-      <div className="bg-gray-50 min-h-screen px-3 py-4">
+      <div className="page-container">
         <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Navigation Pane</h1>
-            <nav className="text-sm text-gray-500 flex gap-2 mt-1">
+            <h1 className="page-heading">Navigation Pane</h1>
+
+            <nav className="helper-text">
               <NavLink to="/dashboard" className="hover:underline">
                 Home
               </NavLink>
@@ -94,7 +92,11 @@ const NavigationPanel = () => {
 
           <div className="flex gap-3 items-center w-full md:w-auto">
             <InputField>
-              <input className="input-field" placeholder="Search" onChange={searchHandler} />
+              <input
+                className="input-field"
+                placeholder="Search sub-menu name"
+                onChange={searchHandler}
+              />
             </InputField>
             <button
               className="px-4 py-2 bg-[#1656AD] text-white rounded-lg shadow hover:bg-[#093d6d]"
@@ -112,65 +114,58 @@ const NavigationPanel = () => {
           </div>
         </div>
 
-        <div className="w-full mt-4">
-          <div className="overflow-x-auto bg-white rounded-xl shadow-md">
-            <table className=" w-full table-fixed border-collapse text-sm text-gray-700">
-              <thead className="bg-blue-50 border-b border-blue-200">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold w-16">Edit</th>
+        <div className="card">
+          <div className="table-container">
+            <div className="table-scroll-wrapper">
+              <div className="table-size">
+                <table className="base-table">
+                  <thead className="table-head">
+                    <tr>
+                      {/* Edit Column */}
+                      <th className="table-th w-16">Edit</th>
 
-                  {headers.map((header, index) => (
-                    <th key={index} className="px-4 py-3 text-left font-semibold whitespace-nowrap">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredData.length > 0 ? (
-                  filteredData.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-100 transition-colors">
-                      <td className="px-4 py-3 text-center" onClick={() => editHandler(row)}>
-                        <Edit
-                          size={20}
-                          className="text-gray-600 hover:text-black cursor-pointer mx-auto"
-                        />
-                      </td>
-
-                      {headers.map((header, colIndex) => {
-                        const key = headerMapping[header];
-                        const value = row[key];
-
-                        return (
-                          <td key={colIndex} className="px-4 py-3 wrap-break-words">
-                            {key === "isActive" ? (
-                              value === 1 ? (
-                                <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="px-2 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-full">
-                                  Inactive
-                                </span>
-                              )
-                            ) : (
-                              String(value ?? "")
-                            )}
-                          </td>
-                        );
-                      })}
+                      {NavigationPaneHeader.map((header, index) => (
+                        <th key={index} className="table-th whitespace-nowrap">
+                          {header}
+                        </th>
+                      ))}
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={headers.length + 1} className="text-center text-gray-500 py-5">
-                      No Data Available
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+
+                  <tbody>
+                    {filteredData?.length === 0 && (
+                      <tr>
+                        <td colSpan={NavigationPaneHeader?.length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {filteredData.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td text-center" onClick={() => editHandler(item)}>
+                          <i className="fa-solid fa-edit text-blue-500 text-lg cursor-pointer active:scale-90" />
+                        </td>
+
+                        <td className="table-td">{item?.tabName || "-"}</td>
+
+                        <td className="table-td">{item?.subMenuName || "-"}</td>
+
+                        <td className="table-td">
+                          {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
+                        </td>
+                        <td className="table-td">{item?.url || "-"}</td>
+                        <td className="table-td">{item?.ipAddress || "-"}</td>
+                        {/* <td className="table-td">{item?.createdBy || "-"}</td>
+                        <td className="table-td">{item?.createdOn || "-"}</td>
+                        <td className="table-td">{item?.lastModifiedBy || "-"}</td>
+                        <td className="table-td">{item?.lastModifiedOn || "-"}</td> */}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 

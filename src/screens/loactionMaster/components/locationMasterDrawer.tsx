@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
@@ -520,7 +521,7 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
     }
   };
 
-  return (
+  return createPortal(
     <>
       {/* Overlay */}
       <div className={`popup-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
@@ -542,7 +543,8 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
         {renderForm()}
         {loading && <CustomLoader isLoading={loading} />}
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 

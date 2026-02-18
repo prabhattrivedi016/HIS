@@ -3,6 +3,18 @@ export const VIEWTYPE = {
   LIST: "list",
 };
 
+export const NavigationPaneHeader = [
+  "Tab Name",
+  "SubMenu Name",
+  "Url",
+  "Status",
+  "IP Address",
+  // "Create By",
+  // "Create On",
+  // "Last Modified By",
+  // "Last Modified On",
+];
+
 export enum HeaderFooterTabName {
   HEADER = "Header-Footer",
   SEQUENCE = "Sequence Mapping",
@@ -63,6 +75,7 @@ export const letterHeaderTableHeader = [
   "Padding Top",
   "Padding Bottom",
   "Header",
+  "Download",
   "Edit",
   "Delete",
 ];

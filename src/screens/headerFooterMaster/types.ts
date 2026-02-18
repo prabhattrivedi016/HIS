@@ -66,8 +66,12 @@ interface SequenceDropDownItem {
 }
 
 type SequenceDrawerProps = {
+  isOpen: boolean;
   data: SequenceEditItem | null;
   onClose: () => void;
+  handleRefresh: () => Promise<void>;
+  resetType: () => void;
+  resetSequence: () => void;
 };
 
 type SequenceEditItem = {
