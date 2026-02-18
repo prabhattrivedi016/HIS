@@ -3,6 +3,7 @@ import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
 import Dashboard from "../dashboard";
 import DoctorMaster from "../doctorMaster";
+import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
@@ -38,4 +39,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "refer-doctor-master": <ReferDoctorMaster />,
   "lab-master": <LabMaster />,
   "lab-investigation-master": <LabInvestigationMaster />,
+  "formula-master": <FormulaMaster />,
 };

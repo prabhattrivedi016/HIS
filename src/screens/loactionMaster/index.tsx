@@ -187,20 +187,20 @@ const LocationMaster = () => {
   }, [editPopup]);
 
   return (
-    <div className="bg-gray-50 min-h-screen px-3 py-4 -mt-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Location Master</h1>
-        <nav className="text-sm text-gray-500 flex  gap-2 mt-1">
-          <NavLink to="/dashboard" className="hover:underline">
-            Home
-          </NavLink>
-          <span>››</span>
-          <span>Location Master</span>
-        </nav>
-      </div>
-      <div className=" shadow-lg m-2 p-6 rounded-lg   ">
-        <h1 className="mb-4 text-xl font-semibold">Location Details</h1>
-        <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="page-container">
+      <h1 className="page-heading">Location Master</h1>
+
+      <nav className="helper-text">
+        <NavLink to="/dashboard" className="hover:underline">
+          Home
+        </NavLink>
+        <span>››</span>
+        <span>Location Master</span>
+      </nav>
+
+      <div className="card">
+        <h2 className="card-title ">Location Details</h2>
+        <div className="form-grid-4">
           <InputField label="Country" required={true}>
             <Select
               options={countrySelectOption}
