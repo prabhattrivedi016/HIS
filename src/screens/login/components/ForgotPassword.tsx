@@ -122,7 +122,7 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
         <div className="mb-4">
           {successMessage && <SuccessMessage text={successMessage} />}
 
-          {error && <ErrorMessage text={error} />}
+          {error && <ErrorMessage text={error?.message} />}
         </div>
 
         {!otpSent && (
@@ -155,9 +155,9 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
                 </p>
               )}
 
-              <button type="submit" className="w-full login-btn">
+              <button type="submit" className="w-full save-btn flex items-center justify-center">
                 {loading ? (
-                  <div className="flex items-center gap-2">
+                  <div className=" flex items-center gap-2">
                     <Spinner />
                     <span>Sending OTP...</span>
                   </div>
@@ -180,7 +180,7 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
             )}
 
             {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
-            <button type="submit" className="w-full login-btn">
+            <button type="submit" className="w-full save-btn flex items-center justify-center">
               {loading ? (
                 <div className="flex items-center gap-2">
                   <Spinner />

@@ -5,6 +5,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import Swal from "sweetalert2";
 import { InferType } from "yup";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
@@ -17,7 +18,6 @@ const BankDetails = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [bankDetailsList, setBankDetailsList] = useState<BankDetailsListItem[]>([]);
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
     handleSubmit,
@@ -95,7 +95,6 @@ const BankDetails = () => {
 
   /*---------------------submit handler------------------- */
   const onSubmit = async (formData: BankDetailsFormItem) => {
-    console.log("formData", formData);
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_BANK_DETAIL_MASTER,
@@ -103,9 +102,16 @@ const BankDetails = () => {
       {},
       { component: "BankDetails" }
     );
-    if (!resp) return;
+    if (!resp) {
+      return;
+    }
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      Swal.fire({
+        position: "top",
+        title: resp?.message || "Saved successfully",
+        timer: 1000,
+        showConfirmButton: false,
+      });
       reset({
         bankId: 0,
         payeeName: "",
@@ -141,7 +147,7 @@ const BankDetails = () => {
   return (
     <div className="-mt-2">
       <div className="card -mt-10">
-        <h2 className="card-title ">Sample Master Details</h2>
+        <h2 className="card-title ">Bank Details</h2>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
@@ -244,7 +250,7 @@ const BankDetails = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title ">Bank Master List</h2>
+          <h2 className="card-title ">Bank Details List</h2>
 
           <button onClick={tablePopupHandler}>
             {showDetails ? <Minus size={30} /> : <Plus size={30} />}
@@ -252,9 +258,9 @@ const BankDetails = () => {
         </div>
 
         <Animation isOpen={showDetails}>
-          <div className="table-container lg:max-w-[1170px] ">
-            <div className="table-scroll-wrapper">
-              <div className="table-size ">
+          <div className="table-container ">
+            <div className="table-scroll-wrapper ">
+              <div className="table-size lg:min-h-60 lg:max-h-60">
                 <table className="base-table ">
                   <thead className="table-head">
                     <tr>
@@ -279,7 +285,11 @@ const BankDetails = () => {
                       <tr key={idx} className="table-row">
                         <td className="table-td">{idx + 1}</td>
                         <td className="table-td">{item?.payeeName || "-"}</td>
-                        <td className="table-td">
+                        <td
+                          className={`table-td ${
+                            Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
                         <td className="table-td">{item?.panNumber || "-"}</td>{" "}

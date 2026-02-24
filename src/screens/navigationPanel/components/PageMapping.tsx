@@ -1,3 +1,4 @@
+import { useAuthorizedPages } from "@/store/useAuthorizedPages";
 import { ArrowRightLeftIcon } from "lucide-react";
 import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from "react";
 import InputField from "../../../components/customInputField";
@@ -17,6 +18,7 @@ type DragPayload = {
 const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
+  const { refetchAuthorizedPages } = useAuthorizedPages();
   const [roleId, setRoleId] = useState<number | null>(null);
 
   const [activeRoles, setActiveRoles] = useState<ActiveRoleItem[]>([]);
@@ -228,6 +230,7 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
 
       setSuccessMessage(response?.message || "Saved successfully");
       timerRef.current = setTimeout(() => onClose(), 1000);
+      refetchAuthorizedPages(roleId, selectedBranchId, fetchApi);
     }
   };
 

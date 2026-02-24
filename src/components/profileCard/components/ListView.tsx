@@ -179,10 +179,10 @@ const ListView: React.FC<ListViewProps> = ({
   };
 
   return (
-    <div className="table-container  ">
-      <div className="table-scroll-wrapper">
-        <div className="table-size">
-          <table className="base-table">
+    <div className=" table-container">
+      <div className="table-scroll-wrapper  ">
+        <div className="table-size lg:min-h-140 lg:max-h-140  ">
+          <table className="base-table ">
             <thead className="table-head">
               <tr>
                 {headers.map(({ key, label }) =>

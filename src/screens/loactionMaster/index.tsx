@@ -35,6 +35,11 @@ const LocationMaster = () => {
 
   const [popupValue, setPopupValue] = useState<PopUpValueItem | null>(null);
 
+  const [stateError, setStateError] = useState<string>("");
+  const [districtError, setDistrictError] = useState<string>("");
+  const [cityError, setCityError] = useState<string>("");
+  const [pincodeError, setPincodeError] = useState<string>("");
+
   /* -------------------- api handlers -------------------- */
   const getCountryName = useCallback(async () => {
     const res = await fetchApi(
@@ -167,7 +172,38 @@ const LocationMaster = () => {
   const selectedCityOption = citySelectOption.find(o => o.value === cityId) || null;
   const selectedPinCodeOption = pinCodeSelectOption.find(o => o.value === pincodeId) || null;
 
-  const popupHandler = ({ type }: { type: string }) => {
+  const popupHandler = ({
+    type,
+    countryId = 0,
+    stateId = 0,
+    districtId = 0,
+    cityId = 0,
+    pincodeId = 0,
+  }: {
+    type: string;
+    countryId?: number | null;
+    stateId?: number | null;
+    districtId?: number | null;
+    cityId?: number | null;
+    pincodeId?: number | null;
+  }) => {
+    if (!countryId && type === "STATE") {
+      setStateError("Please select country first");
+      return;
+    }
+    if (!stateId && type === "DISTRICT") {
+      setDistrictError("Please select state first");
+      return;
+    }
+    if (!districtId && type === "CITY") {
+      setCityError("Please select district first");
+      return;
+    }
+    if (!cityId && type === "PINCODE") {
+      setPincodeError("Please select city first");
+      return;
+    }
+
     setPopupValue({
       type,
       countryId: selectedCountryOption?.value ?? null,
@@ -177,6 +213,10 @@ const LocationMaster = () => {
       pincodeId: selectedPinCodeOption?.value ?? null,
       value: type !== "STATE" ? true : selectedStateOption ? true : false,
     });
+    setStateError("");
+    setDistrictError("");
+    setCityError("");
+    setPincodeError("");
 
     setEditPopup(true);
   };
@@ -205,7 +245,7 @@ const LocationMaster = () => {
             <Select
               options={countrySelectOption}
               value={selectedCountryOption}
-              placeholder="Select..."
+              placeholder="Select country"
               isSearchable
               isClearable
               onChange={countryDropDownHandler}
@@ -219,7 +259,7 @@ const LocationMaster = () => {
               <Select
                 options={stateSelectOption}
                 value={selectedStateOption}
-                placeholder="Select..."
+                placeholder="Select state"
                 isSearchable
                 isClearable
                 onChange={stateDropDownHandler}
@@ -227,20 +267,18 @@ const LocationMaster = () => {
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-              <button
-                disabled={!selectedCountryOption}
-                onClick={() => popupHandler({ type: "STATE" })}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl"></i>
+              <button onClick={() => popupHandler({ type: "STATE", countryId })}>
+                <i className="fa-solid fa-circle-plus fa-xl active:scale-95"></i>
               </button>
             </div>
+            {stateError && <p className="input-field-error">{stateError}</p>}
           </InputField>
           <InputField label="District" required={true}>
             <div className="flex gap-2 items-center">
               <Select
                 options={districtSelectOption}
                 value={selectedDistrictOption}
-                placeholder="Select..."
+                placeholder="Select district"
                 isSearchable
                 isClearable
                 onChange={distDropDownHandler}
@@ -248,22 +286,19 @@ const LocationMaster = () => {
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-              <button
-                disabled={!selectedStateOption}
-                onClick={() => popupHandler({ type: "DISTRICT" })}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl "></i>
+              <button onClick={() => popupHandler({ type: "DISTRICT", stateId })}>
+                <i className="fa-solid fa-circle-plus fa-xl active:scale-95"></i>
               </button>
             </div>
+            {districtError && <p className="input-field-error">{districtError}</p>}
           </InputField>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
           <InputField label="City" required={true}>
             <div className="flex gap-2 items-center">
               <Select
                 options={citySelectOption}
                 value={selectedCityOption}
-                placeholder="Select..."
+                placeholder="Select city"
                 isSearchable
                 isClearable
                 onChange={cityDropDownHandler}
@@ -271,13 +306,11 @@ const LocationMaster = () => {
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-              <button
-                disabled={!selectedDistrictOption}
-                onClick={() => popupHandler({ type: "CITY" })}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl"></i>
+              <button onClick={() => popupHandler({ type: "CITY", districtId })}>
+                <i className="fa-solid fa-circle-plus fa-xl active:scale-95"></i>
               </button>
             </div>
+            {cityError && <p className="input-field-error">{cityError}</p>}
           </InputField>
 
           <InputField label="PinCode" required={true}>
@@ -285,7 +318,7 @@ const LocationMaster = () => {
               <Select
                 options={pinCodeSelectOption}
                 value={selectedPinCodeOption}
-                placeholder="Select..."
+                placeholder="Select pincode"
                 isSearchable
                 isClearable
                 onChange={pinCodeDropDownHandler}
@@ -293,13 +326,11 @@ const LocationMaster = () => {
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-              <button
-                disabled={!selectedCityOption}
-                onClick={() => popupHandler({ type: "PINCODE" })}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl"></i>
+              <button onClick={() => popupHandler({ type: "PINCODE", pincodeId, cityId })}>
+                <i className="fa-solid fa-circle-plus fa-xl active:scale-95"></i>
               </button>
             </div>
+            {pincodeError && <p className="input-field-error">{pincodeError}</p>}
           </InputField>
         </div>
       </div>

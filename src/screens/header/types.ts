@@ -22,4 +22,30 @@ type subMenuItem = {
   tabId: number;
 };
 
-export type { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem };
+type UserDetailsItem = {
+  id: number;
+  firstName: string;
+  midelName: string;
+  lastName: string;
+  dob: string;
+  gender: string;
+  userName: string;
+  password: string;
+  address: string;
+  contact: string;
+  email: string;
+  isActive: number;
+  employeeID: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+  reportToUserId: number;
+  userDepartmentId: number;
+};
+
+export type { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem, UserDetailsItem };
+
+/*{
+   
+} */

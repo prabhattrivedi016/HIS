@@ -1,11 +1,11 @@
 @import "tailwindcss";
 @tailwind utilities;
 
-/* button colors */
+/* button colors
 :root {
   --btn-active: #0b5394;
   --btn-edit: #6f94c7;
-}
+} */
 
 .ck.ck-editor__editable_inline {
   max-width: 100%;
@@ -68,9 +68,7 @@
 .cancel-btn {
   @apply text-white font-medium bg-gray-400 hover:bg-gray-600 active:scale-95 w-full px-4 py-2 m-2 rounded-lg  transition-all flex items-center justify-center gap-2;
 }
-.close-drawer-btn {
-  @apply text-gray-600 hover:text-black text-3xl leading-none;
-}
+
 .btn-not-allowed {
   @apply bg-gray-400 cursor-not-allowed;
 }
@@ -173,13 +171,10 @@
       [&:not(:valid)::-webkit-datetime-edit]:text-gray-300
       [&:valid::-webkit-datetime-edit]:text-black;
 }
-.disabled-input-field {
-  @apply disabled:bg-gray-100
-      disabled:text-gray-400
-      disabled:cursor-not-allowed
-      disabled:border-gray-100;
-}
 
+.disabled-input-field {
+  @apply w-full px-4 py-2 border border-gray-400 rounded-lg bg-gray-200   placeholder:text-gray-400 placeholder:opacity-20 focus:ring-gray-200 focus:border-gray-500 outline-none transition mb-2;
+}
 /* user group master styles */
 .item-border {
   @apply border border-gray-200 p-2 mb-2 rounded bg-gray-50 text-sm cursor-move hover:bg-gray-100;
@@ -292,7 +287,7 @@
 .save-btn {
   @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-6 h-10  text-base font-medium transition active:scale-90;
 }
-
+/*  */
 .cancel-button {
   @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-6 h-10 text-base font-medium transition active:scale-90;
 }
@@ -307,11 +302,13 @@
 
 /* both vertical + horizontal scroll height+width */
 .table-scroll-wrapper {
-  @apply mx-auto w-full  max-w-[1200px]    lg:h-[547px] sm:h-[500px] md:h-[520px] rounded-xl  border border-gray-200 bg-white shadow overflow-hidden;
+  @apply w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow;
 }
 
+/* min-w-0 max-w-[1200px] lg:h-[547px] sm:h-[500px] md:h-[520px] */
+
 .table-size {
-  @apply w-full h-full overflow-auto;
+  @apply w-full min-w-0 h-full overflow-auto;
 }
 
 /* Fixed layout + min-width */
@@ -373,9 +370,136 @@
   @apply opacity-100 scale-100;
 }
 
+.active-text {
+  @apply text-green-600 font-semibold;
+}
+.inactive-text {
+  @apply text-red-600 font-semibold;
+}
+
+/* Hide scrollbar arrows (Windows / WebKit browsers) */
+/* .hover-popup-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+} */
+
+/* Optional — style scrollbar */
+.hover-popup-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hover-popup-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+}
+
+/* -------------------central popup modal ----------------- */
 .popup-header {
   @apply flex justify-between items-center mb-4;
 }
 .popup-helper-text {
   @apply text-lg font-semibold;
+}
+
+.close-drawer-btn {
+  @apply text-gray-600 hover:text-black text-3xl leading-none focus:scale-105;
+}
+/* wrapper */
+.modal-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* overlay */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: auto;
+}
+
+/* modal box base */
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+
+  opacity: 0;
+  transform: translateY(30px) scale(0.92);
+}
+
+/* ===== OPEN STATE ===== */
+.modal-wrapper.open {
+  pointer-events: auto;
+}
+
+.modal-wrapper.open .modal-overlay {
+  animation: overlayFadeIn 0.4s ease-out forwards;
+}
+
+.modal-wrapper.open .modal-content {
+  animation: modalEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== CLOSE STATE ===== */
+.modal-wrapper:not(.open) .modal-overlay {
+  animation: overlayFadeOut 1s ease-in forwards;
+}
+
+.modal-wrapper:not(.open) .modal-content {
+  animation: modalExit 1s ease-in forwards;
+}
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(1);
+  }
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

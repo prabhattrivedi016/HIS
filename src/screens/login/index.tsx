@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { Building2, Lock, LogIn, User } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../../../assets/logo.jpg";
 import { Spinner } from "../../../assets/svgIcons";
+import { AuthContext } from "../../context/AuthContext";
 
 import { ErrorMessage, SuccessMessage } from "../../components/infoText";
 import AuthBackground from "../../components/layout";
@@ -20,6 +21,8 @@ import { getAuthStorage } from "../../utils/authStorage";
 import { InputError, PageItem, TabItem } from "./type";
 
 const Login = () => {
+  const authContext = useContext(AuthContext);
+  const loginFunc = authContext?.login;
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
 
@@ -113,6 +116,14 @@ const Login = () => {
 
       const storage = rememberMe ? localStorage : sessionStorage;
       const { accessToken, branchId, userId } = loginRes.data;
+
+      // auth data saved in storage
+      if (loginFunc) {
+        loginFunc({
+          token: accessToken,
+          user: loginRes.data,
+        });
+      }
 
       storage.setItem("accessToken", accessToken);
       storage.setItem("branchId", String(branchId));
@@ -317,7 +328,7 @@ const Login = () => {
 
             <button
               type="submit"
-              className=" login-btn  flex items-center justify-center gap-2 "
+              className=" save-btn  w-full flex items-center justify-center gap-2 "
               disabled={loading}
             >
               {loading ? (

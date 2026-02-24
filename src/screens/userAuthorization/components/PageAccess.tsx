@@ -1,3 +1,4 @@
+import { useAuthorizedPages } from "@/store/useAuthorizedPages";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -8,6 +9,7 @@ import { PageAccessItem, PageAccessProps } from "../types";
 
 const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
+  const { refetchAuthorizedPages } = useAuthorizedPages();
 
   const [filteredData, setFilteredData] = useState<PageAccessItem[]>([]);
   const [pageAccessData, setPageAccessData] = useState<PageAccessItem[]>([]);
@@ -124,6 +126,7 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
 
       await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, payload);
     }
+    refetchAuthorizedPages(roleId, branchId, fetchApi);
   };
 
   return (

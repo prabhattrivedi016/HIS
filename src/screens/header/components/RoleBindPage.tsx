@@ -37,7 +37,7 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
     roleChange(role.roleName);
 
     storage.setItem("roleId", String(role?.roleId));
-    storage.setItem("roleName", role?.roleName);
+    storage.setItem("selectedRole", role?.roleName);
 
     const response = await fetchApi(
       "GET",

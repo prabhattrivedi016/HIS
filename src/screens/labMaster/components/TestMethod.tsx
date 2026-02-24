@@ -165,7 +165,7 @@ const TestMethod = () => {
         <Animation isOpen={showDetails}>
           <div className="table-container ">
             <div className="table-scroll-wrapper">
-              <div className="table-size">
+              <div className="table-size lg:min-h-72 lg:max-h-72">
                 <table className="base-table">
                   <thead className="table-head">
                     <tr>

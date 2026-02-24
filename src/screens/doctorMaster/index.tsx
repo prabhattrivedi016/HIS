@@ -34,6 +34,8 @@ const DoctorMaster = () => {
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
+
   const [cardView, setCardView] = useState(VIEWTYPE?.GRID);
 
   const [openUnitDrawer, setOpenUnitDrawer] = useState<boolean>(false);
@@ -78,6 +80,8 @@ const DoctorMaster = () => {
 
     setGridFilteredData(transformed.gridView ?? []);
     setListFilteredData(transformed.listView ?? []);
+
+    setHasFetched(true);
   }, [configData]);
 
   useEffect(() => {
@@ -219,6 +223,8 @@ const DoctorMaster = () => {
   const renderComponent = (view: string) => {
     if (error) return <ErrorMessage text={error?.message} />;
     if (loading) return <div className="initial-message">Loading doctor master...</div>;
+    if (!doctorConfig || loading || !hasFetched)
+      return <div className="initial-message">Loading role master...</div>;
 
     if (view === VIEWTYPE?.GRID) {
       if (!gridFilteredData.length) return <div className="no-data-message">No data found...</div>;

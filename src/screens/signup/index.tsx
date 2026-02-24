@@ -16,7 +16,7 @@ const Signup = ({ onLoginClick }: SignupProps) => {
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { pickMasterValue } = usePickMaster({ fieldName: "gender" });
+  const { pickMasterValue } = usePickMaster("gender");
 
   const {
     register,
@@ -45,9 +45,9 @@ const Signup = ({ onLoginClick }: SignupProps) => {
   const onSubmit = async (data: SignupFormProps) => {
     const payload = {
       ...data,
-      dob: new Date(data.dob).toISOString(), // optional transform for backend
+      dob: new Date(data.dob).toISOString(),
     };
-    const response = await fetchApi("POST", ENDPOINTS.USER_SIGNUP, data);
+    const response = await fetchApi("POST", ENDPOINTS.USER_SIGNUP, payload);
     if (!response) {
       return;
     }
@@ -83,10 +83,9 @@ const Signup = ({ onLoginClick }: SignupProps) => {
         </div>
 
         {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
-        {error ? <ErrorMessage text={error} /> : <></>}
+        {error ? <ErrorMessage text={error?.message} /> : <></>}
 
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-          {/* First & Last Name */}
           <div className="signup-form-layout">
             <div>
               <InputField label="First Name " required={true}>
@@ -101,7 +100,6 @@ const Signup = ({ onLoginClick }: SignupProps) => {
             </div>
           </div>
 
-          {/* Gender + Email */}
           <div className="signup-form-layout">
             <div>
               <InputField label="Gender " required={true}>
@@ -109,7 +107,7 @@ const Signup = ({ onLoginClick }: SignupProps) => {
                   <select {...register("gender")} className="signup-input-field w-full">
                     <option value="">Select</option>
 
-                    {pickMasterValue?.data?.map(item => (
+                    {pickMasterValue.map(item => (
                       <option key={item.id} value={item.value}>
                         {item.value}
                       </option>
@@ -128,7 +126,6 @@ const Signup = ({ onLoginClick }: SignupProps) => {
             </div>
           </div>
 
-          {/* DOB + Contact */}
           <div className="signup-form-layout">
             <div>
               <InputField label="Date of Birth " required={true}>
@@ -150,7 +147,6 @@ const Signup = ({ onLoginClick }: SignupProps) => {
             </div>
           </div>
 
-          {/* Address + Username */}
           <div className="signup-form-layout">
             <div>
               <InputField label="Address " required={true}>
@@ -166,7 +162,6 @@ const Signup = ({ onLoginClick }: SignupProps) => {
             </div>
           </div>
 
-          {/* Password Fields */}
           <div className="signup-form-layout">
             <div>
               <InputField label="Password " required={true}>
@@ -188,10 +183,9 @@ const Signup = ({ onLoginClick }: SignupProps) => {
             </div>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
-            className="login-btn flex items-center justify-center gap-2"
+            className="w-full save-btn flex items-center justify-center"
             disabled={loading}
           >
             {loading ? (

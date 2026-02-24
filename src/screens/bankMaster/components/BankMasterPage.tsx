@@ -7,6 +7,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import Swal from "sweetalert2";
 import { InferType } from "yup";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
@@ -64,8 +65,15 @@ const BankMasterPage = () => {
       { component: "BankMasterPage" }
     );
     if (!resp) return;
+
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      Swal.fire({
+        position: "top",
+        title: resp?.message || "Saved successfully",
+        timer: 1000,
+        showConfirmButton: false,
+      });
+
       reset({
         bankId: 0,
         bankName: "",
@@ -85,6 +93,7 @@ const BankMasterPage = () => {
       });
       return;
     }
+
     reset({
       bankId: item?.bankId || 0,
       bankName: item?.bankName || "",
@@ -104,7 +113,7 @@ const BankMasterPage = () => {
   return (
     <div className="-mt-2">
       <div className="card -mt-10">
-        <h2 className="card-title ">Sample Master Details</h2>
+        <h2 className="card-title ">Bank Master Details</h2>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
@@ -152,7 +161,7 @@ const BankMasterPage = () => {
         <Animation isOpen={showDetails}>
           <div className="table-container ">
             <div className="table-scroll-wrapper">
-              <div className="table-size">
+              <div className="table-size lg:min-h-58 lg:max-h-58 ">
                 <table className="base-table">
                   <thead className="table-head">
                     <tr>
@@ -179,7 +188,11 @@ const BankMasterPage = () => {
 
                         <td className="table-td">{item?.bankName || "-"}</td>
 
-                        <td className="table-td">
+                        <td
+                          className={`table-td ${
+                            Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
 
