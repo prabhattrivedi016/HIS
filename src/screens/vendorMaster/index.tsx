@@ -36,10 +36,6 @@ const VendorMaster = () => {
   const typeSelectOption = useMemo(() => typeList?.pickMasterValue ?? [], [typeList]);
 
   const [branchIds, setBranchIds] = useState<number[]>([]);
-  const [countryId, setCountryId] = useState<number | null>(null);
-  const [stateId, setStateId] = useState<number | null>(null);
-  const [districtId, setDistrictId] = useState<number | null>(null);
-  const [cityId, setCityId] = useState<number | null>(null);
   const [countryList, setCountryList] = useState<CountryItem[]>([]);
   const [stateList, setStateList] = useState<StateItem[]>([]);
   const [districtList, setDistrictList] = useState<DistrictItem[]>([]);
@@ -107,7 +103,7 @@ const VendorMaster = () => {
     setValue("dlno", item.dlno);
     setValue("gstinNo", item.gstinNo);
     setValue("address", item.address);
-    setValue("pincode", item.fullAddress ? item.fullAddress.split("-").pop()?.trim() || "" : ""); // Extract pincode if needed or
+    setValue("pincode", item.pincode);
 
     setValue("isActive", item.isActive);
 
@@ -547,12 +543,56 @@ const VendorMaster = () => {
 
     if (resp?.result) {
       getVendorMaster();
-      reset();
+      reset({
+        vendorId: 0,
+        typeId: "0",
+        type: "",
+        vendorName: "",
+        contactNo: "",
+        email: "",
+        dlno: "",
+        gstinNo: "",
+        address: "",
+        pincode: "",
+        isActive: 1,
+        countryId: 0,
+        stateId: 0,
+        districtId: 0,
+        cityId: 0,
+        mappingBranch: "",
+      });
+      setSelectedBranches([]);
+      setBranchIds([]);
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      setCountryList([]);
+      setStateList([]);
+      setDistrictList([]);
+      setCityList([]);
     }
   };
 
   const handleCancel = () => {
-    reset();
+    reset({
+      vendorId: 0,
+      typeId: "0",
+      type: "",
+      vendorName: "",
+      contactNo: "",
+      email: "",
+      dlno: "",
+      gstinNo: "",
+      address: "",
+      pincode: "",
+      isActive: 1,
+      countryId: 0,
+      stateId: 0,
+      districtId: 0,
+      cityId: 0,
+      mappingBranch: "",
+    });
     setSelectedBranches([]);
     setBranchIds([]);
     setSelectedCountry(null);
@@ -564,128 +604,6 @@ const VendorMaster = () => {
     setDistrictList([]);
     setCityList([]);
     setValue("vendorId", 0);
-    /*-------------------edit handler-------------------- */
-    const editHandler = async (item: VendorItem) => {
-      setVendorForm({
-        vendorId: item.vendorId,
-        typeId: item.typeId,
-        type: item.type,
-        vendorName: item.vendorName,
-        contactNo: item.contactNo,
-        email: item.email,
-        dlno: item.dlno,
-        gstinNo: item.gstinNo,
-        address: item.address,
-        isActive: item.isActive,
-      });
-
-      /*---------------------branch-------------------- */
-
-      const branchIdList = item.mappingBranch ? item.mappingBranch.split(",").map(Number) : [];
-
-      setBranchIds(branchIdList);
-      setSelectedBranches(branchOptions.filter(b => branchIdList.includes(b.value)));
-
-      /*---------------------country -------------------- */
-
-      if (item.countryId) {
-        setCountryId(item.countryId);
-
-        const countryOption = countrySelectOption.find(c => c.value === item.countryId);
-
-        setSelectedCountry(countryOption || null);
-
-        /*----------------------state -------------------- */
-
-        const stateResp = await fetchApi(
-          "GET",
-          ENDPOINTS.GET_STATE_MASTER,
-          {},
-          {
-            params: {
-              countryId: item.countryId,
-              isActive: Status.ACTIVE,
-            },
-          }
-        );
-
-        const states = stateResp?.data ?? [];
-        setStateList(states);
-
-        if (item.stateId) {
-          setStateId(item.stateId);
-
-          const stateOption = states
-            .map(s => ({
-              label: s.stateName,
-              value: s.stateId,
-            }))
-            .find(s => s.value === item.stateId);
-
-          setSelectedState(stateOption || null);
-
-          /*----------------------district -------------------- */
-
-          const districtResp = await fetchApi(
-            "GET",
-            ENDPOINTS.GET_DISTRICT_MASTER,
-            {},
-            {
-              params: {
-                stateId: item.stateId,
-                isActive: Status.ACTIVE,
-              },
-            }
-          );
-
-          const districts = districtResp?.data ?? [];
-          setDistrictList(districts);
-
-          if (item.districtId) {
-            setDistrictId(item.districtId);
-
-            const districtOption = districts
-              .map(d => ({
-                label: d.districtName,
-                value: d.districtId,
-              }))
-              .find(d => d.value === item.districtId);
-
-            setSelectedDistrict(districtOption || null);
-
-            /*----------------------city -------------------- */
-
-            const cityResp = await fetchApi(
-              "GET",
-              ENDPOINTS.GET_CITY_MASTER,
-              {},
-              {
-                params: {
-                  districtId: item.districtId,
-                  isActive: Status.ACTIVE,
-                },
-              }
-            );
-
-            const cities = cityResp?.data ?? [];
-            setCityList(cities);
-
-            if (item.cityId) {
-              setCityId(item.cityId);
-
-              const cityOption = cities
-                .map(c => ({
-                  label: c.cityName,
-                  value: c.cityId,
-                }))
-                .find(c => c.value === item.cityId);
-
-              setSelectedCity(cityOption || null);
-            }
-          }
-        }
-      }
-    };
   };
 
   return (
@@ -773,7 +691,7 @@ const VendorMaster = () => {
                 placeholder="Select..."
                 isSearchable
                 isClearable
-                onChange={countrySelectHandler}
+                onChange={(option: any) => countrySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
@@ -789,7 +707,7 @@ const VendorMaster = () => {
                 placeholder="Select..."
                 isSearchable
                 isClearable
-                onChange={stateSelectHandler}
+                onChange={(option: any) => stateSelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
@@ -805,7 +723,7 @@ const VendorMaster = () => {
                 placeholder="Select..."
                 isSearchable
                 isClearable
-                onChange={districtSelectHandler}
+                onChange={(option: any) => districtSelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
@@ -822,7 +740,7 @@ const VendorMaster = () => {
                 placeholder="Select..."
                 isSearchable
                 isClearable
-                onChange={citySelectHandler}
+                onChange={(option: any) => citySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"

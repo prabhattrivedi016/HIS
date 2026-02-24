@@ -39,6 +39,7 @@ type AddNewTabPanelProps = {
   isOpenTab: boolean;
   onCloseTab: () => void;
   tabId?: number | null;
+  refreshTabDropdown: () => Promise<void>;
 };
 
 type NewTabProps = {

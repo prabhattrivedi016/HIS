@@ -1,8 +1,8 @@
+import { ErrorMessage } from "@/components/infoText";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HideShowColumn from "../../components/buttonsPopup";
 import DownloadPopup from "../../components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "../../components/customLoader";
-import { ErrorMessage } from "../../components/infoText";
 import PageHeader from "../../components/pageHeader/index";
 import GridView from "../../components/profileCard";
 import ListView from "../../components/profileCard/components/ListView";
@@ -19,7 +19,6 @@ import { BranchMasterGridItem, BranchMasterListItem } from "./types";
 
 const BranchMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const { configDataValue, getConfigMasterValue } = useConfigMaster();
 
   //local states
   const [branchMaterGridData, setBranchMasterGridData] = useState<BranchMasterGridItem[]>([]);
@@ -27,6 +26,7 @@ const BranchMaster = () => {
 
   const [gridFilteredData, setGridFilteredData] = useState<BranchMasterGridItem[]>([]);
   const [listFilteredData, setListFilteredData] = useState<BranchMasterListItem[]>([]);
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
 
   const [cardView, setCardView] = useState<string>(VIEWTYPE.GRID);
 
@@ -48,22 +48,13 @@ const BranchMaster = () => {
 
   /*----------------------------config value of branch master---------------------- */
 
-  const fetchConfigBranchMaster = async () => {
-    try {
-      await getConfigMasterValue("branchMaster");
-    } catch (err) {
-      console.error("Error fetching roleMaster config:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchConfigBranchMaster();
-  }, []);
+  const configData = useConfigMaster("branchMaster");
+  const branchConfig = configData?.configDataValue;
 
   //get branch details
   const getBranchDetail = useCallback(async () => {
     const response = await fetchApi("GET", ENDPOINTS.GET_BRANCH_DETAILS);
-    const activeConfig = configDataValue || branchMasterConfig;
+    const activeConfig = branchConfig || branchMasterConfig;
     const transformed = transformDataWithConfig(activeConfig, response);
 
     setBranchMasterGridData(transformed.gridView);
@@ -71,11 +62,13 @@ const BranchMaster = () => {
 
     setGridFilteredData(transformed.gridView);
     setListFilteredData(transformed.listView);
+
+    setHasFetched(true);
   }, []);
 
   useEffect(() => {
     getBranchDetail();
-  }, []);
+  }, [branchConfig]);
 
   // handle card view
   const handleCardView = (view: string) => setCardView(view);
@@ -169,8 +162,10 @@ const BranchMaster = () => {
 
   // render grid/list
   const renderComponent = (view: string) => {
-    if (error) return <ErrorMessage text={error} />;
-    if (loading) return <div className="initial-message">Loading branch master...</div>;
+    if (error) return <ErrorMessage text={error?.message} />;
+
+    if (!branchConfig || loading || !hasFetched)
+      return <div className="initial-message">Loading branch master...</div>;
 
     if (view === VIEWTYPE.GRID) {
       if (!gridFilteredData?.length) return <div className="no-data-message">No data found...</div>;
@@ -192,6 +187,7 @@ const BranchMaster = () => {
 
     if (view === VIEWTYPE.LIST) {
       if (!listFilteredData?.length) return <div className="no-data-message">No data found...</div>;
+
       return (
         <div className="list-view-page-layout">
           <ListView

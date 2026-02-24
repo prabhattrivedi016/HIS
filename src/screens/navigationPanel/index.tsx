@@ -114,59 +114,64 @@ const NavigationPanel = () => {
           </div>
         </div>
 
-        <div className="card">
-          <div className="table-container">
-            <div className="table-scroll-wrapper">
-              <div className="table-size">
-                <table className="base-table">
-                  <thead className="table-head">
+        {/* <div className="card"> */}
+        <div className="table-container">
+          <div className="table-scroll-wrapper">
+            <div className="table-size lg:min-h-155 lg:max-h-155">
+              <table className="base-table">
+                <thead className="table-head">
+                  <tr>
+                    {/* Edit Column */}
+                    <th className="table-th w-16">Edit</th>
+
+                    {NavigationPaneHeader.map((header, index) => (
+                      <th key={index} className="table-th whitespace-nowrap">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredData?.length === 0 && (
                     <tr>
-                      {/* Edit Column */}
-                      <th className="table-th w-16">Edit</th>
-
-                      {NavigationPaneHeader.map((header, index) => (
-                        <th key={index} className="table-th whitespace-nowrap">
-                          {header}
-                        </th>
-                      ))}
+                      <td colSpan={NavigationPaneHeader?.length} className="table-empty">
+                        No records found
+                      </td>
                     </tr>
-                  </thead>
+                  )}
 
-                  <tbody>
-                    {filteredData?.length === 0 && (
-                      <tr>
-                        <td colSpan={NavigationPaneHeader?.length} className="table-empty">
-                          No records found
-                        </td>
-                      </tr>
-                    )}
+                  {filteredData.map((item, idx) => (
+                    <tr key={idx} className="table-row">
+                      <td className="table-td text-center" onClick={() => editHandler(item)}>
+                        <i className="fa-solid fa-edit text-blue-500 text-lg cursor-pointer active:scale-90" />
+                      </td>
 
-                    {filteredData.map((item, idx) => (
-                      <tr key={idx} className="table-row">
-                        <td className="table-td text-center" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-blue-500 text-lg cursor-pointer active:scale-90" />
-                        </td>
+                      <td className="table-td">{item?.tabName || "-"}</td>
 
-                        <td className="table-td">{item?.tabName || "-"}</td>
+                      <td className="table-td">{item?.subMenuName || "-"}</td>
 
-                        <td className="table-td">{item?.subMenuName || "-"}</td>
+                      <td className="table-td">{item?.url || "-"}</td>
 
-                        <td className="table-td">
-                          {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
-                        </td>
-                        <td className="table-td">{item?.url || "-"}</td>
-                        <td className="table-td">{item?.ipAddress || "-"}</td>
-                        {/* <td className="table-td">{item?.createdBy || "-"}</td>
+                      <td
+                        className={`table-td ${
+                          Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                        }`}
+                      >
+                        {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
+                      </td>
+                      <td className="table-td">{item?.ipAddress || "-"}</td>
+                      {/* <td className="table-td">{item?.createdBy || "-"}</td>
                         <td className="table-td">{item?.createdOn || "-"}</td>
                         <td className="table-td">{item?.lastModifiedBy || "-"}</td>
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td> */}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+          {/* </div> */}
         </div>
 
         {loading && <CustomLoader isLoading={loading} />}

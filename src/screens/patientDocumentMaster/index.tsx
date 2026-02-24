@@ -166,8 +166,8 @@ const PatientDocumentMaster = () => {
 
         <Animation isOpen={showDetails}>
           <div className="table-container ">
-            <div className="table-container-height">
-              <table className="base-table ">
+            <div className="table-scroll-wrapper">
+              <table className="base-table lg:min-h-50 lg:max-h-50">
                 <thead className="table-head">
                   <tr>
                     {PatientDocumentTableHeader.map((h, index) => (

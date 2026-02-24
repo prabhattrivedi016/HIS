@@ -62,13 +62,13 @@ const BranchMasterDrawer = React.memo(
         contactNo1: "",
         contactNo2: "",
         address: "",
-        isActive: null,
+        isActive: 1,
         fyStartFrom: "",
       },
     });
 
     /* -------------------- financial month start from -------------------- */
-    const financialYear = usePickMaster({ fieldName: "FinancialYear" });
+    const financialYear = usePickMaster("FinancialYear");
 
     /* -------------------- api handlers -------------------- */
     const getCountryName = useCallback(async () => {
@@ -187,7 +187,7 @@ const BranchMasterDrawer = React.memo(
 
     const monthSelectOption = useMemo(
       () =>
-        financialYear?.pickMasterValue?.data?.map(y => ({
+        financialYear?.pickMasterValue?.map(y => ({
           value: String(y.key),
           label: y.value,
         })) || [],
@@ -228,7 +228,7 @@ const BranchMasterDrawer = React.memo(
 
     const monthDropDownHandler = (option: SelectItem) => {
       const v = option?.value ?? "";
-      setMonthId(v);
+      setMonthId(String(v));
     };
 
     const countryDropDownHandler = (option: SelectItem) => {

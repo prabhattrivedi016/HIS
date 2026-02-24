@@ -17,7 +17,12 @@ import {
   tabDropdownItem,
 } from "../types";
 
-const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) => {
+const AddNewTabPanel = ({
+  isOpenTab,
+  onCloseTab,
+  tabId,
+  refreshTabDropdown,
+}: AddNewTabPanelProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const [faIcons, setFaIcons] = useState<IconListItem[]>([]);
@@ -90,6 +95,7 @@ const AddNewTabPanel = ({ isOpenTab, onCloseTab, tabId }: AddNewTabPanelProps) =
     if (!response) return;
 
     setSuccessMessage(response?.message);
+    await refreshTabDropdown();
 
     timerRef.current = setTimeout(() => {
       onCloseTab();

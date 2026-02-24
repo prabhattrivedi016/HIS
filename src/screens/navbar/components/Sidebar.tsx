@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronLeft } from "lucide-react";
-import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import logo from "../../../../assets/logo.jpg";
+import miniLogo from "../../../../assets/mini-logo.png";
 
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
@@ -24,6 +26,8 @@ const Sidebar = () => {
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
 
+  const { refetchAuthorizedPages } = useAuthorizedPages();
+
   const storage = getAuthStorage();
   const branchId = Number(storage.getItem("branchId") || 0);
   const roleId = Number(storage.getItem("roleId") || 0);
@@ -32,7 +36,7 @@ const Sidebar = () => {
   const location = useLocation();
   const sidebarRef = useRef<HTMLDivElement | null>(null);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openTabs, setOpenTabs] = useState<Record<number, boolean>>({});
   const [search, setSearch] = useState("");
   const [contextMenu, setContextMenu] = useState<{
@@ -43,54 +47,53 @@ const Sidebar = () => {
 
   const [hoverPopup, setHoverPopup] = useState<HoverPopupState | null>(null);
 
-  /* ---------------- Responsive Sidebar ---------------- */
+  /* ---------------- responsive sidebar ---------------- */
 
   useEffect(() => {
-    const resize = () => setSidebarOpen(window.innerWidth >= 768);
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
+    const handleResize = () => {
+      if (window.innerWidth < 768) setSidebarOpen(false);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    if (!sidebarOpen) {
-      setOpenTabs({});
-      setHoverPopup(null);
-    }
-  }, [sidebarOpen]);
+  /* ---------------- close on mobile on outside click---------------- */
 
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: globalThis.MouseEvent) => {
       if (
         window.innerWidth < 768 &&
-        sidebarOpen &&
         sidebarRef.current &&
         !sidebarRef.current.contains(e.target as Node)
       ) {
         setSidebarOpen(false);
-        setOpenTabs({});
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [sidebarOpen]);
+  }, []);
 
   /* ---------------- Filtering ---------------- */
 
-  const filteredTabs = useMemo(() => {
-    if (!authorizedPages) return [];
+  const filteredTabs: TabItem[] = useMemo(() => {
+    if (!Array.isArray(authorizedPages)) return [];
 
     return authorizedPages
       .map(tab => {
-        const filteredPages = tab.pages?.filter(page =>
+        const pages = tab.pages?.filter(page =>
           page.subMenuName.toLowerCase().includes(search.toLowerCase())
         );
-        if (!filteredPages || filteredPages.length === 0) return null;
-        return { ...tab, pages: filteredPages };
+
+        if (!pages || pages.length === 0) return null;
+        return { ...tab, pages };
       })
       .filter(Boolean) as TabItem[];
   }, [authorizedPages, search]);
+
+  /* ---------------- AUTO EXPAND WHEN SEARCHING ---------------- */
 
   useEffect(() => {
     if (!search) {
@@ -98,33 +101,40 @@ const Sidebar = () => {
       return;
     }
 
-    const autoOpen: Record<number, boolean> = {};
+    const expanded: Record<number, boolean> = {};
     filteredTabs.forEach(tab => {
-      autoOpen[tab.tabName.tabId] = true;
+      expanded[tab.tabName.tabId] = true;
     });
-    setOpenTabs(autoOpen);
+
+    setOpenTabs(expanded);
   }, [search, filteredTabs]);
 
-  /* ---------------- Context Menu ---------------- */
+  /* ---------------- save quick link ---------------- */
 
-  useEffect(() => {
-    const closeMenu = (e: MouseEvent) => {
-      if (!(e.target instanceof HTMLElement)) return;
-      if (e.target.closest("[data-context-menu]")) return;
-      setContextMenu(null);
-    };
-    document.addEventListener("mousedown", closeMenu);
-    return () => document.removeEventListener("mousedown", closeMenu);
-  }, []);
+  const rightClickButtonHandler = useCallback(
+    async (page: PageItem) => {
+      await fetchApi("POST", ENDPOINTS.SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU, {
+        branchId,
+        userId,
+        roleId,
+        subMenuId: page.subMenuId,
+      });
+      await refetchAuthorizedPages(roleId, branchId, fetchApi);
+    },
+    [branchId, userId, roleId, refetchAuthorizedPages]
+  );
 
-  const rightClickButtonHandler = async (page: PageItem) => {
-    await fetchApi("POST", ENDPOINTS.SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU, {
-      branchId,
-      userId,
-      roleId,
-      subMenuId: page.subMenuId,
-    });
-  };
+  /* ---------------- refetch when opening Quick Links tab ---------------- */
+
+  const handleTabClick = useCallback(
+    async (tabId: number, isOpen: boolean) => {
+      if (sidebarOpen && tabId === 0 && !isOpen) {
+        await refetchAuthorizedPages(roleId, branchId, fetchApi);
+      }
+      setOpenTabs(p => ({ [tabId]: !p[tabId] }));
+    },
+    [sidebarOpen, roleId, branchId, refetchAuthorizedPages]
+  );
 
   return (
     <div className="flex min-h-screen">
@@ -136,15 +146,20 @@ const Sidebar = () => {
           transition-all duration-300 ease-in-out
           md:translate-x-0
           ${sidebarOpen ? "md:w-60" : "md:w-16"}
-          w-60
+        
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Header */}
-        <div className="h-16 bg-[#0b5394] flex items-center justify-between px-3">
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-white text-xl">
-            ✕
-          </button>
+        {/* Header logo */}
+        <div className="h-16 bg-[#0b5394] flex items-center justify-between px-3 overflow-hidden">
+          {sidebarOpen ? (
+            // Full Logo + Text (above code)
+            <img src={logo} alt=" Logo" className="h-13 w-full m-auto  rounded-lg" />
+          ) : (
+            <Link to={"/dashboard"}>
+              <img src={miniLogo} alt="Mini Logo" className="h-13 w-full rounded-lg m-auto " />
+            </Link>
+          )}
         </div>
 
         {/* Content */}
@@ -168,7 +183,7 @@ const Sidebar = () => {
               <div key={tabId} className="relative group mb-2">
                 {/* tab menu */}
                 <button
-                  onClick={() => sidebarOpen && setOpenTabs(p => ({ [tabId]: !p[tabId] }))}
+                  onClick={() => sidebarOpen && handleTabClick(tabId, isOpen)}
                   onMouseEnter={e => {
                     if (sidebarOpen) return;
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -190,7 +205,7 @@ const Sidebar = () => {
                   </div>
 
                   {sidebarOpen && (
-                    <span>{isOpen ? <ChevronLeft size={18} /> : <ChevronDown size={18} />}</span>
+                    <span>{isOpen ? <ChevronRight size={18} /> : <ChevronDown size={18} />}</span>
                   )}
                 </button>
 
@@ -270,10 +285,10 @@ const Sidebar = () => {
       </aside>
 
       {/* -----------------------------------main---------------------------------- */}
-      <div className={`flex-1 flex flex-col ${sidebarOpen ? "md:ml-60" : "md:ml-16"}`}>
+      <div className={`flex-1 min-w-0 flex flex-col ${sidebarOpen ? "md:ml-60" : "md:ml-16"}`}>
         <Header toggleSidebar={() => setSidebarOpen(p => !p)} isSidebarOpen={sidebarOpen} />
         <FavRoleButtonToggle />
-        <main className="flex-1 bg-gray-50 p-4 pt-20 overflow-auto">
+        <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto">
           <Outlet />
         </main>
       </div>
@@ -298,7 +313,7 @@ const Sidebar = () => {
                 {hoverPopup.tab.tabName.tabName}
               </p>
 
-              <div className="flex flex-col gap-1 max-h-60 overflow-auto p-1">
+              <div className="hover-popup-scroll flex flex-col gap-1 max-h-60 overflow-auto p-1">
                 {hoverPopup.tab.pages.map(page => (
                   <NavLink
                     key={page.subMenuId}

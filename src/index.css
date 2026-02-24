@@ -217,3 +217,23 @@ select:-webkit-autofill {
   -webkit-text-fill-color: #1f2937 !important; /* gray-800 */
   transition: background-color 9999s ease-in-out 0s;
 }
+
+/* Hide scrollbar arrow buttons inside sidebar hover popup; keep normal scrolling */
+.hover-popup-scroll::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.hover-popup-scroll::-webkit-scrollbar-button:single-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.hover-popup-scroll::-webkit-scrollbar-button:start:decrement,
+.hover-popup-scroll::-webkit-scrollbar-button:end:increment {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}

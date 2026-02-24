@@ -1,3 +1,4 @@
+import CustomLoader from "@/components/customLoader";
 import MultiCheckboxOption from "@/components/multiSelectCheckBox";
 import { ENDPOINTS } from "@/config/defaults";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -6,7 +7,6 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import Select from "react-select";
 import InputField from "../../../components/customInputField";
-import CustomLoader from "../../../components/customLoader";
 import { SelectStyles } from "../../../components/customSelect";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 import { Status } from "../../../constants/constants";
@@ -422,7 +422,7 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-999 ">
+    <div className="fixed inset-0 z-50">
       <div className="absolute inset-0">
         <div
           className={`drawer-bg-fade ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
@@ -461,14 +461,14 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
             {successMessage && <SuccessMessage text={successMessage} />}
             {error && <ErrorMessage text={error?.message} />}
             <div className="card m-2">
-              <h2 className="card-title ">Document Details</h2>
+              <h2 className="card-title ">Doctor Unit Details</h2>
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="form-grid-2 ">
-                  <InputField label=" Name" required>
+                  <InputField label="Doctor Name" required>
                     <input
                       className="input-field"
-                      placeholder="Enter unit name"
+                      placeholder="Enter doctor name"
                       {...register("name")}
                     />
                   </InputField>

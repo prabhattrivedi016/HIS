@@ -17,7 +17,7 @@ const Navbar = () => {
         <Route element={<Sidebar />}>
           <Route path="/dashboard" element={authorizedRouteMap["dashboard"]} />
 
-          {authorizedPages?.flatMap(tab =>
+          {(Array.isArray(authorizedPages) ? authorizedPages : []).flatMap(tab =>
             tab.pages.map(page => {
               const Component = authorizedRouteMap[page.url];
 

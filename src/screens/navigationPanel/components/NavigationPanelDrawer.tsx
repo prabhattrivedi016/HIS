@@ -77,8 +77,8 @@ const NavigationPanelDrawer = ({
       updatedValue.isActive === 1 || updatedValue.isActive === true
         ? "true"
         : updatedValue.isActive === 0 || updatedValue.isActive === false
-        ? "false"
-        : "";
+          ? "false"
+          : "";
 
     reset({
       subMenuId: updatedValue.subMenuId ?? 0,
@@ -221,6 +221,7 @@ const NavigationPanelDrawer = ({
           isOpenTab={addNewTab}
           onCloseTab={() => setAddNewTab(false)}
           tabId={tabId}
+          refreshTabDropdown={getNavigationTabDropdown}
         />
       ) : (
         <></>

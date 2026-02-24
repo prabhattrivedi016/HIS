@@ -50,6 +50,7 @@ type VendorItem = {
   stateId: number;
   districtId: number;
   cityId: number;
+  pincode: string;
   mappingBranch: string;
   isActive: number;
   createdBy: string;

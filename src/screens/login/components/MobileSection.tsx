@@ -58,13 +58,9 @@ const MobileSection = ({ userId, userName, contact, isContact, onVerified }: Mob
 
         {hint && <HintMessage text={hint} />}
         {errors.otp && <ErrorMessage text={errors.otp.message} />}
-        {error && <ErrorMessage text={error} />}
+        {error && <ErrorMessage text={error?.message} />}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 rounded-lg button-primary"
-        >
+        <button type="submit" disabled={loading} className=" save-btn w-ful px-4 py-2 rounded-lg">
           Verify Mobile OTP
         </button>
       </form>
