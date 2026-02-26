@@ -43,7 +43,7 @@ const HeaderFooterMaster = () => {
         <span>Print Settings</span>
       </nav>
 
-      <div className="tab-container rounded-lg">
+      <div className="tab-container rounded-lg overflow-auto">
         <button
           type="button"
           onClick={() => setActiveTab(HeaderFooterTabName?.HEADER)}

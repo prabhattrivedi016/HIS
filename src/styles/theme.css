@@ -378,11 +378,11 @@
 }
 
 /* Hide scrollbar arrows (Windows / WebKit browsers) */
-/* .hover-popup-scroll::-webkit-scrollbar-button {
+.hover-popup-scroll::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
-} */
+}
 
 /* Optional — style scrollbar */
 .hover-popup-scroll::-webkit-scrollbar {
@@ -405,101 +405,23 @@
 .close-drawer-btn {
   @apply text-gray-600 hover:text-black text-3xl leading-none focus:scale-105;
 }
-/* wrapper */
-.modal-wrapper {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
+
+.hover-popup-scroll::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* overlay */
-.modal-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  pointer-events: auto;
+.hover-popup-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* modal box base */
-.modal-content {
-  position: relative;
-  width: 100%;
-  max-width: 900px;
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+/*-------------------input -field layout ----------------- */
 
-  opacity: 0;
-  transform: translateY(30px) scale(0.92);
+.form-grid-4 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4;
 }
-
-/* ===== OPEN STATE ===== */
-.modal-wrapper.open {
-  pointer-events: auto;
+.form-grid-3 {
+  @apply grid grid-cols-1 gap-3 mb-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
 }
-
-.modal-wrapper.open .modal-overlay {
-  animation: overlayFadeIn 0.4s ease-out forwards;
-}
-
-.modal-wrapper.open .modal-content {
-  animation: modalEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ===== CLOSE STATE ===== */
-.modal-wrapper:not(.open) .modal-overlay {
-  animation: overlayFadeOut 1s ease-in forwards;
-}
-
-.modal-wrapper:not(.open) .modal-content {
-  animation: modalExit 1s ease-in forwards;
-}
-
-/* ===== KEYFRAMES ===== */
-
-@keyframes modalEnter {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(1);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes modalExit {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20px) scale(1);
-  }
-}
-
-@keyframes overlayFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes overlayFadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+.form-grid-2 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2;
 }

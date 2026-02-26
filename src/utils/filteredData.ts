@@ -1,10 +1,11 @@
+import { ReferDoctorMasterGridItem } from "@/screens/referDoctorMaster/types";
 import { GridItem, ListItem } from "@/types";
 
 export type FilteredDataProps<G extends GridItem = GridItem, L extends ListItem = ListItem> = {
   value: string;
   selectedValue: string;
   listData?: L[];
-  gridData: G[];
+  gridData: G[] | ReferDoctorMasterGridItem[];
 
   setListFilteredData: React.Dispatch<React.SetStateAction<L[]>>;
   setGridFilteredData: React.Dispatch<React.SetStateAction<G[]>>;

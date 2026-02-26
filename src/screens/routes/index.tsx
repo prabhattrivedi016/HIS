@@ -1,4 +1,5 @@
 import BankMaster from "../bankMaster";
+import BedDetails from "../bedDetails";
 import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
 import Dashboard from "../dashboard";
@@ -42,4 +43,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "lab-investigation-master": <LabInvestigationMaster />,
   "formula-master": <FormulaMaster />,
   "doctor-consultation-new": <DoctorConsultationNew />,
+  "bed-details": <BedDetails />,
 };

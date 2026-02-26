@@ -45,9 +45,9 @@ export interface GridViewProps {
   data: GridViewData;
   onStatusChange: OnStatusChange;
   openDrawer: (id: number | null) => void;
-  buttonTitle: (title: string) => void;
-  drawerTitle: (title: string) => void;
-  cardRightTopBtn: (id: number, rect: DOMRect) => void;
+  buttonTitle?: (title: string) => void;
+  drawerTitle?: (title: string) => void;
+  cardRightTopBtn?: (id: number, rect: DOMRect) => void;
   mapToUser?: (id: number) => void;
   gridRightBtnRef?: React.RefObject<HTMLButtonElement>;
 }

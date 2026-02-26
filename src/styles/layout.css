@@ -36,15 +36,6 @@
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
           transition-opacity duration-500 ease-out;
 }
-.form-grid-4 {
-  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4;
-}
-.form-grid-3 {
-  @apply grid grid-cols-2 gap-3 mb-4 sm:grid-cols-2 lg:grid-cols-3;
-}
-.form-grid-2 {
-  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-2;
-}
 
 /* login page */
 .login-btn-layout {

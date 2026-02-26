@@ -122,14 +122,10 @@ const Login = () => {
         loginFunc({
           token: accessToken,
           user: loginRes.data,
-        });
+        }, rememberMe);
       }
 
       storage.setItem("accessToken", accessToken);
-      storage.setItem("branchId", String(branchId));
-      storage.setItem("userId", String(userId));
-      storage.setItem("userDetails", JSON.stringify(loginRes.data));
-
       setUserName(loginRes.data.userName);
       setEmail(loginRes.data.email);
       setContact(loginRes.data.contact);

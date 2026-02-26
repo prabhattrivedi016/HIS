@@ -76,7 +76,7 @@ const NavigationPanel = () => {
 
   return (
     <>
-      <div className="page-container">
+      <div className="page-container sm:mt-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
           <div>
             <h1 className="page-heading">Navigation Pane</h1>
@@ -115,7 +115,7 @@ const NavigationPanel = () => {
         </div>
 
         {/* <div className="card"> */}
-        <div className="table-container">
+        <div className="table-container sm:mt-4">
           <div className="table-scroll-wrapper">
             <div className="table-size lg:min-h-155 lg:max-h-155">
               <table className="base-table">

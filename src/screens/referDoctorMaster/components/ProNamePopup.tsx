@@ -91,10 +91,11 @@ const ProNamePopUp = ({ isOpen, onClose, proId, refreshProName }: ProNamePopUpPr
     };
   }, []);
 
-  if (!isOpen) return null;
   return createPortal(
-    <>
-      <div className={`popup-bg-overlay ${isOpen ? "opacity-100 visible" : ""}`} />
+    <div className={`fixed inset-0 z-9999 ${isOpen ? "" : "pointer-events-none"}`}>
+      <div
+        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      />
 
       <div className={`central-popup ${isOpen ? "opacity-full" : ""}`}>
         <div className="popup-header">
@@ -148,7 +149,7 @@ const ProNamePopUp = ({ isOpen, onClose, proId, refreshProName }: ProNamePopUpPr
         </form>
       </div>
       {loading ? <CustomLoader isLoading={loading} /> : <></>}
-    </>,
+    </div>,
     document.body
   );
 };
