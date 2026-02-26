@@ -1,54 +1,34 @@
-interface GridLeftTop {
-  label: string;
-  value: number | string | null;
-}
-interface GridRightTop {
+type ValueItem = {
+  label?: string;
+  value?: string | number;
+  keyFromApi?: string;
+};
+
+type LabelAction = {
   label: string;
   action: string;
-}
-
-interface GridId {
-  label: string;
-  value: number | string;
-}
-
-interface GridTitle {
-  label: string;
-  value: string;
-}
-
-interface GridFooterItem {
-  label: string;
-  value: string;
-}
-
-interface GridButtonSection {
-  label: string;
-  action: string;
-}
-
-type LabelAction = GridButtonSection;
+};
 
 interface ReferDoctorMasterGridItem {
   type: string;
   cardType: string;
   cardViewType: string;
-
   id: number;
-
-  cardLeftTop: GridLeftTop[];
-
-  cardRightTop: GridRightTop[];
-
-  cardAvatar: string | null;
-
-  cardId: GridId[];
-
-  cardTitle: GridTitle[];
-
-  cardFooter: GridFooterItem[];
-
-  cardButton: GridButtonSection[];
+  cardLeftTop: { label: string; value?: number | null }[];
+  cardRightTop: ValueItem[];
+  cardAvatar?: string | null;
+  cardId: ValueItem[];
+  cardTitle: ValueItem[];
+  cardFooter: ValueItem[];
+  cardButton: {
+    label: string;
+    action: string;
+  }[];
+  buttonSection: {
+    label: string;
+    action: string;
+    color?: string;
+  }[];
 }
 
 interface ListColumn {

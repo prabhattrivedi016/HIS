@@ -45,6 +45,7 @@ const ReferDoctorMaster = () => {
   const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
 
   const [openReferDoctorDrawer, setOpenReferDoctorDrawer] = useState<boolean>(false);
+  const [renderReferDoctorDrawer, setRenderReferDoctorDrawer] = useState<boolean>(false);
   const [referDoctorIdToEdit, setReferDoctorIdToEdit] = useState<number | null>(null);
 
   const downloadBtnRef = useRef<HTMLButtonElement>(null);
@@ -100,8 +101,25 @@ const ReferDoctorMaster = () => {
     } else {
       setReferDoctorIdToEdit(null);
     }
-    setOpenReferDoctorDrawer(true);
+    setRenderReferDoctorDrawer(true);
+    requestAnimationFrame(() => {
+      setOpenReferDoctorDrawer(true);
+    });
   };
+
+  const closeReferDoctorDrawer = useCallback(() => {
+    setOpenReferDoctorDrawer(false);
+  }, []);
+
+  useEffect(() => {
+    if (openReferDoctorDrawer) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderReferDoctorDrawer(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [openReferDoctorDrawer]);
 
   /*---------------------update doctor master status----------------- */
   const updateReferDoctorMasterStatus = async ({
@@ -126,17 +144,17 @@ const ReferDoctorMaster = () => {
 
   /*--------------search handler---------------- */
   const searchHandler = useCallback(
-    (keyInput: string, selectedValue: string) => {
+    (keyInput: string, selectedValue?: string) => {
       const value = keyInput?.toLowerCase()?.trim();
       setSearchQuery(keyInput);
 
       filteredData({
         value,
-        selectedValue,
+        selectedValue: selectedValue || "",
         listData: referDoctorMasterListData,
         gridData: referDoctorMasterGridData,
         setListFilteredData,
-        setGridFilteredData,
+        setGridFilteredData: setGridFilteredData as any,
       });
     },
     [referDoctorMasterListData, referDoctorMasterGridData]
@@ -238,16 +256,16 @@ const ReferDoctorMaster = () => {
         onDownload={downloadHandler}
         onFilter={filterDropDown}
         onToggleColumnModal={hideShowHandler}
-        hideShowBtnRef={hideShowBtnRef}
-        downloadBtnRef={downloadBtnRef}
+        hideShowBtnRef={hideShowBtnRef as React.RefObject<HTMLElement>}
+        downloadBtnRef={downloadBtnRef as React.RefObject<HTMLElement>}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>
 
-      {openReferDoctorDrawer && (
+      {renderReferDoctorDrawer && (
         <ReferDoctorMasterDrawer
           isOpen={openReferDoctorDrawer}
-          onClose={() => setOpenReferDoctorDrawer(false)}
+          onClose={closeReferDoctorDrawer}
           referDoctorId={referDoctorIdToEdit}
           onCloseDrawer={handleRefresh}
         />

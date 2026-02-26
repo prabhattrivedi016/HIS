@@ -79,11 +79,11 @@ const SpecializationPopup = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      <div className={`popup-bg-overlay ${isOpen ? "opacity-100 visible" : ""}`} />
+    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
+      <div
+        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      />
 
       <div className={`central-popup ${isOpen ? "opacity-full" : ""}`}>
         <div className="popup-header">
@@ -129,7 +129,7 @@ const SpecializationPopup = ({
         </form>
       </div>
       {loading ? <CustomLoader isLoading={loading} /> : <></>}
-    </>
+    </div>
   );
 };
 

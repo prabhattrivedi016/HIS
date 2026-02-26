@@ -56,6 +56,7 @@ const DoctorMasterDrawer = ({
   const [selectedSpecialization, setSelectedSpecialization] = useState<SelectItem | null>(null);
 
   const [popupType, setPopupType] = useState<"specialization" | "department" | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
 
   const [checked, setChecked] = useState<boolean>(false);
   const [disabled, setDisabled] = useState(false);
@@ -401,7 +402,24 @@ const DoctorMasterDrawer = ({
 
   const popupHandler = (type: "specialization" | "department") => {
     setPopupType(type);
+    requestAnimationFrame(() => {
+      setIsPopupOpen(true);
+    });
   };
+
+  const closePopupHandler = () => {
+    setIsPopupOpen(false);
+  };
+
+  useEffect(() => {
+    if (isPopupOpen || !popupType) return;
+
+    const closeTimer = setTimeout(() => {
+      setPopupType(null);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [isPopupOpen, popupType]);
 
   const renderPopup = () => {
     if (!popupType) return null;
@@ -409,8 +427,8 @@ const DoctorMasterDrawer = ({
     if (popupType === "specialization") {
       return (
         <SpecializationPopup
-          isOpen
-          onClose={() => setPopupType(null)}
+          isOpen={isPopupOpen}
+          onClose={closePopupHandler}
           specializationId={selectedSpecialization?.value}
           refreshSpec={getSpecializationLists}
         />
@@ -420,8 +438,8 @@ const DoctorMasterDrawer = ({
     if (popupType === "department") {
       return (
         <DepartmentPopup
-          isOpen
-          onClose={() => setPopupType(null)}
+          isOpen={isPopupOpen}
+          onClose={closePopupHandler}
           departmentId={selectedDepartment?.value}
           refreshDepartment={getDepartmentLists}
         />
@@ -431,13 +449,11 @@ const DoctorMasterDrawer = ({
     return null;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-999">
+    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
         <div
-          className={`drawer-bg-fade ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+          className={`drawer-bg-fade ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           onClick={onClose}
         />
 

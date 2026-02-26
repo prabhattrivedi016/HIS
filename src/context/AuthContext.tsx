@@ -1,4 +1,3 @@
-import { getAuthStorage } from "@/utils/authStorage";
 import { createContext, ReactNode, useEffect, useState } from "react";
 
 interface User {
@@ -19,7 +18,7 @@ interface AuthData {
 interface AuthContextType {
   token: string | null;
   user: User | null;
-  login: (data: AuthData) => void;
+  login: (data: AuthData, rememberMe?: boolean) => void;
   logout: () => void;
 }
 
@@ -31,36 +30,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user: null,
   });
 
-  // 🔹 Load auth from storage on app start
   useEffect(() => {
-    const storage = getAuthStorage();
-    const storedAuth = storage.getItem("auth");
-    if (storedAuth) {
-      try {
-        setAuthData(JSON.parse(storedAuth));
-      } catch (e) {
-        console.error("Failed to parse stored auth", e);
-      }
+    const localAuth = localStorage.getItem("auth");
+    const sessionAuth = sessionStorage.getItem("auth");
+    const storedAuth = localAuth || sessionAuth;
+
+    if (!storedAuth) return;
+
+    try {
+      setAuthData(JSON.parse(storedAuth));
+    } catch (e) {
+      console.error("Failed to parse stored auth", e);
     }
   }, []);
 
-  // 🔹 Login
-  const login = ({ token, user }: AuthData) => {
+  const login = ({ token, user }: AuthData, rememberMe = false) => {
     const data = { token, user };
     setAuthData(data);
-    const storage = getAuthStorage();
+
+    const storage = rememberMe ? localStorage : sessionStorage;
+    const otherStorage = rememberMe ? sessionStorage : localStorage;
+
     storage.setItem("auth", JSON.stringify(data));
+    if (token) {
+      storage.setItem("accessToken", token);
+    }
+
+    otherStorage.removeItem("auth");
+    otherStorage.removeItem("accessToken");
   };
 
-  // 🔹 Logout
   const logout = () => {
     setAuthData({ token: null, user: null });
-    const storage = getAuthStorage();
-    storage.removeItem("auth");
-    storage.removeItem("accessToken");
-    storage.removeItem("branchId");
-    storage.removeItem("userId");
-    storage.removeItem("userDetails");
+
+    localStorage.removeItem("auth");
+    localStorage.removeItem("accessToken");
+
+    sessionStorage.removeItem("auth");
+    sessionStorage.removeItem("accessToken");
   };
 
   return (

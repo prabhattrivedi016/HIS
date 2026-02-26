@@ -1,7 +1,8 @@
 import axios from "axios";
 import { Bell, BriefcaseBusiness, Building2, HousePlus, Menu, User, User2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { getAuthStorage } from "../../utils/authStorage";
@@ -13,8 +14,12 @@ import "../../styles/layout.css";
 import "../../styles/theme.css";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
+  const authContext = useContext(AuthContext);
   const storage = getAuthStorage();
   const navigate = useNavigate();
+  const user = authContext?.user;
+  const branchId = Number(user?.branchId ?? 0);
+  const userId = Number(user?.userId ?? 0);
 
   /* ---------------- STATE ---------------- */
   const [openRoleBind, setOpenRoleBind] = useState(false);
@@ -23,7 +28,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
 
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [userProfileSetting, setUserProfileSetting] = useState(false);
-  const [userProfileDetails, setUserProfileDetails] = useState(null);
+  const [renderUserProfileSetting, setRenderUserProfileSetting] = useState(false);
 
   const { branchList } = useGetBranchList();
 
@@ -35,20 +40,16 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   useEffect(() => {
     if (!branchList?.data?.length) return;
 
-    const storedBranchId = Number(storage.getItem("branchId"));
-
     const defaultBranch =
-      branchList.data.find(b => b.branchId === storedBranchId) ||
+      branchList.data.find(b => b.branchId === branchId) ||
       branchList.data.find(b => b.branchId === 1);
 
     setSelectedBranch(defaultBranch);
-  }, [branchList, storage]);
+  }, [branchList, branchId]);
 
   /* ---------------- HANDLERS ---------------- */
 
   const profileHandler = () => {
-    const userDetails = storage.getItem("userDetails");
-    setUserProfileDetails(userDetails ? JSON.parse(userDetails) : null);
     setUserProfileOpen(prev => !prev);
   };
 
@@ -61,13 +62,17 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   };
 
   const logoutHandler = () => {
+    authContext?.logout();
+
     storage.removeItem("accessToken");
-    storage.removeItem("branchId");
     storage.removeItem("selectedRole");
-    storage.removeItem("userDetails");
-    storage.removeItem("userId");
     storage.removeItem("roleId");
     storage.removeItem("auth");
+
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("selectedRole");
+    sessionStorage.removeItem("roleId");
+    sessionStorage.removeItem("auth");
 
     localStorage.removeItem("authorized-pages");
     localStorage.removeItem("favorite-roles");
@@ -76,7 +81,26 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
     navigate("/");
   };
 
-  const userProfileHandler = () => setUserProfileSetting(true);
+  const userProfileHandler = () => {
+    setRenderUserProfileSetting(true);
+    requestAnimationFrame(() => {
+      setUserProfileSetting(true);
+    });
+  };
+
+  const closeUserProfileHandler = () => {
+    setUserProfileSetting(false);
+  };
+
+  useEffect(() => {
+    if (userProfileSetting) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderUserProfileSetting(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [userProfileSetting]);
 
   /* ---------------- JSX ---------------- */
   return (
@@ -94,12 +118,13 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
             onClick={toggleSidebar}
+            data-sidebar-toggle="true"
             className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600"
           >
             <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
-          <div className="w-full max-w-[140px] md:max-w-xs">
+          <div className="hidden md:block w-full max-w-[120px] sm:max-w-[140px] md:max-w-xs">
             {branchList?.data?.length > 1 ? (
               <select
                 value={selectedBranch?.branchId || ""}
@@ -122,23 +147,23 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
         </div>
 
         {/* RIGHT SECTION */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0">
           {/* ROLE BADGE */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm branch-box">
-            <BriefcaseBusiness className="w-5 h-5" />
-            <span className="truncate text-sm">{selectedRole}</span>
+          <div className="inline-flex min-w-0 max-w-[120px] sm:max-w-[170px] items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full shadow-sm branch-box">
+            <BriefcaseBusiness className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <span className="truncate text-xs sm:text-sm">{selectedRole}</span>
           </div>
 
           {/* ROLE BIND */}
           <button
             onClick={roleBindHandler}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-300 to-purple-400 text-white flex items-center justify-center shadow-md hover:scale-105"
+            className="w-10 h-10 rounded-full bg-linear-to-br from-blue-300 to-purple-400 text-white flex items-center justify-center shadow-md hover:scale-105"
           >
             <HousePlus className="w-5 h-5" />
           </button>
 
           {/* NOTIFICATION */}
-          <button className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-300 to-purple-600 text-white flex items-center justify-center shadow-md">
+          <button className="relative w-10 h-10 rounded-full bg-linear-to-br from-blue-300 to-purple-600 text-white flex items-center justify-center shadow-md">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
@@ -147,7 +172,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           <div ref={profileRef} className="relative">
             <button
               onClick={profileHandler}
-              className="w-11 h-11 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-5 shadow-md hover:scale-105"
+              className="w-10 h-10 sm:w-11 sm:h-11 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-0 sm:mr-5 shadow-md hover:scale-105"
             >
               <User className="text-white w-5 h-5" />
             </button>
@@ -160,7 +185,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
                     <User2 size={28} className="text-white" />
                   </div>
                   <span className="text-white font-semibold truncate max-w-[90%]">
-                    {userProfileDetails?.userName || "User Name"}
+                    {user?.userName || "User Name"}
                   </span>
                 </div>
 
@@ -184,12 +209,14 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
             isOpen={openRoleBind}
             onClose={() => setOpenRoleBind(false)}
             roleChange={setSelectedRole}
+            branchId={branchId}
+            userId={userId}
           />
         )}
       </header>
 
-      {userProfileSetting && (
-        <UserReset isOpenTab={userProfileSetting} onCloseTab={() => setUserProfileSetting(false)} />
+      {renderUserProfileSetting && (
+        <UserReset isOpenTab={userProfileSetting} onCloseTab={closeUserProfileHandler} />
       )}
     </>
   );

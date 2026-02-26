@@ -39,8 +39,10 @@ const DoctorMaster = () => {
   const [cardView, setCardView] = useState(VIEWTYPE?.GRID);
 
   const [openUnitDrawer, setOpenUnitDrawer] = useState<boolean>(false);
+  const [renderUnitDrawer, setRenderUnitDrawer] = useState<boolean>(false);
 
   const [openDoctorDrawer, setOpenDoctorDrawer] = useState<boolean>(false);
+  const [renderDoctorDrawer, setRenderDoctorDrawer] = useState<boolean>(false);
   const [drawerButtonTitle, setDrawerButtonTitle] = useState<string>("Create");
   const [doctorDrawerTitle, setDoctorDrawerTitle] = useState<string>("Add New Doctor");
   const [doctorIdToEdit, setDoctorIdToEdit] = useState<number | null>(null);
@@ -114,12 +116,25 @@ const DoctorMaster = () => {
 
   /*----------------------------unit drawer handler------------------------ */
   const addUnitHandler = () => {
-    setOpenUnitDrawer(true);
+    setRenderUnitDrawer(true);
+    requestAnimationFrame(() => {
+      setOpenUnitDrawer(true);
+    });
   };
 
   const handleCloseDrawer = useCallback(() => {
     setOpenUnitDrawer(false);
   }, []);
+
+  useEffect(() => {
+    if (openUnitDrawer) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderUnitDrawer(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [openUnitDrawer]);
 
   /*------------------add update doctor master-------------------------- */
   const addNewHandler = (id: number | null) => {
@@ -132,9 +147,24 @@ const DoctorMaster = () => {
       setDoctorDrawerTitle("Add New Doctor");
       setDoctorIdToEdit(null);
     }
-    setOpenDoctorDrawer(true);
+    setRenderDoctorDrawer(true);
+    requestAnimationFrame(() => {
+      setOpenDoctorDrawer(true);
+    });
   };
+  const handleCloseDoctorDrawer = useCallback(() => {
+    setOpenDoctorDrawer(false);
+  }, []);
 
+  useEffect(() => {
+    if (openDoctorDrawer) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderDoctorDrawer(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [openDoctorDrawer]);
   /*------------------handle refresh--------------------- */
   const handleRefresh = useCallback(async () => {
     await getDoctorsLists();
@@ -224,7 +254,7 @@ const DoctorMaster = () => {
     if (error) return <ErrorMessage text={error?.message} />;
     if (loading) return <div className="initial-message">Loading doctor master...</div>;
     if (!doctorConfig || loading || !hasFetched)
-      return <div className="initial-message">Loading role master...</div>;
+      return <div className="initial-message">Loading doctor master...</div>;
 
     if (view === VIEWTYPE?.GRID) {
       if (!gridFilteredData.length) return <div className="no-data-message">No data found...</div>;
@@ -281,12 +311,12 @@ const DoctorMaster = () => {
 
       <div className="w-full">{renderComponent(cardView)}</div>
 
-      {openUnitDrawer && <UnitMasterDrawer isOpen={openUnitDrawer} onClose={handleCloseDrawer} />}
+      {renderUnitDrawer && <UnitMasterDrawer isOpen={openUnitDrawer} onClose={handleCloseDrawer} />}
 
-      {openDoctorDrawer && (
+      {renderDoctorDrawer && (
         <DoctorMasterDrawer
           isOpen={openDoctorDrawer}
-          onClose={() => setOpenDoctorDrawer(false)}
+          onClose={handleCloseDoctorDrawer}
           buttonTitle={drawerButtonTitle}
           drawerTitle={doctorDrawerTitle}
           doctorId={doctorIdToEdit}

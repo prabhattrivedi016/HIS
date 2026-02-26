@@ -1,3 +1,5 @@
+import { AuthContext } from "@/context/AuthContext";
+import { useContext } from "react";
 import { ENDPOINTS } from "../../config/defaults";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
@@ -5,7 +7,8 @@ import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import { RoleValue } from "./types";
 
 const FavRoleButtonToggle = () => {
-  const branchId = localStorage.getItem("branchId");
+  const authContext = useContext(AuthContext);
+  const branchId = Number(authContext?.user?.branchId ?? 1);
 
   const { fetchApi } = useGlobalApi();
   const { setAuthorizedPages } = useAuthorizedPages();
@@ -14,7 +17,7 @@ const FavRoleButtonToggle = () => {
   const favoriteRoles = useFavoriteRoles(state => state.favoriteRoles);
 
   //  nothing to render
-  if (!favoriteRoles?.length) return null;
+  if (!favoriteRoles?.length || !branchId) return null;
 
   const favRoleHandler = async (role: RoleValue) => {
     const response = await fetchApi(

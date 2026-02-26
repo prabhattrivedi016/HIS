@@ -3,6 +3,7 @@ import {
   Download,
   Grid,
   List,
+  Plus,
   RefreshCcw,
   Search,
   UserPlus,
@@ -176,7 +177,7 @@ const PageHeader = ({
                   onAddUnit?.();
                 }}
               >
-                {unitButton}
+                <Plus size={16} /> {unitButton}
               </button>
             ) : (
               <></>

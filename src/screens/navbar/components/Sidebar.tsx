@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import logo from "../../../../assets/logo.jpg";
@@ -10,6 +10,7 @@ import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
 import { ENDPOINTS } from "../../../config/defaults";
+import { AuthContext } from "../../../context/AuthContext";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import { getAuthStorage } from "../../../utils/authStorage";
@@ -23,15 +24,16 @@ type HoverPopupState = {
 };
 
 const Sidebar = () => {
+  const authContext = useContext(AuthContext);
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
 
   const { refetchAuthorizedPages } = useAuthorizedPages();
 
   const storage = getAuthStorage();
-  const branchId = Number(storage.getItem("branchId") || 0);
+  const branchId = Number(authContext?.user?.branchId ?? 0);
   const roleId = Number(storage.getItem("roleId") || 0);
-  const userId = Number(storage.getItem("userId") || 0);
+  const userId = Number(authContext?.user?.userId ?? 0);
 
   const location = useLocation();
   const sidebarRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +65,11 @@ const Sidebar = () => {
 
   useEffect(() => {
     const handleOutsideClick = (e: globalThis.MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-sidebar-toggle='true']")) {
+        return;
+      }
+
       if (
         window.innerWidth < 768 &&
         sidebarRef.current &&
@@ -138,12 +145,18 @@ const Sidebar = () => {
 
   return (
     <div className="flex min-h-screen">
+      <div
+        className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setSidebarOpen(false)}
+      />
       {/*------------------------------------sidebar-------------------------------------- */}
       <aside
         ref={sidebarRef}
         className={`
-          fixed inset-y-0 left-0 z-30 bg-gray-100
-          transition-all duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-30 bg-gray-100 w-60
+          transition-[width,transform] duration-300 ease-in-out
           md:translate-x-0
           ${sidebarOpen ? "md:w-60" : "md:w-16"}
         
@@ -163,7 +176,7 @@ const Sidebar = () => {
         </div>
 
         {/* Content */}
-        <div className="h-[calc(100%-4rem)] p-2 overflow-y-auto">
+        <div className="h-[calc(100%-4rem)] p-2 overflow-y-auto no-scroll-buttons">
           {sidebarOpen && (
             <InputField>
               <input
@@ -217,7 +230,7 @@ const Sidebar = () => {
                       animate={{ height: "auto", opacity: 0.5 }}
                       exit={{ height: 0, opacity: 0.5 }}
                       transition={{ duration: 0.5, ease: "easeInOut" }}
-                      className="m-2 bg-gray-50 pl-5 font-semibold flex flex-col overflow-hidden"
+                      className="hover-popup-scroll no-scroll-buttons m-2 bg-gray-50 pl-5 font-semibold flex flex-col max-h-64 overflow-y-auto overflow-x-hidden"
                     >
                       {tab.pages.map(page => {
                         const path = `/${page.url}`;
@@ -285,7 +298,11 @@ const Sidebar = () => {
       </aside>
 
       {/* -----------------------------------main---------------------------------- */}
-      <div className={`flex-1 min-w-0 flex flex-col ${sidebarOpen ? "md:ml-60" : "md:ml-16"}`}>
+      <div
+        className={`flex-1 min-w-0 flex flex-col transition-[margin] duration-300 ease-in-out ${
+          sidebarOpen ? "md:ml-60" : "md:ml-16"
+        }`}
+      >
         <Header toggleSidebar={() => setSidebarOpen(p => !p)} isSidebarOpen={sidebarOpen} />
         <FavRoleButtonToggle />
         <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto">
@@ -313,7 +330,10 @@ const Sidebar = () => {
                 {hoverPopup.tab.tabName.tabName}
               </p>
 
-              <div className="hover-popup-scroll flex flex-col gap-1 max-h-60 overflow-auto p-1">
+              <div
+                className="hover-popup-scroll no-scroll-buttons flex flex-col gap-1 overflow-y-auto overflow-x-hidden p-1"
+                style={{ maxHeight: `${Math.min(hoverPopup.tab.pages.length, 5) * 44}px` }}
+              >
                 {hoverPopup.tab.pages.map(page => (
                   <NavLink
                     key={page.subMenuId}

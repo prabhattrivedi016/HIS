@@ -30,6 +30,7 @@ const ReferDoctorMasterDrawer = ({
 
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [openPopup, setOpenPopup] = useState<boolean>(false);
+  const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [defaultTitle, setDefaultTitle] = useState<TitleItem>();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -155,20 +156,31 @@ const ReferDoctorMasterDrawer = ({
   const proNamePopupHandler = useCallback(() => {
     const proIdToEdit = !!currentProId && currentProId !== 0 ? Number(currentProId) : null;
     setSelectedProId(proIdToEdit);
-    setOpenPopup(true);
+    setRenderPopup(true);
+    requestAnimationFrame(() => {
+      setOpenPopup(true);
+    });
   }, [currentProId]);
 
   const closeHandler = useCallback(() => {
     setOpenPopup(false);
   }, []);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (openPopup) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderPopup(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [openPopup]);
 
   return createPortal(
-    <div className="fixed inset-0 z-999">
+    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
         <div
-          className={`drawer-bg-fade ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+          className={`drawer-bg-fade ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           onClick={onClose}
         />
 
@@ -283,7 +295,7 @@ const ReferDoctorMasterDrawer = ({
             </form>
           </div>
 
-          {openPopup ? (
+          {renderPopup ? (
             <ProNamePopUp
               isOpen={openPopup}
               onClose={closeHandler}

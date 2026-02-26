@@ -12,7 +12,7 @@ import { useFavoriteRoles } from "../../../store/useFavouriteRole";
 import { getAuthStorage } from "../../../utils/authStorage";
 import { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem } from "../types";
 
-const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
+const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBindPageProps) => {
   const { loading, fetchApi } = useGlobalApi();
   const { setAuthorizedPages } = useAuthorizedPages();
 
@@ -27,9 +27,6 @@ const RoleBindPage = ({ isOpen, onClose, roleChange }: RoleBindPageProps) => {
   const [favoriteSubMenu, setFavoriteSubMenu] = useState<subMenuItem[]>([]);
 
   const storage = getAuthStorage();
-
-  const branchId = Number(storage.getItem("branchId"));
-  const userId = Number(storage.getItem("userId"));
 
   //role-> page mapping
   const fetchRoleMapping = async (role: RoleMapItem, shouldClose: boolean) => {

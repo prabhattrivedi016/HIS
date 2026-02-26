@@ -298,14 +298,12 @@ const DoctorTimingModal = ({ isOpen, onClose, doctorId }: DoctorTimingModalProps
     }, 1000);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 ">
+    <div className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
         {/* BACKDROP */}
         <div
-          className={`drawer-bg-fade w ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+          className={`drawer-bg-fade w ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           onClick={onClose}
         />
 

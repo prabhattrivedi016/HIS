@@ -4,6 +4,7 @@ import DoctorTimingModal from "./DoctorTimingModal";
 
 const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPopupProps) => {
   const [isTimingOpen, setIsTimingOpen] = useState<boolean>(false);
+  const [renderTimingModal, setRenderTimingModal] = useState<boolean>(false);
 
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -19,8 +20,25 @@ const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPo
     };
   }, []);
   const MapTimingHandler = () => {
-    setIsTimingOpen(true);
+    setRenderTimingModal(true);
+    requestAnimationFrame(() => {
+      setIsTimingOpen(true);
+    });
   };
+
+  const handleCloseTimingModal = () => {
+    setIsTimingOpen(false);
+  };
+
+  useEffect(() => {
+    if (isTimingOpen) return;
+
+    const closeTimer = setTimeout(() => {
+      setRenderTimingModal(false);
+    }, 300);
+
+    return () => clearTimeout(closeTimer);
+  }, [isTimingOpen]);
   if (!position) {
     return null;
   }
@@ -38,10 +56,10 @@ const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPo
       <button className="data-download-popup-btn" onClick={MapTimingHandler}>
         Map Timing
       </button>
-      {isTimingOpen && doctorId !== null ? (
+      {renderTimingModal && doctorId !== null ? (
         <DoctorTimingModal
           isOpen={isTimingOpen}
-          onClose={() => setIsTimingOpen(false)}
+          onClose={handleCloseTimingModal}
           doctorId={doctorId}
         />
       ) : (
