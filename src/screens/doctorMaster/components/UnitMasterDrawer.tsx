@@ -437,7 +437,7 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
             </button>
           </div>
 
-          <div className="card m-2">
+          <div className="card m-1">
             <div className=" form-grid-2">
               <InputField label="Unit Name" required>
                 <div className="flex gap-2 items-center">
@@ -458,7 +458,7 @@ const UnitMasterDrawer = ({ isOpen, onClose }: DoctorUnitMasterProps) => {
           <div>
             {successMessage && <SuccessMessage text={successMessage} />}
             {error && <ErrorMessage text={error?.message} />}
-            <div className="card m-2">
+            <div className="card m-1">
               <h2 className="card-title ">Doctor Unit Details</h2>
 
               <form onSubmit={handleSubmit(onSubmit)}>

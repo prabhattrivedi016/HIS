@@ -9,12 +9,15 @@ import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
+import LabResultEntry from "../labResultEntry";
 import LocationMaster from "../loactionMaster";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import RoleMaster from "../roleMaster";
+import SampleManagement from "../sampleManagement";
+import NoPage from "../unauthorized";
 import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
 import UserGroupMaster from "../userGroupMaster";
@@ -44,4 +47,7 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "formula-master": <FormulaMaster />,
   "doctor-consultation-new": <DoctorConsultationNew />,
   "bed-details": <BedDetails />,
+  "no-page": <NoPage />,
+  "sample-management": <SampleManagement />,
+  "lab-result-entry": <LabResultEntry />,
 };

@@ -220,8 +220,8 @@ const DoctorSignature = () => {
 
   return (
     <>
-      <div className="-mt-2">
-        <div className="card -mt-10">
+      <div className="-mt-3">
+        <div className="card mb-1">
           <h2 className="card-title">Doctor Signature</h2>
 
           <form onSubmit={handleSubmit(onsubmit)}>

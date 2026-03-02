@@ -2,6 +2,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-d
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import Login from "../login";
 import { authorizedRouteMap } from "../routes";
+import NoPage from "../unauthorized";
 import Sidebar from "./components/Sidebar";
 
 const Navbar = () => {
@@ -30,8 +31,9 @@ const Navbar = () => {
             })
           )}
 
+          <Route path="/no-page" element={<NoPage />} />
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/no-page" replace />} />
         </Route>
       </Routes>
     </Router>

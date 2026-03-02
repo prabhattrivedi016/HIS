@@ -1,32 +1,47 @@
-import { useEffect, useState } from "react";
+import { RoleContext } from "@/context/RoleContext";
+import { useContext } from "react";
+import { getAuthStorage } from "../../utils/authStorage";
 import AdminDashboard from "./components/AdminDashboard";
+import DayCareDashboard from "./components/DayCareDashboard";
 import FrontOfficeDashboard from "./components/FrontOfficeDashboard";
 
 const Dashboard = () => {
-  const [definedRole, setDefinedRole] = useState<string | null>(null);
+  const roleContext = useContext(RoleContext);
+  const storage = getAuthStorage();
+  let storedRoleName: string | null = null;
 
-  useEffect(() => {
-    const role = localStorage.getItem("roleName") || localStorage.getItem("selectedRole") || "";
+  try {
+    storedRoleName = JSON.parse(storage.getItem("role") || "{}")?.roleName || null;
+  } catch {
+    storedRoleName = null;
+  }
 
-    setDefinedRole(role.trim().toLowerCase());
-  }, [definedRole]);
+  const definedRole = (roleContext?.roleName || storedRoleName || "").trim().toLowerCase();
+  const normalizedRoleKey = definedRole.replace(/[\s-]/g, "");
 
   const renderDashboard = (role: string | null) => {
     if (!role) return <p className="flex justify-center items-center">Loading...</p>;
 
-    switch (role) {
+    switch (normalizedRoleKey) {
       case "admin":
         return <AdminDashboard />;
 
-      case "front office":
+      case "frontoffice":
         return <FrontOfficeDashboard />;
 
+      case "daycare":
+        return <DayCareDashboard />;
+
       default:
-        return <h1>Unauthorized Role</h1>;
+        return (
+          <h1 className="justify-center items-center font-bold text-center m-auto text-3xl">
+            Unauthorized Role
+          </h1>
+        );
     }
   };
 
-  return <div>{renderDashboard(definedRole)}</div>;
+  return <div>{renderDashboard(definedRole || null)}</div>;
 };
 
 export default Dashboard;

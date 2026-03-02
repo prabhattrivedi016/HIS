@@ -96,6 +96,7 @@ const RoleMasterDrawer = ({ isOpen, onClose, onCloseDrawer, roleId }: RoleMaster
     const msg = roleId ? "Updated successfully" : "Created successfully";
 
     setSuccessMessage(response?.message || msg);
+    window.dispatchEvent(new CustomEvent("role-master-updated"));
 
     onCloseDrawer?.();
 

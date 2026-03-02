@@ -9,9 +9,12 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
   const { loading, error, fetchApi } = useGlobalApi();
   const [filteredData, setFilteredData] = useState<UserRightsItem[]>([]);
   const [userRightsData, setUserRightsData] = useState<UserRightsItem[]>([]);
+  const [activeButton, setActiveButton] = useState<string>("");
 
   const fetchUserRightData = useCallback(
     async (selectedRoleId: number) => {
+      setActiveButton("all");
+
       const response = await fetchApi(
         "GET",
         ENDPOINTS.GET_ASSIGN_USER_RIGHT_MAPPING,
@@ -68,17 +71,20 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
 
   //All handler
   const filterAllHandler = () => {
+    setActiveButton("all");
     setFilteredData(userRightsData || []);
   };
 
   // remaining handler
   const remainingHandler = () => {
+    setActiveButton("remaining");
     const remaining = userRightsData?.filter((r: UserRightsItem) => r?.isGranted === 0) || [];
     setFilteredData(remaining);
   };
 
   // granted
   const grantedHandler = () => {
+    setActiveButton("granted");
     const granted = userRightsData.filter(item => item.isGranted === 1) || [];
     setFilteredData(granted);
   };
@@ -110,17 +116,28 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md mt-2 p-2">
+    <div className="card ">
       {/* Header buttons */}
-      <div className="flex justify-between flex-wrap gap-3 mb-2">
-        <div className="flex gap-1">
-          <button className="table-header-button" onClick={filterAllHandler}>
+      <div className="flex justify-between flex-wrap -mt-3 ">
+        <div className="flex ">
+          <button
+            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={filterAllHandler}
+          >
             All
           </button>
-          <button className="table-header-button" onClick={remainingHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={remainingHandler}
+          >
             Remaining
           </button>
-          <button className="table-header-button" onClick={grantedHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={grantedHandler}
+          >
             Granted
           </button>
         </div>
@@ -134,22 +151,22 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
       </div>
 
       {/* Table */}
-      <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
+      <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px] ">
         <table className="min-w-full table-fixed border-collapse">
           {/* TABLE HEADER */}
           <thead className="bg-blue-50 sticky top-0 z-10">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">#</th>
+              <th className="px-4 py-2 text-left font-semibold text-gray-700 w-16">#</th>
 
               {/* Role Name + small search */}
-              <th className="px-5 py-3 font-semibold text-gray-700">
+              <th className="px-5 py-2 font-semibold text-gray-700">
                 <div className="flex items-center gap-3">
                   <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
                     User Rights
                   </span>
                   <input
                     className="input-field h-10 max-w-[250px] text-sm ml-20 "
-                    placeholder="search..."
+                    placeholder="search user rights"
                     onChange={onSearchHandler}
                   />
                 </div>
@@ -172,22 +189,30 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
           <tbody>
             {!!filteredData && filteredData.length > 0 ? (
               filteredData?.map((item: UserRightsItem, idx) => (
-                <tr key={item?.userRightId} className="border-t border-gray-200 hover:bg-gray-50">
+                <tr
+                  key={item?.userRightId}
+                  className={`border-t border-gray-200 hover:bg-gray-50 cursor-pointer `}
+                  onClick={() => toggleSingleHandler(item?.userRightId)}
+                >
                   <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
 
-                  <td className="px-4 py-3 text-gray-800">
-                    {item?.userRightName}
-                    <span>
-                      {" "}
-                      <i className="fa-solid fa-info ml-5" title={item?.description}></i>
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 flex items-center gap-2">
+                    <span className="truncate">{item?.userRightName}</span>
+
+                    <i
+                      className="fa-solid fa-info text-sm text-gray-500"
+                      title={item?.description}
+                      onClick={e => e.stopPropagation()}
+                    />
                   </td>
 
                   <td className="px-4 py-3 text-center">
-                    <ToggleButton
-                      checked={item.isGranted === 1}
-                      onClick={() => toggleSingleHandler(item?.userRightId)}
-                    />
+                    <div onClick={e => e.stopPropagation()}>
+                      <ToggleButton
+                        checked={item.isGranted === 1}
+                        onClick={() => toggleSingleHandler(item?.userRightId)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))

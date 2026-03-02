@@ -798,7 +798,7 @@ const VendorMaster = () => {
 
       {/* ------------------------------vendor master table------------------------------ */}
 
-      <div className="card">
+      <div className="card mt-1">
         <div className="card-header">
           <h2 className="card-title">Vendor Master List</h2>
 

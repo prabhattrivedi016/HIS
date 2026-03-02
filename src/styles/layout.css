@@ -26,16 +26,6 @@
 }
 
 /* right side drawer layout */
-.drawer-container {
-  @apply fixed inset-0 z-999 overflow-hidden;
-}
-.drawer-layout {
-  @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
-}
-.drawer-bg-fade {
-  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
-          transition-opacity duration-500 ease-out;
-}
 
 /* login page */
 .login-btn-layout {

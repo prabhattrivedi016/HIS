@@ -11,10 +11,12 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
 
   const [filteredData, setFilteredData] = useState<CorporateMappingItem[]>([]);
   const [corporateData, setCorporateData] = useState<CorporateMappingItem[]>([]);
+  const [activeButton, setActiveButton] = useState<string>("");
 
   // corporate mapping handler
   const corporateMappingHandler = async () => {
     if (!branchId || !typeId || !userId) return;
+    setActiveButton("all");
 
     const response = await fetchApi(
       "GET",
@@ -71,18 +73,23 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
 
   //All handler
   const filterAllHandler = () => {
-    setFilteredData(corporateData);
+    setActiveButton("all");
+    setFilteredData(corporateData ?? []);
   };
 
   // remaining handler
   const remainingHandler = () => {
-    const remaining = corporateData?.filter((r: CorporateMappingItem) => r?.isGranted === 0);
+    setActiveButton("remaining");
+
+    const remaining = corporateData?.filter((r: CorporateMappingItem) => r?.isGranted === 0) ?? [];
     setFilteredData(remaining);
   };
 
   // granted
   const grantedHandler = () => {
-    const granted = corporateData.filter(item => item.isGranted === 1);
+    setActiveButton("granted");
+
+    const granted = corporateData.filter(item => item.isGranted === 1) ?? [];
     setFilteredData(granted);
   };
 
@@ -116,17 +123,28 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
   }, [corporateData, branchId, typeId, userId]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-md mt-2 p-2">
+    <div className="card">
       {/* Header buttons */}
-      <div className="flex justify-between flex-wrap gap-3 mb-2">
+      <div className="flex justify-between flex-wrap  -mt-3">
         <div className="flex gap-1">
-          <button className="table-header-button" onClick={filterAllHandler}>
+          <button
+            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={filterAllHandler}
+          >
             All
           </button>
-          <button className="table-header-button" onClick={remainingHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={remainingHandler}
+          >
             Remaining
           </button>
-          <button className="table-header-button" onClick={grantedHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={grantedHandler}
+          >
             Granted
           </button>
         </div>
@@ -148,14 +166,14 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
               <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">#</th>
 
               {/* Role Name + small search */}
-              <th className="px-5 py-3 font-semibold text-gray-700">
+              <th className="px-5 py-2 font-semibold text-gray-700">
                 <div className="flex items-center gap-3">
                   <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
                     Corporate Name
                   </span>
                   <input
                     className="input-field h-10 max-w-[250px] text-sm ml-20 "
-                    placeholder="search..."
+                    placeholder="search corporate name"
                     onChange={onSearchHandler}
                   />
                 </div>
@@ -178,16 +196,22 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
           <tbody>
             {!!filteredData && filteredData.length > 0 ? (
               filteredData?.map((item: CorporateMappingItem, idx) => (
-                <tr key={item?.corporateId} className="border-t border-gray-200 hover:bg-gray-50">
+                <tr
+                  key={item?.corporateId}
+                  className={`border-t border-gray-200 hover:bg-gray-50 cursor-pointer `}
+                  onClick={() => toggleSingleHandler(item?.corporateId)}
+                >
                   <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
 
                   <td className="px-4 py-3 text-gray-800">{item?.corporateName}</td>
 
                   <td className="px-4 py-3 text-center">
-                    <ToggleButton
-                      checked={item.isGranted === 1}
-                      onClick={() => toggleSingleHandler(item?.corporateId)}
-                    />
+                    <div onClick={e => e.stopPropagation()}>
+                      <ToggleButton
+                        checked={item.isGranted === 1}
+                        onClick={() => toggleSingleHandler(item?.corporateId)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))

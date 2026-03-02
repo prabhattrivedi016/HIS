@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
@@ -9,12 +10,15 @@ import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../../store/useFavouriteRole";
 
+import { RoleContext } from "@/context/RoleContext";
 import { getAuthStorage } from "../../../utils/authStorage";
 import { RoleBindPageProps, RoleMapItem, subMenuItem, TabItem } from "../types";
 
-const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBindPageProps) => {
+const RoleBindPage = ({ isOpen, onClose, branchId, userId }: RoleBindPageProps) => {
   const { loading, fetchApi } = useGlobalApi();
   const { setAuthorizedPages } = useAuthorizedPages();
+  const roleContext = useContext(RoleContext);
+  const navigate = useNavigate();
 
   const { favoriteRoles, setFavoriteRoles, addFavoriteRole, removeFavoriteRole, isFavorite } =
     useFavoriteRoles();
@@ -31,19 +35,28 @@ const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBin
   //role-> page mapping
   const fetchRoleMapping = async (role: RoleMapItem, shouldClose: boolean) => {
     setSelectedRole(role);
-    roleChange(role.roleName);
-
-    storage.setItem("roleId", String(role?.roleId));
-    storage.setItem("selectedRole", role?.roleName);
+    const roleData = { roleName: role.roleName, roleId: role.roleId };
+    storage.setItem("role", JSON.stringify(roleData));
+    roleContext?.setRole(role.roleName, role.roleId);
 
     const response = await fetchApi(
       "GET",
       ENDPOINTS.GET_USER_TAB_SUB_MENU_MAPPING,
       {},
-      { params: { branchId, roleId: role?.roleId } }
+      { params: { branchId, roleId: role.roleId } }
     );
 
-    if (!response) return;
+    if (!response) {
+      setTabs([]);
+      setSubMenu([]);
+      setFavoriteSubMenu([]);
+      setAuthorizedPages([]);
+      if (shouldClose) {
+        navigate("/dashboard");
+        setTimeout(onClose, 200);
+      }
+      return;
+    }
 
     const tabs = response.data?.tabs ?? [];
     const subMenus = response.data?.subMenus ?? [];
@@ -54,6 +67,7 @@ const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBin
     setFavoriteSubMenu(favoriteSubMenus);
 
     if (shouldClose) {
+      navigate("/dashboard");
       setTimeout(onClose, 200);
     }
   };
@@ -74,7 +88,8 @@ const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBin
     setFavoriteRoles(favRoles);
 
     // Restore selected role
-    const cachedRoleId = storage.getItem("selectedRole");
+    const storedRole = storage.getItem("role");
+    const cachedRoleId = storedRole ? String(JSON.parse(storedRole)?.roleId ?? "") : "";
     const restoredRole = roles.find(r => String(r.roleId) === cachedRoleId) ?? roles[0];
 
     if (restoredRole) {
@@ -87,9 +102,27 @@ const RoleBindPage = ({ isOpen, onClose, roleChange, branchId, userId }: RoleBin
     getUserRoles();
   }, [branchId, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !branchId) return;
+
+    const handleRoleMasterUpdated = () => {
+      getUserRoles();
+    };
+
+    window.addEventListener("role-master-updated", handleRoleMasterUpdated);
+
+    return () => {
+      window.removeEventListener("role-master-updated", handleRoleMasterUpdated);
+    };
+  }, [isOpen, branchId, rolesMap.length]);
+
   // authorized Pages
   useEffect(() => {
-    if (!selectedRole || !tabs.length) return;
+    if (!selectedRole) return;
+    if (!tabs.length) {
+      setAuthorizedPages([]);
+      return;
+    }
 
     const quickLinksTab = {
       tabName: {

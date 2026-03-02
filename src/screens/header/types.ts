@@ -1,7 +1,6 @@
 interface RoleBindPageProps {
   isOpen: boolean;
   onClose: () => void;
-  roleChange: (roleName: string) => void;
   branchId: number;
   userId: number;
 }

@@ -115,8 +115,8 @@ const TestMethod = () => {
     });
   };
   return (
-    <div className="-mt-2">
-      <div className="card -mt-10">
+    <div className="-mt-3">
+      <div className="card mb-1">
         <h2 className="card-title ">Test Method Details</h2>
 
         <form onSubmit={handleSubmit(onsubmit)}>

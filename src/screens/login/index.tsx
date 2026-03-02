@@ -17,11 +17,13 @@ import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 
+import { RoleContext } from "@/context/RoleContext";
 import { getAuthStorage } from "../../utils/authStorage";
 import { InputError, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const authContext = useContext(AuthContext);
+  const roleContext = useContext(RoleContext);
   const loginFunc = authContext?.login;
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
@@ -119,10 +121,13 @@ const Login = () => {
 
       // auth data saved in storage
       if (loginFunc) {
-        loginFunc({
-          token: accessToken,
-          user: loginRes.data,
-        }, rememberMe);
+        loginFunc(
+          {
+            token: accessToken,
+            user: loginRes.data,
+          },
+          rememberMe
+        );
       }
 
       storage.setItem("accessToken", accessToken);
@@ -177,6 +182,15 @@ const Login = () => {
     const storage = getAuthStorage();
     const response = await fetchApi("GET", ENDPOINTS.GET_USER_ROLES, {}, { params: { branchId } });
 
+    storage.setItem(
+      "role",
+      JSON.stringify({
+        roleName: response?.data?.[0]?.roleName,
+        roleId: response?.data?.[0]?.roleId,
+      })
+    );
+    roleContext?.setRole(response?.data?.[0]?.roleName, response?.data?.[0]?.roleId);
+
     const roleId = response?.data?.[0]?.roleId;
     const roleName = response?.data?.[0]?.roleName;
 
@@ -186,9 +200,6 @@ const Login = () => {
     const favorites = response?.data?.filter((r: any) => r?.isFavoriteRole === 1);
 
     setFavoriteRoles(favorites);
-
-    storage.setItem("selectedRole", roleName);
-    storage.setItem("roleId", roleId);
 
     return roleId;
   };
