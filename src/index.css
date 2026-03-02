@@ -11,39 +11,6 @@
   }
 }
 
-@keyframes marquee {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-.animate-marquee {
-  display: inline-block;
-  animation: marquee 10s linear infinite;
-}
-
-@keyframes smooth-marquee {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-.animate-smooth-marquee {
-  display: inline-block;
-  white-space: nowrap;
-  animation: smooth-marquee 12s linear infinite;
-}
-
-/* Pause animation on hover (optional) */
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
 .animate-fade-in {
   animation: fade-in ease-out;
 }
@@ -236,4 +203,48 @@ select:-webkit-autofill {
   width: 0 !important;
   height: 0 !important;
   display: none !important;
+}
+
+/* ------------------------------page header------------------------------------------- */
+.addNew-btn {
+  @apply px-2  py-2 flex flex-row gap-1 items-center rounded-lg font-semibold transition-all bg-[#0b5394] text-white cursor-pointer active:scale-95;
+}
+
+/* -------------------------------------------right side drawer------------------------------ */
+
+.drawer-container {
+  @apply fixed inset-0 z-999 overflow-hidden;
+}
+.drawer-layout {
+  @apply fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[700px] lg:w-[800px]  shadow-xl z-50 transition-transform duration-300 overflow-y-auto;
+}
+.drawer-bg-fade {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40 
+          transition-opacity duration-500 ease-out;
+}
+.drawer-close-btn {
+  @apply text-gray-600  m-2  hover:text-black text-4xl leading-none;
+}
+.drawer-bg {
+  @apply bg-gray-100;
+}
+.drawer-title-border {
+  @apply flex justify-between items-center p-2 border-b;
+}
+.drawer-title {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+/* -----------------------card buttons---------------------------------- */
+.save-btn {
+  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90;
+}
+/*  */
+.cancel-button {
+  @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
+}
+
+/* --------------------------Name header------------------------- */
+.name-header {
+  @apply font-bold text-[#c64333];
 }

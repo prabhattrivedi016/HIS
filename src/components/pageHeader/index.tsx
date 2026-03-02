@@ -106,7 +106,7 @@ const PageHeader = ({
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full py-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400 active:scale-95 "
+                className="w-full py-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400 active:scale-95 placeholder:opacity-40 "
                 onChange={handleSearch}
               />
             </InputField>

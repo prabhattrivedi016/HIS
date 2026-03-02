@@ -472,7 +472,7 @@ const DoctorMasterDrawer = ({
           {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
           {error ? <ErrorMessage text={error?.message} /> : <></>}
 
-          <div className="p-2">
+          <div>
             <form onSubmit={handleSubmit(onsubmit)}>
               <input type="hidden" {...register("IsLogin")} />
               <input type="hidden" {...register("SpecializationId")} />
@@ -480,7 +480,7 @@ const DoctorMasterDrawer = ({
               <input type="hidden" {...register("Specialization")} />
               <input type="hidden" {...register("Department")} />
               <input type="hidden" {...register("BranchList")} />
-              <div className="card">
+              <div className="card m-1">
                 <h2 className="card-title ">Doctor Details</h2>
                 <div className="form-grid-3">
                   <InputField label="Title" required>
@@ -701,7 +701,7 @@ const DoctorMasterDrawer = ({
                 </div>
               </div>
 
-              <div className="card">
+              <div className="card m-1">
                 <div className="flex gap-4">
                   <h2 className="card-title ">Create Login</h2>
                   <input

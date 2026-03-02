@@ -1,6 +1,7 @@
 import InputField from "@/components/customInputField";
 import { BedDouble, LogOut, PieChart, Search, UserPlus } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import BedChartDetails from "./BedChart";
 
 const BedDetails = () => {
   const roomOptions = [
@@ -123,77 +124,81 @@ const BedDetails = () => {
           </div>
         </div>
       </div>
+      <div className="flex lg:flex-row sm:flex-col gap-2">
+        <div className=" lg:w-1/2 card sm:w-full">
+          <div className="w-full overflow-auto flex flex-col lg:flex-row gap-2 mb-4 ">
+            <button className="save-btn whitespace-nowrap">All Beds</button>
+            <button className="save-btn whitespace-nowrap">Doctor Wise</button>
+            <button className="save-btn whitespace-nowrap">Corporate Wise</button>
+            <button className="save-btn whitespace-nowrap"> Bed Occupancy</button>
+            <button className="save-btn whitespace-nowrap">Today Status</button>
+            <button className="save-btn whitespace-nowrap">Summary Status</button>
+            <button className="save-btn whitespace-nowrap">Summery Details</button>
+          </div>
 
-      <div className=" lg:w-1/2 card sm:w-full">
-        <div className="w-full overflow-auto flex flex-col lg:flex-row gap-2 mb-4">
-          <button className="save-btn whitespace-nowrap">All Beds</button>
-          <button className="save-btn whitespace-nowrap">Doctor Wise</button>
-          <button className="save-btn whitespace-nowrap">Corporate Wise</button>
-          <button className="save-btn whitespace-nowrap"> Bed Occupancy</button>
-          <button className="save-btn whitespace-nowrap">Today Status</button>
-          <button className="save-btn whitespace-nowrap">Summary Status</button>
-          <button className="save-btn whitespace-nowrap">Summery Details</button>
-        </div>
+          <div className="overflow-auto max-h-95 border rounded-md ">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100 sticky top-0  ">
+                <tr className="border-b border-gray-300">
+                  <th className="px-4 py-2 text-left">#</th>
 
-        <div className="overflow-auto max-h-95 border rounded-md ">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 sticky top-0  ">
-              <tr className="border-b border-gray-300">
-                <th className="px-4 py-2 text-left">#</th>
+                  <th className="px-4 py-2 text-left whitespace-nowrap">Room Type</th>
+                  <th className="px-4 py-2 text-left whitespace-nowrap">Total Bed (181)</th>
+                  <th className="px-4 py-2 text-left whitespace-nowrap">Available Bed (33)</th>
+                  <th className="px-4 py-2 text-left whitespace-nowrap">Occupied Bed (157)</th>
+                  <th className="px-4 py-2 text-left whitespace-nowrap">View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                  <tr key={i} className="border-b border-gray-300">
+                    <td className="px-4 py-2 text-gray-700">{i}</td>
 
-                <th className="px-4 py-2 text-left whitespace-nowrap">Room Type</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap">Total Bed (181)</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap">Available Bed (33)</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap">Occupied Bed (157)</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap">View</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                <tr key={i} className="border-b border-gray-300">
-                  <td className="px-4 py-2 text-gray-700">{i}</td>
+                    <td className="px-4 py-2 text-gray-700">{`B00${i}`}</td>
+                    <td className="px-4 py-2 text-gray-700">{`R10${i}`}</td>
+                    <td className="px-4 py-2 text-gray-700">1st Floor</td>
+                    <td className="px-4 py-2 text-gray-700">ICU</td>
+                    <td className="px-4 py-2 text-gray-700">
+                      <Search size={20} className="text-blue-500" />
+                    </td>
+                  </tr>
+                ))}
 
-                  <td className="px-4 py-2 text-gray-700">{`B00${i}`}</td>
-                  <td className="px-4 py-2 text-gray-700">{`R10${i}`}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 text-gray-700">B001</td>
+                  <td className="px-4 py-2 text-gray-700">R101</td>
                   <td className="px-4 py-2 text-gray-700">1st Floor</td>
                   <td className="px-4 py-2 text-gray-700">ICU</td>
-                  <td className="px-4 py-2 text-gray-700">
-                    <Search size={20} className="text-blue-500" />
-                  </td>
+                  <td className="px-4 py-2 text-gray-700">Occupied</td>
                 </tr>
-              ))}
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 text-gray-700">B002</td>
 
-              <tr className="border-b border-gray-300">
-                <td className="px-4 py-2 text-gray-700">B001</td>
-                <td className="px-4 py-2 text-gray-700">R101</td>
-                <td className="px-4 py-2 text-gray-700">1st Floor</td>
-                <td className="px-4 py-2 text-gray-700">ICU</td>
-                <td className="px-4 py-2 text-gray-700">Occupied</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="px-4 py-2 text-gray-700">B002</td>
-
-                <td className="px-4 py-2 text-gray-700">R102</td>
-                <td className="px-4 py-2 text-gray-700">1st Floor</td>
-                <td className="px-4 py-2 text-gray-700">General</td>
-                <td className="px-4 py-2 text-gray-700">Available</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="px-4 py-2 text-gray-700">B003</td>
-                <td className="px-4 py-2 text-gray-700">R103</td>
-                <td className="px-4 py-2 text-gray-700">1st Floor</td>
-                <td className="px-4 py-2 text-gray-700">ICU</td>
-                <td className="px-4 py-2 text-gray-700">Occupied</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="px-4 py-2 text-gray-700">B004</td>
-                <td className="px-4 py-2 text-gray-700">R104</td>
-                <td className="px-4 py-2 text-gray-700">1st Floor</td>
-                <td className="px-4 py-2 text-gray-700">General</td>
-                <td className="px-4 py-2 text-gray-700">Available</td>
-              </tr>
-            </tbody>
-          </table>
+                  <td className="px-4 py-2 text-gray-700">R102</td>
+                  <td className="px-4 py-2 text-gray-700">1st Floor</td>
+                  <td className="px-4 py-2 text-gray-700">General</td>
+                  <td className="px-4 py-2 text-gray-700">Available</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 text-gray-700">B003</td>
+                  <td className="px-4 py-2 text-gray-700">R103</td>
+                  <td className="px-4 py-2 text-gray-700">1st Floor</td>
+                  <td className="px-4 py-2 text-gray-700">ICU</td>
+                  <td className="px-4 py-2 text-gray-700">Occupied</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 text-gray-700">B004</td>
+                  <td className="px-4 py-2 text-gray-700">R104</td>
+                  <td className="px-4 py-2 text-gray-700">1st Floor</td>
+                  <td className="px-4 py-2 text-gray-700">General</td>
+                  <td className="px-4 py-2 text-gray-700">Available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="card w-full">
+          <BedChartDetails />
         </div>
       </div>
     </div>

@@ -322,7 +322,7 @@ const DoctorTimingModal = ({ isOpen, onClose, doctorId }: DoctorTimingModalProps
           {error || errorMessage ? <ErrorMessage text={error?.message || errorMessage} /> : <></>}
 
           <div className="drawer-body">
-            <div className="card m-2">
+            <div className="card m-1">
               <h2 className="card-title ">Doctor Timing Mapping</h2>
 
               <form onSubmit={handleSubmit(onSubmit)}>
@@ -385,7 +385,7 @@ const DoctorTimingModal = ({ isOpen, onClose, doctorId }: DoctorTimingModalProps
             </div>
           </div>
 
-          <div className=" m-2">
+          <div className=" m-1">
             <div className="w-full  max-w-[800px]">
               <div className=" mx-auto my-auto w-full  max-w-[1000px]     h-[600px] sm:h-[420px] md:h-[300px] rounded-xl  border border-gray-200 bg-white shadow overflow-auto">
                 <div className="w-full h-full overflow-auto">

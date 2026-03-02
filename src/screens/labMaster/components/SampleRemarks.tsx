@@ -2,8 +2,8 @@ import InputField from "@/components/customInputField";
 
 const SampleRemarks = () => {
   return (
-    <div className="-mt-2">
-      <div className="card -mt-10">
+    <div className="-mt-3">
+      <div className="card">
         <h2 className="card-title ">Sample Remarks Details</h2>
 
         <form>

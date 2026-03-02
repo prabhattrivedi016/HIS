@@ -33,10 +33,6 @@
   @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#840000] text-white cursor-pointer active:scale-95;
 }
 
-.addNew-btn {
-  @apply px-2  py-2 flex flex-row gap-1 items-center rounded-lg font-semibold transition-all bg-[#0b5394] text-white cursor-pointer active:scale-95;
-}
-
 /* login component */
 .login-input-field {
   @apply w-full px-3 py-2 sm:py-2 md:py-2 text-sm sm:text-base rounded-lg outline-none bg-transparent  text-gray-800  placeholder:text-gray-400 placeholder:opacity-70 focus:bg-transparent autofill:bg-transparent;
@@ -78,14 +74,13 @@
   @apply bg-[#0b5394];
 }
 .branch-box {
-  @apply sm:w-40 md:w-60
+  @apply sm:w-20 md:w-50
   bg-linear-to-br from-blue-300 to-purple-400
-  my-2
   px-3 sm:px-4
-  py-2
+  py-1
   text-xs sm:text-sm md:text-lg
   italic
-  rounded-xl
+  rounded-lg
   text-gray-800
   text-center
   truncate
@@ -144,18 +139,6 @@
 }
 
 /*  all  drawer */
-.drawer-close-btn {
-  @apply text-gray-600  m-2  hover:text-black text-4xl leading-none;
-}
-.drawer-bg {
-  @apply bg-gray-100;
-}
-.drawer-title-border {
-  @apply flex justify-between items-center p-2 border-b;
-}
-.drawer-title {
-  @apply text-lg font-semibold text-gray-800;
-}
 
 /* custom input field */
 .input-field {
@@ -175,6 +158,21 @@
 .disabled-input-field {
   @apply w-full px-4 py-2 border border-gray-400 rounded-lg bg-gray-200   placeholder:text-gray-400 placeholder:opacity-20 focus:ring-gray-200 focus:border-gray-500 outline-none transition mb-2;
 }
+
+.input-checkbox {
+  @apply w-4 h-4 cursor-pointer rounded border border-gray-300 bg-white;
+}
+
+/* checked state */
+.input-checkbox:checked {
+  @apply bg-blue-500 border-blue-500;
+}
+
+/* focus state */
+.input-checkbox:focus {
+  @apply outline-none ring-2 ring-blue-400;
+}
+
 /* user group master styles */
 .item-border {
   @apply border border-gray-200 p-2 mb-2 rounded bg-gray-50 text-sm cursor-move hover:bg-gray-100;
@@ -228,7 +226,7 @@
 }
 
 .table-header-button {
-  @apply border border-gray-300 px-4 py-2 m-2 rounded-lg hover:bg-blue-400;
+  @apply border border-gray-300 px-4 py-2 m-2 rounded-lg hover:bg-[#096ac0];
 }
 
 /* header-footer */
@@ -265,7 +263,7 @@
 }
 
 .card {
-  @apply bg-white rounded-xl shadow-lg p-6 mt-1 mb-2;
+  @apply bg-white rounded-xl shadow-lg p-4 border border-gray-200;
 }
 .card-title {
   @apply text-xl font-semibold text-gray-800 text-left -mt-3 mb-2;
@@ -283,13 +281,6 @@
   .form-actions-responsive {
     @apply justify-center;
   }
-}
-.save-btn {
-  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-6 h-10  text-base font-medium transition active:scale-90;
-}
-/*  */
-.cancel-button {
-  @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-6 h-10 text-base font-medium transition active:scale-90;
 }
 
 /*-------------------tabs of normal pages-----------*/

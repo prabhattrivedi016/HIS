@@ -2,8 +2,8 @@ import InputField from "@/components/customInputField";
 
 const FieldBoy = () => {
   return (
-    <div className="-mt-2">
-      <div className="card -mt-10">
+    <div className="-mt-3">
+      <div className="card ">
         <h2 className="card-title ">Field Boy Details</h2>
 
         <form>

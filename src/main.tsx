@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import { RoleProvider } from "./context/RoleContext";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -11,7 +12,9 @@ if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <AuthProvider>
-        <App />
+        <RoleProvider>
+          <App />
+        </RoleProvider>
       </AuthProvider>
     </React.StrictMode>
   );

@@ -11,6 +11,7 @@ import CustomLoader from "../../../components/customLoader";
 import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
 import { ENDPOINTS } from "../../../config/defaults";
 import { AuthContext } from "../../../context/AuthContext";
+import { RoleContext } from "../../../context/RoleContext";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import { getAuthStorage } from "../../../utils/authStorage";
@@ -25,6 +26,7 @@ type HoverPopupState = {
 
 const Sidebar = () => {
   const authContext = useContext(AuthContext);
+  const roleContext = useContext(RoleContext);
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
 
@@ -32,7 +34,14 @@ const Sidebar = () => {
 
   const storage = getAuthStorage();
   const branchId = Number(authContext?.user?.branchId ?? 0);
-  const roleId = Number(storage.getItem("roleId") || 0);
+  let storedRoleId = 0;
+  try {
+    storedRoleId = Number(JSON.parse(storage.getItem("role") || "{}")?.roleId ?? 0);
+  } catch {
+    storedRoleId = 0;
+  }
+  const roleId =
+    Number(roleContext?.roleId ?? 0) || storedRoleId;
   const userId = Number(authContext?.user?.userId ?? 0);
 
   const location = useLocation();

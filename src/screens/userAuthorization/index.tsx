@@ -48,6 +48,7 @@ const UserAuthorization = () => {
   const [filteredData, setFilteredData] = useState<RoleDataItem[]>([]);
   const [showRoleSelect, setShowRoleSelect] = useState<boolean>(false);
   const [roleData, setRoleData] = useState<RoleDataItem[]>([]);
+  const [activeButton, setActiveButton] = useState<string>("");
 
   // branches
   const branches = useMemo(() => branchLists?.branchList?.data, [branchLists]);
@@ -150,6 +151,8 @@ const UserAuthorization = () => {
   const fetchRolesForUser = useCallback(
     async (uid: number) => {
       setSelectedButton("roles");
+      setActiveButton("all");
+
       setPageView(true);
       const response = await fetchApi(
         "GET",
@@ -182,6 +185,7 @@ const UserAuthorization = () => {
 
   const roleButtonHandler = async () => {
     setSelectedButton("roles");
+
     setShowRoleSelect(false);
     setRoleId(null);
 
@@ -270,17 +274,22 @@ const UserAuthorization = () => {
 
   //All handler
   const filterAllHandler = () => {
+    setActiveButton("all");
+
     setFilteredData(roleData || []);
   };
 
   // remaining handler
   const remainingHandler = () => {
+    setActiveButton("remaining");
     const remaining = roleData?.filter(r => r?.isGranted === 0) || [];
     setFilteredData(remaining);
   };
 
   // granted
   const grantedHandler = () => {
+    setActiveButton("granted");
+
     const granted = roleData.filter(item => item.isGranted === 1) || [];
     setFilteredData(granted);
   };
@@ -296,7 +305,7 @@ const UserAuthorization = () => {
         roleId: r.roleId,
       }));
 
-    const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
+    await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
       branchId,
       typeId,
       userId,
@@ -309,17 +318,27 @@ const UserAuthorization = () => {
     switch (buttonType) {
       case "roles": {
         return (
-          <div className="bg-white rounded-2xl shadow-md mt-2 p-2">
+          <div className=" card">
             {/* HEADER */}
-            <div className="flex justify-between flex-wrap gap-3 mb-2">
-              <div className="flex gap-1">
-                <button className="table-header-button" onClick={filterAllHandler}>
+            <div className="flex justify-between flex-wrap -mt-3">
+              <div className="flex">
+                <button
+                  className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+                  onClick={filterAllHandler}
+                >
                   All
                 </button>
-                <button className="table-header-button" onClick={remainingHandler}>
+                <button
+                  className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+                  onClick={remainingHandler}
+                >
                   Remaining
                 </button>
-                <button className="table-header-button" onClick={grantedHandler}>
+
+                <button
+                  className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+                  onClick={grantedHandler}
+                >
                   Granted
                 </button>
               </div>
@@ -337,10 +356,10 @@ const UserAuthorization = () => {
               <table className="min-w-full table-fixed border-collapse">
                 <thead className="bg-blue-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700 w-16">#</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-700 w-16">#</th>
 
                     {/* Role Name + small search */}
-                    <th className="px-5 py-3 font-semibold text-gray-700">
+                    <th className="px-5 py-2 font-semibold text-gray-700">
                       <div className="flex items-center gap-3">
                         <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
                           Role Name
@@ -370,14 +389,22 @@ const UserAuthorization = () => {
                 <tbody>
                   {filteredData.length > 0 ? (
                     filteredData.map((item, idx) => (
-                      <tr key={item.roleId} className="border-t border-gray-200 hover:bg-gray-50">
+                      <tr
+                        key={item.roleId}
+                        className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => toggleSingleHandler(item?.roleId)}
+                      >
                         <td className="px-4 py-3">{idx + 1}</td>
+
                         <td className="px-4 py-3">{item.roleName}</td>
+
                         <td className="px-4 py-3 text-center">
-                          <ToggleButton
-                            checked={item?.isGranted === 1}
-                            onClick={() => toggleSingleHandler(item?.roleId)}
-                          />
+                          <div onClick={e => e.stopPropagation()}>
+                            <ToggleButton
+                              checked={item?.isGranted === 1}
+                              onClick={() => toggleSingleHandler(item?.roleId)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -498,10 +525,10 @@ const UserAuthorization = () => {
       </div>
       {pageView && (
         <>
-          <div className="flex gap-1 mt-3 ">
+          <div className="flex gap-1  ">
             <button
               className={`table-header-button ${
-                selectedButton === "roles" ? "bg-blue-600 text-white" : ""
+                selectedButton === "roles" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={roleButtonHandler}
             >
@@ -510,7 +537,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "userRights" ? "bg-blue-600 text-white" : ""
+                selectedButton === "userRights" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={userRightsButtonHandler}
             >
@@ -519,7 +546,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "userDashboard" ? "bg-blue-600 text-white" : ""
+                selectedButton === "userDashboard" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={userDashboardHandler}
             >
@@ -528,7 +555,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "pageAccess" ? "bg-blue-600 text-white" : ""
+                selectedButton === "pageAccess" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={pageAccessHandler}
             >
@@ -537,7 +564,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "corporateMapping" ? "bg-blue-600 text-white" : ""
+                selectedButton === "corporateMapping" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={corporateMappingHandler}
             >
@@ -546,7 +573,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "roomMapping" ? "bg-blue-600 text-white" : ""
+                selectedButton === "roomMapping" ? "bg-[#0b5394] text-white" : ""
               }`}
               onClick={roomMappingHandler}
             >

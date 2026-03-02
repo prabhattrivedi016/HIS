@@ -10,12 +10,22 @@ import { getAuthStorage } from "../../utils/authStorage";
 import RoleBindPage from "./components/RoleBindPage";
 import UserReset from "./components/UserReset";
 
+import { RoleContext } from "@/context/RoleContext";
 import "../../styles/layout.css";
 import "../../styles/theme.css";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
-  const authContext = useContext(AuthContext);
+  const roleContext = useContext(RoleContext);
   const storage = getAuthStorage();
+  let storedRoleName = "";
+  try {
+    storedRoleName = JSON.parse(storage.getItem("role") || "{}")?.roleName || "";
+  } catch {
+    storedRoleName = "";
+  }
+  const selectedRole = roleContext?.roleName || storedRoleName || "No Role";
+
+  const authContext = useContext(AuthContext);
   const navigate = useNavigate();
   const user = authContext?.user;
   const branchId = Number(user?.branchId ?? 0);
@@ -24,7 +34,6 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   /* ---------------- STATE ---------------- */
   const [openRoleBind, setOpenRoleBind] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
-  const [selectedRole, setSelectedRole] = useState(() => storage.getItem("selectedRole"));
 
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [userProfileSetting, setUserProfileSetting] = useState(false);
@@ -63,16 +72,11 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
 
   const logoutHandler = () => {
     authContext?.logout();
+    roleContext?.clearRole();
 
     storage.removeItem("accessToken");
-    storage.removeItem("selectedRole");
-    storage.removeItem("roleId");
     storage.removeItem("auth");
-
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("selectedRole");
-    sessionStorage.removeItem("roleId");
-    sessionStorage.removeItem("auth");
+    storage.removeItem("role");
 
     localStorage.removeItem("authorized-pages");
     localStorage.removeItem("favorite-roles");
@@ -129,7 +133,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
               <select
                 value={selectedBranch?.branchId || ""}
                 onChange={branchChangeHandler}
-                className="branch-box font-bold"
+                className="branch-box "
               >
                 {branchList?.data?.map(branch => (
                   <option key={branch.branchId} value={branch.branchId}>
@@ -149,7 +153,13 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0">
           {/* ROLE BADGE */}
-          <div className="inline-flex min-w-0 max-w-[120px] sm:max-w-[170px] items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full shadow-sm branch-box">
+          <div
+            className="inline-flex min-w-0 max-w-[120px] sm:max-w-[170px] items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg shadow-sm bg-linear-to-br from-blue-300 to-purple-400 w-40  border border-[#083e6f]
+  
+  ring-1 ring-white/20
+
+  focus:outline-none"
+          >
             <BriefcaseBusiness className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
             <span className="truncate text-xs sm:text-sm">{selectedRole}</span>
           </div>
@@ -208,7 +218,6 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           <RoleBindPage
             isOpen={openRoleBind}
             onClose={() => setOpenRoleBind(false)}
-            roleChange={setSelectedRole}
             branchId={branchId}
             userId={userId}
           />

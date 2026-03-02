@@ -13,11 +13,13 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
 
   const [filteredData, setFilteredData] = useState<PageAccessItem[]>([]);
   const [pageAccessData, setPageAccessData] = useState<PageAccessItem[]>([]);
+  const [activeButton, setActiveButton] = useState<string>("");
 
   /* ---------------- fetch page access ---------------- */
 
   const pageAccessTableData = async (rid: number) => {
     if (!branchId || !typeId || !userId || !rid) return;
+    setActiveButton("all");
 
     const response = await fetchApi(
       "GET",
@@ -83,18 +85,24 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
 
   //All handler
   const filterAllHandler = () => {
-    setFilteredData(pageAccessData || []);
+    setActiveButton("all");
+
+    setFilteredData(pageAccessData ?? []);
   };
 
   // remaining handler
   const remainingHandler = () => {
-    const remaining = pageAccessData?.filter((r: PageAccessItem) => r?.isGranted === 0) || [];
+    setActiveButton("remaining");
+
+    const remaining = pageAccessData?.filter((r: PageAccessItem) => r?.isGranted === 0) ?? [];
     setFilteredData(remaining);
   };
 
   // granted
   const grantedHandler = () => {
-    const granted = pageAccessData.filter(item => item.isGranted === 1) || [];
+    setActiveButton("granted");
+
+    const granted = pageAccessData.filter(item => item.isGranted === 1) ?? [];
     setFilteredData(granted);
   };
 
@@ -130,17 +138,28 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md mt-2 p-2">
+    <div className="card">
       {/* HEADER BUTTONS */}
-      <div className="flex justify-between flex-wrap gap-3 mb-2">
-        <div className="flex gap-1">
-          <button className="table-header-button" onClick={filterAllHandler}>
+      <div className="flex justify-between flex-wrap gap-3 -mt-3">
+        <div className="flex ">
+          <button
+            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={filterAllHandler}
+          >
             All
           </button>
-          <button className="table-header-button" onClick={remainingHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={remainingHandler}
+          >
             Remaining
           </button>
-          <button className="table-header-button" onClick={grantedHandler}>
+
+          <button
+            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            onClick={grantedHandler}
+          >
             Granted
           </button>
         </div>
@@ -159,17 +178,17 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
           {/* HEADER */}
           <thead className="bg-blue-50 sticky top-0 z-10">
             <tr>
-              <th className="px-4 py-3 w-16 text-left font-semibold text-gray-700">#</th>
+              <th className="px-4 py-2 w-16 text-left font-semibold text-gray-700">#</th>
 
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Page Name</th>
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">Navigation Name</th>
 
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Navigation Name</th>
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">Page Name</th>
 
               {/* SEARCH */}
               <th className="px-10 py-3 w-80 text-right">
                 <input
                   onChange={onSearchHandler}
-                  placeholder="Search..."
+                  placeholder="Search page name"
                   className="input-field h-9 text-sm"
                 />
               </th>
@@ -191,24 +210,26 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
           <tbody>
             {!!filteredData && filteredData.length > 0 ? (
               filteredData.map((item, idx) => (
-                <tr key={item.subMenuId} className="border-t border-gray-200 hover:bg-gray-50">
+                <tr
+                  key={item.subMenuId}
+                  className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => toggleSingleHandler(item?.subMenuId)}
+                >
                   <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
 
-                  <td className="px-4 py-3 text-gray-800 truncate" title={item?.subMenuName}>
-                    {item?.subMenuName}
-                  </td>
+                  <td className="px-4 py-3 text-gray-800 truncate">{item?.tabName}</td>
 
-                  <td className="px-4 py-3 text-gray-800 truncate" title={item?.tabName}>
-                    {item?.tabName}
-                  </td>
+                  <td className="px-4 py-3 text-gray-800 truncate">{item?.subMenuName}</td>
 
                   <td className="px-4 py-3" />
 
                   <td className="px-4 py-3 text-center">
-                    <ToggleButton
-                      checked={item.isGranted === 1}
-                      onClick={() => toggleSingleHandler(item?.subMenuId)}
-                    />
+                    <div onClick={e => e.stopPropagation()}>
+                      <ToggleButton
+                        checked={item.isGranted === 1}
+                        onClick={() => toggleSingleHandler(item?.subMenuId)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))
