@@ -36,6 +36,11 @@ export enum LabMasterTabName {
   FIELD_BOY = "Field Boy",
 }
 
+export enum ImportTariffsTabName {
+  IMPORT_TARIFFS_DOWNLOAD = "Download",
+  IMPORT_TARIFFS_UPLOAD = "Upload",
+}
+
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",
@@ -151,6 +156,28 @@ export const SampleTypeMasterTableHeader = [
   "Edit",
 ];
 
+export const FieldBoyMasterTableHeader = [
+  "#",
+  "Field Boy",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
+];
+
+export const SampleRejectionTableHeader = [
+  "#",
+  "Sample Rejection Remarks",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
+];
+
 export const LabMethodTableHeader = [
   "#",
   "Method",
@@ -161,13 +188,6 @@ export const LabMethodTableHeader = [
   "Last ModifiedOn",
   "Edit",
 ];
-
-export const DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA = {
-  documentId: 0,
-  documentName: "",
-  documentCode: "",
-  isActive: 1,
-};
 
 export enum BranchId {
   DEFAULT = 1,

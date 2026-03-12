@@ -3,41 +3,45 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 
+import { showError, showSuccess } from "@/utils/alert";
 import { Minus, Plus } from "lucide-react";
+import { InferType } from "yup";
 import Animation from "../../components/animation";
 import InputField from "../../components/customInputField";
 import CustomLoader from "../../components/customLoader";
 import { ENDPOINTS } from "../../config/defaults";
-import {
-  DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA,
-  PatientDocumentTableHeader,
-} from "../../constants/constants";
+import { PatientDocumentTableHeader } from "../../constants/constants";
 import useGlobalApi from "../../hooks/useGlobalApi";
-import PatientDocumentMasterValidation from "../../validation/patientDocumentMaster";
+import PatientDocumentSchema from "../../validation/patientDocumentSchema";
 import { PatientDocumentItem } from "./types";
+type PatientDocumentFormItem = InferType<typeof PatientDocumentSchema>;
 
 const PatientDocumentMaster = () => {
-  const { loading, fetchApi } = useGlobalApi();
+  const { loading, error, fetchApi } = useGlobalApi();
 
   const [patientDocumentList, setPatientDocumentList] = useState<PatientDocumentItem[]>([]);
   const [showDetails, setShowDetails] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-
-  const buttonTitle = isEditMode ? "Update" : "Create";
 
   const {
     handleSubmit,
     register,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(PatientDocumentMasterValidation),
+    resolver: yupResolver(PatientDocumentSchema),
     defaultValues: {
-      ...DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA,
+      documentId: 0,
+      documentName: "",
+      documentCode: "",
+      isActive: 1,
     },
   });
 
-  /* ---------------- fetch document list ---------------- */
+  const isEditMode = Boolean(watch("documentId"));
+  const buttonTitle = isEditMode ? "Update" : "Create";
+
+  // document list
   const getPatientDocument = async () => {
     const resp = await fetchApi(
       "GET",
@@ -51,22 +55,14 @@ const PatientDocumentMaster = () => {
   };
 
   useEffect(() => {
-    getPatientDocument();
-  }, []);
+    if (showDetails) {
+      getPatientDocument();
+    }
+  }, [showDetails]);
 
-  /* ---------------- submit ---------------- */
-  const submitHandler = async (data: {
-    documentId?: number | null;
-    documentName: string;
-    documentCode: string;
-    isActive: number;
-  }) => {
-    const payload = {
-      documentId: isEditMode ? data?.documentId : 0,
-      documentName: data?.documentName,
-      documentCode: data?.documentCode,
-      isActive: data?.isActive,
-    };
+  //  submit handler
+  const submitHandler = async (payload: PatientDocumentFormItem) => {
+    if (!payload?.documentName) return;
 
     const resp = await fetchApi(
       "POST",
@@ -75,24 +71,49 @@ const PatientDocumentMaster = () => {
       {},
       {
         component: "PatientDocumentMaster",
-        silent: true,
       }
     );
-    if (resp?.result) {
-      reset({ ...DEFAULT_PATIENT_DOCUMENT_MASTER_FORMDATA });
-      setIsEditMode(false);
-      await getPatientDocument();
+    if (!resp?.result) {
+      showError(error?.message ?? "Something went wrong!");
+      return;
     }
+    showSuccess(resp?.message ?? "Data saved successfully");
+
+    reset({
+      documentId: 0,
+      documentName: "",
+      documentCode: "",
+      isActive: 1,
+    });
+    await getPatientDocument();
   };
 
-  /* ---------------- edit handler ---------------- */
+  // edit handler
   const editHandler = (item: PatientDocumentItem) => {
-    setIsEditMode(true);
+    if (!item) {
+      reset({
+        documentId: 0,
+        documentName: "",
+        documentCode: "",
+        isActive: 1,
+      });
+      return;
+    }
     reset({
       documentId: item.documentId,
       documentName: item.documentName,
       documentCode: item.documentCode,
       isActive: item.isActive,
+    });
+  };
+
+  // cancel handler
+  const cancelHandler = () => {
+    reset({
+      documentId: 0,
+      documentName: "",
+      documentCode: "",
+      isActive: 1,
     });
   };
 
@@ -108,53 +129,56 @@ const PatientDocumentMaster = () => {
         <span>Patient Document Master</span>
       </nav>
 
-      <div className="card">
+      <div className="card mb-1">
         <h2 className="card-title ">Document Details</h2>
+        {/* form */}
 
-        <form className="form-grid-4" onSubmit={handleSubmit(submitHandler)}>
-          <InputField label="Document Name" required>
-            <input
-              type="text"
-              placeholder="Enter Document Name"
-              className="input-field"
-              {...register("documentName")}
-            />
-            {errors.documentName && (
-              <p className="input-field-error">{errors.documentName.message}</p>
-            )}
-          </InputField>
+        <form onSubmit={handleSubmit(submitHandler)}>
+          <div className="form-grid-4">
+            <InputField label="Document Name" required>
+              <input
+                type="text"
+                placeholder="Enter Document Name"
+                className="input-field"
+                {...register("documentName")}
+              />
+              {errors.documentName && (
+                <p className="input-field-error">{errors.documentName.message}</p>
+              )}
+            </InputField>
 
-          <InputField label="Document Code" required>
-            <input
-              type="text"
-              placeholder="Enter Document Code"
-              className="input-field"
-              {...register("documentCode")}
-            />
-            {errors.documentCode && (
-              <p className="input-field-error">{errors.documentCode.message}</p>
-            )}
-          </InputField>
+            <InputField label="Document Code" required>
+              <input
+                type="text"
+                placeholder="Enter Document Code"
+                className="input-field"
+                {...register("documentCode")}
+              />
+              {errors.documentCode && (
+                <p className="input-field-error">{errors.documentCode.message}</p>
+              )}
+            </InputField>
 
-          <InputField label="Status" required>
-            <select className="input-field" {...register("isActive")}>
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
-            </select>
-            {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
-          </InputField>
+            <InputField label="Status" required>
+              <select className="input-field" {...register("isActive")}>
+                <option value={1}>Active</option>
+                <option value={0}>Inactive</option>
+              </select>
+              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
+            </InputField>
+          </div>
 
           <div className="form-actions-responsive mt-5">
             <button type="submit" className="save-btn">
               {buttonTitle}
             </button>
-            <button type="button" className="cancel-button ">
+            <button type="button" className="cancel-button " onClick={cancelHandler}>
               Cancel
             </button>
           </div>
         </form>
       </div>
-      {/* ------------------------------patient document table------------------------------ */}
+      {/* table */}
       <div className="card ">
         <div className="card-header">
           <h2 className="card-title">Patient Document List</h2>
@@ -192,13 +216,19 @@ const PatientDocumentMaster = () => {
                       <td className="table-td">{idx + 1}</td>
                       <td className="table-td">{item.documentName}</td>
                       <td className="table-td">{item.documentCode}</td>
-                      <td className="table-td">{item.isActive ? "Active" : "Inactive"}</td>
+                      <td
+                        className={`table-td ${
+                          Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                        }`}
+                      >
+                        {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
+                      </td>
                       <td className="table-td">{item.createdBy}</td>
                       <td className="table-td">{item.createdOn}</td>
                       <td className="table-td">{item.lastModifiedBy}</td>
                       <td className="table-td">{item.lastModifiedOn}</td>
                       <td className="table-action" onClick={() => editHandler(item)}>
-                        <i className="edit-icon fa-solid fa-edit text-xl active:scale-90"></i>
+                        <i className="fa-solid fa-edit text-xl icon-color-button"></i>
                       </td>
                     </tr>
                   ))}

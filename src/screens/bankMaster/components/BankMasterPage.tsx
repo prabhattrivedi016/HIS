@@ -2,12 +2,12 @@ import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { BankMasterTableHeader } from "@/constants/constants";
+import { showError, showSuccess } from "@/utils/alert";
 import { bankMasterSchema } from "@/validation/bankMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import Swal from "sweetalert2";
 import { InferType } from "yup";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
@@ -35,17 +35,22 @@ const BankMasterPage = () => {
       isActive: 1,
     },
   });
-  const bankId = watch("bankId");
-  const isEditMode = Boolean(bankId);
+  const isEditMode = Boolean(watch("bankId"));
   const buttonTitle = isEditMode ? "Update" : "Create";
 
   const tablePopupHandler = () => {
     setShowDetails(p => !p);
   };
 
-  /*-----------------bank master list----------------- */
+  // bank master list
   const getBankLists = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_BANK_LIST);
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BANK_LIST,
+      {},
+      {},
+      { component: "BankMasterPage", silent: true }
+    );
     setBankLists(resp?.data ?? []);
   };
 
@@ -55,8 +60,9 @@ const BankMasterPage = () => {
     }
   }, [showDetails]);
 
-  /*--------------------submit handler------------ */
+  // submit handler
   const onSubmit = async (formData: BankMasterFormItem) => {
+    if (!formData?.bankName) return;
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_BANK_MASTER,
@@ -64,26 +70,22 @@ const BankMasterPage = () => {
       {},
       { component: "BankMasterPage" }
     );
-    if (!resp) return;
-
-    if (resp?.result) {
-      Swal.fire({
-        position: "top",
-        title: resp?.message || "Saved successfully",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-
-      reset({
-        bankId: 0,
-        bankName: "",
-        isActive: 1,
-      });
-      await getBankLists();
+    if (!resp) {
+      showError(error?.message ?? "Something went wrong!");
+      return;
     }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+
+    reset({
+      bankId: 0,
+      bankName: "",
+      isActive: 1,
+    });
+    await getBankLists();
   };
 
-  /*-------------------------edit handler------------------- */
+  // edit handler
   const editHandler = (item: BankItem) => {
     if (!item) {
       reset({
@@ -101,7 +103,7 @@ const BankMasterPage = () => {
     });
   };
 
-  /*-----------------cancel handler-------------------- */
+  // cancel handler
   const cancelHandler = () => {
     reset({
       bankId: 0,
@@ -114,7 +116,7 @@ const BankMasterPage = () => {
     <div className="-mt-3">
       <div className="card mb-1">
         <h2 className="card-title ">Bank Master Details</h2>
-
+        {/* form */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
             <InputField label="Bank Name" required>
@@ -149,6 +151,7 @@ const BankMasterPage = () => {
         </form>
       </div>
 
+      {/* table */}
       <div className="card">
         <div className="card-header">
           <h2 className="card-title ">Bank Master List</h2>
@@ -202,7 +205,7 @@ const BankMasterPage = () => {
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
 
                         <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                          <i className="fa-solid fa-edit text-xl icon-color-button" />
                         </td>
                       </tr>
                     ))}

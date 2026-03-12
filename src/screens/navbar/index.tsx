@@ -4,6 +4,7 @@ import Login from "../login";
 import { authorizedRouteMap } from "../routes";
 import NoPage from "../unauthorized";
 import Sidebar from "./components/Sidebar";
+import { normalizeRouteKey } from "../../utils/route";
 
 const Navbar = () => {
   const { authorizedPages } = useAuthorizedPages();
@@ -20,14 +21,15 @@ const Navbar = () => {
 
           {(Array.isArray(authorizedPages) ? authorizedPages : []).flatMap(tab =>
             tab.pages.map(page => {
-              const Component = authorizedRouteMap[page.url];
+              const pageKey = normalizeRouteKey(page.url);
+              const Component = authorizedRouteMap[pageKey];
 
               if (!Component) {
                 console.warn(`No component mapped for: ${page.url}`);
                 return null;
               }
 
-              return <Route key={page.subMenuId} path={`/${page.url}`} element={Component} />;
+              return <Route key={page.subMenuId} path={`/${pageKey}`} element={Component} />;
             })
           )}
 

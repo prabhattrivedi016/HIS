@@ -15,6 +15,7 @@ import { RoleContext } from "../../../context/RoleContext";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { useAuthorizedPages } from "../../../store/useAuthorizedPages";
 import { getAuthStorage } from "../../../utils/authStorage";
+import { normalizeRouteKey } from "../../../utils/route";
 import Header from "../../header";
 import { PageItem, TabItem } from "../types";
 
@@ -242,7 +243,8 @@ const Sidebar = () => {
                       className="hover-popup-scroll no-scroll-buttons m-2 bg-gray-50 pl-5 font-semibold flex flex-col max-h-64 overflow-y-auto overflow-x-hidden"
                     >
                       {tab.pages.map(page => {
-                        const path = `/${page.url}`;
+                        const pageKey = normalizeRouteKey(page.url);
+                        const path = `/${pageKey}`;
                         return (
                           <div key={page.subMenuId} className="relative flex">
                             <NavLink
@@ -346,7 +348,7 @@ const Sidebar = () => {
                 {hoverPopup.tab.pages.map(page => (
                   <NavLink
                     key={page.subMenuId}
-                    to={`/${page.url}`}
+                    to={`/${normalizeRouteKey(page.url)}`}
                     className="px-4 py-1.5 rounded hover:bg-white/20"
                   >
                     {page.subMenuName}

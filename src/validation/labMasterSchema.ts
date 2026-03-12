@@ -15,3 +15,15 @@ export const testMethodSchema = yup.object().shape({
   method: yup.string().required("Test method is required"),
   isActive: yup.number().required("Status is required"),
 });
+
+export const fieldBoySchema = yup.object().shape({
+  fieldBoyId: yup.number().nullable(),
+  fieldBoyName: yup.string().required("Field boy is required"),
+  isActive: yup.number().required("Status is required"),
+});
+
+export const sampleRejectionSchema = yup.object().shape({
+  sampleRejectionRemarksID: yup.number().nullable(),
+  sampleRejectionRemarks: yup.string().required("Sample rejection remark is required"),
+  isActive: yup.number().required("Status is required"),
+});

@@ -148,6 +148,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_SAMPLE_TYPE_MASTER: "Lab/createUpdateSampleTypeMaster",
   CREATE_UPDATE_LAB_METHOD_MASTER: "Lab/createUpdateLabMethodMaster",
   GET_LAB_METHOD_MASTER: "Lab/getLabMethodMaster",
+  GET_FIELD_BOY_MASTER: "Lab/getFieldBoyMaster",
+  CREATE_UPDATE_FIELD_BOY_MASTER: "Lab/createUpdateFieldBoyMaster",
+  CREATE_UPDATE_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/createUpdateSampleRejectionRemarksMaster",
+  GET_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/getSampleRejectionRemarksMaster",
 };
 
 export { ENDPOINTS };
