@@ -313,7 +313,7 @@ const UserAuthorization = () => {
     });
   };
 
-  /*------------------------------------render components------------------------- */
+  /* render components */
   const renderTableData = (buttonType: string) => {
     switch (buttonType) {
       case "roles": {
@@ -323,30 +323,27 @@ const UserAuthorization = () => {
             <div className="flex justify-between flex-wrap -mt-3">
               <div className="flex">
                 <button
-                  className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+                  className={`table-header-button ${activeButton === "all" ? "save-btn " : ""}`}
                   onClick={filterAllHandler}
                 >
                   All
                 </button>
                 <button
-                  className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+                  className={`table-header-button ${activeButton === "remaining" ? "save-btn text-white" : ""}`}
                   onClick={remainingHandler}
                 >
                   Remaining
                 </button>
 
                 <button
-                  className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+                  className={`table-header-button ${activeButton === "granted" ? "save-btn" : ""}`}
                   onClick={grantedHandler}
                 >
                   Granted
                 </button>
               </div>
 
-              <button
-                className="table-header-button text-white bg-[#0b5394]"
-                onClick={saveRoleMappingHandler}
-              >
+              <button className="table-header-button  save-btn" onClick={saveRoleMappingHandler}>
                 Save
               </button>
             </div>
@@ -366,7 +363,7 @@ const UserAuthorization = () => {
                         </span>
                         <input
                           className="input-field h-10 max-w-[250px] text-sm ml-20 "
-                          placeholder="search..."
+                          placeholder="search role name"
                           onChange={onSearchHandler}
                         />
                       </div>
@@ -527,18 +524,14 @@ const UserAuthorization = () => {
         <>
           <div className="flex gap-1  ">
             <button
-              className={`table-header-button ${
-                selectedButton === "roles" ? "bg-[#0b5394] text-white" : ""
-              }`}
+              className={`table-header-button ${selectedButton === "roles" ? "save-btn" : ""}`}
               onClick={roleButtonHandler}
             >
               Roles
             </button>
 
             <button
-              className={`table-header-button ${
-                selectedButton === "userRights" ? "bg-[#0b5394] text-white" : ""
-              }`}
+              className={`table-header-button ${selectedButton === "userRights" ? "save-btn" : ""}`}
               onClick={userRightsButtonHandler}
             >
               User Rights
@@ -546,7 +539,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "userDashboard" ? "bg-[#0b5394] text-white" : ""
+                selectedButton === "userDashboard" ? "save-btn" : ""
               }`}
               onClick={userDashboardHandler}
             >
@@ -554,9 +547,7 @@ const UserAuthorization = () => {
             </button>
 
             <button
-              className={`table-header-button ${
-                selectedButton === "pageAccess" ? "bg-[#0b5394] text-white" : ""
-              }`}
+              className={`table-header-button ${selectedButton === "pageAccess" ? "save-btn" : ""}`}
               onClick={pageAccessHandler}
             >
               Page Access
@@ -564,7 +555,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "corporateMapping" ? "bg-[#0b5394] text-white" : ""
+                selectedButton === "corporateMapping" ? "save-btn" : ""
               }`}
               onClick={corporateMappingHandler}
             >
@@ -573,7 +564,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "roomMapping" ? "bg-[#0b5394] text-white" : ""
+                selectedButton === "roomMapping" ? "save-btn" : ""
               }`}
               onClick={roomMappingHandler}
             >

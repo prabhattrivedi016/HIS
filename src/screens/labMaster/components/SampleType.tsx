@@ -4,6 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { SampleTypeMasterTableHeader } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError, showSuccess } from "@/utils/alert";
 import { sampleTypeSchema } from "@/validation/labMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
@@ -20,7 +21,6 @@ const SampleType = () => {
   const [sampleTypeMasterList, setSampleTypeMasterList] = useState<SampleTypeItem[]>([]);
   const [filteredList, setFilteredList] = useState<SampleTypeItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
     handleSubmit,
@@ -38,10 +38,10 @@ const SampleType = () => {
     },
   });
 
-  const sampleId = watch("sampleTypeId");
-  const isEditMode = Boolean(sampleId);
+  const isEditMode = Boolean(watch("sampleTypeId"));
   const buttonTitle = isEditMode ? "Update" : "Create";
 
+  // container color
   const getContainerColor = async () => {
     const resp = await fetchApi(
       "GET",
@@ -54,6 +54,7 @@ const SampleType = () => {
     setColorLists(resp?.data ?? []);
   };
 
+  // sample type
   const getAllSampleType = async () => {
     const resp = await fetchApi(
       "GET",
@@ -78,9 +79,17 @@ const SampleType = () => {
     setShowDetails(p => !p);
   };
 
-  /*-----------------edit handler----------------- */
+  //  edit handler
   const editHandler = (item: SampleTypeItem) => {
-    if (!item) return;
+    if (!item) {
+      reset({
+        sampleTypeId: 0,
+        sampleType: "",
+        containerColorId: 0,
+        isActive: 1,
+      });
+      return;
+    }
     reset({
       sampleTypeId: item?.sampleTypeId || 0,
       sampleType: item?.sampleType || "",
@@ -99,31 +108,36 @@ const SampleType = () => {
       {},
       { component: "SampleType" }
     );
-    if (!resp) return;
 
-    if (resp?.result) {
-      setSuccessMessage(resp?.message || "saved successfully");
-      reset({
-        sampleTypeId: 0,
-        sampleType: "",
-        containerColorId: 0,
-        isActive: 1,
-      });
-      await getAllSampleType();
+    if (!resp?.result) {
+      showError(error?.message ?? "Something went wrong!");
+      return;
     }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    reset({
+      sampleTypeId: 0,
+      sampleType: "",
+      containerColorId: 0,
+      isActive: 1,
+    });
+    await getAllSampleType();
   };
 
-  /*--------------------search handler-------------- */
+  // search handler
   const searchHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
+    if (!value) {
+      setFilteredList(sampleTypeMasterList);
+      return;
+    }
 
-    const filtered = sampleTypeMasterList.filter(item =>
-      item?.sampleType?.toLowerCase().includes(value)
-    );
+    const filteredData =
+      sampleTypeMasterList.filter(item => item?.sampleType?.toLowerCase().includes(value)) ?? [];
 
-    setFilteredList(filtered);
+    setFilteredList(filteredData);
   };
 
+  // cancel handler
   const cancelHandler = () => {
     reset({
       sampleTypeId: 0,
@@ -151,7 +165,10 @@ const SampleType = () => {
             </InputField>
 
             <InputField label="Sample Container Color" required>
-              <select className="input-field" {...register("containerColorId")}>
+              <select
+                className="input-field"
+                {...register("containerColorId", { valueAsNumber: true })}
+              >
                 <option value={0}>Select</option>
                 {colorLists?.map(c => (
                   <option key={c?.colorId} value={c?.colorId}>
@@ -236,7 +253,11 @@ const SampleType = () => {
                         <td className="table-td">{idx + 1}</td>
 
                         <td className="table-td">{item?.sampleType || "-"}</td>
-                        <td className="table-td">
+                        <td
+                          className={`table-td ${
+                            Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
                         <td className="table-td">{item?.colorName || "-"}</td>
@@ -257,7 +278,7 @@ const SampleType = () => {
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
 
                         <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                          <i className="fa-solid fa-edit text-xl icon-color-button" />
                         </td>
                       </tr>
                     ))}

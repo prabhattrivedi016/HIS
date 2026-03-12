@@ -1,20 +1,30 @@
+import AllergyMaster from "../allergyMaster";
+import AllergyResultEntry from "../allergyResultEntry";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
+import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
+import HistoResultEntry from "../histoResultEntry";
+import ImportTariffs from "../importTariffs";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
+import LaboratoryHelpDesk from "../laboratoryHelpDesk";
 import LabResultEntry from "../labResultEntry";
+import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
+import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
+import PatientMaster from "../patientMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
+import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
 import NoPage from "../unauthorized";
@@ -50,4 +60,14 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "no-page": <NoPage />,
   "sample-management": <SampleManagement />,
   "lab-result-entry": <LabResultEntry />,
+  "result-entry-radiology": <ResultEntryRadiology />,
+  "histo-result-entry": <HistoResultEntry />,
+  "micro-result-entry": <MicroResultEntry />,
+  "lab-work-sheet": <LabWorkSheet />,
+  "allergy-result-entry": <AllergyResultEntry />,
+  "laboratory-help-desk": <LaboratoryHelpDesk />,
+  "allergy-master": <AllergyMaster />,
+  "patient-master": <PatientMaster />,
+  "corporate-master": <CorporateMaster />,
+  "import-tariffs": <ImportTariffs />,
 };

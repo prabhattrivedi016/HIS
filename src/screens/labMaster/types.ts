@@ -27,4 +27,23 @@ type LabMethodItem = {
   isActive: number;
 };
 
-export type { ColorItem, LabMethodItem, SampleTypeItem };
+type FieldBoyItem = {
+  fieldBoyId: number;
+  fieldBoyName: string;
+  isActive: number;
+  createdBy?: string;
+  createdOn?: string;
+  lastModifiedBy?: string;
+  lastModifiedOn?: string;
+};
+
+type SampleRejectionItem = {
+  sampleRejectionRemarksID: number;
+  sampleRejectionRemarks: string;
+  isActive: number;
+  createdBy?: string;
+  createdOn?: string;
+  lastModifiedBy?: string;
+  lastModifiedOn?: string;
+};
+export type { ColorItem, FieldBoyItem, LabMethodItem, SampleRejectionItem, SampleTypeItem };

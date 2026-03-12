@@ -108,3 +108,168 @@ export const LRPatientRemarkTableHeader = [
   "Edit",
   "Delete",
 ];
+
+export const ResultEntryRadiologyButtons = [
+  "Result Pending",
+  "Hold",
+  "Report Approved Pending",
+  "Approved",
+  "Printed",
+  "Dispatched",
+];
+
+export const ResultEntryRadiologyTableHeader = [
+  "#",
+  "Lab No",
+  "Bill Date",
+  "UHID",
+  "Patient Name",
+  "Age/Gender",
+  "Client Name",
+  "Due Amount",
+  "Refer Doctor",
+  "",
+  "Investigation",
+  "Approve",
+  "Approved Date",
+  "Remark",
+  "Report",
+  "Info",
+];
+
+export const ResultEntryRadiologyReportTableHeader = [
+  "#",
+  "Document",
+  "Uploaded On",
+  "Uploaded By",
+  "View",
+  "Delete",
+];
+
+export const ResultEntryRadiologyPatientInvestigationTableHeader = [
+  "Investigation Name",
+  "Bill Date",
+  "Billing By",
+  "Test Remark",
+  "Result Entered Date",
+  "Result Entered By",
+  "Approved Date",
+  "Approved By",
+];
+
+export const HistoResultEntryTableHeader = [
+  "#",
+  "Lab No",
+  "Bill Date",
+  "UHID",
+  "Patient Name",
+  "Age/Gender",
+  "Client Name",
+  "Due Amount",
+  "",
+  "",
+  "",
+  "Investigation",
+  "BarCode",
+  "Delivery Date",
+  "Print",
+  "Approve",
+  "Approved Date",
+  "Remark",
+  "Histo",
+  "Info",
+];
+
+export const LabWorkSheetButtons = [
+  "Sample Collection Pending",
+  "Department Receiving",
+  "Sample Collected",
+  "Abnormal",
+  "Hold",
+  "Approved",
+  "Dispatched",
+  "Urgent",
+];
+
+export const LabWorkSheetTableHeader = [
+  "#",
+  "Bill Date",
+  "Lab No",
+  "UHID",
+  "Patient Name",
+  "Age/Gender",
+  "Client Name",
+  "Investigation",
+  "Barcode",
+  "Print",
+];
+
+export const AllergyResultEntryButtons = [
+  "Result Pending",
+  "Report Approval Pending",
+  "Hold",
+  "Approved",
+  "Dispatched",
+];
+
+export const AllergyResultEntryTableHeader = [
+  "#",
+  "Lab No",
+  "Bill Date",
+  "UHID",
+  "Patient Name",
+  "Age/Gender",
+  "Client Name",
+  "Investigation",
+  "Barcode",
+  "Delivery Date",
+  "Print",
+  "Approved",
+  "Approved Date",
+  "Remark",
+  "Stickers",
+  "Info",
+];
+
+export const LaboratoryHelpDeskButtons = [
+  "Sample Collection Pending",
+  "Sample Collected",
+  "Department Received",
+  "Abnormal",
+  "Hold",
+  "Report Approval Pending",
+  "Approved",
+  "Dispatched",
+  "Urgent",
+];
+
+export const LaboratoryHelpDeskTableHeader = [
+  "Barcode",
+  "Lab No",
+  "Bill Date",
+  "UHID",
+  "Patient Name",
+  "Age/Gender",
+  "Contact No.",
+  "Client Name",
+  "Investigation",
+  "OutSource",
+  "	DisPatch",
+  "",
+  "",
+  "",
+];
+
+export const AllergySubTypeListTableHeader = [
+  "#",
+  "Allergy Type",
+  "Allergy Sub Type",
+  "Normal Range",
+  "Border Range",
+  "High Range",
+  "Default Reading",
+  "Unit",
+  "Image",
+  "Status",
+  "Edit",
+];

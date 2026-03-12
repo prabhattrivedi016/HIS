@@ -4,6 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { LabMethodTableHeader } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError, showSuccess } from "@/utils/alert";
 import { testMethodSchema } from "@/validation/labMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
@@ -19,7 +20,6 @@ const TestMethod = () => {
   const [labMethodsList, setLabMethodList] = useState<LabMethodItem[]>([]);
   const [filteredList, setFilteredList] = useState<LabMethodItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
     handleSubmit,
@@ -35,18 +35,17 @@ const TestMethod = () => {
       isActive: 1,
     },
   });
-  const methodId = watch("methodId");
-  const isEdit = Boolean(methodId);
+  const isEdit = Boolean(watch("methodId"));
   const buttonTitle = isEdit ? "Update" : "Create";
 
-  /*------------------get lab method master------------- */
+  // lab method
   const getLabMethod = async () => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_LAB_METHOD_MASTER,
       {},
       {},
-      { component: "TestMethod" }
+      { component: "TestMethod", silent: true }
     );
     setLabMethodList(resp?.data ?? []);
     setFilteredList(resp?.data ?? []);
@@ -62,10 +61,9 @@ const TestMethod = () => {
     setShowDetails(p => !p);
   };
 
-  /*----------------submit handler-------------- */
-  const onsubmit = async (formData: LabMethodFormItem) => {
-    console.log("formData", formData);
-    if (!formData?.methodId) return;
+  // submit handler
+  const onSubmit = async (formData: LabMethodFormItem) => {
+    if (!formData?.method) return;
 
     const resp = await fetchApi(
       "POST",
@@ -75,20 +73,20 @@ const TestMethod = () => {
       { component: "TestMethod" }
     );
 
-    if (!resp) return;
-
-    if (resp?.result) {
-      setSuccessMessage(resp?.message || "saved successfully");
-      reset({
-        methodId: 0,
-        method: "",
-        isActive: 1,
-      });
-      await getLabMethod();
+    if (!resp?.result) {
+      showError(error?.message ?? "Something went wrong!");
+      return;
     }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    reset({
+      methodId: 0,
+      method: "",
+      isActive: 1,
+    });
+    await getLabMethod();
   };
 
-  /*-----------------edit handler----------------- */
+  // edit handler
   const editHandler = (item: LabMethodItem) => {
     if (!item) return;
     reset({
@@ -98,15 +96,22 @@ const TestMethod = () => {
     });
   };
 
-  /*--------------------search handler-------------- */
+  // search handler
   const searchHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
 
-    const filtered = labMethodsList.filter(item => item?.method?.toLowerCase().includes(value));
+    if (!value) {
+      setFilteredList(labMethodsList);
+      return;
+    }
+
+    const filtered =
+      labMethodsList.filter(item => item?.method?.toLowerCase().includes(value)) ?? [];
 
     setFilteredList(filtered);
   };
 
+  // cancel handler
   const cancelHandler = () => {
     reset({
       methodId: 0,
@@ -114,12 +119,13 @@ const TestMethod = () => {
       isActive: 1,
     });
   };
+
   return (
     <div className="-mt-3">
       <div className="card mb-1">
         <h2 className="card-title ">Test Method Details</h2>
 
-        <form onSubmit={handleSubmit(onsubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
             <InputField label="Test Method Name" required>
               <input
@@ -191,7 +197,7 @@ const TestMethod = () => {
                   <tbody>
                     {filteredList?.length === 0 && (
                       <tr>
-                        <td colSpan={filteredList?.length} className="table-empty">
+                        <td colSpan={LabMethodTableHeader.length} className="table-empty">
                           No records found
                         </td>
                       </tr>
@@ -202,7 +208,11 @@ const TestMethod = () => {
                         <td className="table-td">{idx + 1}</td>
 
                         <td className="table-td">{item?.method || "-"}</td>
-                        <td className="table-td">
+                        <td
+                          className={`table-td ${
+                            Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
 
@@ -212,7 +222,7 @@ const TestMethod = () => {
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
 
                         <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                          <i className="fa-solid fa-edit text-xl icon-color-button" />
                         </td>
                       </tr>
                     ))}

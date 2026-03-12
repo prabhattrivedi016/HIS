@@ -1,11 +1,11 @@
 import Animation from "@/components/animation";
 import { BankDetailsTableHeader } from "@/constants/constants";
+import { showError, showSuccess } from "@/utils/alert";
 import { bankDetailsSchema } from "@/validation/bankMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import Swal from "sweetalert2";
 import { InferType } from "yup";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
@@ -49,9 +49,15 @@ const BankDetails = () => {
     setShowDetails(p => !p);
   };
 
-  /*----------------bank details list-------------------- */
+  // bank details
   const getBankDetailsList = async () => {
-    const resp = await fetchApi("GET", ENDPOINTS.GET_BANK_DETAIL_LIST, {}, {});
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BANK_DETAIL_LIST,
+      {},
+      {},
+      { component: "BankDetails", silent: true }
+    );
 
     setBankDetailsList(resp?.data ?? []);
   };
@@ -62,7 +68,7 @@ const BankDetails = () => {
     }
   }, [showDetails]);
 
-  /*-------------------------edit handler------------------------ */
+  // edit handler
   const editHandler = (item: BankDetailsListItem) => {
     if (!item) {
       reset({
@@ -93,7 +99,7 @@ const BankDetails = () => {
     });
   };
 
-  /*---------------------submit handler------------------- */
+  // submit handler
   const onSubmit = async (formData: BankDetailsFormItem) => {
     const resp = await fetchApi(
       "POST",
@@ -103,32 +109,27 @@ const BankDetails = () => {
       { component: "BankDetails" }
     );
     if (!resp) {
+      showError(error?.message ?? "Something went wrong!");
       return;
     }
-    if (resp?.result) {
-      Swal.fire({
-        position: "top",
-        title: resp?.message || "Saved successfully",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-      reset({
-        bankId: 0,
-        payeeName: "",
-        panNumber: "",
-        bankName: "",
-        bankAccountNumber: "",
-        bankAddress: "",
-        ifscCode: "",
-        pinCode: "",
-        tinNumber: "",
-        isActive: 1,
-      });
-    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    reset({
+      bankId: 0,
+      payeeName: "",
+      panNumber: "",
+      bankName: "",
+      bankAccountNumber: "",
+      bankAddress: "",
+      ifscCode: "",
+      pinCode: "",
+      tinNumber: "",
+      isActive: 1,
+    });
+
     await getBankDetailsList();
   };
 
-  /*-----------------cancel handler-------------------- */
+  //  cancel handler
   const cancelHandler = () => {
     reset({
       bankId: 0,
@@ -149,6 +150,7 @@ const BankDetails = () => {
       <div className="card mb-1">
         <h2 className="card-title ">Bank Details</h2>
 
+        {/* form data */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
             <InputField label="Payee Name" required>
@@ -247,7 +249,7 @@ const BankDetails = () => {
           </div>
         </form>
       </div>
-
+      {/* table */}
       <div className="card">
         <div className="card-header">
           <h2 className="card-title ">Bank Details List</h2>
@@ -304,7 +306,7 @@ const BankDetails = () => {
                         <td className="table-td">{item?.lastModifiedBy || "-"}</td>
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
                         <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" />
+                          <i className="fa-solid fa-edit text-xl icon-color-button" />
                         </td>
                       </tr>
                     ))}

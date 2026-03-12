@@ -248,3 +248,44 @@ select:-webkit-autofill {
 .name-header {
   @apply font-bold text-[#c64333];
 }
+
+/* ----------------------lab pages------------------------------ */
+.header-summary {
+  @apply -mt-3 flex flex-col lg:flex-row lg:items-center lg:justify-between;
+}
+
+.header-summary-left-stats {
+  @apply flex flex-col lg:flex-row items-center gap-4;
+}
+
+.header-summary-test-buttons {
+  @apply flex flex-row lg:flex-row gap-2 m-2 overflow-auto;
+}
+
+.lab-page-header-buttons {
+  @apply flex items-center gap-2 px-4 py-2 rounded-lg border whitespace-nowrap text-sm font-medium;
+}
+.lab-pages-active-btn {
+  @apply bg-[#0B5394] text-white shadow-sm;
+}
+.lab-pages-inactive-btn {
+  @apply bg-white text-gray-700 border-gray-200 hover:bg-gray-50;
+}
+
+.report-button {
+  @apply flex items-center gap-2 px-4 py-2 rounded-lg border
+  whitespace-nowrap text-sm font-medium transition-colors duration-150;
+}
+
+.report-button-active {
+  @apply bg-[#0B5394] text-white shadow-sm border-[#0B5394];
+}
+
+.report-button-inactive {
+  @apply bg-white text-gray-700 border-gray-300 hover:bg-gray-50;
+}
+
+/*----------------- icon color button ----------------*/
+.icon-color-button {
+  @apply text-xl text-blue-500 active:scale-80;
+}
