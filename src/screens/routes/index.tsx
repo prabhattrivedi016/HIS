@@ -12,6 +12,8 @@ import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import HistoResultEntry from "../histoResultEntry";
 import ImportTariffs from "../importTariffs";
+import InvestigationObservationMapping from "../investigationObservationMapping";
+import IpdBilling from "../ipdBilling";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
 import LaboratoryHelpDesk from "../laboratoryHelpDesk";
@@ -70,4 +72,6 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "patient-master": <PatientMaster />,
   "corporate-master": <CorporateMaster />,
   "import-tariffs": <ImportTariffs />,
+  "ipd-billing": <IpdBilling />,
+  "investigation-observation-mapping": <InvestigationObservationMapping />,
 };

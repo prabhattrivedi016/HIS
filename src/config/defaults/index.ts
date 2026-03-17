@@ -152,6 +152,23 @@ const ENDPOINTS = {
   CREATE_UPDATE_FIELD_BOY_MASTER: "Lab/createUpdateFieldBoyMaster",
   CREATE_UPDATE_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/createUpdateSampleRejectionRemarksMaster",
   GET_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/getSampleRejectionRemarksMaster",
+
+  // lab investigation master
+  GET_CATEGORY_LIST: "Home/getCategoryList",
+  GET_SUB_CATEGORY_LIST: "Home/getSubCategoryList",
+  GET_SUB_SUB_CATEGORY_LIST: "Home/getSubSubCategoryList",
+  GET_INVESTIGATION_SERVICE_ITEM_LIST: "Lab/getInvestigationServiceItemList",
+  CREATE_UPDATE_SUB_CATEGORY: "Home/createUpdateSubCategory",
+  CREATE_UPDATE_SUB_SUB_CATEGORY: "Home/createUpdateSubSubCategory",
+  CREATE_UPDATE_INVESTIGATION_SERVICE_ITEM_MASTER: "Lab/createUpdateInvestigationServiceItemMaster",
+
+  // investigation observation mapping
+  CREATE_UPDATE_OBSERVATION_MASTER: "Lab/createUpdateObservationMaster",
+  GET_OBSERVATION_MASTER: "Lab/getObservationMaster",
+  GET_LAB_INVESTIGATION_OBSERVATION_MAPPING: "Lab/getInvastigationObservationMapping",
+  SUBMIT_INVESTIGATION_OBSERVATION_MAPPING: "Lab/submitInvastigationObservationMapping",
+  GET_INVESTIGATION_OBSERVATION_RANGE_MASTER: "Lab/getInvastigationObservationRangeMaster",
+  SUBMIT_INVESTIGATION_OBSERVATION_RANGE_MASTER: "Lab/submitInvastigationObservationRangeMaster",
 };
 
 export { ENDPOINTS };

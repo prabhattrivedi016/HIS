@@ -237,13 +237,16 @@ select:-webkit-autofill {
 
 /* -----------------------card buttons---------------------------------- */
 .save-btn {
-  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90;
+  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
 /*  */
 .cancel-button {
   @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
 }
 
+.disabled-btn {
+  @apply bg-gray-400 text-white rounded-lg px-3 py-2 text-base font-medium cursor-not-allowed opacity-60 pointer-events-none;
+}
 /* --------------------------Name header------------------------- */
 .name-header {
   @apply font-bold text-[#c64333];
@@ -288,4 +291,8 @@ select:-webkit-autofill {
 /*----------------- icon color button ----------------*/
 .icon-color-button {
   @apply text-xl text-blue-500 active:scale-80;
+}
+
+.icon-color-delete {
+  @apply text-xl text-red-500 active:scale-80;
 }

@@ -277,7 +277,7 @@ const BankDetails = () => {
                   <tbody>
                     {bankDetailsList?.length === 0 && (
                       <tr>
-                        <td colSpan={[].length} className="table-empty">
+                        <td colSpan={BankDetailsTableHeader.length} className="table-empty">
                           No records found
                         </td>
                       </tr>

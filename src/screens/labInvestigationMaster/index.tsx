@@ -1,355 +1,344 @@
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
-import MultiCheckboxOption from "@/components/multiSelectCheckBox";
+import ToggleButton from "@/components/toggleButton";
 import { ENDPOINTS } from "@/config/defaults";
-import { Status } from "@/constants/constants";
+import { CATEGORY_ID } from "@/constants/constants";
+import { LabInvestigationTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { usePickMaster } from "@/hooks/usePickMaster";
-import { handleMultiSelectWithAll } from "@/utils/multiSelectAllHandler";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
-import Select from "react-select";
-import { SampleTypeItem, SelectItem, TestMethodItem } from "./types";
+import Select, { SingleValue } from "react-select";
+import AddLabInvestigation from "./components/AddLabInvestigation";
+import {
+  InvestigationTableItem,
+  SelectItem,
+  SubCategoryListItem,
+  SubSubCategoryItem,
+} from "./types";
 
 const LabInvestigationMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const [testMethod, setTestMethod] = useState<TestMethodItem[]>([]);
-  const [selectedTest, setSelectedTest] = useState<SelectItem | null>(null);
-  const [sampleType, setSampleType] = useState<SampleTypeItem[]>([]);
-  const [selectedSample, setSelectedSample] = useState<SelectItem[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
 
-  const {
-    setValue,
-    handleSubmit,
-    register,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {},
-  });
+  const [subCategoryList, setSubCategoryList] = useState<SubCategoryListItem[]>([]);
+  const [selectSubCategory, setSelectedSubCategory] = useState<SelectItem | null>(null);
 
-  /*----------------sample volume --------------------*/
+  const [subSubCategoryList, setSubSubCategoryList] = useState<SubSubCategoryItem[]>([]);
+  const [selectSubSubCategory, setSelectedSubSubCategory] = useState<SelectItem | null>(null);
+  const [investigationName, setInvestigationName] = useState<string>("");
 
-  const getSample = usePickMaster("testSampleVolume");
-  const getSampleVolume = getSample?.pickMasterValue ?? [];
+  const [openNewInvestigation, setOpenNewInvestigation] = useState<boolean>(false);
+  const [renderNewInvestigation, setRenderNewInvestigation] = useState<boolean>(false);
 
-  /*-----------------lab report type------------- */
-  const labReport = usePickMaster("labReportType");
-  const labReportType = labReport?.pickMasterValue;
+  const [investigationTableData, setInvestigationTableData] = useState<InvestigationTableItem[]>(
+    []
+  );
+  const [editRow, setEditRow] = useState<InvestigationTableItem | null>(null);
 
-  /*---------------------test method--------------------- */
-  const getLabMethod = async () => {
+  // category
+  const getCategory = useCallback(async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_LAB_METHOD_MASTER,
+      ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { isActive: Status?.ACTIVE } },
-      { component: "TestMethod" }
+      { params: { categoryIds: CATEGORY_ID?.categoryId } },
+      { component: "LabInvestigationMaster", silent: true }
     );
-    setTestMethod(resp?.data ?? []);
-    console.log("resp", resp);
+    setCategoryName(resp?.data?.[0]?.categoryName ?? "Investigations");
+    setCategoryId(resp?.data?.[0]?.categoryId ?? 3);
+  }, []);
+
+  // sub category
+  const getSubCategory = useCallback(async (id: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_CATEGORY_LIST,
+      {},
+      {
+        params: {
+          categoryIds: id,
+        },
+      },
+      { component: "LabInvestigationMaster", silent: true }
+    );
+
+    setSubCategoryList(resp?.data ?? []);
+  }, []);
+
+  const subCategorySelectOption = useMemo<readonly SelectItem[]>(() => {
+    return (
+      subCategoryList?.map((d: SubCategoryListItem) => ({
+        label: d?.subCategoryName,
+        value: d?.subCategoryId,
+      })) || []
+    );
+  }, [subCategoryList]);
+
+  const subCategorySelectHandler = (option: SingleValue<SelectItem>) => {
+    setSelectedSubCategory(option);
+    setSelectedSubSubCategory(null);
+    setSubSubCategoryList([]);
+  };
+
+  // sub sub category
+  const getSubSubCategory = useCallback(async (id: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
+      {},
+      { params: { subCategoryIds: id } },
+      {
+        component: "LabInvestigationMaster",
+        silent: true,
+      }
+    );
+
+    setSubSubCategoryList(resp?.data ?? []);
+  }, []);
+
+  const subSubCategorySelectOption = useMemo<readonly SelectItem[]>(() => {
+    return (
+      subSubCategoryList?.map((d: SubSubCategoryItem) => ({
+        label: d?.subSubCategoryName,
+        value: d?.subSubCategoryId,
+      })) || []
+    );
+  }, [subSubCategoryList]);
+
+  const subSubCategorySelectHandler = (option: SingleValue<SelectItem>) => {
+    setSelectedSubSubCategory(option);
   };
 
   useEffect(() => {
-    getLabMethod();
-  }, []);
+    getCategory();
+  }, [getCategory]);
 
-  const testMethodOption = useMemo(
-    () =>
-      testMethod.map(t => ({
-        value: t?.methodId,
-        label: t?.method,
-      })),
-    [testMethod]
+  useEffect(() => {
+    if (categoryId === null) return;
+    getSubCategory(categoryId);
+  }, [categoryId, getSubCategory]);
+
+  useEffect(() => {
+    if (!selectSubCategory?.value) return;
+    getSubSubCategory(selectSubCategory.value);
+  }, [getSubSubCategory, selectSubCategory?.value]);
+
+  // add new investigation
+  const addNewInvestigation = () => {
+    setEditRow(null);
+    setOpenNewInvestigation(true);
+    setRenderNewInvestigation(true);
+  };
+
+  // search handler
+  const searchHandler = useCallback(
+    async (e?: React.FormEvent<HTMLFormElement>) => {
+      e?.preventDefault();
+      if (!categoryId) return;
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
+        {},
+        {
+          params: {
+            categoryId: categoryId,
+            subCategoryId: selectSubCategory?.value ?? "",
+            subSubCategoryId: selectSubSubCategory?.value ?? "",
+            serviceItemId: "",
+            serviceName: investigationName.trim(),
+            isActive: "",
+          },
+        },
+        { component: "LabInvestigationMaster" }
+      );
+
+      setInvestigationTableData(resp?.data ?? []);
+    },
+    [categoryId, investigationName, selectSubCategory?.value, selectSubSubCategory?.value]
   );
 
-  const testMethodChangeHandler = (option: SelectItem) => {
-    setSelectedTest(option);
-
-    setValue("DepartmentId", option?.value ?? 0, {
-      shouldValidate: true,
-    });
-    setValue("Department", option?.label ?? "", {
-      shouldValidate: true,
-    });
+  const editHandler = (item: InvestigationTableItem) => {
+    setEditRow(item);
+    setOpenNewInvestigation(true);
+    setRenderNewInvestigation(true);
   };
 
-  /*-------------------sample type----------------------- */
-  const getAllSampleType = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
-      {},
-      {},
-      { component: "SampleType", silent: true }
-    );
-
-    setSampleType(resp?.data ?? []);
-  };
-
-  useEffect(() => {
-    getAllSampleType();
+  // close handler
+  const closeHandler = useCallback(() => {
+    setOpenNewInvestigation(false);
+    setEditRow(null);
   }, []);
-
-  const sampleTypeOption = useMemo<readonly SelectItem[]>(() => {
-    return [
-      { label: "All", value: 0 },
-      ...sampleType.map(b => ({
-        label: b?.sampleType,
-        value: b?.sampleTypeId,
-      })),
-    ];
-  }, [sampleType]);
-
-  const sampleTypeChangeHandler = (options: SelectItem[]) => {
-    const result = handleMultiSelectWithAll(options, selectedSample, sampleTypeOption);
-
-    setSelectedSample(result?.selectedOptions || []);
-
-    // optional if you want to store in form
-    setValue(
-      "sampleTypeIds",
-      options?.map(o => o.value),
-      { shouldValidate: true }
-    );
-  };
-
   return (
     <div className="page-container">
-      <h1 className="page-heading">Lab Investigation Master</h1>
+      {/* Page Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mb-1">
+        <div>
+          <h1 className="page-heading">Lab Investigation Master</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span>Lab Investigation Master</span>
-      </nav>
+          <nav className="helper-text flex items-center gap-2">
+            <NavLink to="/dashboard" className="hover:underline">
+              Home
+            </NavLink>
+            <span>››</span>
+            <span>Lab Investigation Master</span>
+          </nav>
+        </div>
 
-      <div className="card">
-        <h2 className="card-title ">Investigation Details</h2>
+        <button className="save-btn whitespace-nowrap" onClick={addNewInvestigation}>
+          Add New Lab Investigation
+        </button>
+      </div>
 
-        <form>
-          <div className="form-grid-4">
+      {/* Investigation Form */}
+      <div className="card mb-1">
+        <h2 className="card-title">Investigation Details</h2>
+
+        <form onSubmit={searchHandler}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <InputField label="Category" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter category "
-                {...register("hospitalName")}
-              />
-              {/* {errors.hospitalName && (
-                <p className="input-field-error">{errors.hospitalName.message}</p>
-              )} */}
+              <input value={categoryName!} readOnly className="input-field" />
             </InputField>
 
             <InputField label="Sub Category" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter sub category "
-                {...register("hospitalCode")}
-              />
-              {/* {errors.hospitalCode && (
-                <p className="input-field-error">{errors.hospitalCode.message}</p>
-              )} */}
-            </InputField>
-
-            <InputField label="Sub Sub Category" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter sub sub category "
-                {...register("website")}
-              />
-              {/* {errors.website && <p className="input-field-error">{errors.website.message}</p>} */}
-            </InputField>
-
-            <InputField label="Investigation Name" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter investigation name "
-                {...register("email")}
-              />
-              {/* {errors.email && <p className="input-field-error">{errors.email.message}</p>} */}
-            </InputField>
-
-            <InputField label="Investigation Code" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter investigation code "
-                {...register("contact1")}
-              />
-              {/* {errors.contact1 && <p className="input-field-error">{errors.contact1.message}</p>} */}
-            </InputField>
-
-            <InputField label="Short Name">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter short name "
-                {...register("contact2")}
-              />
-              {/* {errors.contact2 && <p className="input-field-error">{errors.contact2.message}</p>} */}
-            </InputField>
-
-            <InputField label="Report Type" required>
-              <select className="input-field">
-                {labReportType.map(l => (
-                  <option key={l?.key} value={l?.key}>
-                    {l?.value}
-                  </option>
-                ))}
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Test Method" required>
               <Select
-                value={selectedTest}
-                options={testMethodOption}
-                placeholder="Select test method"
+                value={selectSubCategory}
+                options={subCategorySelectOption}
+                placeholder="Select sub category"
                 isSearchable
                 isClearable
-                onChange={(option: any) => testMethodChangeHandler(option)}
+                onChange={option => subCategorySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
             </InputField>
 
-            <InputField label="Sample Type" required>
+            <InputField label="Sub Sub Category">
               <Select
-                isMulti
-                value={selectedSample}
-                options={sampleTypeOption}
-                placeholder="Select sample type"
+                value={selectSubSubCategory}
+                options={subSubCategorySelectOption}
+                placeholder="Select sub sub category"
                 isSearchable
                 isClearable
-                onChange={(option: any) => sampleTypeChangeHandler(option)}
-                components={{ Option: MultiCheckboxOption }}
+                onChange={option => subSubCategorySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
             </InputField>
 
-            <InputField label="Default Sample Type" required>
-              <select className="input-field">
-                {selectedSample
-                  ?.filter(s => s.value !== 0)
-                  .map(s => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Gender" required>
-              {/* <input
-                type="text"
-                className="input-field"
-                placeholder="Enter contact number "
-                {...register("address")}
-              /> */}
-              <select className="input-field" {...register("gender")}>
-                <option>Both</option>
-                <option>Male</option>
-                <option>Female</option>
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Department Receiving" required>
+            <InputField label="Investigation Name">
               <input
                 type="text"
                 className="input-field"
-                placeholder="Enter department receiving "
-                {...register("address")}
+                placeholder="Enter investigation name"
+                value={investigationName}
+                onChange={e => setInvestigationName(e.target.value)}
               />
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Sample Volume" required>
-              {/* <input
-                type="text"
-                className="input-field"
-                placeholder="Enter contact number "
-                {...register("address")}
-              /> */}
-              <select className="input-field">
-                <option value="">Select</option>
-                {getSampleVolume?.map(s => (
-                  <option key={s?.key} value={s?.key}>
-                    {s?.value}
-                  </option>
-                ))}
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="TAT (in minute)" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter contact number "
-                {...register("address")}
-              />
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Out Sourced" required>
-              <select className="input-field">
-                <option>No</option>
-                <option>Yes</option>
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Print Separate" required>
-              <select className="input-field">
-                <option>Yes</option>
-                <option>No</option>
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Investigation Comment" required>
-              <textarea
-                className="input-field"
-                placeholder="Enter investigation comment"
-                rows={2}
-                {...register("address")}
-              />
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
-            </InputField>
-
-            <InputField label="Status" required>
-              <select className="input-field">
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
             </InputField>
           </div>
 
-          <div className="form-actions-responsive mt-5">
+          {/* form buttons */}
+          <div className="form-actions-responsive mt-6">
             <button type="submit" className="save-btn">
-              {"Save"}
-            </button>
-            <button type="button" className="cancel-button ">
-              Cancel
+              Search
             </button>
           </div>
         </form>
       </div>
+
+      {/* table */}
+
+      {!!investigationTableData && investigationTableData.length > 0 ? (
+        <div className="table-container ">
+          <div className="table-scroll-wrapper ">
+            <div className="table-size lg:min-h-110 lg:max-h-110">
+              <table className="base-table ">
+                <thead className="table-head">
+                  <tr>
+                    {LabInvestigationTableHeader.map((header, index) => (
+                      <th key={index} className="table-th ">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {investigationTableData.length === 0 ? (
+                    <tr>
+                      <td colSpan={LabInvestigationTableHeader.length} className="table-empty">
+                        No records found
+                      </td>
+                    </tr>
+                  ) : (
+                    investigationTableData.map((item, idx) => (
+                      <tr key={item.serviceItemId} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">{item.reportType || "-"}</td>
+                        <td className="table-td wrap-break-word max-w-48">{item.name || "-"}</td>
+                        <td className="table-td">{item.code || "-"}</td>
+                        <td className="table-td">
+                          {item.tatInMin !== undefined && item.tatInMin !== null
+                            ? `${item.tatInMin} min`
+                            : "-"}
+                        </td>
+                        <td className="table-td">{item.sampleTypeId || "-"}</td>
+                        <td className="table-td">{item.sampleVolume || "-"}</td>
+                        <td className="table-td">{item.forGender || "-"}</td>
+                        <td
+                          className={`table-td ${
+                            Number(item.isActive) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
+                          {Number(item.isActive) === 1 ? "Active" : "Inactive"}
+                        </td>
+                        <td className="table-td">
+                          <button type="button" className="icon-color-button cursor-pointer">
+                            <i className="fa-solid fa-search text-xl" />
+                          </button>
+                        </td>
+                        <td className="table-td">
+                          <button
+                            type="button"
+                            className="icon-color-button cursor-pointer"
+                            onClick={() => editHandler(item)}
+                          >
+                            <i className="fa-solid fa-edit text-xl" />
+                          </button>
+                        </td>
+                        <td className="table-td">
+                          <div onClick={e => e.stopPropagation()}>
+                            <ToggleButton checked={item.isActive === 1} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {!!renderNewInvestigation && (
+        <AddLabInvestigation
+          isOpen={openNewInvestigation}
+          onClose={closeHandler}
+          categoryName={categoryName}
+          categoryId={categoryId}
+          data={editRow}
+          refreshTableData={searchHandler}
+        />
+      )}
+
+      {/* loader */}
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

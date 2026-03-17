@@ -273,3 +273,63 @@ export const AllergySubTypeListTableHeader = [
   "Status",
   "Edit",
 ];
+
+export const IpdBillingTableHeader = [
+  "#",
+  "View",
+  "UHID",
+  "IPD No",
+  "Patient Name",
+  "Age",
+  "Gender",
+  "Contact Number",
+  "State",
+  "District",
+  "City",
+  "Address",
+  "Billing Type/Bed",
+  "Admission Date & Time",
+  "Discharge Date & Time",
+  "Corporate",
+  "User Name",
+];
+
+export const LabInvestigationTableHeader = [
+  "#",
+  "Item Type",
+  "Investigation Name",
+  "Test Code",
+  "TAT",
+  "Sample Type",
+  "Sample Volume",
+  "Gender",
+  "Status",
+  "View",
+  "Edit",
+  "Status",
+];
+
+export const ObservationMappingTableHeader = [
+  "Observation",
+  "Is Header",
+  "Is Bold",
+  "Is UnderLine",
+  "Is Mandatory",
+  "Round Off",
+  "Method",
+  "Edit Ranges",
+  "Delete",
+];
+
+export const EditRangesTableHeader = [
+  "Gender",
+  "From Age (Days)",
+  "To Age (Days)",
+  "Default Value",
+  "Min Value",
+  "Max Value",
+  "Unit",
+  "Display Value",
+  "Add",
+  "Delete",
+];
