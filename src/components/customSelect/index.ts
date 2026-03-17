@@ -1,11 +1,11 @@
 import { StylesConfig } from "react-select";
 
 export interface SelectItem {
-  label: string;
-  value: number;
+  label?: string;
+  value?: string | number;
 }
 
-export const SelectStyles: StylesConfig<SelectItem, true> = {
+export const SelectStyles: StylesConfig<SelectItem, boolean> = {
   container: base => ({
     ...base,
     width: "100%",

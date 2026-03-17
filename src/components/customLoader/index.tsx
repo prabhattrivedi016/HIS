@@ -9,7 +9,7 @@ const CustomLoader = ({ isLoading }: { isLoading: boolean }) => {
         fixed inset-0 
         bg-black/40 backdrop-blur-sm 
         flex items-center justify-center 
-        z-50
+        z-9999999999
       "
     >
       <Spinner height={100} width={100} />

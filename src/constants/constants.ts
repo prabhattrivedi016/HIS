@@ -41,6 +41,19 @@ export enum ImportTariffsTabName {
   IMPORT_TARIFFS_UPLOAD = "Upload",
 }
 
+export enum IPDBillingTabName {
+  TOTAL_ADMITTED = "Total Admitted",
+  TOTAL_DISCHARGED = "Today Discharged",
+  CASH = "Cash",
+  CORPORATE = "Corporate",
+  ADMITTED = "Admission",
+  DISCHARGE = "Discharge",
+  BILL_GENERATED_PENDING = "Bill Generated Pending",
+  FILE_CLOSED_PENDING = "File Closed Pending",
+  DISCHARGE_SUMMARY_READY = "Discharge Summary Ready",
+  ZERO_ADVANCES = "Zero Advances",
+}
+
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",
@@ -215,3 +228,13 @@ export enum DefaultBranch {
 export enum Active {
   isActive = 1,
 }
+
+export enum CATEGORY_ID {
+  categoryId = 3,
+}
+
+export const labTypes = [
+  { id: 1, name: "Pathology" },
+  { id: 2, name: "Radiology" },
+  { id: 3, name: "Cardiology" },
+];
