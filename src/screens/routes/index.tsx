@@ -26,6 +26,7 @@ import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
 import PatientMaster from "../patientMaster";
+import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
@@ -77,4 +78,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ipd-billing": <IpdBilling />,
   "investigation-observation-mapping": <InvestigationObservationMapping />,
   "refer-lab-master": <ReferLabMaster />,
+  "rate-list-master": <RateListMaster />,
 };
