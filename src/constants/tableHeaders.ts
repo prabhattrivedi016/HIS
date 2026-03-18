@@ -333,3 +333,14 @@ export const EditRangesTableHeader = [
   "Add",
   "Delete",
 ];
+
+export const ReferLabListTableHeader = [
+  "#",
+  "Out Source Lab",
+  "Branch Name",
+  "Contact Person",
+  "Contact No",
+  "Address",
+  "Status",
+  "Edit",
+];

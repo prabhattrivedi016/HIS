@@ -41,8 +41,7 @@ const Sidebar = () => {
   } catch {
     storedRoleId = 0;
   }
-  const roleId =
-    Number(roleContext?.roleId ?? 0) || storedRoleId;
+  const roleId = Number(roleContext?.roleId ?? 0) || storedRoleId;
   const userId = Number(authContext?.user?.userId ?? 0);
 
   const location = useLocation();
@@ -224,7 +223,11 @@ const Sidebar = () => {
                 >
                   <div className="flex items-center gap-2">
                     <i className={`text-xl ${tab.tabName.iconClass}`} />
-                    {sidebarOpen && <span className="font-bold">{tab.tabName.tabName}</span>}
+                    {sidebarOpen && (
+                      <span className="font-bold whitespace-nowrap overflow-hidden text-ellipsis ">
+                        {tab.tabName.tabName}
+                      </span>
+                    )}
                   </div>
 
                   {sidebarOpen && (
@@ -258,7 +261,7 @@ const Sidebar = () => {
                                 });
                               }}
                               className={({ isActive }) =>
-                                `block w-full px-3 py-2 rounded hover:bg-gray-300 ${
+                                `block w-full px-3 py-2 rounded hover:bg-gray-300 whitespace-nowrap overflow-hidden text-ellipsis ${
                                   isActive || location.pathname.startsWith(path)
                                     ? "bg-gray-200"
                                     : ""

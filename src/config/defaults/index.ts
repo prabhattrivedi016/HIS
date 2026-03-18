@@ -169,6 +169,10 @@ const ENDPOINTS = {
   SUBMIT_INVESTIGATION_OBSERVATION_MAPPING: "Lab/submitInvastigationObservationMapping",
   GET_INVESTIGATION_OBSERVATION_RANGE_MASTER: "Lab/getInvastigationObservationRangeMaster",
   SUBMIT_INVESTIGATION_OBSERVATION_RANGE_MASTER: "Lab/submitInvastigationObservationRangeMaster",
+
+  // refer lab master
+  GET_OUT_SOURCE_LAB_MASTER_LIST: "Admin/getOutSourceLabMasterList",
+  SAVE_OUT_SOURCE_LAB_MASTER: "Admin/saveOutSourceLabMaster",
 };
 
 export { ENDPOINTS };
