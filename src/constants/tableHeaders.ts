@@ -344,3 +344,5 @@ export const ReferLabListTableHeader = [
   "Status",
   "Edit",
 ];
+
+export const RateListMasterTableHeader = ["#", "Rate List Name", "Expiry date", "Status", "Edit"];

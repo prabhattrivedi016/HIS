@@ -173,6 +173,10 @@ const ENDPOINTS = {
   // refer lab master
   GET_OUT_SOURCE_LAB_MASTER_LIST: "Admin/getOutSourceLabMasterList",
   SAVE_OUT_SOURCE_LAB_MASTER: "Admin/saveOutSourceLabMaster",
+
+  // rate list master
+  GET_RATE_LIST_MASTER: "Admin/getRateListMaster",
+  CREATE_UPDATE_RATE_LIST_MASTER: "Admin/createUpdateRateListMaster",
 };
 
 export { ENDPOINTS };
