@@ -152,6 +152,7 @@ const ObservationPopup = ({ isOpen, onClose, data, onSuccess }: ObservationPopup
     await onSuccess?.();
     closeTimer.current = setTimeout(() => {
       onClose();
+      setSuccessMessage("");
     }, 1000);
     reset(resetFormData());
   };

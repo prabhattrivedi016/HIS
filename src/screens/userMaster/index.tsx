@@ -38,7 +38,6 @@ const UserMaster = () => {
   const [columnVisibility, setColumnVisibility] = useState({});
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
-  const [errorMessage, setErrorMessage] = useState("");
   const [popupPos, setPopupPos] = useState(null);
   const [downloadPopup, setDownloadPopup] = useState(null);
   const [onDownload, setOnDownload] = useState(false);
@@ -170,7 +169,7 @@ const UserMaster = () => {
   // render helper
   const renderComponent = view => {
     if (error) {
-      return <ErrorMessage text={errorMessage || error} />;
+      return <ErrorMessage text={error?.message} />;
     }
     if (loading) {
       return <div className="initial-message">Loading user master...</div>;

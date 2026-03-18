@@ -344,7 +344,7 @@
 
 .popup-bg-overlay {
   @apply fixed inset-0 bg-black/40 backdrop-blur-sm
-          transition-opacity duration-300 z-[9998];
+          transition-opacity duration-300 z-9998;
 }
 
 .central-popup {

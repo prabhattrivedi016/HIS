@@ -306,6 +306,7 @@ const EditRangePopup = ({ isOpen, onClose, data }: EditRangePopupProps) => {
     setSuccessMessage(resp?.message ?? "Data saved successfully");
     closeTimer.current = setTimeout(() => {
       onClose();
+      setSuccessMessage("");
     }, 1000);
   };
 

@@ -1,3 +1,4 @@
+import React from "react";
 import AllergyMaster from "../allergyMaster";
 import AllergyResultEntry from "../allergyResultEntry";
 import BankMaster from "../bankMaster";
@@ -26,6 +27,7 @@ import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
 import PatientMaster from "../patientMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
+import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
@@ -36,7 +38,7 @@ import UserGroupMaster from "../userGroupMaster";
 import UserMaster from "../userMaster";
 import VendorMaster from "../vendorMaster";
 
-export const authorizedRouteMap: Record<string, JSX.Element> = {
+export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
   "role-master": <RoleMaster />,
   "user-master": <UserMaster />,
@@ -74,4 +76,5 @@ export const authorizedRouteMap: Record<string, JSX.Element> = {
   "import-tariffs": <ImportTariffs />,
   "ipd-billing": <IpdBilling />,
   "investigation-observation-mapping": <InvestigationObservationMapping />,
+  "refer-lab-master": <ReferLabMaster />,
 };
