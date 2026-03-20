@@ -32,6 +32,7 @@ import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
+import TariffManager from "../tariffManager";
 import NoPage from "../unauthorized";
 import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
@@ -79,4 +80,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "investigation-observation-mapping": <InvestigationObservationMapping />,
   "refer-lab-master": <ReferLabMaster />,
   "rate-list-master": <RateListMaster />,
+  "tariff-manager": <TariffManager />,
 };

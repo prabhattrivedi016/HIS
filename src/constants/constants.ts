@@ -41,6 +41,12 @@ export enum ImportTariffsTabName {
   IMPORT_TARIFFS_UPLOAD = "Upload",
 }
 
+export enum TariffManagerTabName {
+  ALL_SERVICES = "All Services",
+  DOCTOR_VISITS = "Doctor Visits",
+  COPY_TARIFF = "Copy Tariff",
+}
+
 export enum IPDBillingTabName {
   TOTAL_ADMITTED = "Total Admitted",
   TOTAL_DISCHARGED = "Today Discharged",
@@ -231,6 +237,7 @@ export enum Active {
 
 export enum CATEGORY_ID {
   categoryId = 3,
+  bedType = 10,
 }
 
 export const labTypes = [
@@ -238,3 +245,17 @@ export const labTypes = [
   { id: 2, name: "Radiology" },
   { id: 3, name: "Cardiology" },
 ];
+
+export const TARIFF_MANAGER_GET_CATEGORY = {
+  OUT_PATIENT: "8,3,11,4,13,5",
+  IN_PATIENT: "8,3,11,12,4,13,5,10,9",
+};
+export enum PATIENT_TYPE {
+  OPD = "OPD",
+  IPD = "IPD",
+}
+
+export enum VISIT_TYPE {
+  OUT_PATIENT = 1,
+  IN_PATIENT = 2,
+}

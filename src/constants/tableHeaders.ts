@@ -345,4 +345,26 @@ export const ReferLabListTableHeader = [
   "Edit",
 ];
 
-export const RateListMasterTableHeader = ["#", "Rate List Name", "Expiry date", "Status", "Edit"];
+export const RateListMasterTableHeader = [
+  "#",
+  "Rate List Name",
+  "Applicable Date",
+  "Expiry date",
+  "Status",
+  "Edit",
+];
+
+export const TariffManagerTableHeader = [
+  "#",
+  "Rate List",
+  "Type",
+  "Category",
+  "Sub Category",
+  "Sub Sub Category",
+  "Service",
+  "Alias",
+  "Service Code",
+  "Rate",
+  "Emergency Charges",
+  "Editable",
+];

@@ -177,6 +177,11 @@ const ENDPOINTS = {
   // rate list master
   GET_RATE_LIST_MASTER: "Admin/getRateListMaster",
   CREATE_UPDATE_RATE_LIST_MASTER: "Admin/createUpdateRateListMaster",
+
+  //tariff manager
+  GET_TARIFF_MASTER: "Admin/getTariffMaster",
+  CREATE_UPDATE_TARIFF_MASTER: "Admin/createUpdateTariffMaster",
+  GET_SERVICE_ITEM_LIST: "Home/GetServiceItemList",
 };
 
 export { ENDPOINTS };
