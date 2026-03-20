@@ -1,6 +1,7 @@
 type RateListTableItem = {
   rateListId: number;
   rateListName: string;
+  applicableDate?: string;
   expiryDate: string;
   isActive: number;
 };

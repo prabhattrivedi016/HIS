@@ -1,11 +1,12 @@
-import { OptionProps } from "react-select";
+import { GroupBase, OptionProps } from "react-select";
 
-export interface SelectItem {
+// ✅ define SelectItem HERE only
+type SelectItem = {
   label: string;
-  value: number;
-}
+  value: any;
+};
 
-const MultiCheckboxOption = (props: OptionProps<SelectItem, true>) => {
+const MultiCheckboxOption = (props: OptionProps<SelectItem, true, GroupBase<SelectItem>>) => {
   const { label, isSelected, innerRef, innerProps, isFocused } = props;
 
   return (

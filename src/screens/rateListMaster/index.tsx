@@ -10,7 +10,6 @@ import { RateListMasterFormData, rateListMasterSchema } from "@/validation/rateL
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import "react-datepicker/dist/react-datepicker.css";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import { RateListTableItem } from "./types";
@@ -19,6 +18,7 @@ import { RateListTableItem } from "./types";
 const resetFormData = () => ({
   rateListId: 0,
   rateListName: "",
+  applicableDate: "",
   expiryDate: "",
   isActive: 1,
 });
@@ -51,6 +51,8 @@ const RateListMaster = () => {
       {},
       { component: "RateListMaster", silent: true }
     );
+    console.log("resp", resp);
+
     setRateListData(resp?.data ?? []);
   };
 
@@ -65,7 +67,11 @@ const RateListMaster = () => {
 
   // Submit handler
   const onSubmit = async (data: RateListMasterFormData) => {
-    const payload = { ...data, expiryDate: formatToDDMMYYYY(data.expiryDate) };
+    const payload = {
+      ...data,
+      expiryDate: formatToDDMMYYYY(data.expiryDate),
+      applicableDate: formatToDDMMYYYY(data?.applicableDate!),
+    };
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_RATE_LIST_MASTER,
@@ -91,6 +97,7 @@ const RateListMaster = () => {
     reset({
       rateListId: item?.rateListId ?? 0,
       rateListName: item?.rateListName ?? "",
+      applicableDate: formatToYYYYMMDD(item?.applicableDate!),
       expiryDate: formatToYYYYMMDD(item?.expiryDate),
       isActive: item?.isActive ?? 1,
     });
@@ -122,6 +129,19 @@ const RateListMaster = () => {
               {errors.rateListName && (
                 <p className="input-field-error">{errors.rateListName.message}</p>
               )}
+            </InputField>
+
+            <InputField label="Applicable Date">
+              <input
+                type="date"
+                className="input-field"
+                placeholder="DD-MM-YYYY"
+                min={today}
+                {...register("applicableDate")}
+                onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+                  e.currentTarget.showPicker?.();
+                }}
+              />
             </InputField>
 
             <InputField label="Expiry Date" required>
@@ -200,6 +220,9 @@ const RateListMaster = () => {
                           <td className="table-td">{idx + 1}</td>
                           <td className="table-td  wrap-break-word max-w-1 ">
                             {item?.rateListName || "-"}
+                          </td>
+                          <td className="table-td">
+                            {formatDisplayDate(item?.applicableDate) || "-"}
                           </td>
                           <td className="table-td">{formatDisplayDate(item?.expiryDate) || "-"}</td>
                           <td
