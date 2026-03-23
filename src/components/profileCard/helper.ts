@@ -69,5 +69,10 @@ export const handleButtonClick = ({
     case "toggleReferDoctorEdit": {
       openDrawer(id);
     }
+
+    // corporate master
+    case "toggleCorporateEdit": {
+      openDrawer(id);
+    }
   }
 };

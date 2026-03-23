@@ -1,11 +1,11 @@
 export interface SelectItem {
   label: string;
-  value: number;
+  value: number | string;
 }
 
 interface MultiSelectAllResult {
   selectedOptions: SelectItem[];
-  selectedIds: number[];
+  selectedIds: Array<number | string>;
   cleared: boolean;
 }
 

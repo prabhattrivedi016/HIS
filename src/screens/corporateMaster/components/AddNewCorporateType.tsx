@@ -4,23 +4,27 @@ import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { AddNewInsuranceFormItem, addNewInsuranceSchema } from "@/validation/corporateMasterSchema";
+
+import {
+  AddNewCorporateTypeFormItem,
+  addNewCorporateTypeSchema,
+} from "@/validation/corporateMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
-import { AddNewInsuranceProps } from "../types";
+import { AddNewCorporateTypeProps } from "../types";
 
 const resetFormData = () => ({
-  insuranceCompanyId: 0,
-  insuranceCompanyName: "",
+  corporateTypeId: 0,
+  corporateTypeName: "",
 });
 
-const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProps) => {
+const AddNewCorporateType = ({ isOpen, onClose, data, refreshData }: AddNewCorporateTypeProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
-
   const buttonTitle = data ? "Update" : "Create";
   const closeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
@@ -29,25 +33,28 @@ const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProp
     reset,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(addNewInsuranceSchema),
+    resolver: yupResolver(addNewCorporateTypeSchema),
+    defaultValues: resetFormData(),
   });
 
+  //   edit
   useEffect(() => {
-    if (!isOpen) return;
+    if (isOpen) {
+      reset({
+        corporateTypeId: data?.corporateTypeId ?? 0,
+        corporateTypeName: data?.corporateTypeName ?? "",
+      });
+    }
+  }, [data, isOpen, reset]);
 
-    reset({
-      insuranceCompanyId: data?.insuranceCompanyId ?? 0,
-      insuranceCompanyName: data?.insuranceCompanyName ?? "",
-    });
-  }, [isOpen, data, reset]);
-
-  const onSubmit = async (formData: AddNewInsuranceFormItem) => {
+  //   submit handler
+  const onsubmit = async (formData: AddNewCorporateTypeFormItem) => {
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.CREATE_UPDATE_INSURANCE_COMPANY_MASTER,
+      ENDPOINTS.CREATE_UPDATE_CORPORATE_TYPE_MASTER,
       formData,
       {},
-      { component: "AddNewInsurance" }
+      { component: "AddNewCorporateType" }
     );
     if (!resp?.result) {
       return;
@@ -58,8 +65,16 @@ const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProp
       reset(resetFormData());
       setSuccessMessage("");
     }, 1000);
-    refresh?.();
+    refreshData?.();
   };
+
+  useEffect(() => {
+    return () => {
+      if (closeRef.current) {
+        clearTimeout(closeRef.current);
+      }
+    };
+  }, []);
 
   //   cancel handler
   const cancelHandler = () => {
@@ -74,7 +89,7 @@ const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProp
 
       <div className={`central-popup ${isOpen ? "opacity-full" : ""}`}>
         <div className="popup-header">
-          <h2 className="popup-helper-text">{buttonTitle} Insurance Name</h2>
+          <h2 className="popup-helper-text">{buttonTitle} Corporate Type</h2>
           <button onClick={onClose} className="close-drawer-btn">
             ×
           </button>
@@ -83,17 +98,17 @@ const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProp
         {!!successMessage && <SuccessMessage text={successMessage} />}
         {error && <ErrorMessage text={error?.message} />}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-1">
-            <InputField label=" Insurance Company Name" required>
+            <InputField label=" Corporate Type Name" required>
               <input
                 type="text"
                 className="input-field"
-                placeholder="Enter insurance company name"
-                {...register("insuranceCompanyName")}
+                placeholder="Enter corporate type name"
+                {...register("corporateTypeName")}
               />
-              {errors.insuranceCompanyName && (
-                <p className="input-field-error">{errors.insuranceCompanyName.message}</p>
+              {errors.corporateTypeName && (
+                <p className="input-field-error">{errors.corporateTypeName.message}</p>
               )}
             </InputField>
           </div>
@@ -113,4 +128,4 @@ const AddNewInsurance = ({ isOpen, onClose, data, refresh }: AddNewInsuranceProp
   );
 };
 
-export default AddNewInsurance;
+export default AddNewCorporateType;
