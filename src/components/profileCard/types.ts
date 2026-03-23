@@ -43,7 +43,7 @@ export type GridViewData = {
 
 export interface GridViewProps {
   data: GridViewData;
-  onStatusChange: OnStatusChange;
+  onStatusChange?: OnStatusChange;
   openDrawer: (id: number | null) => void;
   buttonTitle?: (title: string) => void;
   drawerTitle?: (title: string) => void;

@@ -4,6 +4,7 @@ import { useSortTableData } from "../../../hooks/useSortTableData";
 
 const Pagination = lazy(() => import("./Pagination"));
 
+import { formatDisplayDate } from "@/utils/dateConvertHandler";
 import { ListViewProps } from "../types";
 
 const ListView: React.FC<ListViewProps> = ({
@@ -12,6 +13,8 @@ const ListView: React.FC<ListViewProps> = ({
   openDrawer,
   columnVisibility = {},
 }) => {
+  const isDateFormat = (val: string) => /^\d{2}-\d{2}-\d{4}$/.test(val);
+
   const [openListMenu, setOpenListMenu] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState([]);
   const [pageData, setPageData] = useState(10);
@@ -58,7 +61,13 @@ const ListView: React.FC<ListViewProps> = ({
         </span>
       );
     }
-    return col.value ?? "-";
+    const value = col.value;
+
+    if (typeof value === "string" && isDateFormat(value)) {
+      return formatDisplayDate(value);
+    }
+
+    return value ?? "-";
   };
 
   // Open Popup
@@ -80,30 +89,26 @@ const ListView: React.FC<ListViewProps> = ({
 
   //  status change
   const handleStatusChange = rowData => {
-    console.log("rowData", rowData);
-
     const currentStatus = getIsActiveValue(rowData); // 1 or 0
     const newStatus = currentStatus === 1 ? 0 : 1;
 
     const type = rowData?.type?.toLowerCase();
-
-    console.log("type", type);
 
     const payload = {
       isActive: newStatus,
       ...(type === "rolemaster"
         ? { roleId: rowData.id }
         : type === "usermaster"
-        ? { userId: rowData.id }
-        : type === "usergroupmaster"
-        ? { id: rowData.id }
-        : type === "userdepartment"
-        ? { id: rowData.id }
-        : type === "doctormaster"
-        ? { doctorId: rowData.id }
-        : type === "referdoctormaster"
-        ? { referDoctorId: rowData.id }
-        : {}),
+          ? { userId: rowData.id }
+          : type === "usergroupmaster"
+            ? { id: rowData.id }
+            : type === "userdepartment"
+              ? { id: rowData.id }
+              : type === "doctormaster"
+                ? { doctorId: rowData.id }
+                : type === "referdoctormaster"
+                  ? { referDoctorId: rowData.id }
+                  : {}),
     };
 
     onStatusChange(payload);

@@ -1,3 +1,4 @@
+import { formatDisplayDate } from "@/utils/dateConvertHandler";
 import { MoreVertical } from "lucide-react";
 import { handleButtonClick } from "./helper";
 import { GridViewProps } from "./types";
@@ -22,6 +23,8 @@ const GridView = ({
     buttonSection = [],
     id,
   } = data ?? {};
+
+  const isDateFormat = (val: string) => /^\d{2}-\d{2}-\d{4}$/.test(val);
 
   const cardTitleName = Array.isArray(cardTitle)
     ? cardTitle?.map(t => t?.value).join(" ")
@@ -90,7 +93,7 @@ const GridView = ({
         </div>
 
         <p className="card-id mb-3"># {cardIdValue}</p>
-        <h2 className="card-title">{cardTitleName}</h2>
+        <h2 className="card-title wrap-break-word ">{cardTitleName}</h2>
       </div>
 
       {cardFooter.length > 0 && (
@@ -99,7 +102,12 @@ const GridView = ({
             {cardFooter.map((footer, idx) => (
               <div key={idx} className="px-2 py-1 text-center flex-1 min-w-[90px]">
                 <p className="footer-label">{footer?.label}</p>
-                <p className="footer-value">{footer?.value || "—"}</p>
+                {/* <p className="footer-value">{footer?.value || "—"}</p> */}
+                <p className="footer-value">
+                  {isDateFormat(String(footer?.value))
+                    ? formatDisplayDate(String(footer?.value))
+                    : footer?.value || "—"}
+                </p>
               </div>
             ))}
           </div>

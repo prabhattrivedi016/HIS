@@ -368,3 +368,7 @@ export const TariffManagerTableHeader = [
   "Emergency Charges",
   "Editable",
 ];
+
+export const OpdRateListTableHeader = ["Remove", "OPD Rate List"];
+
+export const IpdRateListTableHeader = ["Remove", "IPD Rate List"];

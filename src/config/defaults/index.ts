@@ -182,6 +182,15 @@ const ENDPOINTS = {
   GET_TARIFF_MASTER: "Admin/getTariffMaster",
   CREATE_UPDATE_TARIFF_MASTER: "Admin/createUpdateTariffMaster",
   GET_SERVICE_ITEM_LIST: "Home/GetServiceItemList",
+
+  // corporate master
+  GET_INSURANCE_COMPANY_MASTER_LIST: "Admin/getInsuranceCompanyMasterList",
+  CREATE_UPDATE_INSURANCE_COMPANY_MASTER: "Admin/createUpdateInsuranceCompanyMaster",
+  CREATE_UPDATE_CORPORATE_TYPE_MASTER: "Admin/createUpdateCorporateTypeMaster",
+  GET_CORPORATE_MASTER_LIST: "Admin/getCorporateMasterList",
+  CREATE_UPDATE_CORPORATE_MASTER: "Admin/createUpdateCorporateMaster",
+  GET_CORPORATE_TYPE_MASTER_LIST: "Admin/getCorporateTypeMasterList",
+  GET_PAYMENT_MODE_MASTER_LIST: "Home/getPaymentModeMasterList",
 };
 
 export { ENDPOINTS };
