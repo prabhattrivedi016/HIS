@@ -95,6 +95,29 @@ const CorporateMaster = () => {
     setOpenCorporateMasterDrawer(true);
   };
 
+  // /update corporate master status
+  const updateReferDoctorMasterStatus = async ({
+    isActive,
+    corporateId,
+  }: {
+    isActive: number;
+    corporateId?: number;
+  }) => {
+    console.log("corporateId", corporateId);
+
+    if (!corporateId) return;
+    await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_CORPORATE_MASTER_STATUS,
+      {},
+      { params: { corporateId, isActive } },
+      {
+        component: "CorporateMaster",
+      }
+    );
+    getCorporateMaster();
+  };
+
   // close handler
   const closeHandler = useCallback(() => {
     setOpenCorporateMasterDrawer(false);
@@ -186,7 +209,7 @@ const CorporateMaster = () => {
             <GridView
               key={corporate?.id}
               data={corporate}
-              // onStatusChange={updateReferDoctorMasterStatus}
+              onStatusChange={updateReferDoctorMasterStatus}
               openDrawer={addNewHandler}
             />
           ))}
@@ -201,7 +224,7 @@ const CorporateMaster = () => {
         <div className="list-view-page-layout">
           <ListView
             data={listFilteredData}
-            // onStatusChange={updateReferDoctorMasterStatus}
+            onStatusChange={updateReferDoctorMasterStatus}
             columnVisibility={columnVisibility}
             openDrawer={addNewHandler}
           />

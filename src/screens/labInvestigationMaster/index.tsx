@@ -6,6 +6,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { CATEGORY_ID } from "@/constants/constants";
 import { LabInvestigationTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showSuccess } from "@/utils/alert";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select, { SingleValue } from "react-select";
@@ -170,6 +171,23 @@ const LabInvestigationMaster = () => {
     setOpenNewInvestigation(false);
     setEditRow(null);
   }, []);
+
+  // status update handler
+  const statusUpdateHandler = async (item: InvestigationTableItem) => {
+    console.log("status update is clicked", item);
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_SERVICE_ITEM_MASTER_STATUS,
+      {},
+      { params: { serviceItemId: item?.serviceItemId, isActive: item?.isActive === 1 ? 0 : 1 } },
+      { component: "LabInvestigationMaster" }
+    );
+    console.log("resp", resp);
+    if (!resp?.result) return;
+    await searchHandler?.();
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+  };
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -208,7 +226,7 @@ const LabInvestigationMaster = () => {
                 placeholder="Select sub category"
                 isSearchable
                 isClearable
-                onChange={option => subCategorySelectHandler(option)}
+                onChange={(option: any) => subCategorySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
@@ -222,7 +240,7 @@ const LabInvestigationMaster = () => {
                 placeholder="Select sub sub category"
                 isSearchable
                 isClearable
-                onChange={option => subSubCategorySelectHandler(option)}
+                onChange={(option: any) => subSubCategorySelectHandler(option)}
                 styles={SelectStyles}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
@@ -311,7 +329,10 @@ const LabInvestigationMaster = () => {
                         </td>
                         <td className="table-td">
                           <div onClick={e => e.stopPropagation()}>
-                            <ToggleButton checked={item.isActive === 1} />
+                            <ToggleButton
+                              checked={item.isActive === 1}
+                              onClick={() => statusUpdateHandler(item)}
+                            />
                           </div>
                         </td>
                       </tr>

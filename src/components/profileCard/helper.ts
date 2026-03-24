@@ -71,6 +71,11 @@ export const handleButtonClick = ({
     }
 
     // corporate master
+
+    case "toggleCorporateActive": {
+      return onStatusChange({ isActive: cardLeftTop[0]?.value === 1 ? 0 : 1, corporateId: id });
+    }
+
     case "toggleCorporateEdit": {
       openDrawer(id);
     }
