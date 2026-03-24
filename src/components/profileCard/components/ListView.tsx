@@ -108,7 +108,9 @@ const ListView: React.FC<ListViewProps> = ({
                 ? { doctorId: rowData.id }
                 : type === "referdoctormaster"
                   ? { referDoctorId: rowData.id }
-                  : {}),
+                  : type === "corporatemaster"
+                    ? { corporateId: rowData.id }
+                    : {}),
     };
 
     onStatusChange(payload);

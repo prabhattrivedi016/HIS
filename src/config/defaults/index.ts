@@ -161,6 +161,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_SUB_CATEGORY: "Home/createUpdateSubCategory",
   CREATE_UPDATE_SUB_SUB_CATEGORY: "Home/createUpdateSubSubCategory",
   CREATE_UPDATE_INVESTIGATION_SERVICE_ITEM_MASTER: "Lab/createUpdateInvestigationServiceItemMaster",
+  UPDATE_SERVICE_ITEM_MASTER_STATUS: "Home/updateServiceItemMasterStatus",
 
   // investigation observation mapping
   CREATE_UPDATE_OBSERVATION_MASTER: "Lab/createUpdateObservationMaster",
@@ -191,6 +192,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_CORPORATE_MASTER: "Admin/createUpdateCorporateMaster",
   GET_CORPORATE_TYPE_MASTER_LIST: "Admin/getCorporateTypeMasterList",
   GET_PAYMENT_MODE_MASTER_LIST: "Home/getPaymentModeMasterList",
+  UPDATE_CORPORATE_MASTER_STATUS: "Admin/updateCorporateMasterStatus",
 };
 
 export { ENDPOINTS };

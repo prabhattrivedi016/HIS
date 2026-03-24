@@ -7,6 +7,7 @@ export type OnStatusChange = (payload: {
   id?: number;
   doctorId?: number;
   referDoctorId?: number;
+  corporateId?: number;
 }) => Promise<any> | void;
 
 export type HandleButtonClickProps = {
