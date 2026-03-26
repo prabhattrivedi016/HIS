@@ -56,11 +56,33 @@ const GridView = ({
     });
   };
 
+  // card left top helper function
+  const getStatusLabel = () => {
+    if (!cardLeftTop?.length) return;
+
+    const label = cardLeftTop[0]?.label;
+    const value = cardLeftTop[0]?.value;
+
+    if (label === "Status") {
+      return value === 1 ? "Active" : "Inactive";
+    }
+
+    return value ?? "";
+  };
+
   return (
     <div className="card-layout">
       <div className="flex justify-between items-center mb-3">
-        <span className={`card-status ${cardLeftTop[0]?.value === 1 ? "active" : "inactive"}`}>
-          {cardLeftTop[0]?.value === 1 ? "Active" : "Inactive"}
+        <span
+          className={`card-status ${
+            cardLeftTop?.[0]?.value === 1
+              ? "active"
+              : cardLeftTop?.[0]?.value === 0
+                ? "inactive"
+                : ""
+          }`}
+        >
+          {getStatusLabel()}
         </span>
 
         {cardRightTop && (
@@ -68,9 +90,11 @@ const GridView = ({
             <button
               className="p-2 hover:bg-gray-100 rounded-md transition"
               onClick={e => {
+                e.stopPropagation();
                 const rect = e.currentTarget.getBoundingClientRect();
                 cardRightTopBtn(id, rect);
               }}
+              onMouseDown={e => e.stopPropagation()}
               ref={gridRightBtnRef}
             >
               <MoreVertical size={16} className="text-gray-600" />
@@ -92,18 +116,18 @@ const GridView = ({
           )}
         </div>
 
-        <p className="card-id mb-3"># {cardIdValue}</p>
-        <h2 className="card-title wrap-break-word ">{cardTitleName}</h2>
+        <p className="card-id  m-1"></p>
+        <h2 className="card-title wrap-break-word  ">{cardTitleName}</h2>
       </div>
 
       {cardFooter.length > 0 && (
         <div className="footer-border">
-          <div className="flex flex-wrap divide-x divide-gray-300">
+          <div className="flex flex-wrap divide-x divide-gray-300 ">
             {cardFooter.map((footer, idx) => (
               <div key={idx} className="px-2 py-1 text-center flex-1 min-w-[90px]">
                 <p className="footer-label">{footer?.label}</p>
                 {/* <p className="footer-value">{footer?.value || "—"}</p> */}
-                <p className="footer-value">
+                <p className="footer-value wrap-break-word">
                   {isDateFormat(String(footer?.value))
                     ? formatDisplayDate(String(footer?.value))
                     : footer?.value || "—"}
@@ -128,6 +152,9 @@ const GridView = ({
                 break;
               case "Map User":
                 btnClass = "grid-map-user-btn";
+                break;
+              case "Opd Billing":
+                btnClass = "grid-active-btn";
                 break;
               default:
                 btnClass = "";

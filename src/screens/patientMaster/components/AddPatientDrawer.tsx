@@ -59,12 +59,10 @@ const AddPatientDrawer = ({ isOpen, onClose }) => {
                 <InputField label="Search By">
                   <select className="input-field">
                     <option>Select</option>
-                    <option>First Name</option>
-                    <option>Last Name</option>
-                    <option>Contact No.</option>
-                    <option>Emergency Contact No.</option>
-                    <option>Aadhar Number</option>
-                    <option>Registration Date</option>
+                    <option>Patient Id</option>
+                    <option>UHID</option>
+                    <option>Contact Number</option>
+                    <option>Branch Id</option>
                   </select>
                 </InputField>
 

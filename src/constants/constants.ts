@@ -28,6 +28,11 @@ export enum BankMasterTabName {
   BANK_DETAILS = "Bank Details",
 }
 
+export enum Radiology {
+  RADIOLOGY = "radiology",
+  DEFAULT_REPORT_TYPE = "2",
+}
+
 export enum LabMasterTabName {
   SAMPLE_TYPE = "Sample Type",
   TEST_METHOD = "Test Method",

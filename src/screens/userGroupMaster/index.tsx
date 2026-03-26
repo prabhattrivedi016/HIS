@@ -188,7 +188,7 @@ const UserGroupMaster = () => {
 
   // RENDER
   const renderComponent = (view: string) => {
-    if (error) return <ErrorMessage text={error} />;
+    if (error) return <ErrorMessage text={error?.message} />;
 
     if (loading) return <div className="initial-message">Loading user group...</div>;
 

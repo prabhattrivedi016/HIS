@@ -15,11 +15,11 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
         onClose();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
-  }, []);
+  }, [onClose]);
 
   // fetch user by id
   const getUserGroupMaster = async (userGroupId: number) => {
@@ -72,6 +72,8 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
     <div
       ref={popupRef}
       className="btn-popup"
+      onClick={e => e.stopPropagation()}
+      onMouseDown={e => e.stopPropagation()}
       style={{
         position: "absolute",
         top: position.top,

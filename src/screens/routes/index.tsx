@@ -26,6 +26,7 @@ import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import PatientDocumentMaster from "../patientDocumentMaster";
 import PatientMaster from "../patientMaster";
+import PatientRegistration from "../patientRegistration";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
@@ -81,4 +82,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "refer-lab-master": <ReferLabMaster />,
   "rate-list-master": <RateListMaster />,
   "tariff-manager": <TariffManager />,
+  "patient-registration": <PatientRegistration />,
 };
