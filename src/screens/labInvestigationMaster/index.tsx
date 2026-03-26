@@ -37,6 +37,7 @@ const LabInvestigationMaster = () => {
     []
   );
   const [editRow, setEditRow] = useState<InvestigationTableItem | null>(null);
+  const [showTable, setShowTable] = useState<boolean>(false);
 
   // category
   const getCategory = useCallback(async () => {
@@ -78,9 +79,13 @@ const LabInvestigationMaster = () => {
   }, [subCategoryList]);
 
   const subCategorySelectHandler = (option: SingleValue<SelectItem>) => {
+    if (!option || !categoryId) return;
     setSelectedSubCategory(option);
     setSelectedSubSubCategory(null);
     setSubSubCategoryList([]);
+    if (option) {
+      searchHandler(categoryId, option?.value);
+    }
   };
 
   // sub sub category
@@ -110,6 +115,8 @@ const LabInvestigationMaster = () => {
 
   const subSubCategorySelectHandler = (option: SingleValue<SelectItem>) => {
     setSelectedSubSubCategory(option);
+    if (!option) return;
+    searchHandler(categoryId!, selectSubCategory?.value, option?.value);
   };
 
   useEffect(() => {
@@ -135,9 +142,16 @@ const LabInvestigationMaster = () => {
 
   // search handler
   const searchHandler = useCallback(
-    async (e?: React.FormEvent<HTMLFormElement>) => {
-      e?.preventDefault();
-      if (!categoryId) return;
+    async (
+      categoryId: number,
+      subCategoryId: number = 0,
+      subSubCategoryId: number = 0,
+      investigationName: string = ""
+    ) => {
+      if (!categoryId) {
+        setShowTable(false);
+        return;
+      }
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
@@ -145,8 +159,8 @@ const LabInvestigationMaster = () => {
         {
           params: {
             categoryId: categoryId,
-            subCategoryId: selectSubCategory?.value ?? "",
-            subSubCategoryId: selectSubSubCategory?.value ?? "",
+            subCategoryId: subCategoryId,
+            subSubCategoryId: subSubCategoryId,
             serviceItemId: "",
             serviceName: investigationName.trim(),
             isActive: "",
@@ -154,6 +168,7 @@ const LabInvestigationMaster = () => {
         },
         { component: "LabInvestigationMaster" }
       );
+      setShowTable(true);
 
       setInvestigationTableData(resp?.data ?? []);
     },
@@ -174,7 +189,6 @@ const LabInvestigationMaster = () => {
 
   // status update handler
   const statusUpdateHandler = async (item: InvestigationTableItem) => {
-    console.log("status update is clicked", item);
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.UPDATE_SERVICE_ITEM_MASTER_STATUS,
@@ -182,11 +196,17 @@ const LabInvestigationMaster = () => {
       { params: { serviceItemId: item?.serviceItemId, isActive: item?.isActive === 1 ? 0 : 1 } },
       { component: "LabInvestigationMaster" }
     );
-    console.log("resp", resp);
     if (!resp?.result) return;
-    await searchHandler?.();
+    await searchHandler?.(categoryId!, selectSubCategory?.value!, selectSubSubCategory?.value);
 
     showSuccess(resp?.message ?? "Data saved successfully");
+  };
+
+  const searchKeyDownHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchHandler(categoryId!, 0, 0, investigationName);
+    }
   };
   return (
     <div className="page-container">
@@ -213,63 +233,55 @@ const LabInvestigationMaster = () => {
       <div className="card mb-1">
         <h2 className="card-title">Investigation Details</h2>
 
-        <form onSubmit={searchHandler}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <InputField label="Category" required>
-              <input value={categoryName!} readOnly className="input-field" />
-            </InputField>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <InputField label="Category" required>
+            <input value={categoryName!} readOnly className="input-field" />
+          </InputField>
 
-            <InputField label="Sub Category" required>
-              <Select
-                value={selectSubCategory}
-                options={subCategorySelectOption}
-                placeholder="Select sub category"
-                isSearchable
-                isClearable
-                onChange={(option: any) => subCategorySelectHandler(option)}
-                styles={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-            </InputField>
+          <InputField label="Sub Category" required>
+            <Select
+              value={selectSubCategory}
+              options={subCategorySelectOption}
+              placeholder="Select sub category"
+              isSearchable
+              isClearable
+              onChange={(option: any) => subCategorySelectHandler(option)}
+              styles={SelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
+          </InputField>
 
-            <InputField label="Sub Sub Category">
-              <Select
-                value={selectSubSubCategory}
-                options={subSubCategorySelectOption}
-                placeholder="Select sub sub category"
-                isSearchable
-                isClearable
-                onChange={(option: any) => subSubCategorySelectHandler(option)}
-                styles={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-            </InputField>
+          <InputField label="Sub Sub Category">
+            <Select
+              value={selectSubSubCategory}
+              options={subSubCategorySelectOption}
+              placeholder="Select sub sub category"
+              isSearchable
+              isClearable
+              onChange={(option: any) => subSubCategorySelectHandler(option)}
+              styles={SelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
+          </InputField>
 
-            <InputField label="Investigation Name">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter investigation name"
-                value={investigationName}
-                onChange={e => setInvestigationName(e.target.value)}
-              />
-            </InputField>
-          </div>
-
-          {/* form buttons */}
-          <div className="form-actions-responsive mt-6">
-            <button type="submit" className="save-btn">
-              Search
-            </button>
-          </div>
-        </form>
+          <InputField label="Investigation Name">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Enter investigation name & press ENTER"
+              value={investigationName}
+              onChange={e => setInvestigationName(e.target.value)}
+              onKeyDown={searchKeyDownHandler}
+            />
+          </InputField>
+        </div>
       </div>
 
       {/* table */}
 
-      {!!investigationTableData && investigationTableData.length > 0 ? (
+      {!!investigationTableData && showTable ? (
         <div className="table-container ">
           <div className="table-scroll-wrapper ">
             <div className="table-size lg:min-h-110 lg:max-h-110">

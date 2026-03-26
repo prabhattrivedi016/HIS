@@ -4,7 +4,7 @@ import { SelectStyles } from "@/components/customSelect";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import MultiCheckboxOption from "@/components/multiSelectCheckBox";
 import { ENDPOINTS } from "@/config/defaults";
-import { Status, labTypes } from "@/constants/constants";
+import { Radiology, Status, labTypes } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -86,6 +86,10 @@ const AddLabInvestigation = ({
 
   const [successMessage, setSuccessMessage] = useState<string>("");
 
+  const disabled = selectSubCategory?.label?.toLowerCase?.() === Radiology?.RADIOLOGY;
+
+  console.log("disabled", disabled);
+
   const {
     reset,
     setValue,
@@ -95,6 +99,9 @@ const AddLabInvestigation = ({
   } = useForm({
     resolver: yupResolver(addLabInvestigationSchema),
     defaultValues: DEFAULT_FORM_VALUES,
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
+    context: { isRadiology: disabled },
   });
   const buttonTitle = data ? "Update" : "Create";
   const editRowId = data?.serviceItemId ?? null;
@@ -142,7 +149,7 @@ const AddLabInvestigation = ({
 
     setSelectedSampleVolume(selectedKey);
     setValue("sampleVolume", matchedOption?.label ?? "", {
-      shouldValidate: true,
+      shouldValidate: false,
       shouldDirty: true,
     });
   };
@@ -150,6 +157,22 @@ const AddLabInvestigation = ({
   // lab report type
   const labReport = usePickMaster("labReportType");
   const labReportType = (labReport?.pickMasterValue ?? []) as PickMasterOption[];
+
+  // console.log("labReportType", labReportTy);
+
+  const defaultReportType = labReport?.pickMasterValue?.find(
+    l => l?.key === Radiology?.DEFAULT_REPORT_TYPE
+  );
+  console.log("defaultReportTyp", defaultReportType);
+
+  useEffect(() => {
+    if (disabled && defaultReportType?.key) {
+      setValue("reportTypeId", defaultReportType.key, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  }, [disabled, defaultReportType, setValue]);
 
   // test method
   const getLabMethod = useCallback(async () => {
@@ -179,7 +202,7 @@ const AddLabInvestigation = ({
   const testMethodChangeHandler = (option: SingleValue<SelectItem>) => {
     setSelectedTest(option);
     setValue("labMethodId", option?.value ?? 0, {
-      shouldValidate: true,
+      shouldValidate: false,
     });
   };
 
@@ -224,10 +247,10 @@ const AddLabInvestigation = ({
     setSelectedSample(selectedOptions);
     setSelectedDefaultSampleType(nextDefaultSampleType);
     setValue("sampleTypeList", sampleOnlyOptions.map(option => option.value).join(","), {
-      shouldValidate: true,
+      shouldValidate: false,
     });
     setValue("sampleTypeId", Number(nextDefaultSampleType || 0), {
-      shouldValidate: true,
+      shouldValidate: false,
       shouldDirty: true,
     });
   };
@@ -237,11 +260,29 @@ const AddLabInvestigation = ({
 
     setSelectedDefaultSampleType(value);
     setValue("sampleTypeId", Number(value || 0), {
-      shouldValidate: true,
+      shouldValidate: false,
       shouldDirty: true,
     });
   };
 
+  useEffect(() => {
+    if (disabled) {
+      // Clear UI state
+      setSelectedSample([]);
+      setSelectedDefaultSampleType("");
+
+      // Clear form values
+      setValue("sampleTypeList", "", {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+
+      setValue("sampleTypeId", 0, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  }, [disabled, setValue]);
   // sub category
   const getSubCategory = useCallback(async (id: number) => {
     if (!id) return;
@@ -281,10 +322,10 @@ const AddLabInvestigation = ({
     setSelectedSubSubCategory(null);
     setSubSubCategoryList([]);
     setValue("subCategoryId", option?.value ?? 0, {
-      shouldValidate: true,
+      shouldValidate: false,
     });
     setValue("subSubCategoryId", 0, {
-      shouldValidate: true,
+      shouldValidate: false,
       shouldDirty: true,
     });
   };
@@ -344,7 +385,7 @@ const AddLabInvestigation = ({
   const subSubCategorySelectHandler = (option: SingleValue<SelectItem>) => {
     setSelectedSubSubCategory(option);
     setValue("subSubCategoryId", option?.value ?? 0, {
-      shouldValidate: true,
+      shouldValidate: false,
     });
   };
 
@@ -523,10 +564,10 @@ const AddLabInvestigation = ({
     const label = value === 1 ? "Both" : value === 2 ? "Male" : value === 3 ? "Female" : "";
 
     setValue("forGenderId", value, {
-      shouldValidate: true,
+      shouldValidate: false,
     });
     setValue("forGender", label, {
-      shouldValidate: true,
+      shouldValidate: false,
     });
   };
 
@@ -684,7 +725,12 @@ const AddLabInvestigation = ({
                 </InputField>
 
                 <InputField label="Report Type" required {...register("reportTypeId")}>
-                  <select className="input-field" {...register("reportTypeId")}>
+                  <select
+                    {...register("reportTypeId")}
+                    className={` ${disabled ? "disabled-input-field" : "input-field"}`}
+                    disabled={disabled}
+                    defaultValue={defaultReportType?.value}
+                  >
                     {labReportType.map(l => (
                       <option key={l?.key} value={l?.key}>
                         {l?.value}
@@ -721,9 +767,10 @@ const AddLabInvestigation = ({
                     isClearable
                     onChange={sampleTypeChangeHandler}
                     components={{ Option: MultiCheckboxOption }}
-                    styles={SelectStyles}
+                    styles={disabled ? "" : SelectStyles}
                     menuPortalTarget={document.body}
                     menuPosition="fixed"
+                    isDisabled={disabled}
                   />
 
                   {(errors.sampleTypeList || errors.sampleTypeId) && (
@@ -736,9 +783,11 @@ const AddLabInvestigation = ({
                 <InputField label="Default Sample Type">
                   <input type="hidden" {...register("sampleTypeId")} />
                   <select
-                    className="input-field"
+                    className={` ${disabled ? "disabled-input-field" : "input-field"}`}
                     value={selectedDefaultSampleType}
                     onChange={defaultSampleTypeChangeHandler}
+                    disabled={disabled}
+                    defaultValue={""}
                   >
                     <option value="">Select</option>
                     {selectedSample
@@ -771,7 +820,12 @@ const AddLabInvestigation = ({
                 </InputField>
 
                 <InputField label="Department Receiving">
-                  <select className="input-field" {...register("isDepartmentReceivingRequired")}>
+                  <select
+                    {...register("isDepartmentReceivingRequired")}
+                    className={` ${disabled ? "disabled-input-field" : "input-field"}`}
+                    defaultValue={Status?.INACTIVE}
+                    disabled={disabled}
+                  >
                     <option value={1}>Yes</option>
                     <option value={0}>No</option>
                   </select>
@@ -780,9 +834,11 @@ const AddLabInvestigation = ({
                 <InputField label="Sample Volume">
                   <input type="hidden" {...register("sampleVolume")} />
                   <select
-                    className="input-field"
+                    // className="input-field"
+                    className={` ${disabled ? "disabled-input-field" : "input-field"}`}
                     value={selectedSampleVolume}
                     onChange={sampleVolumeChangeHandler}
+                    disabled={disabled}
                   >
                     <option value="">Select</option>
                     {sampleVolumeOptions.map(option => (

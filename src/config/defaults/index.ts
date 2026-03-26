@@ -193,6 +193,10 @@ const ENDPOINTS = {
   GET_CORPORATE_TYPE_MASTER_LIST: "Admin/getCorporateTypeMasterList",
   GET_PAYMENT_MODE_MASTER_LIST: "Home/getPaymentModeMasterList",
   UPDATE_CORPORATE_MASTER_STATUS: "Admin/updateCorporateMasterStatus",
+
+  // patient master
+  GET_PATIENT_MASTER: "Patient/getPatientMaster",
+  CREATE_UPDATE_PATIENT_MASTER: "Patient/createUpdatePatientMaster",
 };
 
 export { ENDPOINTS };

@@ -47,6 +47,7 @@ const SequenceDrawer = ({
   const prefix = watch("prefix");
   const firstSeprator = watch("firstSeprator");
   const length = watch("length");
+  const year = watch("fyFormatId");
 
   const isEdit = Boolean(data?.sequenceId);
   const buttonTitle = isEdit ? "Update" : "Create";
@@ -76,7 +77,10 @@ const SequenceDrawer = ({
     });
   }, [data, reset]);
 
-  /* ---------- preview generator ---------- */
+  // preview generator
+  const name = watch("name");
+  const secondSeprator = watch("secondSeprator");
+
   useEffect(() => {
     if (!prefix || !length) {
       setPreview("");
@@ -84,8 +88,20 @@ const SequenceDrawer = ({
     }
 
     const numericPart = String(1).padStart(Number(length), "0");
-    setPreview(`${prefix}${firstSeprator || ""}${numericPart}`);
-  }, [prefix, firstSeprator, length]);
+
+    // ✅ year formatting
+    const yearValue = year === 1 ? "25-26" : year === 2 ? "2026" : "";
+
+    // ✅ add "/" only if year exists
+    const yearWithSeparator = yearValue ? `${yearValue}` : "";
+
+    // ✅ build preview step by step
+    const previewValue = [prefix, firstSeprator, yearWithSeparator, secondSeprator, numericPart]
+      .filter(Boolean)
+      .join("");
+
+    setPreview(previewValue);
+  }, [prefix, firstSeprator, secondSeprator, length, year]);
 
   /* ---------- submit ---------- */
   const onSubmit = async (formData: any) => {
@@ -99,7 +115,7 @@ const SequenceDrawer = ({
     if (!resp) return;
     if (resp?.result) {
       await handleRefresh();
-      setSuccessMessage(resp?.message || "Saved successfully");
+      setSuccessMessage(resp?.message ?? "Saved successfully");
       resetType?.();
       resetSequence?.();
     }
@@ -156,7 +172,7 @@ const SequenceDrawer = ({
           {successMessage && <SuccessMessage text={successMessage} />}
           {error && <ErrorMessage text={error?.message} />}
 
-          <div className="card m-2">
+          <div className="card m-1">
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="form-grid-2">
                 <InputField label="Name" required>
@@ -167,7 +183,8 @@ const SequenceDrawer = ({
                 <InputField label="Preview">
                   <input value={preview} readOnly className="input-field" />
                 </InputField>
-
+              </div>
+              <div className="lg:grid grid-cols-5 gap-2">
                 <InputField label="Prefix">
                   <input className="input-field" {...register("prefix")} />
                 </InputField>

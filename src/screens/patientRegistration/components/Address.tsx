@@ -1,0 +1,455 @@
+import InputField from "@/components/customInputField";
+import { OptionItem, SelectStyles } from "@/components/customSelect";
+import { ENDPOINTS } from "@/config/defaults";
+import { BranchId, Status } from "@/constants/constants";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError } from "@/utils/alert";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useFormContext } from "react-hook-form";
+import Select, { SingleValue, StylesConfig } from "react-select";
+import { CityItem, CountryItem, DistrictItem, StateItem } from "../types";
+
+type AddressProps = {
+  resetSignal?: number;
+};
+
+const Address = ({ resetSignal = 0 }: AddressProps) => {
+  const { fetchApi } = useGlobalApi();
+  const {
+    register,
+    setValue,
+    formState: { errors },
+  } = useFormContext();
+  const [countryList, setCountryList] = useState<CountryItem[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<SingleValue<OptionItem> | null>(null);
+
+  const [stateList, setStateList] = useState<StateItem[]>([]);
+  const [selectedState, setSelectedState] = useState<SingleValue<OptionItem> | null>(null);
+
+  const [districtList, setDistrictList] = useState<DistrictItem[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<SingleValue<OptionItem> | null>(null);
+
+  const [cityList, setCityList] = useState<CityItem[]>([]);
+  const [selectedCity, setSelectedCity] = useState<SingleValue<OptionItem> | null>(null);
+
+  const [pincode, setPincode] = useState<string>("");
+
+  // address
+
+  // address
+  const getAddressByBranch = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BRANCH_DETAILS,
+      {},
+      { params: { branchId: BranchId?.DEFAULT } },
+      { component: "AddressOfPatientRegistration" }
+    );
+
+    const branchAddress = resp?.data?.[0]?.address ?? "";
+    setValue("Address", branchAddress, { shouldDirty: false });
+  };
+
+  //   country
+  const getCountry = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_COUNTRY_MASTER,
+      {},
+      { params: { isActive: Status.ACTIVE } },
+      { component: "AddressOfPatientRegistration" }
+    );
+    if (resp?.result === false) {
+      setSelectedState(null);
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      return;
+    }
+    setCountryList(resp?.data ?? []);
+  };
+
+  //   country select option
+  const countrySelectOption = useMemo(() => {
+    return countryList?.map(c => ({
+      label: c?.countryName,
+      value: Number(c?.countryId),
+    }));
+  }, [countryList]);
+
+  useEffect(() => {
+    getAddressByBranch();
+    getCountry();
+  }, []);
+
+  useEffect(() => {
+    setSelectedCountry(null);
+    setSelectedState(null);
+    setSelectedDistrict(null);
+    setSelectedCity(null);
+    setStateList([]);
+    setDistrictList([]);
+    setCityList([]);
+    setPincode("");
+  }, [resetSignal]);
+
+  //   country select handler
+  const countrySelectHandler = (option: SingleValue<OptionItem>) => {
+    if (!option) {
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      setStateList([]);
+      setDistrictList([]);
+      setCityList([]);
+      setValue("CountryId", "");
+      setValue("Country", "");
+      setValue("StateId", "");
+      setValue("State", "");
+      setValue("DistrictId", "");
+      setValue("District", "");
+      setValue("CityId", "");
+      setValue("City", "");
+      return;
+    }
+    setSelectedCountry(option);
+    setValue("CountryId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("Country", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setSelectedState(null);
+    setSelectedDistrict(null);
+    setSelectedCity(null);
+    setStateList([]);
+    setDistrictList([]);
+    setCityList([]);
+    setValue("StateId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("State", "", { shouldValidate: true, shouldDirty: true });
+    setValue("DistrictId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("District", "", { shouldValidate: true, shouldDirty: true });
+    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+
+    getState(Number(option?.value));
+  };
+
+  //   state
+  const getState = async (countryId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_STATE_MASTER,
+      {},
+      { params: { countryId } },
+      {
+        component: "AddressOfPatientRegistration",
+      }
+    );
+    if (resp?.result === false) {
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      return;
+    }
+    setStateList(resp?.data ?? []);
+  };
+
+  //   state select option
+  const stateSelectOption = useMemo(() => {
+    return stateList?.map(s => ({
+      label: s?.stateName,
+      value: Number(s?.stateId),
+    }));
+  }, [stateList]);
+
+  //   state select handler
+  const stateSelectHandler = (option: SingleValue<OptionItem>) => {
+    if (!option) {
+      setSelectedState(null);
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      setDistrictList([]);
+      setCityList([]);
+      setValue("StateId", "");
+      setValue("State", "");
+      setValue("DistrictId", "");
+      setValue("District", "");
+      setValue("CityId", "");
+      setValue("City", "");
+      return;
+    }
+    setSelectedState(option);
+    setValue("StateId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("State", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setSelectedDistrict(null);
+    setSelectedCity(null);
+    setDistrictList([]);
+    setCityList([]);
+    setValue("DistrictId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("District", "", { shouldValidate: true, shouldDirty: true });
+    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+
+    getDistrict(Number(option?.value));
+  };
+
+  //   district
+  const getDistrict = async (stateId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DISTRICT_MASTER,
+      {},
+      { params: { stateId } },
+      {
+        component: "AddressOfPatientRegistration",
+      }
+    );
+    if (resp?.result === false) {
+      setSelectedCity(null);
+      return;
+    }
+
+    setDistrictList(resp?.data ?? []);
+  };
+
+  //   district select option
+  const districtSelectOption = useMemo(() => {
+    return districtList?.map(d => ({
+      label: d?.districtName,
+      value: Number(d?.districtId),
+    }));
+  }, [districtList]);
+
+  //   district select handler
+  const districtSelectHandler = (option: SingleValue<OptionItem>) => {
+    if (!option) {
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      setCityList([]);
+      setValue("DistrictId", "");
+      setValue("District", "");
+      setValue("CityId", "");
+      setValue("City", "");
+      return;
+    }
+    setSelectedDistrict(option);
+    setValue("DistrictId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("District", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setSelectedCity(null);
+    setCityList([]);
+    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
+    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+
+    getCity(Number(option?.value));
+  };
+
+  //   city
+  const getCity = async (districtId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CITY_MASTER,
+      {},
+      { params: { districtId } },
+      {
+        component: "AddressOfPatientRegistration",
+      }
+    );
+    setCityList(resp?.data ?? []);
+  };
+  //   city select option
+  const citySelectOption = useMemo(() => {
+    return cityList?.map(c => ({
+      label: c?.cityName,
+      value: Number(c?.cityId),
+    }));
+  }, [cityList]);
+
+  //   city select handler
+  const citySelectHandler = (option: SingleValue<OptionItem>) => {
+    if (!option) {
+      setSelectedCity(null);
+      setValue("CityId", "");
+      setValue("City", "");
+      return;
+    }
+    setSelectedCity(option);
+    setValue("CityId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("City", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+  };
+
+  //   pincode handler
+  const pincodeHanlder = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    e.target.value = value;
+    setPincode(value);
+    if (!value) {
+      setValue("Pincode", "");
+      return;
+    }
+    setValue("Pincode", value, { shouldValidate: true, shouldDirty: true });
+  };
+  //   get location by pincode
+
+  const searchLocationByPincode = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      const value = (e.target as HTMLInputElement).value;
+
+      if (value.length === 6) {
+        getLocation(value);
+      } else {
+        showError("Please enter six digit pincode");
+        setSelectedCountry(null);
+        setSelectedState(null);
+        setSelectedDistrict(null);
+        setSelectedCity(null);
+        return;
+      }
+    }
+  };
+
+  const getLocation = async (pincode: string) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_LOCATION_BY_PINCODE,
+      {},
+      { params: { pincode } },
+      {
+        component: "AddressOfPatientRegistration",
+      }
+    );
+    if (!resp) {
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedDistrict(null);
+      setSelectedCity(null);
+      setValue("CountryId", "");
+      setValue("Country", "");
+      setValue("StateId", "");
+      setValue("State", "");
+      setValue("DistrictId", "");
+      setValue("District", "");
+      setValue("CityId", "");
+      setValue("City", "");
+      return;
+    }
+    const countryOption = { value: resp?.data?.countryId, label: resp?.data?.countryName };
+    setSelectedCountry(countryOption);
+    setValue("CountryId", resp?.data?.countryId ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("Country", resp?.data?.countryName ?? "", { shouldValidate: true, shouldDirty: true });
+
+    const stateOption = { value: resp?.data?.stateId, label: resp?.data?.stateName };
+    setSelectedState(stateOption);
+    setValue("StateId", resp?.data?.stateId ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("State", resp?.data?.stateName ?? "", { shouldValidate: true, shouldDirty: true });
+
+    const districtOption = { value: resp?.data?.districtId, label: resp?.data?.districtName };
+    setSelectedDistrict(districtOption);
+    setValue("DistrictId", resp?.data?.districtId ?? "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue("District", resp?.data?.districtName ?? "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    const cityOption = { value: resp?.data?.cityId, label: resp?.data?.cityName };
+    setSelectedCity(cityOption);
+    setValue("CityId", resp?.data?.cityId ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("City", resp?.data?.cityName ?? "", { shouldValidate: true, shouldDirty: true });
+  };
+
+  return (
+    <div className="form-grid-3 card -mt-3">
+      <input type="hidden" {...register("CountryId")} />
+      <input type="hidden" {...register("Country")} />
+      <input type="hidden" {...register("StateId")} />
+      <input type="hidden" {...register("State")} />
+      <input type="hidden" {...register("DistrictId")} />
+      <input type="hidden" {...register("District")} />
+      <input type="hidden" {...register("CityId")} />
+      <input type="hidden" {...register("City")} />
+      <input type="hidden" {...register("Pincode")} />
+      <InputField label="Address">
+        <textarea
+          className="input-field"
+          placeholder="Enter address"
+          rows={2}
+          {...register("Address")}
+        />
+      </InputField>
+      <InputField label="Pincode">
+        <input
+          type="text"
+          className="input-field"
+          value={pincode}
+          placeholder="Enter pincode and press enter to search"
+          onChange={pincodeHanlder}
+          maxLength={6}
+          onKeyDown={searchLocationByPincode}
+        />
+      </InputField>
+
+      <InputField label="Country">
+        <Select<OptionItem, false>
+          value={selectedCountry}
+          options={countrySelectOption}
+          placeholder="Select country"
+          isSearchable
+          isClearable
+          onChange={option => countrySelectHandler(option)}
+          styles={SelectStyles as StylesConfig<OptionItem, false>}
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+        />
+        {errors.CountryId && (
+          <p className="input-field-error">{String(errors.CountryId.message)}</p>
+        )}
+      </InputField>
+      <InputField label="State">
+        <Select<OptionItem, false>
+          value={selectedState}
+          options={stateSelectOption}
+          placeholder="Select state"
+          isSearchable
+          isClearable
+          onChange={option => stateSelectHandler(option)}
+          styles={SelectStyles as StylesConfig<OptionItem, false>}
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+        />
+        {errors.StateId && <p className="input-field-error">{String(errors.StateId.message)}</p>}
+      </InputField>
+      <InputField label="District">
+        <Select<OptionItem, false>
+          value={selectedDistrict}
+          options={districtSelectOption}
+          placeholder="Select district"
+          isSearchable
+          isClearable
+          onChange={option => districtSelectHandler(option)}
+          styles={SelectStyles as StylesConfig<OptionItem, false>}
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+        />
+        {errors.DistrictId && (
+          <p className="input-field-error">{String(errors.DistrictId.message)}</p>
+        )}
+      </InputField>
+      <InputField label="City">
+        <Select<OptionItem, false>
+          value={selectedCity}
+          options={citySelectOption}
+          placeholder="Select city"
+          isSearchable
+          isClearable
+          onChange={option => citySelectHandler(option)}
+          styles={SelectStyles as StylesConfig<OptionItem, false>}
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+        />
+        {errors.CityId && <p className="input-field-error">{String(errors.CityId.message)}</p>}
+      </InputField>
+    </div>
+  );
+};
+
+export default Address;

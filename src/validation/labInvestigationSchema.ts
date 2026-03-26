@@ -39,13 +39,21 @@ export const addLabInvestigationSchema = yup.object().shape({
       if (originalValue === "" || originalValue === null || originalValue === undefined) {
         return 0;
       }
-
       return Number.isNaN(value) ? 0 : value;
     })
-    .typeError("At least one sample type is required")
-    .moreThan(0, "At least one sample type is required")
-    .required("At least one sample type is required"),
-  sampleTypeList: yup.string().required("At least one sample type is required"),
+    .when("$isRadiology", {
+      is: true,
+      then: schema => schema.nullable(),
+      otherwise: schema =>
+        schema
+          .moreThan(0, "At least one sample type is required")
+          .required("At least one sample type is required"),
+    }),
+  sampleTypeList: yup.string().when("$isRadiology", {
+    is: true,
+    then: schema => schema.nullable(),
+    otherwise: schema => schema.required("At least one sample type is required"),
+  }),
   isSampleRequired: yup.number().nullable(),
   labMethodId: yup.number().nullable(),
   forGenderId: yup.number().nullable(),

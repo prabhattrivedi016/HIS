@@ -415,7 +415,7 @@ const SequenceMapping = () => {
         <Animation isOpen={showDetails}>
           <div className="table-container ">
             <div className="table-scroll-wrapper">
-              <div className="table-size">
+              <div className="table-size lg:min-h-80 lg:max-h-80">
                 <table className="base-table">
                   <thead className="table-head">
                     <tr>

@@ -1,6 +1,6 @@
 const SaveButtons = () => {
   return (
-    <div className="z-10 bg-gray-50  m-1 mb-3">
+    <div className="z-10 bg-gray-50  m-1">
       <div className="form-actions-responsive flex-wrap gap-2 justify-end">
         <button type="submit" className="save-btn whitespace-nowrap">
           Save
