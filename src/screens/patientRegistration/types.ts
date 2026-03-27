@@ -44,6 +44,53 @@ type CorporateItem = {
   insuranceCompanyId: number;
   isActive: number;
 };
+
+type PatientDataItem = {
+  patientId: number;
+  branchId: number;
+  uhid: string;
+  title: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  patientName: string;
+  ageYears: number;
+  ageMonths: number;
+  ageDays: number;
+  age: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string;
+  relation: string;
+  relativeName: string;
+  idProofName: string;
+  idProofNumber: string;
+  contactNumber: string;
+  emergencyContactNumber: string;
+  email: string;
+  privilegedCardNumber: string;
+  address: string;
+  countryId: number;
+  country: string;
+  stateId: number;
+  state: string;
+  districtId: number;
+  district: string;
+  cityId: number;
+  city: string;
+  insuranceCompanyId: number;
+  corporateId: number;
+  cardNo: string;
+  isVaccination: number;
+  vipPatient: number;
+  patientImagePath: string;
+  policyNo: string;
+  policyCardNo: string;
+  expiryDate: string;
+  cardHolder: string;
+  referalNo: string;
+  referalDate: string;
+};
 export type {
   BranchItem,
   CityItem,
@@ -51,5 +98,6 @@ export type {
   CountryItem,
   DistrictItem,
   InsuranceItem,
+  PatientDataItem,
   StateItem,
 };

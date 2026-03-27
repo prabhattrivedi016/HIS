@@ -9,7 +9,7 @@ import {
 } from "@/validation/patientRegistrationSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Camera } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import Webcam from "react-webcam";
@@ -22,6 +22,7 @@ import PatientDetails from "./components/PatientDetails";
 import PatientMaritalStatus from "./components/PatientMaritalStatus";
 import SearchPatient from "./components/SearchPatient";
 import { createPatientFormData } from "./components/createPatientFormData";
+import { PatientDataItem } from "./types";
 
 const resetFormData = () => ({
   PatientId: 0,
@@ -73,13 +74,88 @@ const resetFormData = () => ({
   UhidOrBarcode: "",
   SearchBy: "",
   SearchValue: "",
+  Pincode: "",
+});
+
+const formatDateForInput = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = String(value).trim();
+
+  const ymd = trimmed.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) {
+    return `${ymd[1]}-${ymd[2]}-${ymd[3]}`;
+  }
+
+  const dmy = trimmed.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmy) {
+    return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  return "";
+};
+
+const mapSearchedPatientToForm = (patient: PatientDataItem) => ({
+  ...resetFormData(),
+  PatientId: patient.patientId ?? 0,
+  BranchId: patient.branchId ?? BranchId.DEFAULT,
+  Title: patient.title ?? "Mr.",
+  FirstName: patient.firstName ?? "",
+  MiddleName: patient.middleName ?? "",
+  LastName: patient.lastName ?? "",
+  AgeYears: patient.ageYears ?? "",
+  AgeMonths: patient.ageMonths ?? "",
+  AgeDays: patient.ageDays ?? "",
+  Dob: formatDateForInput(patient.dob),
+  Gender: patient.gender ?? "",
+  MaritalStatus: patient.maritalStatus ?? "",
+  Relation: patient.relation ?? "",
+  RelativeName: patient.relativeName ?? "",
+  IdProofName: patient.idProofName ?? "",
+  IdProofNumber: patient.idProofNumber ?? "",
+  SelfContactNumber: patient.contactNumber ?? "",
+  EmergencyContactNumber: patient.emergencyContactNumber ?? "",
+  Email: patient.email ?? "",
+  PrivilegedCardNumber: patient.privilegedCardNumber ?? "",
+  Address: patient.address ?? "",
+  CountryId: patient.countryId ?? 0,
+  Country: patient.country ?? "",
+  StateId: patient.stateId ?? 0,
+  State: patient.state ?? "",
+  DistrictId: patient.districtId ?? 0,
+  District: patient.district ?? "",
+  CityId: patient.cityId ?? 0,
+  City: patient.city ?? "",
+  InsuranceCompanyId: patient.insuranceCompanyId ?? 0,
+  CorporateId: patient.corporateId ?? 0,
+  CardNo: patient.cardNo ?? "",
+  IsVaccination: patient.isVaccination ?? 0,
+  VipPatient: patient.vipPatient ? String(patient.vipPatient) : "",
+  PolicyNo: patient.policyNo ?? "",
+  PolicyCardNo: patient.policyCardNo ?? "",
+  ExpiryDate: formatDateForInput(patient.expiryDate),
+  CardHolder: patient.cardHolder ?? "",
+  ReferalNo: patient.referalNo ?? "",
+  ReferalDate: formatDateForInput(patient.referalDate),
+  ReferralDate: formatDateForInput(patient.referalDate),
 });
 
 const PatientRegistration = () => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const [searchedPatientData, setSearchedPatientData] = useState<PatientDataItem | null>(null);
+
   const methods = useForm({
     resolver: yupResolver(patientRegistrationSchema),
     defaultValues: resetFormData(),
+    reValidateMode: "onSubmit",
   });
 
   const { handleSubmit, reset } = methods;
@@ -97,6 +173,7 @@ const PatientRegistration = () => {
     setOpenCamera(false);
   };
 
+  // submit handler
   const onSubmit = async (data: PatientRegistrationFormItem) => {
     const formData = await createPatientFormData(data, image);
 
@@ -112,12 +189,21 @@ const PatientRegistration = () => {
       return;
     }
 
+    console.log("resp", resp?.data);
+
     showSuccess(resp?.message ?? "Data saved successfully");
     reset(resetFormData());
     setImage(null);
     setCapturedImage(null);
     setResetSignal(prev => prev + 1);
   };
+
+  // edit handler
+  useEffect(() => {
+    if (!searchedPatientData) return;
+    const mappedData = mapSearchedPatientToForm(searchedPatientData);
+    reset(mappedData);
+  }, [searchedPatientData, reset]);
 
   return (
     <div className="page-container">
@@ -135,13 +221,13 @@ const PatientRegistration = () => {
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-1 p-1 items-start">
             <div className="lg:col-span-4 h-full">
-              <SearchPatient />
+              <SearchPatient setPatient={setSearchedPatientData} />
               <PatientDetails resetSignal={resetSignal} />
               <PatientMaritalStatus />
               <ContactAndIdProof />
               <Abha />
-              <Address resetSignal={resetSignal} />
-              <Insurance resetSignal={resetSignal} />
+              <Address resetSignal={resetSignal} prefillData={searchedPatientData} />
+              <Insurance resetSignal={resetSignal} prefillData={searchedPatientData} />
             </div>
 
             <div className="lg:col-span-1 card p-4 sticky top-4 flex flex-col items-center">
