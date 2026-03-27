@@ -6,14 +6,15 @@ import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
-import { CorporateItem, InsuranceItem } from "../types";
+import { CorporateItem, InsuranceItem, PatientDataItem } from "../types";
 
 type InsuranceProps = {
   resetSignal?: number;
+  prefillData?: PatientDataItem | null;
 };
 
-const Insurance = ({ resetSignal = 0 }: InsuranceProps) => {
-  const { loading, error, fetchApi } = useGlobalApi();
+const Insurance = ({ resetSignal = 0, prefillData = null }: InsuranceProps) => {
+  const { fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
   const branches = branchList?.data ?? [];
 
@@ -69,6 +70,20 @@ const Insurance = ({ resetSignal = 0 }: InsuranceProps) => {
       setValue("BranchId", defaultBranch.branchId, { shouldValidate: false, shouldDirty: false });
     }
   }, [resetSignal, branches, setValue]);
+
+  useEffect(() => {
+    if (!prefillData) return;
+
+    const insuranceId = Number(prefillData.insuranceCompanyId);
+    if (!insuranceId) {
+      setSelectedInsurance(null);
+      setCorporateList([]);
+      return;
+    }
+
+    setSelectedInsurance(insuranceId);
+    getCorporate(insuranceId);
+  }, [prefillData]);
 
   // insurance select handler
   const insuranceSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {

@@ -372,3 +372,13 @@ export const TariffManagerTableHeader = [
 export const OpdRateListTableHeader = ["Remove", "OPD Rate List"];
 
 export const IpdRateListTableHeader = ["Remove", "IPD Rate List"];
+
+export const DiscountApprovalMasterTableHeader = [
+  "#",
+  "Name",
+  "HMS User",
+  "Discount Type",
+  "Branch",
+  "Status",
+  "Edit",
+];

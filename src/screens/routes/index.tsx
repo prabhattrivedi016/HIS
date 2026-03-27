@@ -7,6 +7,7 @@ import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
 import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
+import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import FormulaMaster from "../formulaMaster";
@@ -83,4 +84,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "rate-list-master": <RateListMaster />,
   "tariff-manager": <TariffManager />,
   "patient-registration": <PatientRegistration />,
+  "discount-approval-master": <DiscountApprovalMaster />,
 };

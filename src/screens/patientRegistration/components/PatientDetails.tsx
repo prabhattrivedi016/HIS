@@ -34,6 +34,30 @@ const getAgeFromDob = (dobValue: string) => {
   return { years, months, days };
 };
 
+const normalizePickValue = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const TITLE_ALIASES: Record<string, string[]> = {
+  mr: ["mr", "mister"],
+  mrs: ["mrs", "misses", "mistress"],
+  miss: ["miss", "ms"],
+  master: ["master"],
+  bo: ["bo", "babyof", "sonof", "daughterof", "wardof", "careof", "co"],
+  dr: ["dr", "doctor", "doc"],
+  mx: ["mx"],
+};
+
+const resolveTitleToken = (token: string) => {
+  const normalizedToken = normalizePickValue(token);
+  for (const [canonical, aliases] of Object.entries(TITLE_ALIASES)) {
+    if (aliases.includes(normalizedToken)) return canonical;
+  }
+  return normalizedToken;
+};
+
 type PatientDetailsProps = {
   resetSignal?: number;
 };
@@ -43,7 +67,9 @@ const PatientDetails = ({ resetSignal = 0 }: PatientDetailsProps) => {
 
   const {
     register,
+    watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useFormContext();
 
@@ -67,8 +93,10 @@ const PatientDetails = ({ resetSignal = 0 }: PatientDetailsProps) => {
   useEffect(() => {
     if (!titleList.length) return;
     const defaultTitle = titleList.find(t => t?.value === "Mr.");
-    if (defaultTitle) setValue("Title", defaultTitle.value);
-  }, [titleList, setValue]);
+    if (defaultTitle && !getValues("Title")) {
+      setValue("Title", defaultTitle.value);
+    }
+  }, [titleList, setValue, getValues]);
 
   useEffect(() => {
     setDob("");
@@ -83,6 +111,52 @@ const PatientDetails = ({ resetSignal = 0 }: PatientDetailsProps) => {
       setValue("Title", defaultTitle.value, { shouldValidate: false, shouldDirty: false });
     }
   }, [resetSignal, setValue, titleList]);
+
+  const watchedDob = watch("Dob");
+  const watchedAgeYears = watch("AgeYears");
+  const watchedAgeMonths = watch("AgeMonths");
+  const watchedAgeDays = watch("AgeDays");
+  const watchedTitle = watch("Title");
+  const watchedGender = watch("Gender");
+
+  useEffect(() => {
+    if (isUpdating.current) return;
+
+    setDob(watchedDob ? String(watchedDob) : "");
+    setAge({
+      years:
+        watchedAgeYears === 0 || watchedAgeYears ? String(watchedAgeYears) : "",
+      months:
+        watchedAgeMonths === 0 || watchedAgeMonths ? String(watchedAgeMonths) : "",
+      days: watchedAgeDays === 0 || watchedAgeDays ? String(watchedAgeDays) : "",
+    });
+  }, [watchedDob, watchedAgeYears, watchedAgeMonths, watchedAgeDays]);
+
+  useEffect(() => {
+    if (!watchedTitle || !titleList.length) return;
+
+    const normalizedTitle = resolveTitleToken(String(watchedTitle));
+    const matchedTitle = titleList.find(
+      option => resolveTitleToken(String(option?.value ?? "")) === normalizedTitle
+    );
+
+    if (matchedTitle?.value && matchedTitle.value !== watchedTitle) {
+      setValue("Title", matchedTitle.value, { shouldValidate: true, shouldDirty: false });
+    }
+  }, [watchedTitle, titleList, setValue]);
+
+  useEffect(() => {
+    if (!watchedGender || !genderList.length) return;
+
+    const normalizedGender = normalizePickValue(watchedGender);
+    const matchedGender = genderList.find(
+      option => normalizePickValue(option?.value) === normalizedGender
+    );
+
+    if (matchedGender?.value && matchedGender.value !== watchedGender) {
+      setValue("Gender", matchedGender.value, { shouldValidate: true, shouldDirty: false });
+    }
+  }, [watchedGender, genderList, setValue]);
 
   const handleDobChange = (value: string) => {
     if (!value || isUpdating.current) return;

@@ -4,16 +4,17 @@ import { ENDPOINTS } from "@/config/defaults";
 import { BranchId, Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError } from "@/utils/alert";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import Select, { SingleValue, StylesConfig } from "react-select";
-import { CityItem, CountryItem, DistrictItem, StateItem } from "../types";
+import { CityItem, CountryItem, DistrictItem, PatientDataItem, StateItem } from "../types";
 
 type AddressProps = {
   resetSignal?: number;
+  prefillData?: PatientDataItem | null;
 };
 
-const Address = ({ resetSignal = 0 }: AddressProps) => {
+const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
   const { fetchApi } = useGlobalApi();
   const {
     register,
@@ -91,6 +92,41 @@ const Address = ({ resetSignal = 0 }: AddressProps) => {
     setCityList([]);
     setPincode("");
   }, [resetSignal]);
+
+  useEffect(() => {
+    if (!prefillData) return;
+
+    if (prefillData.countryId) {
+      setSelectedCountry({
+        value: Number(prefillData.countryId),
+        label: prefillData.country || "",
+      });
+      getState(Number(prefillData.countryId));
+    }
+
+    if (prefillData.stateId) {
+      setSelectedState({
+        value: Number(prefillData.stateId),
+        label: prefillData.state || "",
+      });
+      getDistrict(Number(prefillData.stateId));
+    }
+
+    if (prefillData.districtId) {
+      setSelectedDistrict({
+        value: Number(prefillData.districtId),
+        label: prefillData.district || "",
+      });
+      getCity(Number(prefillData.districtId));
+    }
+
+    if (prefillData.cityId) {
+      setSelectedCity({
+        value: Number(prefillData.cityId),
+        label: prefillData.city || "",
+      });
+    }
+  }, [prefillData]);
 
   //   country select handler
   const countrySelectHandler = (option: SingleValue<OptionItem>) => {
@@ -286,7 +322,7 @@ const Address = ({ resetSignal = 0 }: AddressProps) => {
   };
   //   get location by pincode
 
-  const searchLocationByPincode = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const searchLocationByPincode = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
 
