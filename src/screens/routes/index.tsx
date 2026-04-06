@@ -25,6 +25,7 @@ import LocationMaster from "../loactionMaster";
 import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
+import OpdBilling from "../opdBilling";
 import PatientDocumentMaster from "../patientDocumentMaster";
 import PatientMaster from "../patientMaster";
 import PatientRegistration from "../patientRegistration";
@@ -85,4 +86,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "tariff-manager": <TariffManager />,
   "patient-registration": <PatientRegistration />,
   "discount-approval-master": <DiscountApprovalMaster />,
+  "opd-billing": <OpdBilling />,
 };

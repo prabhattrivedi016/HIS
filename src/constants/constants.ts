@@ -245,6 +245,9 @@ export enum CATEGORY_ID {
   bedType = 10,
 }
 
+export enum OPD_CATEGORY_IDs {
+  CategoryIds = "1,3,8,11,4,5",
+}
 export const labTypes = [
   { id: 1, name: "Pathology" },
   { id: 2, name: "Radiology" },
@@ -263,4 +266,39 @@ export enum PATIENT_TYPE {
 export enum VISIT_TYPE {
   OUT_PATIENT = 1,
   IN_PATIENT = 2,
+}
+
+export const PatientRegistrationSaveButtons = [
+  { name: "save", value: "Save", type: "submit", color: "save" },
+  // { name: "CanOPDBilling", value: "Billing", type: "button", color: "save" },
+  // { name: "CanIVFAdmission", value: "IVF Registration", type: "button", color: "save" },
+  // { name: "CanIPDAdmission", value: "IPD Admission", type: "button", color: "save" },
+  // { name: "CanEmergencyAdmission", value: "Emergency Admission", type: "button", color: "save" },
+  // { name: "CanDialysisAdmission", value: "Dialysis Admission", type: "button", color: "save" },
+  // { name: "CanDayCareAdmission", value: "Daycare Admission", type: "button", color: "save" },
+  // { name: "CanOPDConsulationBooking", value: "OPD Consultation", type: "button", color: "save" },
+  { name: "cancel", value: "Cancel", type: "button", color: "cancel" },
+];
+
+export const PatientRegistrationUpdateButtons = [
+  { name: "CanUpdtaePatientregistration", value: "Update", type: "submit", color: "save" },
+  // { name: "CanOPDBilling", value: "OPD Billing", type: "button", color: "save" },
+  // { name: "CanIPDAdmission", value: "IPD Admission", type: "button", color: "save" },
+  // { name: "CanEmergencyAdmission", value: "Emergency Admission", type: "button", color: "save" },
+  // { name: "CanDialysisAdmission", value: "Dialysis Admission", type: "button", color: "save" },
+  // { name: "CanDayCareAdmission", value: "Daycare Admission", type: "button", color: "save" },
+  // { name: "CanOPDConsulationBooking", value: "OPD Consultation", type: "button", color: "save" },
+  { name: "cancel", value: "Cancel", type: "button", color: "cancel" },
+];
+
+export enum ButtonName {
+  CAN_OPD_BILLING = "CanOPDBilling",
+  CAN_IVF_ADMISSION = "CanIVFAdmission",
+  CAN_IPD_ADMISSION = "CanIPDAdmission",
+  CAN_EMERGENCY_ADMISSION = "CanEmergencyAdmission",
+  CAN_DIALYSIS_ADMISSION = "CanDialysisAdmission",
+  CAN_DAYCARE_ADMISSION = "CanDayCareAdmission",
+  CAN_OPD_CONSULTATION_BOOKING = "CanOPDConsulationBooking",
+  CANCEL = "cancel",
+  CAN_UPDATE_PATIENT_REGISTRATION = "CanUpdtaePatientregistration",
 }

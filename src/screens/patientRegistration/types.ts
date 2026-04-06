@@ -91,13 +91,57 @@ type PatientDataItem = {
   referalNo: string;
   referalDate: string;
 };
+
+type SearchedPatientItem = {
+  patientId: number;
+  branchId: number;
+  uhid: string;
+  title: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  patientName: string;
+  ageYears: number;
+  ageMonths: number;
+  ageDays: number;
+  age: string;
+  dob: string;
+  gender: string;
+  relation: string;
+  relativeName: string;
+  contactNumber: string;
+  emergencyContactNumber: string;
+  email: string;
+  fullAddress: string;
+  registrationDate: string;
+  ipdNo: number;
+};
+
+type PatientDataProps = {
+  selectedPatientId?: number | null;
+  showRegistrationButton?: boolean;
+  onPayloadChange?: (payload: Record<string, unknown>) => void;
+};
+
+type PatientDataHandle = {
+  validateForm: () => Promise<boolean>;
+};
+type ButtonProps = {
+  onButtonClick?: (name: string) => void;
+  isEdit: boolean;
+};
+
 export type {
   BranchItem,
+  ButtonProps,
   CityItem,
   CorporateItem,
   CountryItem,
   DistrictItem,
   InsuranceItem,
+  PatientDataHandle,
   PatientDataItem,
+  PatientDataProps,
+  SearchedPatientItem,
   StateItem,
 };

@@ -1,8 +1,9 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
-  value?: string; // YYYY-MM-DD
-  onChange?: (value: string) => void;
+  name?: string;
+  value?: string | null; // YYYY-MM-DD
+  onChange?: ((value: string) => void) | ((e: React.ChangeEvent<HTMLInputElement>) => void);
   min?: string;
   max?: string;
   placeholder?: string;
@@ -25,8 +26,17 @@ const CustomDateInput: React.FC<Props> = ({
   className = "input-field",
 }) => {
   const hiddenRef = useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = useState(value || "");
 
-  const formattedValue = useMemo(() => formatDate(value), [value]);
+  const selectedValue = value ?? internalValue;
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setInternalValue(value);
+    }
+  }, [value]);
+
+  const formattedValue = useMemo(() => formatDate(selectedValue), [selectedValue]);
 
   //  MUST be called directly inside click (user gesture)
   const handleOpen = () => {
@@ -43,6 +53,10 @@ const CustomDateInput: React.FC<Props> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = e.target.value;
     if (!date) return;
+
+    if (value === undefined) {
+      setInternalValue(date);
+    }
 
     onChange?.(date); // return YYYY-MM-DD
   };
@@ -63,7 +77,7 @@ const CustomDateInput: React.FC<Props> = ({
       <input
         ref={hiddenRef}
         type="date"
-        value={value || ""}
+        value={selectedValue || ""}
         min={min}
         max={max}
         className="absolute inset-0 opacity-0 pointer-events-none"

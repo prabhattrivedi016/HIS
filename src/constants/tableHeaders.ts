@@ -382,3 +382,35 @@ export const DiscountApprovalMasterTableHeader = [
   "Status",
   "Edit",
 ];
+
+export const PatientSearchResultTableHeader = [
+  "#",
+  "Title",
+  "Ptient Name",
+  "UHID",
+  "DOB",
+  "Gender",
+  "Relative Name",
+  "Contact Number",
+  "Address",
+  "Registration Date",
+  "Ipd No",
+];
+
+export const OpdBillingServiceTableHeader = [
+  "Delete",
+  "#",
+  "Service Name",
+  "Code",
+  "Doctor",
+  "QTY",
+  "Rate",
+  "Disc (%)",
+  "Disc",
+  "Net Amt",
+  "U",
+];
+
+export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No."];
+
+export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];

@@ -4,6 +4,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { BranchId, Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError } from "@/utils/alert";
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import Select, { SingleValue, StylesConfig } from "react-select";
@@ -91,6 +92,16 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     setDistrictList([]);
     setCityList([]);
     setPincode("");
+    setValue("Address", "");
+    setValue("Pincode", "");
+    setValue("CountryId", "");
+    setValue("Country", "");
+    setValue("StateId", "");
+    setValue("State", "");
+    setValue("DistrictId", "");
+    setValue("District", "");
+    setValue("CityId", "");
+    setValue("City", "");
   }, [resetSignal]);
 
   useEffect(() => {
@@ -149,20 +160,20 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       return;
     }
     setSelectedCountry(option);
-    setValue("CountryId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("Country", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("CountryId", option?.value ?? "");
+    setValue("Country", option?.label ?? "");
     setSelectedState(null);
     setSelectedDistrict(null);
     setSelectedCity(null);
     setStateList([]);
     setDistrictList([]);
     setCityList([]);
-    setValue("StateId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("State", "", { shouldValidate: true, shouldDirty: true });
-    setValue("DistrictId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("District", "", { shouldValidate: true, shouldDirty: true });
-    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+    setValue("StateId", "");
+    setValue("State", "");
+    setValue("DistrictId", "");
+    setValue("District", "");
+    setValue("CityId", "");
+    setValue("City", "");
 
     getState(Number(option?.value));
   };
@@ -211,16 +222,16 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       return;
     }
     setSelectedState(option);
-    setValue("StateId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("State", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("StateId", option?.value ?? "");
+    setValue("State", option?.label ?? "");
     setSelectedDistrict(null);
     setSelectedCity(null);
     setDistrictList([]);
     setCityList([]);
-    setValue("DistrictId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("District", "", { shouldValidate: true, shouldDirty: true });
-    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+    setValue("DistrictId", "");
+    setValue("District", "");
+    setValue("CityId", "");
+    setValue("City", "");
 
     getDistrict(Number(option?.value));
   };
@@ -265,12 +276,12 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       return;
     }
     setSelectedDistrict(option);
-    setValue("DistrictId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("District", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("DistrictId", option?.value ?? "");
+    setValue("District", option?.label ?? "");
     setSelectedCity(null);
     setCityList([]);
-    setValue("CityId", "", { shouldValidate: true, shouldDirty: true });
-    setValue("City", "", { shouldValidate: true, shouldDirty: true });
+    setValue("CityId", "");
+    setValue("City", "");
 
     getCity(Number(option?.value));
   };
@@ -305,8 +316,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       return;
     }
     setSelectedCity(option);
-    setValue("CityId", option?.value ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("City", option?.label ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("CityId", option?.value ?? "");
+    setValue("City", option?.label ?? "");
   };
 
   //   pincode handler
@@ -318,7 +329,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       setValue("Pincode", "");
       return;
     }
-    setValue("Pincode", value, { shouldValidate: true, shouldDirty: true });
+    setValue("Pincode", value);
   };
   //   get location by pincode
 
@@ -331,7 +342,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       if (value.length === 6) {
         getLocation(value);
       } else {
-        showError("Please enter six digit pincode");
+        showError("Please enter six digits pincode");
         setSelectedCountry(null);
         setSelectedState(null);
         setSelectedDistrict(null);
@@ -368,33 +379,27 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     }
     const countryOption = { value: resp?.data?.countryId, label: resp?.data?.countryName };
     setSelectedCountry(countryOption);
-    setValue("CountryId", resp?.data?.countryId ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("Country", resp?.data?.countryName ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("CountryId", resp?.data?.countryId ?? "");
+    setValue("Country", resp?.data?.countryName ?? "");
 
     const stateOption = { value: resp?.data?.stateId, label: resp?.data?.stateName };
     setSelectedState(stateOption);
-    setValue("StateId", resp?.data?.stateId ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("State", resp?.data?.stateName ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("StateId", resp?.data?.stateId ?? "");
+    setValue("State", resp?.data?.stateName ?? "");
 
     const districtOption = { value: resp?.data?.districtId, label: resp?.data?.districtName };
     setSelectedDistrict(districtOption);
-    setValue("DistrictId", resp?.data?.districtId ?? "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-    setValue("District", resp?.data?.districtName ?? "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
+    setValue("DistrictId", resp?.data?.districtId ?? "");
+    setValue("District", resp?.data?.districtName ?? "");
 
     const cityOption = { value: resp?.data?.cityId, label: resp?.data?.cityName };
     setSelectedCity(cityOption);
-    setValue("CityId", resp?.data?.cityId ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("City", resp?.data?.cityName ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("CityId", resp?.data?.cityId ?? "");
+    setValue("City", resp?.data?.cityName ?? "");
   };
 
   return (
-    <div className="form-grid-3 card -mt-3">
+    <>
       <input type="hidden" {...register("CountryId")} />
       <input type="hidden" {...register("Country")} />
       <input type="hidden" {...register("StateId")} />
@@ -403,14 +408,15 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       <input type="hidden" {...register("District")} />
       <input type="hidden" {...register("CityId")} />
       <input type="hidden" {...register("City")} />
-      <input type="hidden" {...register("Pincode")} />
+
       <InputField label="Address">
         <textarea
           className="input-field"
           placeholder="Enter address"
-          rows={2}
           {...register("Address")}
+          rows={1}
         />
+        {errors.Address && <p className="input-field-error">{String(errors.Address.message)}</p>}
       </InputField>
       <InputField label="Pincode">
         <input
@@ -421,10 +427,12 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           onChange={pincodeHanlder}
           maxLength={6}
           onKeyDown={searchLocationByPincode}
+          onInput={allowOnlyNumbers}
         />
+        {errors.Pincode && <p className="input-field-error">{String(errors.Pincode.message)}</p>}
       </InputField>
 
-      <InputField label="Country">
+      <InputField label="Country" required>
         <Select<OptionItem, false>
           value={selectedCountry}
           options={countrySelectOption}
@@ -440,7 +448,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           <p className="input-field-error">{String(errors.CountryId.message)}</p>
         )}
       </InputField>
-      <InputField label="State">
+      <InputField label="State" required>
         <Select<OptionItem, false>
           value={selectedState}
           options={stateSelectOption}
@@ -454,7 +462,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
         />
         {errors.StateId && <p className="input-field-error">{String(errors.StateId.message)}</p>}
       </InputField>
-      <InputField label="District">
+      <InputField label="District" required>
         <Select<OptionItem, false>
           value={selectedDistrict}
           options={districtSelectOption}
@@ -470,7 +478,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           <p className="input-field-error">{String(errors.DistrictId.message)}</p>
         )}
       </InputField>
-      <InputField label="City">
+      <InputField label="City" required>
         <Select<OptionItem, false>
           value={selectedCity}
           options={citySelectOption}
@@ -484,7 +492,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
         />
         {errors.CityId && <p className="input-field-error">{String(errors.CityId.message)}</p>}
       </InputField>
-    </div>
+    </>
   );
 };
 

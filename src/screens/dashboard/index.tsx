@@ -2,6 +2,7 @@ import { RoleContext } from "@/context/RoleContext";
 import { useContext } from "react";
 import { getAuthStorage } from "../../utils/authStorage";
 import AdminDashboard from "./components/AdminDashboard";
+import DashboardShimmer from "./components/DashboardShimmer";
 import DayCareDashboard from "./components/DayCareDashboard";
 import FrontOfficeDashboard from "./components/FrontOfficeDashboard";
 
@@ -20,7 +21,9 @@ const Dashboard = () => {
   const normalizedRoleKey = definedRole.replace(/[\s-]/g, "");
 
   const renderDashboard = (role: string | null) => {
-    if (!role) return <p className="flex justify-center items-center">Loading...</p>;
+    if (!role) {
+      return <DashboardShimmer />;
+    }
 
     switch (normalizedRoleKey) {
       case "admin":
