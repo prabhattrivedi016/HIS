@@ -11,7 +11,9 @@ import AuthBackground from "../../components/layout";
 import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
+import { fetchUserRightAccess } from "../../store/slices/accessRightSlices";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
+import { useAppDispatch } from "../../store/hooks";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
@@ -27,6 +29,7 @@ const Login = () => {
   const loginFunc = authContext?.login;
   const { loading, error, fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
+  const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
   const { setAuthorizedPages } = useAuthorizedPages();
@@ -139,6 +142,7 @@ const Login = () => {
       setUserId(userId);
 
       const roleId = await fetchUserAssignedRoles(branchId);
+      await dispatch(fetchUserRightAccess({ branchId, roleId })).unwrap();
       await fetchAuthorizedPages(branchId, roleId);
 
       if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {
@@ -192,7 +196,7 @@ const Login = () => {
     roleContext?.setRole(response?.data?.[0]?.roleName, response?.data?.[0]?.roleId);
 
     const roleId = response?.data?.[0]?.roleId;
-    const roleName = response?.data?.[0]?.roleName;
+    // const roleName = response?.data?.[0]?.roleName;
 
     if (!roleId) throw new Error("Role not found");
 

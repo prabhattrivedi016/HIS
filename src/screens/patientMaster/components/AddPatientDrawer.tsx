@@ -2,7 +2,6 @@ import InputField from "@/components/customInputField";
 import { Camera } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import SaveButtons from "./SaveButtons";
 
 const AddPatientDrawer = ({ isOpen, onClose }) => {
   const currentDate = new Date().toISOString().split("T")[0];
@@ -290,7 +289,6 @@ const AddPatientDrawer = ({ isOpen, onClose }) => {
               </div>
             </div>
           </div>
-          <SaveButtons />
         </div>
       </div>
     </div>

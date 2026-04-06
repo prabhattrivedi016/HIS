@@ -197,10 +197,20 @@ const ENDPOINTS = {
   // patient master
   GET_PATIENT_MASTER: "Patient/getPatientMaster",
   CREATE_UPDATE_PATIENT_MASTER: "Patient/createUpdatePatientMaster",
+  SEARCH_PATIENT_MASTER: "Patient/searchPatientMaster",
 
   // discount approval master
   CREATE_UPDATE_DISCOUNT_APPROVAL_MASTER: "Admin/createUpdateDiscountApprovalMaster",
   GET_DISCOUNT_APPROVAL_MASTER_LIST: "Admin/getDiscountApprovalMasterList",
+
+  // access rights
+  GET_USER_ACCESS_RIGHTS: "User/getUserAccessRights",
+  GET_DASHBOARD_USER_ACCESS_RIGHTS: "User/getDashboardUserAccessRights",
+
+  // opd billing
+  GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING: "Patient/getServiceAllDetailsForOPDBilling",
+  GET_PACKAGE_ALL_DETAILS: "Patient/getPackageAllDetails",
+  SAVE_OPD_BILLING: "Patient/saveOPDBilling",
 };
 
 export { ENDPOINTS };

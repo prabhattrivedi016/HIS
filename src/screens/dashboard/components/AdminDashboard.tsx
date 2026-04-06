@@ -1,10 +1,13 @@
 import Chart from "@/components/charts";
 import LineChart from "@/components/charts/LineChart";
 import PieChart from "@/components/charts/PieChart";
+import { useAppSelector } from "@/store/hooks";
 import { BarChart3, LogOut, UserPlus, UserPlus2, Users, Wallet } from "lucide-react";
 import DashboardCard from "./DashboardCard";
 
 const AdminDashboard = () => {
+  const { accessRights: response, loading, error } = useAppSelector(state => state.accessRights);
+
   return (
     <div className="page-container">
       <div className="form-grid-4 gap-6">

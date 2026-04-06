@@ -5,6 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import useGetBranchList from "../../hooks/useGetBranchList";
+import { useAppDispatch } from "../../store/hooks";
+import { clearAccessRights } from "../../store/slices/accessRightSlices";
+import { useAuthorizedPages } from "../../store/useAuthorizedPages";
+import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import { getAuthStorage } from "../../utils/authStorage";
 
 import RoleBindPage from "./components/RoleBindPage";
@@ -27,6 +31,9 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
 
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { setAuthorizedPages } = useAuthorizedPages();
+  const { setFavoriteRoles } = useFavoriteRoles();
   const user = authContext?.user;
   const branchId = Number(user?.branchId ?? 0);
   const userId = Number(user?.userId ?? 0);
@@ -73,6 +80,9 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   const logoutHandler = () => {
     authContext?.logout();
     roleContext?.clearRole();
+    dispatch(clearAccessRights());
+    setAuthorizedPages([]);
+    setFavoriteRoles([]);
 
     storage.removeItem("accessToken");
     storage.removeItem("auth");
@@ -80,9 +90,11 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
 
     localStorage.removeItem("authorized-pages");
     localStorage.removeItem("favorite-roles");
+    sessionStorage.removeItem("authorized-pages");
+    sessionStorage.removeItem("favorite-roles");
 
     delete axios.defaults.headers.common["Authorization"];
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const userProfileHandler = () => {

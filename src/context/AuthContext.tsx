@@ -18,6 +18,7 @@ interface AuthData {
 interface AuthContextType {
   token: string | null;
   user: User | null;
+  isInitialized: boolean;
   login: (data: AuthData, rememberMe?: boolean) => void;
   logout: () => void;
 }
@@ -29,18 +30,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     token: null,
     user: null,
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const localAuth = localStorage.getItem("auth");
     const sessionAuth = sessionStorage.getItem("auth");
     const storedAuth = localAuth || sessionAuth;
 
-    if (!storedAuth) return;
+    if (!storedAuth) {
+      setIsInitialized(true);
+      return;
+    }
 
     try {
       setAuthData(JSON.parse(storedAuth));
     } catch (e) {
       console.error("Failed to parse stored auth", e);
+    } finally {
+      setIsInitialized(true);
     }
   }, []);
 
@@ -71,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ ...authData, login, logout }}>
+    <AuthContext.Provider value={{ ...authData, isInitialized, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

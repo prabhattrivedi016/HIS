@@ -6,6 +6,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import logo from "../../../../assets/logo.jpg";
 import miniLogo from "../../../../assets/mini-logo.png";
 
+import { useAppSelector } from "@/store/hooks";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
@@ -18,6 +19,7 @@ import { getAuthStorage } from "../../../utils/authStorage";
 import { normalizeRouteKey } from "../../../utils/route";
 import Header from "../../header";
 import { PageItem, TabItem } from "../types";
+import { hasAccess } from "./accessControl";
 
 type HoverPopupState = {
   top: number;
@@ -30,6 +32,8 @@ const Sidebar = () => {
   const roleContext = useContext(RoleContext);
   const { authorizedPages } = useAuthorizedPages();
   const { loading, fetchApi } = useGlobalApi();
+
+  const { accessRights: response } = useAppSelector(state => state.accessRights);
 
   const { refetchAuthorizedPages } = useAuthorizedPages();
 
@@ -245,63 +249,40 @@ const Sidebar = () => {
                       transition={{ duration: 0.5, ease: "easeInOut" }}
                       className="hover-popup-scroll no-scroll-buttons m-2 bg-gray-50 pl-5 font-semibold flex flex-col max-h-64 overflow-y-auto overflow-x-hidden"
                     >
-                      {tab.pages.map(page => {
-                        const pageKey = normalizeRouteKey(page.url);
-                        const path = `/${pageKey}`;
-                        return (
-                          <div key={page.subMenuId} className="relative flex">
-                            <NavLink
-                              to={path}
-                              onContextMenu={e => {
-                                e.preventDefault();
-                                setContextMenu({
-                                  id: page.subMenuId,
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                });
-                              }}
-                              className={({ isActive }) =>
-                                `block w-full px-3 py-2 rounded hover:bg-gray-300 whitespace-nowrap overflow-hidden text-ellipsis ${
-                                  isActive || location.pathname.startsWith(path)
-                                    ? "bg-gray-200"
-                                    : ""
-                                }`
-                              }
-                            >
-                              {page.subMenuName}
-                            </NavLink>
+                      {tab.pages
+                        .filter(page => {
+                          const pageKey = normalizeRouteKey(page.url);
+                          return hasAccess(pageKey, response);
+                        })
+                        .map(page => {
+                          const pageKey = normalizeRouteKey(page.url);
+                          const path = `/${pageKey}`;
 
-                            {/* -----------------------context menu---------------------------*/}
-                            <AnimatePresence>
-                              {contextMenu?.id === page.subMenuId && (
-                                <motion.div
-                                  data-context-menu
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.95 }}
-                                  transition={{ duration: 0.12 }}
-                                  style={{
-                                    position: "fixed",
-                                    top: contextMenu.y,
-                                    left: contextMenu.x,
-                                  }}
-                                  className="w-40 bg-linear-to-br from-indigo-700 to-blue-700 shadow-lg rounded-md z-999"
-                                >
-                                  <button
-                                    className="w-full px-4 py-2 text-white"
-                                    onClick={() => {
-                                      rightClickButtonHandler(page);
-                                      setContextMenu(null);
-                                    }}
-                                  >
-                                    Mark Quick Link
-                                  </button>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
+                          return (
+                            <div key={page.subMenuId} className="relative flex">
+                              <NavLink
+                                to={path}
+                                onContextMenu={e => {
+                                  e.preventDefault();
+                                  setContextMenu({
+                                    id: page.subMenuId,
+                                    x: e.clientX,
+                                    y: e.clientY,
+                                  });
+                                }}
+                                className={({ isActive }) =>
+                                  `block w-full px-3 py-2 rounded hover:bg-gray-300 whitespace-nowrap overflow-hidden text-ellipsis ${
+                                    isActive || location.pathname.startsWith(path)
+                                      ? "bg-gray-200"
+                                      : ""
+                                  }`
+                                }
+                              >
+                                {page.subMenuName}
+                              </NavLink>
+                            </div>
+                          );
+                        })}{" "}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -319,8 +300,13 @@ const Sidebar = () => {
       >
         <Header toggleSidebar={() => setSidebarOpen(p => !p)} isSidebarOpen={sidebarOpen} />
         <FavRoleButtonToggle />
-        <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto">
+        {/* <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto">
           <Outlet />
+        </main> */}
+        <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto relative">
+          <div className="h-full overflow-auto pb-24">
+            <Outlet />
+          </div>
         </main>
       </div>
 
