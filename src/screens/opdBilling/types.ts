@@ -173,6 +173,10 @@ type ServiceBindingItem = {
   isCorporateDiscount: number;
   gstPer: number;
   sampleTypeId: number;
+  isUrgent?: number;
+  netAmount?: number;
+  dis?: number;
+  qty?: number;
 };
 
 type CategoryItem = {

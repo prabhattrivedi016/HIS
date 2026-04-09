@@ -33,6 +33,7 @@ type BillingDetailsHandle = {
   validateForm: () => Promise<boolean>;
   getPayload: () => Record<string, unknown>;
   getNetAmount: () => number;
+  reset: () => void;
 };
 
 type PaymentMethodPayloadItem = {

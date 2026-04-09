@@ -239,6 +239,14 @@ select:-webkit-autofill {
 .save-btn {
   @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
+
+.delete-btn {
+  @apply bg-[#c30010] hover:bg-[#ed0b26] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
+
+.reset-btn {
+  @apply bg-[#08b065] hover:bg-[#08b65b] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
 /*  */
 .cancel-button {
   @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
@@ -290,9 +298,9 @@ select:-webkit-autofill {
 
 /*----------------- icon color button ----------------*/
 .icon-color-button {
-  @apply text-xl text-blue-500 active:scale-80;
+  @apply text-xl text-blue-500 active:scale-80 cursor-pointer;
 }
 
 .icon-color-delete {
-  @apply text-xl text-red-500 active:scale-80;
+  @apply text-xl text-red-500 active:scale-80 cursor-pointer;
 }
