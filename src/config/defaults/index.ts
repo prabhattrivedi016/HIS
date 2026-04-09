@@ -211,6 +211,12 @@ const ENDPOINTS = {
   GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING: "Patient/getServiceAllDetailsForOPDBilling",
   GET_PACKAGE_ALL_DETAILS: "Patient/getPackageAllDetails",
   SAVE_OPD_BILLING: "Patient/saveOPDBilling",
+
+  // formula master
+  GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",
+  GET_OBSERVATION_FORMULA_BY_INVESTIGATION_ID: "Lab/getObservationFormulaByInvestigationId",
+  CREATE_UPDATE_LAB_FORMULA_MASTER: "Lab/createUpdateLabFormulaMaster",
+  DELETE_LAB_FORMULA_BY_OBSERVATION_ID: "Lab/deleteLabFormulaByObservationid",
 };
 
 export { ENDPOINTS };

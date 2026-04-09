@@ -414,3 +414,14 @@ export const OpdBillingServiceTableHeader = [
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No."];
 
 export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];
+
+export const FormulaMasterObservationTableHeader = ["#", "ID", "Test Name"];
+
+export const InvestigationFormulaListTableHeader = [
+  "#",
+  "Investigation Name",
+  "Observation Name",
+  "Formula",
+  "Edit",
+  "Delete",
+];

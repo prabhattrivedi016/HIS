@@ -1,3 +1,4 @@
+import { getDoctorMaster, getPatientDataByPatientId } from "@/api/globalApiCall";
 import BillingDetails, { BillingDetailsHandle } from "@/components/BillingDetails";
 import { BillingFormValues } from "@/components/BillingDetails/types";
 import CustomDateInput from "@/components/customDateInput";
@@ -39,7 +40,7 @@ import {
 
 const OpdBilling = () => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const { setTotalBillingAmount } = useContext(BillingAmountContext);
+  const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const patientDataRef = useRef<PatientDataHandle>(null);
   const patientID = useParams();
@@ -79,7 +80,6 @@ const OpdBilling = () => {
 
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
-
   const [subCategoryList, setSubCategoryList] = useState<SubCategoryItem[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState<OptionItem | null>(null);
 
@@ -101,6 +101,42 @@ const OpdBilling = () => {
   const [patientRegistrationDetails, setPatientRegistrationDetails] = useState<
     Record<string, unknown>
   >({});
+
+  const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
+  const [formResetKey, setFormResetKey] = useState<number>(0);
+
+  // autoFill patient data
+
+  useEffect(() => {
+    if (patientRegistrationDetails?.PatientId) {
+      const fetchPatientData = async () => {
+        const resp = await getPatientDataByPatientId(
+          fetchApi,
+          Number(patientRegistrationDetails?.PatientId),
+          "opdBilling"
+        );
+
+        console.log("resp", resp);
+
+        if (!resp || Object.keys(resp).length === 0) return;
+
+        setPatientRegistrationDetails(prev => ({
+          ...prev,
+          ...resp, // auto-fill
+        }));
+
+        if (resp?.doctorId) {
+          const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
+          console.log("doctor", doctor);
+          if (doctor) {
+            setSelectedDoctor(doctor);
+          }
+        }
+      };
+
+      fetchPatientData();
+    }
+  }, [patientRegistrationDetails?.PatientId]);
 
   const [isBillingDiscount, setIsBillingDiscount] = useState<number>(0);
 
@@ -201,18 +237,71 @@ const OpdBilling = () => {
     remarks: "",
   });
 
-  // payment details
-  const billingPayload = billingDetailsRef.current?.getPayload?.();
-
-  const paymentDetails = billingPayload?.payments || [];
-
-  console.log("paymentDetails", paymentDetails);
-
   useEffect(() => {
     if (billingValues?.totalDiscPerOnBill || billingValues?.totalDiscAmtOnBill) {
       setIsBillingDiscount(1);
     }
   }, [billingValues?.totalDiscPerOnBill, billingValues?.totalDiscAmtOnBill]);
+
+  // Auto-calculate balance amount whenever payment details or net amount changes
+  // Balance = Net Amount - Total Payment
+  // Can be negative if overpaid, positive if pending, zero if fully paid
+  useEffect(() => {
+    const billingPayload = billingDetailsRef.current?.getPayload?.();
+    const payments = billingPayload?.payments || [];
+
+    if (payments && payments.length >= 0) {
+      const totalPayment = payments.reduce((acc, curr) => acc + Number(curr?.amount || 0), 0);
+      const balanceAmount = billingValues?.netAmount - totalPayment;
+
+      setBillingValues(prev => ({
+        ...prev,
+        balanceAmount: Number(balanceAmount.toFixed(2)),
+      }));
+
+      console.log("Balance Calculation:", {
+        netAmount: billingValues?.netAmount,
+        totalPayment,
+        balanceAmount: Number(balanceAmount.toFixed(2)),
+        status: balanceAmount > 0 ? "Pending" : balanceAmount < 0 ? "Overpaid" : "Fully Paid",
+      });
+    }
+  }, [paymentDetails]);
+
+  // Payment summary with breakdown
+  const paymentSummary = useMemo(() => {
+    const billingPayload = billingDetailsRef.current?.getPayload?.();
+    const payments = billingPayload?.payments || [];
+
+    if (!payments || payments.length === 0) {
+      return {
+        breakdown: {},
+        total: 0,
+        count: 0,
+      };
+    }
+
+    const breakdown: Record<string, { amount: number; count: number }> = {};
+    let total = 0;
+
+    payments.forEach((payment: any) => {
+      const amount = Number(payment?.amount || 0);
+      const method = payment?.paymentMethod || payment?.mode || "Cash";
+
+      if (!breakdown[method]) {
+        breakdown[method] = { amount: 0, count: 0 };
+      }
+      breakdown[method].amount += amount;
+      breakdown[method].count += 1;
+      total += amount;
+    });
+
+    return {
+      breakdown,
+      total: Number(total.toFixed(2)),
+      count: payments.length,
+    };
+  }, [paymentDetails]);
 
   // payment details payload
 
@@ -227,6 +316,7 @@ const OpdBilling = () => {
     setRenderSearchPatientPopup(true);
   };
 
+  // close handler
   const closeHandler = useCallback(() => {
     setOpenSearchPatientPopup(false);
   }, []);
@@ -365,7 +455,7 @@ const OpdBilling = () => {
     }));
   }, [doctorList]);
 
-  const doctorSelectHandler = (option: OptionItem) => {
+  const doctorSelectHandler = (option: OptionItem | null) => {
     if (!option) {
       setSelectedDoctor(null);
       return;
@@ -529,7 +619,7 @@ const OpdBilling = () => {
     }));
   }, [subSubCategoryList]);
 
-  const subSubCategorySelectHandler = (option: OptionItem) => {
+  const subSubCategorySelectHandler = (option: OptionItem | null) => {
     if (!option) return;
     setSelectedSubSubCategory(option);
   };
@@ -662,6 +752,103 @@ const OpdBilling = () => {
     setRenderReferDoctorPopup(false);
   }, []);
 
+  // Reset form to initial state
+  const resetForm = () => {
+    billingDetailsRef.current?.reset?.();
+
+    // Reset patient registration
+    setPatientRegistrationDetails({});
+
+    // Reset insurance and corporate
+    setSelectedInsurance(0);
+    setCorporateList([]);
+    setSelectedCorporate(null);
+    setSelectedCorporateError("");
+
+    // Reset doctor
+    setSelectedDoctor(null);
+    setSelectDoctorError("");
+
+    // Reset refer doctor
+    setSelectedReferDoctor(null);
+
+    // Reset services
+    SetServiceDataTableItem([]);
+    SetServiceItemList([]);
+    setSearchTerm("");
+    setShowPopup(false);
+    setShowDuplicateError("");
+
+    // Reset category and subcategories
+    setSelectedCategory(0);
+    setSelectedSubCategory(null);
+    setSelectedSubSubCategory(null);
+
+    // Reset billing form data
+    setOpdBillingFormData({
+      patientId: 0,
+      uhid: "",
+      branchId: 0,
+      currentAge: "",
+      insuranceCompanyId: 0,
+      corporateId: 0,
+      referDoctorId: 0,
+      grossBillAmount: 0,
+      totalDiscPerOnBill: 0,
+      totalDiscAmtOnBill: 0,
+      roundOff: 0,
+      netAmount: 0,
+      discApprovedById: 0,
+      discountReason: "",
+      remarks: "",
+      uniqueId: "",
+      mlc: "",
+      pi: "",
+      remark: "",
+      policyNo: "",
+      policyCardNo: "",
+      expiryDate: "",
+      cardHolder: "",
+      referalNo: "",
+      referalDate: "",
+      diagnosisId: 0,
+      proId: 0,
+      proName: "",
+      isSendMRD: 0,
+    });
+
+    // Reset billing values
+    setBillingValues({
+      grossBillAmount: 0,
+      totalDiscPerOnBill: 0,
+      totalDiscAmtOnBill: 0,
+      roundOff: 0,
+      netAmount: 0,
+      balanceAmount: 0,
+      discApprovedById: 0,
+      discountReason: "",
+      remarks: "",
+    });
+
+    // Reset other states
+    setIsBillingDiscount(0);
+    setSelectedPatientId(null);
+    setPaymentDetails([]);
+    setTotalBillingAmount(0);
+    setCollectOnDeviceAmount(0);
+    setOpenCollectOnDevice(false);
+    setRenderCollectOnDevice(false);
+    setOpenPackagePopup(false);
+    setRenderPackagePopup(false);
+    setOpenReferDoctorPopup(false);
+    setRenderReferDoctorPopup(false);
+    setOpenSearchPatientPopup(false);
+    setRenderSearchPatientPopup(false);
+
+    // Force re-mount children with internal form state (PatientData + BillingDetails).
+    setFormResetKey(prev => prev + 1);
+  };
+
   // button click handler
   const buttonClickHandler = async (value: string) => {
     if (value === "collectOnDevice") {
@@ -672,7 +859,25 @@ const OpdBilling = () => {
       setOpenCollectOnDevice(true);
     }
 
+    if (value === "cancel") {
+      resetForm();
+    }
+
     if (value === "save") {
+      // Validate patient registration form using PatientData validation
+      const isValid = await patientDataRef.current?.validateForm();
+
+      if (!isValid) {
+        return;
+      }
+
+      // Validate billing details (payment + conditional billing discount fields)
+      const isBillingValid = await billingDetailsRef.current?.validateForm?.();
+      if (!isBillingValid) {
+        showError("Please fill all required billing details");
+        return;
+      }
+
       await getUserRegistrationResponse();
     }
   };
@@ -722,8 +927,6 @@ const OpdBilling = () => {
         return;
       }
 
-      console.log("patientResponse", patientResponse?.data?.[0]);
-
       // Step 3: Build complete visitDetails with all required fields
       const visitDetails = {
         patientId: registrationResp?.data?.patientId || 0,
@@ -759,22 +962,35 @@ const OpdBilling = () => {
 
       // Step 4: Build billing items payload
       const billingItems = createBillingItemsPayload();
-      console.log("payload of billing details", billingItems);
 
       if (!billingItems || billingItems.length === 0) {
-        showError("Failed to create billing items");
+        showError("Please add some services to continue");
         return;
       }
 
-      // Step 5: Construct complete billing payload with all 4 parts
+      // Step 5: Construct complete billing payload with all 4 parts including payment summary
+      const billingPayload = billingDetailsRef.current?.getPayload?.();
+      const allPaymentDetails = billingPayload?.payments || [];
+
       const completePayload = {
         visitDetails,
         billingItems,
-        paymentDetails,
+        paymentDetails: allPaymentDetails,
         isBillDiscount: isBillingDiscount,
+        paymentSummary: {
+          totalNet: billingValues?.netAmount,
+          totalCollected: paymentSummary.total,
+          balanceAmount: billingValues?.balanceAmount,
+          breakdown: paymentSummary.breakdown,
+          transactionCount: paymentSummary.count,
+          status:
+            billingValues?.balanceAmount > 0
+              ? "Pending"
+              : billingValues?.balanceAmount < 0
+                ? "Overpaid"
+                : "Fully Paid",
+        },
       };
-
-      console.log("Complete OPD Billing Payload:", completePayload);
 
       // Step 6: Submit OPD billing
       const saveBillingResp = await fetchApi(
@@ -787,7 +1003,6 @@ const OpdBilling = () => {
 
       if (!saveBillingResp?.result) {
         const errorMsg = saveBillingResp?.message || "Failed to save OPD billing";
-        console.error("API Error Response:", saveBillingResp);
         showError(errorMsg);
         return null;
       }
@@ -800,22 +1015,9 @@ const OpdBilling = () => {
       showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
 
       // Reset form after successful submission
-      //   setServiceDataTableItem([]);
-      //   setOpdBillingFormData(prev => ({
-      //     ...prev,
-      //     patientId: registrationResp?.data?.patientId || 0,
-      //     uhid: patientResponse?.data?.uhid || "",
-      //     grossBillAmount: 0,
-      //     totalDiscPerOnBill: 0,
-      //     totalDiscAmtOnBill: 0,
-      //     netAmount: 0,
-      //   }));
-      //   setPaymentDetails([]);
-      //   setSelectedDoctor(null);
-      //   setSelectedInsurance(0);
-      //   setSelectedCorporate(null);
+      resetForm();
 
-      //   return saveBillingResp.data;
+      return saveBillingResp.data;
     } catch (error) {
       console.error("Error in OPD billing submission:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -900,6 +1102,7 @@ const OpdBilling = () => {
       </div>
 
       <PatientData
+        key={`patient-data-${formResetKey}`}
         ref={patientDataRef}
         selectedPatientId={activePatientId || null}
         showRegistrationButton={showRegistrationButton}
@@ -930,10 +1133,9 @@ const OpdBilling = () => {
             <Select<OptionItem, false>
               value={selectedCorporate}
               options={corporateSelectOption}
-              placeholder="Select corporate"
+              placeholder="Select investigation"
               isSearchable
               isClearable
-              isDisabled={hasSelectedService}
               onChange={option => corporateSelectHandler(option)}
               styles={
                 hasSelectedService ? undefined : (SelectStyles as StylesConfig<OptionItem, false>)
@@ -1246,23 +1448,24 @@ const OpdBilling = () => {
         {/* billing details */}
         <div className="payment details">
           <BillingDetails
+            key={`billing-details-${formResetKey}`}
             ref={billingDetailsRef}
             setOpdBilling={setOpdBillingFormData}
             setBillingValues={setBillingValues}
-            billingValues={billingValues}
+            billingValues={billingValues!}
           />
         </div>
 
         {/* buttons */}
         <Buttons onButtonClick={buttonClickHandler} />
-        {!!finalPayloadPreview && (
+        {/* {!!finalPayloadPreview && (
           <div className="mt-4">
             <h3 className="page-heading text-base">Final Payload Preview</h3>
-            <pre className="input-field whitespace-pre-wrap break-words min-h-40 overflow-auto">
+            <pre className="input-field whitespace-pre-wrap wrap-break-words min-h-40 overflow-auto">
               {finalPayloadPreview}
             </pre>
           </div>
-        )}
+        )} */}
       </div>
 
       {!!loading && <CustomLoader isLoading={loading} />}
