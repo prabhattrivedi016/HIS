@@ -1,9 +1,11 @@
 import Animation from "@/components/animation";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { PatientSearchResultTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -102,13 +104,38 @@ const SearchPatientPopup = ({
     onClose();
     setShowTable(false);
   };
+
+  // show patient details on mounting of the page
+  const getAllPatientData = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_MASTER,
+      {},
+      {},
+      { component: "SearchPatientPopupOfRegistration" }
+    );
+    console.log("resp", resp?.data.slice(0, 5));
+    setSearchPatientDataList(resp?.data.slice(0, 99) ?? []);
+    setShowTable(true);
+    setIsTableData(true);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      getAllPatientData();
+    }
+  }, [isOpen]);
+
+  useScrollLock(isOpen);
   return createPortal(
     <div className={`fixed inset-0 z-9999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div
         className={`popup-bg-overlay   ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
 
-      <div className={`central-popup lg:min-w-7xl lg:min-h-auto ${isOpen ? "opacity-full" : ""}`}>
+      <div
+        className={`central-popup lg:min-w-7xl lg:min-h-auto h-[calc(100%-20px)] overflow-auto ${isOpen ? "opacity-full" : ""}`}
+      >
         <div className="popup-header">
           <h2 className="popup-helper-text">Search Old Patient</h2>
           <button onClick={closeHandler} className="close-drawer-btn">
@@ -117,7 +144,7 @@ const SearchPatientPopup = ({
         </div>
         <div className="flex flex-col mb-4  ">
           {/* form data */}
-          <form id="searchPatientForm" className=" form-grid-4 " onSubmit={formSubmitHandler}>
+          <form id="searchPatientForm" className="form-grid-6" onSubmit={formSubmitHandler}>
             <InputField label="UHID">
               <input
                 className="input-field"
@@ -226,7 +253,7 @@ const SearchPatientPopup = ({
             </InputField>
           </form>
           <div className="flex justify-center items-center  ">
-            <button type="submit" form="searchPatientForm" className="save-btn">
+            <button type="submit" form="searchPatientForm" className="save-btn -mt-3">
               Search
             </button>
           </div>
@@ -237,7 +264,7 @@ const SearchPatientPopup = ({
           <Animation isOpen={showTable}>
             <div className="table-container ">
               <div className="table-scroll-wrapper ">
-                <div className="table-size lg:min-h-70  lg:max-h-60">
+                <div className="table-size lg:min-h-110  lg:max-h-110">
                   <table className="base-table ">
                     <thead className="table-head">
                       <tr>
@@ -288,10 +315,14 @@ const SearchPatientPopup = ({
                   </table>
                 </div>
               </div>
+              <p className="input-field-error font-semibold text-center">
+                💠 Please double click to select a patient
+              </p>
             </div>
           </Animation>
         )}
       </div>
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>,
     document.body
   );

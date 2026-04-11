@@ -131,6 +131,87 @@ type ButtonProps = {
   isEdit: boolean;
 };
 
+type DOcumentListItem = {
+  documentId: number;
+  documentName: string;
+  documentCode: string;
+  documentPath: string;
+};
+
+type PatientDataEditItem = {
+  patientId: number;
+  branchId: number;
+  uhid: string;
+  title: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string | null;
+  patientName: string;
+  ageYears: number;
+  ageMonths: number;
+  ageDays: number;
+  age: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string | null;
+  relation: string | null;
+  relativeName: string | null;
+  idProofName: string | null;
+  idProofNumber: string | null;
+  contactNumber: string;
+  emergencyContactNumber: string;
+  email: string | null;
+  privilegedCardNumber: string | null;
+  address: string;
+  countryId: number;
+  country: string;
+  stateId: number;
+  state: string;
+  districtId: number;
+  district: string;
+  cityId: number;
+  city: string;
+  insuranceCompanyId: number;
+  corporateId: number;
+  cardNo: string | null;
+  isVaccination: number;
+  vipPatient: string | null;
+  patientImagePath: string;
+  policyNo: string | null;
+  policyCardNo: string | null;
+  expiryDate: string | null;
+  cardHolder: string | null;
+  referalNo: string | null;
+  referalDate: string | null;
+  landlineNo: string;
+  birthPlace: string;
+  religion: string | null;
+  relationPhone: string | null;
+  relationAge: string | null;
+  relationGender: string | null;
+  emG_FirstName: string | null;
+  emG_LastName: string | null;
+  emG_Relation: string | null;
+  emG_MobileNo: string | null;
+  emG_ResidentNo: string | null;
+  emG_Address: string | null;
+  isInternational: number;
+  locality: string | null;
+  passportNumber: string | null;
+  internationalNo: string;
+  membershipNo: string;
+  patientType: string | null;
+  identityMark: string | null;
+  identityMark2: string | null;
+  referenceType: string | null;
+  remarks: string | null;
+  doctorId: number;
+  ipdNo: number;
+  dayCareNo: number;
+  dialysisNo: number;
+  emergencyNo: number;
+};
+
 export type {
   BranchItem,
   ButtonProps,
@@ -138,7 +219,9 @@ export type {
   CorporateItem,
   CountryItem,
   DistrictItem,
+  DOcumentListItem,
   InsuranceItem,
+  PatientDataEditItem,
   PatientDataHandle,
   PatientDataItem,
   PatientDataProps,

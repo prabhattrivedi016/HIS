@@ -198,6 +198,7 @@ const ENDPOINTS = {
   GET_PATIENT_MASTER: "Patient/getPatientMaster",
   CREATE_UPDATE_PATIENT_MASTER: "Patient/createUpdatePatientMaster",
   SEARCH_PATIENT_MASTER: "Patient/searchPatientMaster",
+  GET_PATIENT_DOCUMENT_MAPPING: "Patient/getPatientDocumentMapping",
 
   // discount approval master
   CREATE_UPDATE_DISCOUNT_APPROVAL_MASTER: "Admin/createUpdateDiscountApprovalMaster",
