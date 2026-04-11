@@ -425,3 +425,12 @@ export const InvestigationFormulaListTableHeader = [
   "Edit",
   "Delete",
 ];
+
+export const PatientDocumentTableHeader = [
+  "#",
+  "Document Name",
+  "Document Code",
+  "Uploaded",
+  "Download",
+  "Browse",
+];

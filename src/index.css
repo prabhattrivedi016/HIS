@@ -107,7 +107,6 @@ input::placeholder {
 .button-primary {
   @apply bg-indigo-600 hover:bg-indigo-700 text-white;
 }
-
 .button-secondary {
   @apply bg-gray-200 hover:bg-gray-300 text-gray-700;
 }

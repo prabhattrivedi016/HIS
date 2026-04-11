@@ -5,7 +5,7 @@ export const SaveButtons = ({ onButtonClick = () => {}, isEdit }: ButtonProps) =
   return (
     <div className="fixed bottom-0 left-0 w-full z-20 bg-white shadow-lg p-2 border-t border-gray-200">
       <div className="form-actions-responsive flex-wrap gap-2 justify-end">
-        <button type="submit" className="save-btn" onClick={() => onButtonClick("save")}>
+        <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
           {buttonTitle}
         </button>
 

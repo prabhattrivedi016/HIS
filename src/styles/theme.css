@@ -406,6 +406,13 @@
 }
 
 /*-------------------input -field layout ----------------- */
+.form-grid-6 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-6;
+}
+
+.form-grid-5 {
+  @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5;
+}
 
 .form-grid-4 {
   @apply grid grid-cols-1 gap-4 mb-4 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4;

@@ -11,6 +11,7 @@ const PatientRegistration = () => {
   const [showTable, setShowTable] = useState<boolean>(false);
 
   const handleOpenSearchPatientPopup = () => {
+    setSelectedPatientId(null);
     setOpenSearchPatientPopup(true);
     setRenderSearchPatientPopup(true);
   };
@@ -18,9 +19,10 @@ const PatientRegistration = () => {
   const closeHandler = useCallback(() => {
     setOpenSearchPatientPopup(false);
   }, []);
+
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full  flex-col  lg:flex-row">
         <div>
           <h1 className="page-heading">Patient Registration</h1>
 
@@ -33,7 +35,7 @@ const PatientRegistration = () => {
           </nav>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 ">
           <button type="button" className="save-btn" onClick={handleOpenSearchPatientPopup}>
             Search Old Patient
           </button>
