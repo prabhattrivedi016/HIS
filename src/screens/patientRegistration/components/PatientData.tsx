@@ -82,10 +82,12 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     // web cam setup
     const webcamRef = useRef<Webcam>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const existingImageBlobUrlRef = useRef<string | null>(null);
 
     const [showWebcam, setShowWebcam] = useState(false);
     const [capturedImageFile, setCapturedImageFile] = useState<File | null>(null);
     const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
+    const [existingImagePreview, setExistingImagePreview] = useState<string | null>(null);
 
     const methods = useForm<PatientRegistrationFormItem>({
       resolver: yupResolver(patientRegistrationSchema),
@@ -122,6 +124,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
         const extension = mimeType === "image/png" ? "png" : "jpg";
         const file = new File([blob], `photo.${extension}`, { type: mimeType });
+
+        console.log("file", file);
 
         if (file.size > MAX_IMAGE_SIZE_BYTES) {
           showError("Image size must be 2MB or less.");
@@ -168,6 +172,35 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setCapturedImagePreview(objectUrl);
       return () => URL.revokeObjectURL(objectUrl);
     }, [capturedImageFile]);
+
+    const buildImagePreviewUrl = (base64Data: string, contentType?: string) => {
+      const sanitizedBase64 = String(base64Data ?? "").trim();
+      if (!sanitizedBase64) return "";
+      if (sanitizedBase64.startsWith("data:image")) return sanitizedBase64;
+
+      const mimeType =
+        typeof contentType === "string" && contentType.startsWith("image/")
+          ? contentType
+          : "image/jpeg";
+
+      return `data:${mimeType};base64,${sanitizedBase64}`;
+    };
+
+    const clearExistingImagePreview = () => {
+      if (existingImageBlobUrlRef.current) {
+        URL.revokeObjectURL(existingImageBlobUrlRef.current);
+        existingImageBlobUrlRef.current = null;
+      }
+      setExistingImagePreview(null);
+    };
+
+    useEffect(() => {
+      return () => {
+        if (existingImageBlobUrlRef.current) {
+          URL.revokeObjectURL(existingImageBlobUrlRef.current);
+        }
+      };
+    }, []);
 
     // insurance handler
 
@@ -334,7 +367,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       isUpdatingAgeDob.current = false;
     }, [watch("AgeYears"), watch("AgeMonths"), watch("AgeDays"), setValue]);
 
-    // submit handler1
+    // submit handler
     const onSubmit = async (data: any) => {
       const formData = new FormData();
       for (const key in data) {
@@ -377,12 +410,59 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setIdProofTypeValue("");
       setCapturedImageFile(null);
       setCapturedImagePreview(null);
+      clearExistingImagePreview();
+    };
+
+    const getPatientImage = async (filePath: string) => {
+      const normalizedPath = String(filePath ?? "").trim();
+      if (!normalizedPath) {
+        clearExistingImagePreview();
+        return;
+      }
+
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_FILE_AS_BASE_64,
+        {},
+        { params: { filePath: normalizedPath } },
+        { component: "PatientDataOfRegistration" }
+      );
+
+      const base64Data = resp?.data?.base64Data;
+      if (base64Data) {
+        const imagePreviewUrl = buildImagePreviewUrl(
+          base64Data,
+          resp?.data?.contentType ?? resp?.data?.mimeType
+        );
+        clearExistingImagePreview();
+        setExistingImagePreview(imagePreviewUrl || null);
+        return;
+      }
+
+      const blobResp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_IMAGE_FILE,
+        {},
+        {
+          params: { filePath: normalizedPath },
+          responseType: "blob",
+        },
+        { component: "PatientDataOfRegistration" }
+      );
+
+      if (blobResp instanceof Blob && blobResp.size > 0) {
+        clearExistingImagePreview();
+        const objectUrl = URL.createObjectURL(blobResp);
+        existingImageBlobUrlRef.current = objectUrl;
+        setExistingImagePreview(objectUrl);
+        return;
+      }
+
+      clearExistingImagePreview();
     };
 
     // edit mode
     const getEditPatientData = async (patientId: number) => {
-      console.log("this function is called");
-
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_PATIENT_MASTER,
@@ -394,17 +474,21 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         showError(resp?.message ?? "Something went wrong");
         return;
       }
-      console.log("resp", resp?.data);
 
       const data = resp?.data?.[0] as PatientDataEditItem;
 
-      console.log("data of edit ", data);
+      if (!data) return;
+
+      setCapturedImageFile(null);
+      setCapturedImagePreview(null);
+      clearExistingImagePreview();
+      await getPatientImage(data?.patientImagePath ?? "");
 
       setPrefillPatientData(data);
 
       const mappedTitle = resolvePickValue(titleList, data?.title, {
-        mr: ["mr", "mister"],
-        mrs: ["mrs", "misses", "mistress"],
+        mr: ["mr", "Mr"],
+        mrs: ["mrs", "Mrs"],
         miss: ["miss", "ms"],
         dr: ["dr", "doctor", "doc"],
         master: ["master"],
@@ -413,9 +497,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       });
 
       const mappedGender = resolvePickValue(patientGenderList, data?.gender, {
-        male: ["male", "m", "man", "boy"],
-        female: ["female", "f", "woman", "girl"],
-        other: ["other", "o", "others", "transgender", "trans"],
+        male: ["male", "MALE"],
+        female: ["female", "FEMALE"],
+        other: ["other", "OTHER", "OTHERS", "others"],
       });
 
       reset({
@@ -825,8 +909,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           facingMode: "user",
                         }}
                       />
-                    ) : capturedImagePreview ? (
-                      <img src={capturedImagePreview} className="w-full h-full object-cover" />
+                    ) : capturedImagePreview || existingImagePreview ? (
+                      <img
+                        src={capturedImagePreview || existingImagePreview || ""}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="flex items-center justify-center h-full text-gray-400 bg-white">
                         No Image
@@ -845,8 +932,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                   </div>
 
                   {showWebcam && (
-                    <div className="flex gap-2">
-                      <button type="button" className="save-btn" onClick={capturePhoto}>
+                    <div className="flex gap-2 w-full">
+                      <button type="button" className="save-btn my-2" onClick={capturePhoto}>
                         Capture
                       </button>
                       <button

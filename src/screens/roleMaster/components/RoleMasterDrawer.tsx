@@ -132,7 +132,7 @@ const RoleMasterDrawer = ({ isOpen, onClose, onCloseDrawer, roleId }: RoleMaster
           {successMessage && <SuccessMessage text={successMessage} />}
           {error && <ErrorMessage text={error?.message} />}
 
-          <div className="card m-2">
+          <div className="card m-1">
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="form-grid-2">
                 {/* Role Name */}

@@ -296,7 +296,7 @@ const SearchPatientPopup = ({
                         >
                           <td className="table-td">{idx + 1}</td>
                           <td className="table-td">{item?.title || "-"}</td>
-                          <td className="table-td max-w-10 wrap-break-word">
+                          <td className="table-td max-w-50 wrap-break-word">
                             {item?.patientName || "-"}
                           </td>
                           <td className="table-td">{item?.uhid || "-"}</td>
@@ -304,7 +304,7 @@ const SearchPatientPopup = ({
                           <td className="table-td">{item?.gender || "-"}</td>
                           <td className="table-td">{item?.relativeName || "-"}</td>
                           <td className="table-td">{item?.contactNumber || "-"}</td>
-                          <td className="table-td max-w-30 wrap-break-word">
+                          <td className="table-td max-w-40 wrap-break-word">
                             {item?.fullAddress || "-"}
                           </td>
                           <td className="table-td">{item?.registrationDate || "-"}</td>
@@ -315,9 +315,9 @@ const SearchPatientPopup = ({
                   </table>
                 </div>
               </div>
-              <p className="input-field-error font-semibold text-center">
+              {/* <p className="input-field-error font-semibold text-center">
                 💠 Please double click to select a patient
-              </p>
+              </p> */}
             </div>
           </Animation>
         )}

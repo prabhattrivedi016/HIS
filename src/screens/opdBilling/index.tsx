@@ -309,7 +309,8 @@ const OpdBilling = () => {
 
   const showRegistrationButton = false;
 
-  const activePatientId = selectedPatientId ?? pId;
+  const routePatientId = Number.isFinite(pId) && pId > 0 ? pId : null;
+  const activePatientId = selectedPatientId ?? routePatientId;
 
   const SearchOldPatientHandler = () => {
     setOpenSearchPatientPopup(true);
@@ -977,19 +978,6 @@ const OpdBilling = () => {
         billingItems,
         paymentDetails: allPaymentDetails,
         isBillDiscount: isBillingDiscount,
-        paymentSummary: {
-          totalNet: billingValues?.netAmount,
-          totalCollected: paymentSummary.total,
-          balanceAmount: billingValues?.balanceAmount,
-          breakdown: paymentSummary.breakdown,
-          transactionCount: paymentSummary.count,
-          status:
-            billingValues?.balanceAmount > 0
-              ? "Pending"
-              : billingValues?.balanceAmount < 0
-                ? "Overpaid"
-                : "Fully Paid",
-        },
       };
 
       // Step 6: Submit OPD billing
@@ -1104,7 +1092,7 @@ const OpdBilling = () => {
       <PatientData
         key={`patient-data-${formResetKey}`}
         ref={patientDataRef}
-        selectedPatientId={activePatientId || null}
+        selectedPatientId={activePatientId}
         showRegistrationButton={showRegistrationButton}
         onPayloadChange={setPatientRegistrationDetails}
       />

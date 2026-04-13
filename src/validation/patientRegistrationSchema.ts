@@ -103,7 +103,7 @@ export const patientRegistrationSchema = yup.object().shape({
   InsuranceCompanyId: yup.number().transform(parseNullableNumber).nullable(),
   CorporateId: yup.number().transform(parseNullableNumber).nullable(),
   CardNo: yup.string().nullable(),
-  PatientImageFile: yup.string().nullable(),
+  PatientImageFile: yup.mixed<File | string | null>().nullable(),
   IsVaccination: yup.number().transform(parseNullableNumber).nullable(),
   VipPatient: yup.string().nullable(),
   PolicyNo: yup.string().nullable(),
