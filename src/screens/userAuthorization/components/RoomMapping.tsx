@@ -1,3 +1,4 @@
+import { showError, showSuccess } from "@/utils/alert";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -109,13 +110,18 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
     const chunks = chunkArray(grantedBeds, 50);
 
     for (let i = 0; i < chunks.length; i++) {
-      await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, {
+      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, {
         branchId,
         typeId,
         userId,
         isFirst: i === 0 ? 1 : 0,
         userBeds: chunks[i],
       });
+      if (!resp?.result) {
+        showError(error?.message);
+        return;
+      }
+      showSuccess(resp?.message);
     }
   }, [roomData, branchId, typeId, userId]);
 
@@ -125,31 +131,28 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
       <div className="flex justify-between flex-wrap -mt-3">
         <div className="flex gap-1">
           <button
-            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "all" ? "save-btn" : "cursor-pointer"}`}
             onClick={filterAllHandler}
           >
             All
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
             onClick={remainingHandler}
           >
             Remaining
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
             onClick={grantedHandler}
           >
             Granted
           </button>
         </div>
 
-        <button
-          className="table-header-button text-white bg-[#0b5394]"
-          onClick={saveRoomDataHandler}
-        >
+        <button className="table-header-button save-btn" onClick={saveRoomDataHandler}>
           Save
         </button>
       </div>

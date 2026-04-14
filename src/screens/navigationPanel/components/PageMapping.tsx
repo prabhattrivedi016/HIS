@@ -263,9 +263,10 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
     }`;
 
   return (
-    <div className={`fixed inset-0 z-999 overflow-hidden`}>
+    <div className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}>
+      <div className="absolute inset-0"></div>
       <div
-        className={`drawer-bg-fade ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+        className={`drawer-bg-fade ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={onClose}
       />
 
@@ -293,7 +294,7 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
         </div>
 
         {successMessage && <SuccessMessage text={successMessage} />}
-        {error && <ErrorMessage text={error} />}
+        {error && <ErrorMessage text={error?.message} />}
 
         <div className="h-full flex flex-col pt-4">
           <div className="flex-1 overflow-y-auto p-2 space-y-4">

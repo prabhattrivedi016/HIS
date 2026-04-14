@@ -1,4 +1,5 @@
 export const sampleManagementButtons = [
+  "All",
   "Collection Pending",
   "Sample Collected",
   "Dept. Rec. Pending",
@@ -15,18 +16,14 @@ export const SampleManagementTableHeader = [
   "UHID",
   "Patient Name",
   "Age/Gender",
-  "Client Name",
-  "",
+  "Corporate",
   "Investigation",
+  "Bar Code",
   "Sample Type",
-  "Color",
-  "BarCode",
   "Sample Collection",
   "Dept. Rec.",
   "Reject",
   "Remark",
-  "",
-  "Stickers",
   "Info",
 ];
 

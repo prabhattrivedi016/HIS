@@ -165,6 +165,10 @@ input::placeholder {
   @apply text-red-500 text-sm;
 }
 
+.input-checkbox {
+  @apply w-4 h-4 accent-blue-600 cursor-pointer;
+}
+
 /* verify otp modal */
 .verify-otp-modal {
   @apply bg-white border border-gray-300 p-6 rounded-xl w-[500px] shadow-lg;
@@ -222,7 +226,7 @@ select:-webkit-autofill {
           transition-opacity duration-500 ease-out;
 }
 .drawer-close-btn {
-  @apply text-gray-600  m-2  hover:text-black text-4xl leading-none;
+  @apply text-gray-600  m-2  hover:text-black text-4xl leading-none cursor-pointer;
 }
 .drawer-bg {
   @apply bg-gray-100;

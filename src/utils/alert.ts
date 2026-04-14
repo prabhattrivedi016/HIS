@@ -1,20 +1,32 @@
-import Swal from "sweetalert2";
+import { toast, ToastOptions } from "react-toastify";
+
+const baseToastOptions: ToastOptions = {
+  position: "top-center",
+  autoClose: 1500,
+  hideProgressBar: false,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+};
+
 export const showError = (message?: string) => {
-  Swal.fire({
-    title: "Error! Please try later!",
-    html: `<span style="color: red; font-weight: 500;">
-            ${message ?? "Something went wrong"}
-          </span>`,
-    icon: "error",
-    confirmButtonText: "OK",
+  toast.error(message ?? "Something went wrong", {
+    ...baseToastOptions,
+    autoClose: 1500,
   });
 };
+
 export const showSuccess = (message?: string) => {
-  Swal.fire({
-    position: "top",
-    title: message ?? "Data saved successfully",
-    icon: "success",
-    timer: 1000,
-    showConfirmButton: false,
+  toast.success(message ?? "Data saved successfully", baseToastOptions);
+};
+
+export const showInfo = (message?: string) => {
+  toast.info(message ?? "Information", baseToastOptions);
+};
+
+export const showWarning = (message?: string) => {
+  toast.warning(message ?? "Please check this", {
+    ...baseToastOptions,
+    autoClose: 1500,
   });
 };

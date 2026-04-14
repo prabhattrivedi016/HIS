@@ -218,6 +218,10 @@ const ENDPOINTS = {
   GET_OBSERVATION_FORMULA_BY_INVESTIGATION_ID: "Lab/getObservationFormulaByInvestigationId",
   CREATE_UPDATE_LAB_FORMULA_MASTER: "Lab/createUpdateLabFormulaMaster",
   DELETE_LAB_FORMULA_BY_OBSERVATION_ID: "Lab/deleteLabFormulaByObservationid",
+
+  // sample management
+  SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT:
+    "Lab/searchPatientInvestigationForSampleManagement",
 };
 
 export { ENDPOINTS };

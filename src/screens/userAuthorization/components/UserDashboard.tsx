@@ -1,3 +1,4 @@
+import { showError, showSuccess } from "@/utils/alert";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -108,7 +109,16 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
       })),
     };
 
-    await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING, payload);
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_UPDATE_DASHBOARD_USER_RIGHT_MAPPING,
+      payload
+    );
+    if (!resp?.result) {
+      showError(error?.message);
+      return;
+    }
+    showSuccess(resp?.message);
   };
 
   return (
@@ -117,31 +127,28 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
       <div className="flex justify-between flex-wrap gap-3 -mt-3">
         <div className="flex gap-1">
           <button
-            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "all" ? "save-btn" : "cursor-pointer"}`}
             onClick={filterAllHandler}
           >
             All
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
             onClick={remainingHandler}
           >
             Remaining
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
             onClick={grantedHandler}
           >
             Granted
           </button>
         </div>
 
-        <button
-          className="table-header-button text-white bg-[#0b5394]"
-          onClick={saveUserDashboardHandler}
-        >
+        <button className="table-header-button save-btn" onClick={saveUserDashboardHandler}>
           Save
         </button>
       </div>

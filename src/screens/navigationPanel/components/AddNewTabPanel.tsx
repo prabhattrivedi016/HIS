@@ -105,8 +105,6 @@ const AddNewTabPanel = ({
     }, 1000);
   };
 
-  if (!isOpenTab) return null;
-
   return (
     <>
       {/* Overlay */}

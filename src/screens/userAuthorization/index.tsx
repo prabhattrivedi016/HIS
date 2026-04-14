@@ -1,3 +1,4 @@
+import { showError, showSuccess } from "@/utils/alert";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select from "react-select";
@@ -305,12 +306,17 @@ const UserAuthorization = () => {
         roleId: r.roleId,
       }));
 
-    await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
+    const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_ROLE_MAPPING, {
       branchId,
       typeId,
       userId,
       userRoleMappings: roles,
     });
+    if (!resp?.result) {
+      showError(error?.message);
+      return;
+    }
+    showSuccess(resp?.message);
   };
 
   /* render components */
@@ -323,27 +329,27 @@ const UserAuthorization = () => {
             <div className="flex justify-between flex-wrap -mt-3">
               <div className="flex">
                 <button
-                  className={`table-header-button ${activeButton === "all" ? "save-btn " : ""}`}
+                  className={`table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
                   onClick={filterAllHandler}
                 >
                   All
                 </button>
                 <button
-                  className={`table-header-button ${activeButton === "remaining" ? "save-btn text-white" : ""}`}
+                  className={`table-header-button ${activeButton === "remaining" ? "save-btn text-white" : "cursor-pointer"}`}
                   onClick={remainingHandler}
                 >
                   Remaining
                 </button>
 
                 <button
-                  className={`table-header-button ${activeButton === "granted" ? "save-btn" : ""}`}
+                  className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
                   onClick={grantedHandler}
                 >
                   Granted
                 </button>
               </div>
 
-              <button className="table-header-button  save-btn" onClick={saveRoleMappingHandler}>
+              <button className="table-header-button save-btn " onClick={saveRoleMappingHandler}>
                 Save
               </button>
             </div>
@@ -524,14 +530,14 @@ const UserAuthorization = () => {
         <>
           <div className="flex gap-1  ">
             <button
-              className={`table-header-button ${selectedButton === "roles" ? "save-btn" : ""}`}
+              className={`table-header-button ${selectedButton === "roles" ? "save-btn" : "cursor-pointer"}`}
               onClick={roleButtonHandler}
             >
               Roles
             </button>
 
             <button
-              className={`table-header-button ${selectedButton === "userRights" ? "save-btn" : ""}`}
+              className={`table-header-button ${selectedButton === "userRights" ? "save-btn" : "cursor-pointer"}`}
               onClick={userRightsButtonHandler}
             >
               User Rights
@@ -539,7 +545,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "userDashboard" ? "save-btn" : ""
+                selectedButton === "userDashboard" ? "save-btn" : "cursor-pointer"
               }`}
               onClick={userDashboardHandler}
             >
@@ -547,7 +553,7 @@ const UserAuthorization = () => {
             </button>
 
             <button
-              className={`table-header-button ${selectedButton === "pageAccess" ? "save-btn" : ""}`}
+              className={`table-header-button ${selectedButton === "pageAccess" ? "save-btn" : "cursor-pointer"}`}
               onClick={pageAccessHandler}
             >
               Page Access
@@ -555,7 +561,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "corporateMapping" ? "save-btn" : ""
+                selectedButton === "corporateMapping" ? "save-btn" : "cursor-pointer"
               }`}
               onClick={corporateMappingHandler}
             >
@@ -564,7 +570,7 @@ const UserAuthorization = () => {
 
             <button
               className={`table-header-button ${
-                selectedButton === "roomMapping" ? "save-btn" : ""
+                selectedButton === "roomMapping" ? "save-btn" : "cursor-pointer"
               }`}
               onClick={roomMappingHandler}
             >
