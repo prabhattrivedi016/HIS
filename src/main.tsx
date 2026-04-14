@@ -8,6 +8,7 @@ import { BillingAmountProvider } from "./context/BillingAmountContext";
 import { PatientProvider } from "./context/PatientContext";
 import { RoleProvider } from "./context/RoleContext";
 import "./index.css";
+import "react-toastify/dist/ReactToastify.css";
 import { store } from "./store/store";
 
 const rootElement = document.getElementById("root");

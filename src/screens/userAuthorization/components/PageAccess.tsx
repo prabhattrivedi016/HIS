@@ -1,4 +1,5 @@
 import { useAuthorizedPages } from "@/store/useAuthorizedPages";
+import { showError, showSuccess } from "@/utils/alert";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -132,9 +133,14 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
         userMenus: chunks[i],
       };
 
-      await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, payload);
+      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, payload);
+      if (!resp?.result) {
+        showError(error?.message);
+        return;
+      }
+      showSuccess(resp?.message);
     }
-    refetchAuthorizedPages(roleId, branchId, fetchApi);
+    refetchAuthorizedPages(roleId!, branchId!, fetchApi);
   };
 
   return (
@@ -143,31 +149,28 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
       <div className="flex justify-between flex-wrap gap-3 -mt-3">
         <div className="flex ">
           <button
-            className={`table-header-button ${activeButton === "all" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
             onClick={filterAllHandler}
           >
             All
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "remaining" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
             onClick={remainingHandler}
           >
             Remaining
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "granted" ? "bg-[#0b5394] text-white" : ""}`}
+            className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
             onClick={grantedHandler}
           >
             Granted
           </button>
         </div>
 
-        <button
-          className="table-header-button text-white bg-[#0b5394]"
-          onClick={savePageAccessHandler}
-        >
+        <button className="table-header-button save-btn" onClick={savePageAccessHandler}>
           Save
         </button>
       </div>

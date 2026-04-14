@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
 
   plugins: [react(), tailwindcss()],
 
+  optimizeDeps: {
+    exclude: ["react-toastify"],
+  },
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

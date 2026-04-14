@@ -1,4 +1,5 @@
 import { ENDPOINTS } from "@/config/defaults";
+import { Status } from "@/constants/constants";
 
 const getDoctorMaster = async (fetchApi: any, doctorId: number, component: string = "") => {
   const resp = await fetchApi(
@@ -75,9 +76,19 @@ const getPatientDataByBranchId = async (
   return resp?.data?.[0] ?? {};
 };
 
-// search patient by PatientId,uhid,contactNumber,branchId
-
+// corporate master
+const getCorporateMaster = async (fetchApi: any, component: string) => {
+  const resp = await fetchApi(
+    "GET",
+    ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+    {},
+    { params: { isActive: Status?.ACTIVE } },
+    { component: component }
+  );
+  return resp?.data;
+};
 export {
+  getCorporateMaster,
   getDoctorMaster,
   getPatientDataByBranchId,
   getPatientDataByContact,

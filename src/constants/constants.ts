@@ -302,3 +302,14 @@ export enum ButtonName {
   CANCEL = "cancel",
   CAN_UPDATE_PATIENT_REGISTRATION = "CanUpdtaePatientregistration",
 }
+
+export enum SampleManagementButtons {
+  all = "All",
+  collectionPending = "Collection Pending",
+  sampleCollected = "Sample Collected",
+  DeptRecPending = " Dept. Rec. Pending",
+  deptReceived = "Dept Received",
+  urgent = "Urgent",
+  rejected = "Rejected",
+  snr = " SNR",
+}

@@ -1,338 +1,234 @@
+import { getCorporateMaster } from "@/api/globalApiCall";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
+import { ENDPOINTS } from "@/config/defaults";
+import { SampleManagementButtons } from "@/constants/constants";
 import { sampleManagementButtons, SampleManagementTableHeader } from "@/constants/tableHeaders";
+import { AuthContext } from "@/context/AuthContext";
+import { RoleContext } from "@/context/RoleContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError, showWarning } from "@/utils/alert";
+import {
+  SampleManagementFormData,
+  sampleManagementSchema,
+} from "@/validation/sampleManagementSchema";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
-import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
-
-export const sampleData = [
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWS/25-26/00000002",
-    IPDNo: 0,
-    LabNo: 94,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. ARJUN",
-    CurrentAge: "43Y 4M 1D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3079,
-    isUrgent: 1,
-    Barcode: "3423",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 1,
-    PatientInvestigationId: 4175,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026 12:13PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 26 2026 12:13PM",
-    IsSampleReceivedByDepartment: 1,
-    SampleReceivedByDepartmentOn: "Feb 26 2026 12:16PM",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 1,
-    SampleTypeList: "",
-    DeliveryDate: "Feb 26 2026  8:13PM",
-    IsUnderPackage: 0,
-    Name: "CBC -(COMPLETE BLOOD COUNT)",
-  },
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWS/25-26/00000002",
-    IPDNo: 0,
-    LabNo: 94,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. ARJUN",
-    CurrentAge: "43Y 4M 1D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3079,
-    isUrgent: 1,
-    Barcode: "3423",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 4176,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026 12:13PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 26 2026 12:16PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 1,
-    ResultDoneOn: "Feb 26 2026 12:33PM",
-    IsReportApproved: 1,
-    ReportApprovedOn: "Feb 26 2026 12:33PM",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 0,
-    SampleTypeList: "",
-    DeliveryDate: "Feb 26 2026  1:16PM",
-    IsUnderPackage: 0,
-    Name: "LIVER FUNCTION TEST (LFT)",
-  },
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWS/25-26/00000002",
-    IPDNo: 0,
-    LabNo: 94,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. ARJUN",
-    CurrentAge: "43Y 4M 1D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3079,
-    isUrgent: 0,
-    Barcode: "3423",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 4177,
-    ReportTypeId: 2,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026 12:13PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 26 2026 12:20PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 2,
-    SampleTypeList: "",
-    DeliveryDate: "",
-    IsUnderPackage: 0,
-    Name: "KIDNEY FUNCTION TEST (KFT)",
-  },
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000054",
-    IPDNo: 0,
-    LabNo: 95,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. SHYAM",
-    CurrentAge: "40Y 0M 0D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3080,
-    isUrgent: 0,
-    Barcode: "256",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 4178,
-    ReportTypeId: 2,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026 12:19PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 0,
-    SampleCollectedOn: "",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 2,
-    SampleTypeList: "",
-    DeliveryDate: "",
-    IsUnderPackage: 0,
-    Name: "KIDNEY FUNCTION TEST (KFT)",
-  },
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000054",
-    IPDNo: 0,
-    LabNo: 95,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. SHYAM",
-    CurrentAge: "40Y 0M 0D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3080,
-    isUrgent: 1,
-    Barcode: "257",
-    IsSampleRequired: 1,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 4180,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026 12:19PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 26 2026 12:20PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 2,
-    SampleTypeList: "2*SERUM*Black",
-    DeliveryDate: "",
-    IsUnderPackage: 0,
-    Name: "WIDAL -SLIDE AGGLUTINATION",
-  },
-  {
-    BillDate: "26-Feb-2026",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000005",
-    IPDNo: 0,
-    LabNo: 96,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. DWARIKA",
-    CurrentAge: "29Y 3M 26D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 3081,
-    isUrgent: 0,
-    Barcode: "255335",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 1,
-    PatientInvestigationId: 4181,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 26 2026  1:01PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 26 2026  1:04PM",
-    IsSampleReceivedByDepartment: 1,
-    SampleReceivedByDepartmentOn: "Feb 26 2026  1:04AM",
-    IsResultDone: 1,
-    ResultDoneOn: "Feb 26 2026  1:08PM",
-    IsReportApproved: 1,
-    ReportApprovedOn: "Feb 26 2026  1:08PM",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 1,
-    SampleTypeList: "",
-    DeliveryDate: "Feb 26 2026  9:04PM",
-    IsUnderPackage: 0,
-    Name: "CBC -(COMPLETE BLOOD COUNT)",
-  },
-  {
-    BillDate: "27-Feb-2026",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000055",
-    IPDNo: 0,
-    LabNo: 97,
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    WardName: "",
-    PatientName: "MR. SHARMA",
-    CurrentAge: "24Y 0M 0D",
-    CorporateName: "01 CASH",
-    Gender: "MALE",
-    VisitId: 4074,
-    isUrgent: 0,
-    Barcode: "00",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 5146,
-    ReportTypeId: 5,
-    IsReportHold: 0,
-    CreatedOn: "Feb 27 2026  1:04PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 27 2026  1:04PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 1,
-    ResultDoneOn: "Feb 27 2026  1:13PM",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    DefaultSampleTypeId: 0,
-    SampleTypeList: "",
-    DeliveryDate: "",
-    IsUnderPackage: 0,
-    Name: "Stool Culture andSensitivity",
-  },
-];
+import { CorporateList, SampleManagementTableData } from "./types";
 
 const SampleManagement = () => {
   const currentDate = new Date().toISOString().split("T")[0];
 
+  const { loading, error, fetchApi } = useGlobalApi();
+
+  const authContext = useContext(AuthContext);
+  const branchId = Number(authContext?.user?.branchId ?? 0);
+
+  const roleContext = useContext(RoleContext);
+  const roleId = Number(roleContext?.roleId ?? 3);
+
   const [activeIndex, setActiveIndex] = useState(0);
-  const [showDetails, setShowDetails] = useState<boolean>(true);
-  const [selectedPatient, setSelectedPatient] = useState([]);
 
   const [openPatientDrawer, setOpenPatientDrawer] = useState<boolean>(false);
   const [renderPatientDrawer, setRenderPatientDrawer] = useState<boolean>(false);
+
+  const [corporateList, setCorporateList] = useState<CorporateList[]>([]);
+  const [sampleManagementTableData, setSampleManagementTableData] = useState<
+    SampleManagementTableData[]
+  >([]);
+  const [filteredData, setFilteredData] = useState<SampleManagementTableData[]>([]);
+  const [showTable, setShowTable] = useState<boolean>(false);
+
+  const [tableData, setTableData] = useState(filteredData || []);
 
   const closeDrawer = useCallback(() => {
     setOpenPatientDrawer(false);
   }, []);
 
-  const openPatientInvestigation = item => {
-    setSelectedPatient(item);
-    setRenderPatientDrawer(true);
-    requestAnimationFrame(() => {
-      setOpenPatientDrawer(true);
-    });
+  // form data
+  const { register, handleSubmit } = useForm({
+    resolver: yupResolver(sampleManagementSchema),
+    defaultValues: {
+      branchId: 1,
+      uhid: "",
+      barCode: "",
+      patientName: "",
+      labNo: "",
+      fromDate: currentDate,
+      toDate: currentDate,
+      corporateId: 0,
+      statusId: 0,
+    },
+  });
+
+  // corporate master data
+  const fetchCorporateData = async () => {
+    const resp = await getCorporateMaster(fetchApi, "SampleManagement");
+    setCorporateList(resp);
   };
 
   useEffect(() => {
-    if (openPatientDrawer) return;
+    fetchCorporateData();
+  }, []);
 
-    const closeTimer = setTimeout(() => {
-      setRenderPatientDrawer(false);
-    }, 300);
+  const filterByButton = (buttonName: string, source: SampleManagementTableData[]) => {
+    const normalizedValue = buttonName.trim();
 
-    return () => clearTimeout(closeTimer);
-  }, [openPatientDrawer]);
+    switch (normalizedValue) {
+      case SampleManagementButtons.all.trim():
+        return source;
+      case SampleManagementButtons.collectionPending.trim():
+        return source.filter(item => Number(item.IsSampleCollected) === 0);
+      case SampleManagementButtons.sampleCollected.trim():
+        return source.filter(item => Number(item.IsSampleCollected) === 1);
+      case SampleManagementButtons.DeptRecPending.trim():
+        return source.filter(
+          item =>
+            Number(item.IsDepartmentReceivingRequired) === 1 &&
+            Number(item.IsSampleReceivedByDepartment) === 0
+        );
+      case SampleManagementButtons.deptReceived.trim():
+        return source.filter(item => Number(item.IsSampleReceivedByDepartment) === 1);
+      case SampleManagementButtons.urgent.trim():
+        return source.filter(item => Number(item.isUrgent) === 1);
+      case SampleManagementButtons.rejected.trim():
+        return source.filter(item => Number(item.isSampleRejected) === 1);
+      case SampleManagementButtons.snr.trim():
+        return source.filter(item => Number(item.IsSampleRequired) === 0);
+      default:
+        return source;
+    }
+  };
+
+  const getButtonCount = (buttonName: string) =>
+    filterByButton(buttonName, sampleManagementTableData).length;
+
+  // get table data on landing on this page
+  useEffect(() => {
+    const getDataOnMount = async (toDate: string, fromDate: string) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT,
+        {},
+        { params: { branchId, roleId, fromDate, toDate } },
+        { component: "SampleManagement" }
+      );
+      setFilteredData(resp?.data ?? []);
+      setSampleManagementTableData(resp?.data ?? []);
+    };
+
+    getDataOnMount(currentDate, currentDate);
+  }, []);
+
+  // search handler
+  const onsubmit = async (formData: SampleManagementFormData) => {
+    if (!branchId || !roleId) {
+      showError(error?.message ?? "Something went wrong!");
+      return;
+    }
+
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT,
+      {},
+      {
+        params: {
+          branchId,
+          roleId,
+          uhid: formData?.uhid,
+          barCode: formData?.barCode,
+          patientName: formData?.patientName,
+          labNo: formData?.labNo,
+          fromDate: formData?.fromDate,
+          toDate: formData?.toDate,
+          corporateId: Number(formData?.corporateId ?? 0),
+          statusId: Number(formData?.statusId ?? 0),
+        },
+      },
+      { component: "SampleManagement" }
+    );
+
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No data found");
+
+      setShowTable(false);
+      return;
+    }
+
+    const tableData = (resp?.data ?? []) as SampleManagementTableData[];
+    setSampleManagementTableData(tableData);
+    setShowTable(true);
+
+    setActiveIndex(0);
+    setFilteredData(filterByButton(sampleManagementButtons[0], tableData));
+  };
+
+  // button click handler
+  const buttonClickHandler = (value: string) => {
+    setFilteredData(filterByButton(value, sampleManagementTableData));
+  };
+
+  // search using enter
+  const searchByBarcode = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit(onsubmit)();
+    }
+  };
+
+  // handle barcode change
+  const handleBarcodeChange = (index: number, value: string) => {
+    const updated = [...tableData];
+    updated[index].Barcode = value;
+    setTableData(updated);
+  };
+
+  // handler checkbox change
+  const handleCheckboxChange = (index: number) => {
+    const updated = [...tableData];
+    updated[index].IsSampleCollected = updated[index].IsSampleCollected === 1 ? 0 : 1;
+
+    setTableData(updated);
+  };
+
+  // dept receiving checkbox change
+  const handleDeptRecvChange = (index: number) => {
+    const updated = [...tableData];
+    updated[index].IsDepartmentReceivingRequired =
+      updated[index]?.IsDepartmentReceivingRequired === 1 ? 0 : 1;
+
+    setTableData(updated);
+  };
+  useEffect(() => {
+    setTableData(filteredData);
+  }, [filteredData]);
+
+  console.log("tableData", tableData);
+
+  // header checkbox handler
+  const checkboxHandler = (h: string, checked: boolean) => {
+    setTableData(prev => {
+      switch (h) {
+        case "Sample Collection":
+          return prev.map(t => ({
+            ...t,
+            IsSampleCollected: checked ? 1 : 0,
+          }));
+
+        case "Dept. Rec.":
+          return prev.map(t => ({
+            ...t,
+            IsDepartmentReceivingRequired: checked ? 1 : 0,
+          }));
+
+        default:
+          return prev;
+      }
+    });
+  };
 
   return (
     <div className="page-container">
@@ -347,92 +243,84 @@ const SampleManagement = () => {
       </nav>
 
       <div className="card">
-        <h2 className="card-title ">Sample Management </h2>
-
-        <form>
+        <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-4">
-            <InputField label="UHID" required>
+            <InputField label="UHID">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter UHID "
-                // {...register("hospitalName")}
+                {...register("uhid")}
               />
-              {/* {errors.hospitalName && (
-                <p className="input-field-error">{errors.hospitalName.message}</p>
-              )} */}
             </InputField>
 
-            <InputField label="Bar Code" required>
+            <InputField label="Bar Code">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter Barcode No  & press Enter to search"
-                // {...register("hospitalCode")}
+                {...register("barCode")}
+                onKeyDown={searchByBarcode}
               />
-              {/* {errors.hospitalCode && (
-                <p className="input-field-error">{errors.hospitalCode.message}</p>
-              )} */}
             </InputField>
 
-            <InputField label="Patient Name" required>
+            <InputField label="Patient Name">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter patient name "
-                // {...register("website")}
+                {...register("patientName")}
               />
-              {/* {errors.website && <p className="input-field-error">{errors.website.message}</p>} */}
             </InputField>
 
-            <InputField label="Lab No" required>
+            <InputField label="Lab No">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter lab number "
-                // {...register("email")}
+                {...register("labNo")}
               />
-              {/* {errors.email && <p className="input-field-error">{errors.email.message}</p>} */}
             </InputField>
 
-            <InputField label="From Date" required>
+            <InputField label="From Date">
               <input
                 type="date"
                 className="input-field"
-                placeholder="Enter contact number "
-                value={currentDate}
                 max={currentDate}
-                // {...register("contact1")}
+                {...register("fromDate")}
               />
-              {/* {errors.contact1 && <p className="input-field-error">{errors.contact1.message}</p>} */}
             </InputField>
 
             <InputField label="To Date">
               <input
                 type="date"
                 className="input-field"
-                placeholder="Enter contact number "
                 max={currentDate}
-                value={currentDate}
-                // {...register("contact2")}
+                {...register("toDate")}
               />
-              {/* {errors.contact2 && <p className="input-field-error">{errors.contact2.message}</p>} */}
             </InputField>
 
-            <InputField label="Client/Panel" required>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter contact number "
-                // {...register("address")}
-              />
-              {/* {errors.address && <p className="input-field-error">{errors.address.message}</p>} */}
+            <InputField label="Corporate">
+              <select className="input-field" {...register("corporateId")}>
+                <option value={"0"}>All</option>
+                {corporateList?.map(c => (
+                  <option key={c?.corporateId} value={c?.corporateId}>
+                    {c?.corporateName}
+                  </option>
+                ))}
+              </select>
+            </InputField>
+
+            <InputField label="Status">
+              <select className="input-field" {...register("statusId")}>
+                <option value={"0"}>All</option>
+              </select>
             </InputField>
           </div>
 
           <div className="form-actions-responsive mt-5">
             <button type="submit" className="save-btn ">
-              {"Search"}
+              Search
             </button>
             <button type="button" className="cancel-button ">
               Cancel
@@ -448,128 +336,168 @@ const SampleManagement = () => {
             <button
               key={idx}
               type="button"
-              onClick={() => setActiveIndex(idx)}
-              className={`
-          flex items-center gap-2
-          px-4 py-2
-          rounded-lg
-          border
-          whitespace-nowrap
-          text-sm font-medium
-        
-          ${
-            isActive
-              ? "bg-[#0B5394] text-white shadow-sm"
-              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-          }
+              onClick={() => {
+                setActiveIndex(idx);
+                buttonClickHandler(b);
+              }}
+              className={` flex items-center gap-2 px-4 py-2 rounded-lg border whitespace-nowrap text-sm font-medium
+          ${isActive ? "save-btn" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 cursor-pointer"}
         `}
             >
               <BriefcaseMedical size={20} />
-              <span>{b} : 10</span>
+              <span>
+                {b} : {getButtonCount(b)}
+              </span>
             </button>
           );
         })}
       </div>
-      <div className="table-container ">
-        <div className="table-scroll-wrapper ">
-          <div className="table-size lg:min-h-60 lg:max-h-60">
-            <table className="base-table ">
-              <thead className="table-head">
-                <tr>
-                  {SampleManagementTableHeader.map((h, index) => (
-                    <th key={index} className="table-th ">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {/* {[]?.length === 0 && (
-                      <tr>
-                        <td colSpan={[].length} className=" ">
-                          No records found
-                        </td>
-                      </tr>
-                    )} */}
-
-                {sampleData.map((item, idx) => (
-                  <tr key={idx} className="table-row">
-                    <td className="table-td">{idx + 1}</td>
-                    <td className="table-td">{item?.LabNo || "-"}</td>
-                    {/* <td
-                          className={`table-td ${
-                            Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
-                          }`}
-                        >
-                          {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
-                        </td> */}
-                    <td className="table-td">{item?.BillDate || "-"}</td>
-                    <td className="table-td">{item?.UHID || "-"}</td>
-                    <td className="table-td">{item?.PatientName || "-"}</td>
-                    <td className="table-td">
-                      {item?.CurrentAge || "-"} / {item?.Gender}
-                    </td>
-                    <td className="table-td">{item?.ClientName || "-"}</td>
-                    <td className="table-td">{item?.xu || "-"}</td>
-                    <td className="table-td">{item?.Name || "-"}</td>
-                    <td className="table-td">{item?.SampleTypeList || "-"}</td>
-                    <td className="table-td">{item?.color || "-"}</td>
-                    <td className="table-td">{item?.Barcode || "-"}</td>
-                    <td className="table-td">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 accent-blue-600 cursor-pointer"
-                        checked={item?.IsSampleCollected === 1}
-                        readOnly
-                      />
-                    </td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td">
-                      {item?.isSampleRejected === 1 ? (
-                        <span className="inactive-text">Reject</span>
-                      ) : (
-                        "Not Rejected"
-                      )}
-                    </td>
-                    <td className="table-td">{item?.rema || "-"}</td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td" onClick={() => openPatientInvestigation(item)}>
-                      <i className="fa-solid fa-info text-xl  text-blue-500 active:scale-90"></i>
-                    </td>
-
-                    {/* <td className="table-td" onClick={() => editHandler(item)}> */}
-                    {/* <i className="fa-solid fa-edit text-xl text-blue-500 active:scale-90" /> */}
-                    {/* </td> */}
+      {!!showTable && (
+        <div className="table-container  ">
+          <div className="table-scroll-wrapper ">
+            <div className="table-size lg:min-h-68 lg:max-h-68 ">
+              <table className="base-table ">
+                {/* <thead className="table-head">
+                  <tr>
+                    {SampleManagementTableHeader.map((h, index) => (
+                      <th key={index} className="table-th">
+                        {h === "Sample Collection" || h === "Dept. Rec." ? (
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox"
+                              onChange={e => checkboxHandler(h, e.target.checked)}
+                            />
+                            {h}
+                          </span>
+                        ) : (
+                          h
+                        )}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead> */}
+                <thead className="table-head">
+                  <tr>
+                    {SampleManagementTableHeader.map((h, index) => {
+                      const isSampleHeader = h === "Sample Collection";
+                      const isDeptHeader = h === "Dept. Rec.";
+
+                      const isAllSampleChecked = tableData.every(t => t.IsSampleCollected === 1);
+
+                      const isAllDeptChecked = tableData.every(
+                        t => t.IsDepartmentReceivingRequired === 1
+                      );
+
+                      return (
+                        <th key={index} className="table-th">
+                          {isSampleHeader || isDeptHeader ? (
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="input-checkbox"
+                                checked={isSampleHeader ? isAllSampleChecked : isAllDeptChecked}
+                                onChange={e => checkboxHandler(h, e.target.checked)}
+                              />
+                              {h}
+                            </span>
+                          ) : (
+                            h
+                          )}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {tableData?.length === 0 && (
+                    <tr>
+                      <td colSpan={SampleManagementTableHeader.length} className="table-empty">
+                        No records found
+                      </td>
+                    </tr>
+                  )}
+
+                  {tableData.map((item, idx) => (
+                    <tr key={idx} className="table-row">
+                      <td className="table-td">{idx + 1}</td>
+                      <td className="table-td">{item?.LabNo || "-"}</td>
+
+                      <td className="table-td">{item?.BillDate || "-"}</td>
+                      <td className="table-td">{item?.UHID || "-"}</td>
+                      <td className="table-td max-w-50">{item?.PatientName ?? "-"}</td>
+                      <td className="table-td">
+                        {item?.CurrentAge || "-"} / {item?.Gender}
+                      </td>
+                      <td className="table-td">{item?.CorporateName || "-"}</td>
+                      <td className="table-td">{item?.Name || "-"}</td>
+                      <td className="table-td">
+                        <input
+                          type="text"
+                          className="input-field max-w-20"
+                          value={item?.Barcode ?? ""}
+                          onChange={e => handleBarcodeChange(idx, e.target.value)}
+                        />
+                      </td>
+                      <td className="table-td">{item?.SampleTypeName || "-"}</td>
+                      <td className="table-td">
+                        <input
+                          type="checkbox"
+                          className="input-checkbox"
+                          checked={item?.IsSampleCollected === 1}
+                          onChange={() => handleCheckboxChange(idx)}
+                        />
+                      </td>
+
+                      <td className="table-td">
+                        <input
+                          type="checkbox"
+                          className="input-checkbox"
+                          checked={item?.IsDepartmentReceivingRequired === 1}
+                          onChange={() => handleDeptRecvChange(idx)}
+                        />
+                      </td>
+
+                      <td className="table-td">
+                        <i className="fa-solid fa-check icon-color-delete"></i>
+                      </td>
+                      <td className="table-td">
+                        <i className="fa-solid fa-plus icon-color-button"></i>
+                      </td>
+
+                      <td className="table-td">
+                        <i className="fa-solid fa-info icon-color-button"></i>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="form-actions-responsive mt-3">
+            <button type="submit" className="save-btn">
+              Save Sample Collection
+            </button>
+            <button type="submit" className="save-btn">
+              Save Dept Receive
+            </button>
+
+            <button type="button" className="cancel-button ">
+              Cancel
+            </button>
           </div>
         </div>
-        <div className="form-actions-responsive mt-3">
-          <button type="submit" className="save-btn">
-            Save Sample Collection
-          </button>
-          <button type="submit" className="save-btn">
-            Save Dept Receive
-          </button>
-          <button type="submit" className="save-btn">
-            Print Barcode Sticker
-          </button>
-          <button type="button" className="cancel-button ">
-            Cancel
-          </button>
-        </div>
-      </div>
-      {!!renderPatientDrawer && (
+      )}
+      {/* {!!renderPatientDrawer && (
         <PatientInvestigationDetails
           isOpen={openPatientDrawer}
           onClose={closeDrawer}
           data={selectedPatient}
         />
-      )}
+      )} */}
+
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

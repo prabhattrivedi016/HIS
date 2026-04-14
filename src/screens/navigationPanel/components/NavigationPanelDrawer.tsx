@@ -135,7 +135,7 @@ const NavigationPanelDrawer = ({
           <div className="p-4">
             <div className="mb-4">
               {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
-              {error ? <ErrorMessage text={error} /> : <></>}
+              {error ? <ErrorMessage text={error?.message} /> : <></>}
             </div>
 
             <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
