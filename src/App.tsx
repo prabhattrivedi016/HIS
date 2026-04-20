@@ -6,7 +6,12 @@ const App = () => {
   return (
     <>
       <Navbar />
-      <ToastContainer position="top-center" newestOnTop theme="colored" />
+      <ToastContainer
+        position="top-center"
+        newestOnTop
+        theme="colored"
+        pauseOnFocusLoss={false}
+      />
     </>
   );
 };

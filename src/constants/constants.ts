@@ -313,3 +313,10 @@ export enum SampleManagementButtons {
   rejected = "Rejected",
   snr = " SNR",
 }
+
+export enum DefaultAddress {
+  COUNTRY = "India",
+  STATE = "Uttar Pradesh",
+  DISTRICT = "Varanasi",
+  City = "Manduadih SO",
+}

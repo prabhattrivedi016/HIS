@@ -3,10 +3,11 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
+import { Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { showError, showSuccess } from "@/utils/alert";
-import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
+import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import {
   defaultPatientRegistrationValues,
   PatientRegistrationFormItem,
@@ -75,6 +76,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     // documents
     const [renderDocument, setRenderDocument] = useState<boolean>(false);
     const [openDocument, setOpenDocument] = useState<boolean>(false);
+
+    const [defaultGender, setDefaultGender] = useState<string>("Male");
 
     const relationType = usePickMaster("PatientRelation");
     const relationTypeList = relationType?.pickMasterValue ?? [];
@@ -276,7 +279,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         "GET",
         ENDPOINTS.GET_CORPORATE_MASTER_LIST,
         {},
-        { params: { corporateId } },
+        { params: { insuranceCompanyId: corporateId, isActive: Status?.ACTIVE } },
         { component: "Patient Registration" }
       );
       const list = resp?.data ?? [];
@@ -648,6 +651,24 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setRenderDocument(false);
     }, []);
 
+    // auto filling gender on the basis of title
+    const titleValue = watch("Title");
+
+    useEffect(() => {
+      if (
+        titleValue === "Mr." ||
+        titleValue === "Master" ||
+        titleValue === "B/O" ||
+        titleValue === "Dr."
+      ) {
+        // setDefaultGender("Male");
+        setValue("Gender", "Male");
+      } else if (titleValue === "Mrs." || titleValue === "Miss.") {
+        // setDefaultGender("Female");
+        setValue("Gender", "Female");
+      }
+    }, [titleValue]);
+
     return (
       <FormProvider {...methods}>
         <form onSubmit={methods.handleSubmit(onSubmit)}>
@@ -659,7 +680,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <InputField label="UHID">
                       <input
                         type="text"
-                        className="input-field "
+                        className="disabled-input-field "
                         placeholder="UHID number"
                         {...register("UhidOrBarcode")}
                         readOnly
@@ -693,7 +714,13 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
                       <div className="w-2/3">
                         <InputField label="First Name" required>
-                          <input type="text" className="input-field" {...register("FirstName")} />
+                          <input
+                            type="text"
+                            className="input-field"
+                            {...register("FirstName")}
+                            onInput={allowOnlyText}
+                            maxLength={120}
+                          />
                           {errors.FirstName && (
                             <p className="input-field-error">{errors.FirstName.message}</p>
                           )}
@@ -701,10 +728,22 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       </div>
                     </div>
                     <InputField label="Middle Name">
-                      <input type="text" className="input-field" {...register("MiddleName")} />
+                      <input
+                        type="text"
+                        className="input-field"
+                        {...register("MiddleName")}
+                        onInput={allowOnlyText}
+                        maxLength={120}
+                      />
                     </InputField>
                     <InputField label="Last Name">
-                      <input type="text" className="input-field" {...register("LastName")} />
+                      <input
+                        type="text"
+                        className="input-field"
+                        {...register("LastName")}
+                        onInput={allowOnlyText}
+                        maxLength={120}
+                      />
                     </InputField>
                     <div className="flex gap-1 w-full overflow-auto">
                       <InputField label="Age(yrs)" required>
@@ -713,6 +752,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           className="input-field"
                           {...register("AgeYears")}
                           onInput={allowOnlyNumbers}
+                          maxLength={3}
                         />
                         {errors.AgeYears && (
                           <p className="input-field-error">{errors.AgeYears.message}</p>
@@ -725,6 +765,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           className="input-field"
                           {...register("AgeMonths")}
                           onInput={allowOnlyNumbers}
+                          maxLength={3}
                         />
                         {errors.AgeMonths && (
                           <p className="input-field-error">{errors.AgeMonths.message}</p>
@@ -737,6 +778,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           className="input-field"
                           {...register("AgeDays")}
                           onInput={allowOnlyNumbers}
+                          maxLength={3}
                         />
                         {errors.AgeDays && (
                           <p className="input-field-error">{errors.AgeDays.message}</p>
@@ -756,6 +798,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <InputField label="Gender" required>
                       <select className="input-field" {...register("Gender")}>
                         <option value="">Select Gender</option>
+
                         {patientGenderList.map(item => (
                           <option key={item.value} value={item.value}>
                             {item.value}
@@ -784,7 +827,13 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       </select>
                     </InputField>
                     <InputField label="Relative Name">
-                      <input type="text" className="input-field" {...register("RelativeName")} />
+                      <input
+                        type="text"
+                        className="input-field"
+                        {...register("RelativeName")}
+                        onInput={allowOnlyText}
+                        maxLength={120}
+                      />
                     </InputField>
                     <InputField label="ID Proof Type">
                       <select
@@ -802,7 +851,12 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     </InputField>
                     {!!idProofTypeValue && (
                       <InputField label="ID Proof Number">
-                        <input type="text" className="input-field" {...register("IdProofNumber")} />
+                        <input
+                          type="text"
+                          className="input-field"
+                          {...register("IdProofNumber")}
+                          maxLength={18}
+                        />
                         {errors.IdProofNumber && (
                           <p className="input-field-error">{errors.IdProofNumber.message}</p>
                         )}
@@ -860,16 +914,30 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     {!!insuranceId ? (
                       <>
                         <InputField label="Card No./Policy No.">
-                          <input type="text" className="input-field" {...register("CardNo")} />
+                          <input
+                            type="text"
+                            className="input-field"
+                            {...register("CardNo")}
+                            minLength={8}
+                            maxLength={20}
+                          />
                         </InputField>
                         <InputField label="Policy NO.">
-                          <input type="text" className="input-field" {...register("PolicyNo")} />
+                          <input
+                            type="text"
+                            className="input-field"
+                            {...register("PolicyNo")}
+                            minLength={8}
+                            maxLength={20}
+                          />
                         </InputField>
                         <InputField label="Policy Card No.">
                           <input
                             type="text"
                             className="input-field"
                             {...register("PolicyCardNo")}
+                            minLength={8}
+                            maxLength={20}
                           />
                         </InputField>
                         <InputField label="Expiry Date">
@@ -879,10 +947,20 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           />
                         </InputField>
                         <InputField label="Card Holder Name">
-                          <input type="text" className="input-field" {...register("CardHolder")} />
+                          <input
+                            type="text"
+                            className="input-field"
+                            {...register("CardHolder")}
+                            onInput={allowOnlyText}
+                          />
                         </InputField>
                         <InputField label="Referal NO.">
-                          <input type="text" className="input-field" {...register("ReferalNo")} />
+                          <input
+                            type="text"
+                            className="input-field"
+                            {...register("ReferalNo")}
+                            maxLength={20}
+                          />
                         </InputField>
                         <InputField label="Referal Date">
                           <CustomDateInput

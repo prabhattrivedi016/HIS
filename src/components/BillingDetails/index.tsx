@@ -11,6 +11,7 @@ import {
   useContext,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from "react";
 import InputField from "../customInputField";
@@ -24,7 +25,10 @@ import {
 } from "./types";
 
 const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
-  ({ setOpdBilling, setBillingValues, billingValues: initialBillingValues }, ref) => {
+  (
+    { setOpdBilling, setBillingValues, billingValues: initialBillingValues, paymentBilling },
+    ref
+  ) => {
     const { fetchApi } = useGlobalApi();
 
     const [paymentList, setPaymentList] = useState<PaymentItems[]>([]);
@@ -207,6 +211,49 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       return Number.isFinite(parsed) ? parsed : 0;
     };
 
+    const isServiceDiscountApplied = paymentBilling && paymentBilling.totalDiscAmtOnBill > 0;
+
+    const wasServiceDiscountAppliedRef = useRef(false);
+
+    // payment
+    useEffect(() => {
+      if (paymentBilling && Object.keys(paymentBilling).length > 0) {
+        if (paymentBilling.totalDiscAmtOnBill > 0) {
+          wasServiceDiscountAppliedRef.current = true;
+          const rawNet = paymentBilling.grossBillAmount - paymentBilling.totalDiscAmtOnBill;
+          const netAmount = Math.round(rawNet);
+          const roundOff = roundToTwo(netAmount - rawNet);
+
+          setBillingState({
+            grossBillAmount: paymentBilling.grossBillAmount,
+            totalDiscAmtOnBill: paymentBilling.totalDiscAmtOnBill,
+            totalDiscPerOnBill: paymentBilling.totalDiscPerOnBill,
+            netAmount: netAmount,
+            roundOff: roundOff,
+          });
+        } else {
+          const gross = paymentBilling.grossBillAmount;
+          let discOverride = billingValues?.totalDiscAmtOnBill ?? 0;
+          if (wasServiceDiscountAppliedRef.current) {
+            discOverride = 0;
+            wasServiceDiscountAppliedRef.current = false;
+          }
+
+          const { discountPer, discountAmt, netAmount, roundOff } = calculateFromAmountWithRoundOff(
+            gross,
+            discOverride
+          );
+          setBillingState({
+            grossBillAmount: gross,
+            totalDiscPerOnBill: discountPer,
+            totalDiscAmtOnBill: discountAmt,
+            netAmount: netAmount,
+            roundOff: roundOff,
+          });
+        }
+      }
+    }, [paymentBilling]);
+
     // Auto-fill cash amount from net amount when row is still empty.
     useEffect(() => {
       const netAmountValue = toNumber(billingValues?.netAmount);
@@ -270,9 +317,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       const normalizedGross = Math.max(0, gross);
       const discountPer = roundToTwo(Math.min(100, Math.max(0, toNumber(discountPerInput))));
       const discountAmt = roundToTwo((normalizedGross * discountPer) / 100);
-      const netAmount = roundToTwo(normalizedGross - discountAmt);
+      const rawNet = normalizedGross - discountAmt;
+      const netAmount = Math.round(rawNet);
+      const roundOff = roundToTwo(netAmount - rawNet);
 
-      return { discountPer, discountAmt, netAmount };
+      return { discountPer, discountAmt, netAmount, roundOff };
     };
 
     const calculateFromAmount = (gross: number, discountAmtInput: unknown) => {
@@ -282,10 +331,14 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       );
       const discountPer =
         normalizedGross > 0 ? roundToTwo((discountAmt / normalizedGross) * 100) : 0;
-      const netAmount = roundToTwo(normalizedGross - discountAmt);
+      const rawNet = normalizedGross - discountAmt;
+      const netAmount = Math.round(rawNet);
+      const roundOff = roundToTwo(netAmount - rawNet);
 
-      return { discountPer, discountAmt, netAmount };
+      return { discountPer, discountAmt, netAmount, roundOff };
     };
+
+    const calculateFromAmountWithRoundOff = calculateFromAmount;
 
     // discount approved by
     const getDiscountApprovedBy = async () => {
@@ -304,20 +357,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       getDiscountApprovedBy();
     }, []);
 
-    useEffect(() => {
-      const gross = roundToTwo(toNumber(totalBillingAmount));
-      const { discountPer, discountAmt, netAmount } = calculateFromAmount(
-        gross,
-        billingValues?.totalDiscAmtOnBill ?? 0
-      );
-
-      setBillingState({
-        grossBillAmount: gross,
-        totalDiscPerOnBill: discountPer,
-        totalDiscAmtOnBill: discountAmt,
-        netAmount,
-      });
-    }, [totalBillingAmount]);
+    // Removed totalBillingAmount based effect because paymentBilling syncs this data.
 
     // payment methods
     const getPaymentMethod = useCallback(async () => {
@@ -347,8 +387,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     }, [getBankList, getPaymentMethod]);
 
     const discountPercentageChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-      const gross = toNumber(totalBillingAmount);
-      const { discountPer, discountAmt, netAmount } = calculateFromPercentage(
+      const gross = toNumber(billingValues?.grossBillAmount);
+      const { discountPer, discountAmt, netAmount, roundOff } = calculateFromPercentage(
         gross,
         e.target.value
       );
@@ -357,17 +397,22 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         totalDiscPerOnBill: discountPer,
         totalDiscAmtOnBill: discountAmt,
         netAmount,
+        roundOff,
       });
     };
 
     const discountAmountChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-      const gross = toNumber(totalBillingAmount);
-      const { discountPer, discountAmt, netAmount } = calculateFromAmount(gross, e.target.value);
+      const gross = toNumber(billingValues?.grossBillAmount);
+      const { discountPer, discountAmt, netAmount, roundOff } = calculateFromAmount(
+        gross,
+        e.target.value
+      );
 
       setBillingState({
         totalDiscPerOnBill: discountPer,
         totalDiscAmtOnBill: discountAmt,
         netAmount,
+        roundOff,
       });
     };
 
@@ -470,20 +515,26 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             <InputField label="Bill Disc(%)">
               <input
                 type="text"
-                className="input-field w-full"
+                className={
+                  isServiceDiscountApplied ? "disabled-input-field w-full" : "input-field w-full"
+                }
                 value={billingValues?.totalDiscPerOnBill ?? 0}
                 onInput={allowOnlyNumbers}
                 onChange={discountPercentageChangeHandler}
+                disabled={isServiceDiscountApplied}
               />
             </InputField>
 
             <InputField label="Bill Disc Amount">
               <input
                 type="text"
-                className="input-field"
+                className={
+                  isServiceDiscountApplied ? "disabled-input-field w-full" : "input-field w-full"
+                }
                 value={billingValues?.totalDiscAmtOnBill ?? 0}
                 onInput={allowOnlyNumbers}
                 onChange={discountAmountChangeHandler}
+                disabled={isServiceDiscountApplied}
               />
             </InputField>
 

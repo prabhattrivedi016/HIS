@@ -5,12 +5,15 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
+import OpdCard from "@/components/reportTemplates/OpdCard";
+import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
 import { ENDPOINTS } from "@/config/defaults";
 import { OPD_CATEGORY_IDs, Status } from "@/constants/constants";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
+import { allowOnlyText } from "@/utils/inputValidationHandler";
 import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import Select, { SingleValue, StylesConfig } from "react-select";
@@ -25,12 +28,16 @@ import {
   applyDiscountPercentageChange,
   applyRateChange,
 } from "./components/helperFunction";
+import { openOpdPrintInNewTab, openReceiptInNewTab } from "./components/OpdReceiptNewTab";
 import PackagePopup from "./components/PackagePopup";
 import ReferDoctorPopup from "./components/ReferDoctorPopup";
 import {
   CategoryItem,
   DoctorMasterItem,
+  OpdCardDetailItem,
   OptionItem,
+  PatientReceiptItem,
+  PaymentModeItem,
   ReferDoctorItem,
   ServiceBindingItem,
   ServiceItemList,
@@ -43,6 +50,7 @@ const OpdBilling = () => {
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const patientDataRef = useRef<PatientDataHandle>(null);
+  const receiptPrintWindowRef = useRef<Window | null>(null);
   const patientID = useParams();
   const pId = Number(patientID?.patientId);
 
@@ -105,6 +113,39 @@ const OpdBilling = () => {
   const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
   const [formResetKey, setFormResetKey] = useState<number>(0);
 
+  const [billingPaymentDetails, setBillingPaymentDetails] = useState({});
+
+  const [patientReceiptDetails, setPatientReceiptDetails] = useState<PatientReceiptItem[]>([]);
+
+  const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
+
+  const [opdCardDetails, setOpdCardDetails] = useState<OpdCardDetailItem | null>(null);
+  const [pendingCombinedPrint, setPendingCombinedPrint] = useState<boolean>(false);
+  const [pendingDoctorAppointmentPrint, setPendingDoctorAppointmentPrint] =
+    useState<boolean>(false);
+
+  const [totalPaidAmount, setTotalPaidAmount] = useState<number>(0);
+
+  // total paid amount
+  useEffect(() => {
+    const paidAmount = paymentModeList?.reduce((acc, cur) => acc + Number(cur?.Amount), 0);
+    setTotalPaidAmount(paidAmount);
+  }, [paymentModeList]);
+
+  const getBranchDetails = async (brachId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BRANCH_DETAILS,
+      {},
+      { params: { brachId } },
+      { component: "OpdBilling" }
+    );
+    console.log("resp", resp);
+  };
+
+  useEffect(() => {
+    getBranchDetails(1);
+  }, []);
   // autoFill patient data
 
   useEffect(() => {
@@ -116,8 +157,6 @@ const OpdBilling = () => {
           "opdBilling"
         );
 
-        console.log("resp", resp);
-
         if (!resp || Object.keys(resp).length === 0) return;
 
         setPatientRegistrationDetails(prev => ({
@@ -127,7 +166,6 @@ const OpdBilling = () => {
 
         if (resp?.doctorId) {
           const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
-          console.log("doctor", doctor);
           if (doctor) {
             setSelectedDoctor(doctor);
           }
@@ -147,7 +185,7 @@ const OpdBilling = () => {
     branchId: 0,
     currentAge: "",
     insuranceCompanyId: 0,
-    corporateId: 0,
+    corporateId: 1,
     referDoctorId: 0,
     grossBillAmount: 0,
     totalDiscPerOnBill: 0,
@@ -194,9 +232,9 @@ const OpdBilling = () => {
         serviceName: s?.serviceName || "",
         code: s?.code || "",
 
-        categoryId: selectedCategory || 0,
-        subCategoryId: selectedSubCategory?.value || 0,
-        subSubCategoryId: selectedSubSubCategory?.value || 0,
+        categoryId: s?.categoryId || 0,
+        subCategoryId: s?.subCategoryId || 0,
+        subSubCategoryId: s?.subSubCategoryId || 0,
 
         corporateAlias: s?.corporateAlias || "",
         corporateCode: s?.corporateCode || "",
@@ -258,13 +296,6 @@ const OpdBilling = () => {
         ...prev,
         balanceAmount: Number(balanceAmount.toFixed(2)),
       }));
-
-      console.log("Balance Calculation:", {
-        netAmount: billingValues?.netAmount,
-        totalPayment,
-        balanceAmount: Number(balanceAmount.toFixed(2)),
-        status: balanceAmount > 0 ? "Pending" : balanceAmount < 0 ? "Overpaid" : "Fully Paid",
-      });
     }
   }, [paymentDetails]);
 
@@ -366,7 +397,7 @@ const OpdBilling = () => {
       "GET",
       ENDPOINTS.GET_CORPORATE_MASTER_LIST,
       {},
-      { params: { corporateId } },
+      { params: { insuranceCompanyId: corporateId, isActive: Status?.ACTIVE } },
       { component: "Patient Registration" }
     );
     setCorporateList(resp?.data ?? []);
@@ -390,11 +421,12 @@ const OpdBilling = () => {
 
     setOpdBillingFormData(prev => ({
       ...prev,
-      corporateId: Number(option?.value || 0),
+      corporateId: Number(option?.value || 1),
     }));
   };
 
-  const defaultCorporate = { label: "CASH", value: 0 };
+  const defaultCorporate = { label: "CASH", value: 1 };
+
   const defaultSubCategory = { label: "All Sub Category", value: 0 };
   const defaultSubSubCategory = { label: "All Sub Category", value: 0 };
 
@@ -637,6 +669,8 @@ const OpdBilling = () => {
         netAmount: 0,
         roundOff: 0,
       }));
+      setTotalBillingAmount(0);
+      setBillingPaymentDetails({});
       return;
     }
 
@@ -678,11 +712,16 @@ const OpdBilling = () => {
       netAmount: Number(finalNetAmount.toFixed(2)),
     }));
 
-    console.log("Billing Details Calculated:", {
+    const details = {
       grossBillAmount: totalGrossAmount,
       totalDiscAmtOnBill: totalDiscountAmount,
+      totalDiscPerOnBill:
+        totalGrossAmount > 0
+          ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
+          : 0,
       netAmount: finalNetAmount,
-    });
+    };
+    setBillingPaymentDetails(details);
   };
 
   // Recalculate billing when service items change
@@ -792,7 +831,7 @@ const OpdBilling = () => {
       branchId: 0,
       currentAge: "",
       insuranceCompanyId: 0,
-      corporateId: 0,
+      corporateId: 1,
       referDoctorId: 0,
       grossBillAmount: 0,
       totalDiscPerOnBill: 0,
@@ -836,6 +875,10 @@ const OpdBilling = () => {
     setSelectedPatientId(null);
     setPaymentDetails([]);
     setTotalBillingAmount(0);
+    setPatientReceiptDetails([]);
+    setPaymentModeList([]);
+    setOpdCardDetails(null);
+    setBillingPaymentDetails({});
     setCollectOnDeviceAmount(0);
     setOpenCollectOnDevice(false);
     setRenderCollectOnDevice(false);
@@ -845,6 +888,8 @@ const OpdBilling = () => {
     setRenderReferDoctorPopup(false);
     setOpenSearchPatientPopup(false);
     setRenderSearchPatientPopup(false);
+    setPendingCombinedPrint(false);
+    setPendingDoctorAppointmentPrint(false);
 
     // Force re-mount children with internal form state (PatientData + BillingDetails).
     setFormResetKey(prev => prev + 1);
@@ -865,10 +910,14 @@ const OpdBilling = () => {
     }
 
     if (value === "save") {
+      // 1) Open window synchronously to avoid popup blockers
+      receiptPrintWindowRef.current = window.open("", "_blank");
+
       // Validate patient registration form using PatientData validation
       const isValid = await patientDataRef.current?.validateForm();
 
       if (!isValid) {
+        if (receiptPrintWindowRef.current) receiptPrintWindowRef.current.close();
         return;
       }
 
@@ -876,10 +925,17 @@ const OpdBilling = () => {
       const isBillingValid = await billingDetailsRef.current?.validateForm?.();
       if (!isBillingValid) {
         showError("Please fill all required billing details");
+        if (receiptPrintWindowRef.current) receiptPrintWindowRef.current.close();
         return;
       }
 
-      await getUserRegistrationResponse();
+      // If userRegistration fails or errors internal function will show errors
+      const registrationResult = await getUserRegistrationResponse();
+
+      // If result is somehow explicitly null (handled error)
+      if (registrationResult === null) {
+        if (receiptPrintWindowRef.current) receiptPrintWindowRef.current.close();
+      }
     }
   };
 
@@ -911,8 +967,6 @@ const OpdBilling = () => {
         showError("Failed to register patient");
         return;
       }
-
-      console.log("Patient registered successfully:", registrationResp.data);
 
       // Step 2: Fetch updated patient details
       const patientResponse = await fetchApi(
@@ -980,7 +1034,45 @@ const OpdBilling = () => {
         isBillDiscount: isBillingDiscount,
       };
 
-      // Step 6: Submit OPD billing
+      // opd card details
+      const getOpdCardDetails = async (ftid: number) => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_OPD_CARD_DETAILS,
+          {},
+          { params: { ftid: ftid } },
+          { component: "OpdBilling" }
+        );
+        setOpdCardDetails(resp?.data?.[0]);
+      };
+
+      // receipt details by ftid
+      const getReceiptByFtid = async (ftid: number, isReceipt: number, receiptId: number) => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
+          {},
+          { params: { ftid, isReceipt, receiptId } },
+          { component: "OpdBilling" }
+        );
+
+        setPatientReceiptDetails(resp?.data);
+      };
+
+      // payment modes
+      const getPaymentModes = async (visitNo: number) => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_OPD_RECEIPT_LIST,
+          {},
+          { params: { visitNo } },
+          { component: "OpdBilling" }
+        );
+
+        setPaymentModeList(resp?.data ?? []);
+      };
+
+      //  Submit OPD billing
       const saveBillingResp = await fetchApi(
         "POST",
         ENDPOINTS.SAVE_OPD_BILLING,
@@ -999,13 +1091,27 @@ const OpdBilling = () => {
         console.warn("API Success but no data returned:", saveBillingResp);
       }
 
-      console.log("OPD billing saved successfully:", saveBillingResp.data);
       showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
 
-      // Reset form after successful submission
-      resetForm();
+      const responseData = saveBillingResp?.data;
+      if (!responseData) {
+        return null;
+      }
+      const ftid = Number(responseData.ftid || 0);
+      const visitId = Number(responseData.visitId || 0);
+      const receiptId = Number(responseData.receiptId || 0);
+      const isDoctorAppointment = responseData?.isDoctorAppointment === true;
+      const isReceipt = responseData?.isReceipt === true ? 1 : 0;
 
-      return saveBillingResp.data;
+      // Reset form after successful submission
+
+      if (isDoctorAppointment && ftid > 0) {
+        await getOpdCardDetails(ftid);
+      }
+      await getReceiptByFtid(ftid, isReceipt, receiptId);
+      await getPaymentModes(visitId);
+      setPendingDoctorAppointmentPrint(isDoctorAppointment);
+      setPendingCombinedPrint(true);
     } catch (error) {
       console.error("Error in OPD billing submission:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -1013,6 +1119,37 @@ const OpdBilling = () => {
       return null;
     }
   };
+
+  useEffect(() => {
+    if (!pendingCombinedPrint) return;
+
+    // wait until ALL required data is available
+    if (!patientReceiptDetails?.length) return;
+    if (!paymentModeList?.length) return;
+
+    if (pendingDoctorAppointmentPrint && !opdCardDetails) return;
+
+    // 👉 PRINT LOGIC
+    if (pendingDoctorAppointmentPrint) {
+      openOpdPrintInNewTab(receiptPrintWindowRef.current);
+    } else {
+      openReceiptInNewTab(patientReceiptDetails, receiptPrintWindowRef.current);
+    }
+
+    // cleanup
+    receiptPrintWindowRef.current = null;
+    setPendingCombinedPrint(false);
+    setPendingDoctorAppointmentPrint(false);
+
+    // reset
+    resetForm();
+  }, [
+    pendingCombinedPrint,
+    pendingDoctorAppointmentPrint,
+    opdCardDetails,
+    patientReceiptDetails,
+    paymentModeList,
+  ]);
 
   // close collect on device handler
   const closeCollectOnDeviceHandler = useCallback(() => {
@@ -1061,6 +1198,8 @@ const OpdBilling = () => {
   const closePackageHandler = useCallback(() => {
     setRenderPackagePopup(false);
   }, []);
+
+  console.log("patientReceiptDetails", patientReceiptDetails);
 
   return (
     <div className="page-container">
@@ -1121,9 +1260,10 @@ const OpdBilling = () => {
             <Select<OptionItem, false>
               value={selectedCorporate}
               options={corporateSelectOption}
-              placeholder="Select investigation"
-              isSearchable
-              isClearable
+              placeholder="Select corporate"
+              isSearchable={!hasSelectedService}
+              isClearable={!hasSelectedService}
+              isDisabled={hasSelectedService}
               onChange={option => corporateSelectHandler(option)}
               styles={
                 hasSelectedService ? undefined : (SelectStyles as StylesConfig<OptionItem, false>)
@@ -1161,6 +1301,7 @@ const OpdBilling = () => {
                   placeholder="Enter policy number"
                   name="policyNo"
                   onChange={inputFieldHandler}
+                  maxLength={20}
                 />
               </InputField>
               {/* policy card number */}
@@ -1171,6 +1312,7 @@ const OpdBilling = () => {
                   placeholder="Enter policy card number"
                   name="policyCardNo"
                   onChange={inputFieldHandler}
+                  maxLength={20}
                 />
               </InputField>
               {/* expiry date */}
@@ -1188,6 +1330,8 @@ const OpdBilling = () => {
                   placeholder="Enter card holder name"
                   name="cardHolder"
                   onChange={inputFieldHandler}
+                  maxLength={100}
+                  onInput={allowOnlyText}
                 />
               </InputField>
               {/* referral number */}
@@ -1198,6 +1342,7 @@ const OpdBilling = () => {
                   placeholder="Enter referral number"
                   name="referalNo"
                   onChange={inputFieldHandler}
+                  maxLength={100}
                 />
               </InputField>
               {/* referral date */}
@@ -1441,19 +1586,12 @@ const OpdBilling = () => {
             setOpdBilling={setOpdBillingFormData}
             setBillingValues={setBillingValues}
             billingValues={billingValues!}
+            paymentBilling={billingPaymentDetails}
           />
         </div>
 
         {/* buttons */}
         <Buttons onButtonClick={buttonClickHandler} />
-        {/* {!!finalPayloadPreview && (
-          <div className="mt-4">
-            <h3 className="page-heading text-base">Final Payload Preview</h3>
-            <pre className="input-field whitespace-pre-wrap wrap-break-words min-h-40 overflow-auto">
-              {finalPayloadPreview}
-            </pre>
-          </div>
-        )} */}
       </div>
 
       {!!loading && <CustomLoader isLoading={loading} />}
@@ -1497,6 +1635,21 @@ const OpdBilling = () => {
           packageId={selectedPackage}
         />
       )}
+
+      {/* hidden printable templates */}
+      <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+        {patientReceiptDetails && patientReceiptDetails.length > 0 && (
+          <OpdDetailsBills
+            data={patientReceiptDetails}
+            printOnMount={false}
+            paymentModeList={paymentModeList}
+            paidAmt={totalPaidAmount}
+          />
+        )}
+        <div id="opd-card-print-wrapper">
+          <OpdCard patient={opdCardDetails ?? undefined} />
+        </div>
+      </div>
     </div>
   );
 };

@@ -242,14 +242,87 @@ type CollectOnDeviceProps = {
   totalAmount: number;
 };
 
+type PatientReceiptItem = {
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  Address: string;
+  ContactNumber: string;
+  RelativeName: string;
+  ServiceName: string;
+  CorporateAlias: string;
+  CorporateCode: string;
+  GrossAmt: number;
+  NetAmt: number;
+  Rate: number;
+  Qty: number;
+  DiscAmt: number;
+  DiscPer: number;
+  FTID: number;
+  GrossAmount: number;
+  DiscountAmount: number;
+  NetAmount: number;
+  ReceiptNo: string;
+  CreatedOn: string;
+  Amount: number;
+  DisplayAmount: number;
+  CompleteName: string;
+  Department: string;
+  Corporat: string;
+  BillNo: string;
+  BillDate: string;
+  SubSubCategoryName: string;
+  ReceiptHeader: string;
+  TnxType: string;
+  CreatedBy: string;
+  PrintBy: string;
+  DiagnosticNo: number;
+  appointmentno: string;
+  TotalBalanceAmount: number;
+  TotalPaidAmount: number;
+  ReferDoctorName: null;
+  VisitId: number;
+};
+
+type PaymentModeItem = {
+  PaymentModeName: string;
+  Amount: number;
+  UserName: string;
+  ReceiptNo: string;
+  BillDate: string;
+};
+
+type OpdCardDetailItem = {
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  Relation: string;
+  TotalPaidAmount: number;
+  CreatedDate: string;
+  CreatedTime: string;
+  CorporateName: string;
+  ContactNumber: string;
+  CompleteName: string;
+  ProfileSummery: string;
+  Department: string;
+  Address: string;
+  AppointmentNo: number;
+  BillNo: string;
+};
 export type {
   CategoryItem,
   CollectOnDeviceProps,
   DoctorMasterItem,
+  OpdCardDetailItem,
   OpdPatientDetails,
   OptionItem,
   PackageItems,
   PackagePopupProps,
+  PatientReceiptItem,
+  PaymentModeItem,
   ReferDoctorItem,
   ReferDoctorPopupProps,
   ServiceBindingItem,
