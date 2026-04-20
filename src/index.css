@@ -307,3 +307,54 @@ select:-webkit-autofill {
 .icon-color-delete {
   @apply text-xl text-red-500 active:scale-80 cursor-pointer;
 }
+
+/* ================= PRINT STYLES ================= */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  /* Hide everything except receipt */
+  body * {
+    visibility: hidden;
+  }
+
+  #receipt-print-wrapper,
+  #receipt-print-wrapper * {
+    visibility: visible;
+  }
+
+  #receipt-print-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  /* Each bill = new page */
+  .print-page {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Prevent row breaking */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Remove shadow for print */
+  .print-card {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+  }
+}
+
+/* A4 Page Setup */
+@page {
+  size: A4;
+  margin: 10mm;
+}

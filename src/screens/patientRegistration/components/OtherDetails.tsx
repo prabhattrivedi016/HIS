@@ -1,15 +1,12 @@
 import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
-import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
-import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
+import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
 const OtherDetails = () => {
-  const {} = useGlobalApi();
-
   const { register } = useFormContext();
 
   const religion = usePickMaster("Religion");
@@ -59,6 +56,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("LandlineNo")}
                 placeholder="Enter Landline Number"
+                maxLength={15}
+                onInput={allowOnlyNumbers}
               />
             </InputField>
             <InputField label="Birth Place">
@@ -66,6 +65,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("BirthPlace")}
                 placeholder="Enter Birth Place"
+                maxLength={100}
               />
             </InputField>
             <InputField label="Religion">
@@ -84,6 +84,9 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("RelationPhone")}
                 placeholder="Enter Relation Phone"
+                onInput={allowOnlyNumbers}
+                maxLength={10}
+                minLength={10}
               />
             </InputField>
             <InputField label="Relation Age">
@@ -92,6 +95,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("RelationAge")}
                 placeholder="Enter Relation Age"
+                onInput={allowOnlyNumbers}
+                maxLength={3}
               />
             </InputField>
             <InputField label="Relation Gender">
@@ -110,6 +115,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("EMG_FirstName")}
                 placeholder="Enter EMG first name"
+                onInput={allowOnlyText}
+                maxLength={100}
               />
             </InputField>
             <InputField label="EMG_LastName">
@@ -118,6 +125,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("EMG_LastName")}
                 placeholder="Enter EMG last name"
+                onInput={allowOnlyText}
+                maxLength={100}
               />
             </InputField>
             <InputField label="EMG_Relation">
@@ -126,6 +135,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("EMG_Relation")}
                 placeholder="Enter EMG Relation"
+                onInput={allowOnlyText}
+                maxLength={100}
               />
             </InputField>
             <InputField label="EMG_MobileNo">
@@ -135,6 +146,8 @@ const OtherDetails = () => {
                 {...register("EMG_MobileNo")}
                 onInput={allowOnlyNumbers}
                 placeholder="Enter EMG Mobile No"
+                maxLength={10}
+                minLength={10}
               />
             </InputField>
             <InputField label="EMG_ResidentNo">
@@ -143,6 +156,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("EMG_ResidentNo")}
                 placeholder="Enter EMG Resident No"
+                maxLength={100}
               />
             </InputField>
             <InputField label="EMG_Address">
@@ -151,6 +165,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("EMG_Address")}
                 placeholder="Enter EMG Address"
+                maxLength={100}
               />
             </InputField>
             <InputField label="Is International">
@@ -165,6 +180,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("Locality")}
                 placeholder="Enter Locality"
+                maxLength={100}
               />
             </InputField>
             <InputField label="Passport Number">
@@ -173,6 +189,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("PassportNumber")}
                 placeholder="Enter Passport Number"
+                minLength={6}
+                maxLength={10}
               />
             </InputField>
             <InputField label="International Number">
@@ -181,6 +199,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("InternationalNo")}
                 placeholder="Enter International Number"
+                onInput={allowOnlyNumbers}
+                maxLength={100}
               />
             </InputField>
             <InputField label="Membership Number">
@@ -189,6 +209,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("MembershipNo")}
                 placeholder="Enter Membership"
+                maxLength={100}
               />
             </InputField>
             <InputField label="PatientType">
@@ -207,6 +228,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("IdentityMark")}
                 placeholder="Enter identity mark"
+                onInput={allowOnlyText}
+                maxLength={100}
               />
             </InputField>
             <InputField label="Identity Mark 2">
@@ -215,6 +238,8 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("IdentityMark2")}
                 placeholder="Enter identity mark2"
+                onInput={allowOnlyText}
+                maxLength={100}
               />
             </InputField>
             <InputField label="Reference Type">
@@ -233,6 +258,7 @@ const OtherDetails = () => {
                 className="input-field"
                 {...register("Remarks")}
                 placeholder="Enter remarks"
+                maxLength={100}
               />
             </InputField>
           </div>

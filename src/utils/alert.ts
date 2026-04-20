@@ -5,6 +5,7 @@ const baseToastOptions: ToastOptions = {
   autoClose: 1500,
   hideProgressBar: false,
   closeOnClick: true,
+  pauseOnFocusLoss: false,
   pauseOnHover: true,
   draggable: true,
 };

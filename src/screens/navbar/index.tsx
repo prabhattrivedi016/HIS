@@ -1,5 +1,6 @@
-import { useAppSelector } from "@/store/hooks";
+import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
 import { AuthContext } from "@/context/AuthContext";
+import { useAppSelector } from "@/store/hooks";
 import { useContext } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
@@ -26,7 +27,18 @@ const Navbar = () => {
     <Router basename="/GWSNHIS">
       <Routes>
         {/* Public Route */}
-        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route
+          path="/"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+
+        {/* Print Routes (Protected but no Sidebar layout) */}
+        <Route
+          path="/print-opd-receipt"
+          element={
+            isAuthenticated ? <OpdDetailsBills printOnMount={true} /> : <Navigate to="/" replace />
+          }
+        />
 
         {/* Protected Layout */}
         <Route element={isAuthenticated ? <Sidebar /> : <Navigate to="/" replace />}>

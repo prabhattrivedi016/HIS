@@ -1,7 +1,7 @@
 import InputField from "@/components/customInputField";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
-import { BranchId, Status } from "@/constants/constants";
+import { DefaultAddress, Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
@@ -16,7 +16,7 @@ type AddressProps = {
 };
 
 const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
-  const { fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const {
     register,
     setValue,
@@ -38,19 +38,19 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
 
   // address
 
-  // address
-  const getAddressByBranch = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_BRANCH_DETAILS,
-      {},
-      { params: { branchId: BranchId?.DEFAULT } },
-      { component: "AddressOfPatientRegistration" }
-    );
+  // // address
+  // const getAddressByBranch = async () => {
+  //   const resp = await fetchApi(
+  //     "GET",
+  //     ENDPOINTS.GET_BRANCH_DETAILS,
+  //     {},
+  //     { params: { branchId: BranchId?.DEFAULT } },
+  //     { component: "AddressOfPatientRegistration" }
+  //   );
 
-    const branchAddress = resp?.data?.[0]?.address ?? "";
-    setValue("Address", branchAddress, { shouldDirty: false });
-  };
+  //   const branchAddress = resp?.data?.[0]?.address ?? "";
+  //   setValue("Address", branchAddress, { shouldDirty: false });
+  // };
 
   //   country
   const getCountry = async () => {
@@ -58,7 +58,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       "GET",
       ENDPOINTS.GET_COUNTRY_MASTER,
       {},
-      { params: { isActive: Status.ACTIVE } },
+      { params: { isActive: Status.INACTIVE } },
       { component: "AddressOfPatientRegistration" }
     );
     if (resp?.result === false) {
@@ -78,8 +78,31 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     }));
   }, [countryList]);
 
+  // default address
   useEffect(() => {
-    getAddressByBranch();
+    if (!countryList?.length) return;
+
+    const defaultCountry = countryList.find(
+      c => c.countryName?.toLowerCase() === DefaultAddress?.COUNTRY?.toLowerCase()
+    );
+
+    if (!defaultCountry) return;
+
+    const option = {
+      label: defaultCountry.countryName,
+      value: Number(defaultCountry.countryId),
+    };
+
+    setSelectedCountry(option);
+
+    setValue("CountryId", option.value);
+    setValue("Country", option.label);
+
+    getState(option.value);
+  }, [countryList]);
+
+  useEffect(() => {
+    // getAddressByBranch();
     getCountry();
   }, []);
 
@@ -205,6 +228,28 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     }));
   }, [stateList]);
 
+  // default state
+  useEffect(() => {
+    if (!stateList?.length || !selectedCountry) return;
+
+    const defaultState = stateList.find(
+      s => s.stateName?.toLowerCase() === DefaultAddress?.STATE?.toLowerCase()
+    );
+
+    if (!defaultState) return;
+
+    const option = {
+      label: defaultState.stateName,
+      value: Number(defaultState.stateId),
+    };
+
+    setSelectedState(option);
+    setValue("StateId", option.value);
+    setValue("State", option.label);
+
+    getDistrict(option.value);
+  }, [stateList]);
+
   //   state select handler
   const stateSelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) {
@@ -263,6 +308,28 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     }));
   }, [districtList]);
 
+  // default district
+  useEffect(() => {
+    if (!districtList?.length) return;
+
+    const defaultDistrict = districtList.find(
+      d => d.districtName?.toLowerCase() === DefaultAddress?.DISTRICT?.toLowerCase()
+    );
+
+    if (!defaultDistrict) return;
+
+    const option = {
+      label: defaultDistrict.districtName,
+      value: Number(defaultDistrict.districtId),
+    };
+
+    setSelectedDistrict(option);
+
+    setValue("DistrictId", option.value);
+    setValue("District", option.label);
+
+    getCity(option.value);
+  }, [districtList]);
   //   district select handler
   const districtSelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) {
@@ -305,6 +372,29 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       label: c?.cityName,
       value: Number(c?.cityId),
     }));
+  }, [cityList]);
+
+  // default city
+  useEffect(() => {
+    if (!cityList?.length) return;
+
+    const defaultCity = cityList.find(
+      d => d?.cityName?.toLowerCase() === DefaultAddress?.City?.toLowerCase()
+    );
+
+    if (!defaultCity) return;
+
+    const option = {
+      label: defaultCity.cityName,
+      value: Number(defaultCity.cityId),
+    };
+
+    setSelectedCity(option);
+
+    setValue("CityId", option.value);
+    setValue("City", option.label);
+
+    // getCity(option.value);
   }, [cityList]);
 
   //   city select handler

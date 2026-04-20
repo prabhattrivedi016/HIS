@@ -57,6 +57,7 @@ const ENDPOINTS = {
   SAVE_ROLE_WISE_USER_FAVORITE_SUBMENU: "User/saveRoleWiseUserFavoriteSubMenu",
 
   //branch master
+
   GET_BRANCH_DETAILS: "Admin/getBranchDetails",
   GET_COUNTRY_MASTER: "Home/getCountryMaster",
   GET_STATE_MASTER: "Home/getStateMaster",
@@ -212,6 +213,9 @@ const ENDPOINTS = {
   GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING: "Patient/getServiceAllDetailsForOPDBilling",
   GET_PACKAGE_ALL_DETAILS: "Patient/getPackageAllDetails",
   SAVE_OPD_BILLING: "Patient/saveOPDBilling",
+  GET_OPD_CARD_DETAILS: "Patient/getOPDCardDetails",
+  GET_OPD_RECEIPT_LIST: "Patient/getOPDReceiptList",
+  GET_RECEIPT_DETAILS_BY_FTID: "Patient/getReceiptDetailsByFTID",
 
   // formula master
   GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",

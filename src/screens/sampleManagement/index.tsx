@@ -7,7 +7,7 @@ import { sampleManagementButtons, SampleManagementTableHeader } from "@/constant
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showWarning } from "@/utils/alert";
+import { showError, showInfo, showWarning } from "@/utils/alert";
 import {
   SampleManagementFormData,
   sampleManagementSchema,
@@ -106,22 +106,34 @@ const SampleManagement = () => {
   const getButtonCount = (buttonName: string) =>
     filterByButton(buttonName, sampleManagementTableData).length;
 
-  // get table data on landing on this page
   useEffect(() => {
-    const getDataOnMount = async (toDate: string, fromDate: string) => {
+    const getDataOnMount = async () => {
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT,
         {},
-        { params: { branchId, roleId, fromDate, toDate } },
+        { params: { branchId, roleId, fromDate: currentDate, toDate: currentDate } },
         { component: "SampleManagement" }
       );
-      setFilteredData(resp?.data ?? []);
-      setSampleManagementTableData(resp?.data ?? []);
+
+      if (!resp?.data) {
+        showInfo("No data found");
+        return;
+      }
+
+      const data = resp?.data ?? [];
+
+      setSampleManagementTableData(data);
+
+      setFilteredData(filterByButton(sampleManagementButtons[0], data));
+      setActiveIndex(0);
+      setShowTable(true);
     };
 
-    getDataOnMount(currentDate, currentDate);
-  }, []);
+    if (branchId && roleId) {
+      getDataOnMount();
+    }
+  }, [branchId, roleId]);
 
   // search handler
   const onsubmit = async (formData: SampleManagementFormData) => {
