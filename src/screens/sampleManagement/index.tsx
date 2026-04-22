@@ -2,7 +2,7 @@ import { getCorporateMaster } from "@/api/globalApiCall";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { SampleManagementButtons } from "@/constants/constants";
+import { Status } from "@/constants/constants";
 import { sampleManagementButtons, SampleManagementTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
@@ -17,7 +17,7 @@ import { BriefcaseMedical } from "lucide-react";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
-import { CorporateList, SampleManagementTableData } from "./types";
+import { ButtonValue, CorporateList, SampleManagementTableData } from "./types";
 
 const SampleManagement = () => {
   const currentDate = new Date().toISOString().split("T")[0];
@@ -74,35 +74,57 @@ const SampleManagement = () => {
     fetchCorporateData();
   }, []);
 
-  const filterByButton = (buttonName: string, source: SampleManagementTableData[]) => {
-    const normalizedValue = buttonName.trim();
+  // sample management color coding
+  const getColorFromButton = (buttonName: string) => {
+    return sampleManagementButtons.find(b => b.buttonName === buttonName)?.color;
+  };
 
-    switch (normalizedValue) {
-      case SampleManagementButtons.all.trim():
+  const getInvestigationColor = (item: SampleManagementTableData) => {
+    if (item.isSampleRejected === 1) return getColorFromButton("rejected");
+    if (item.isUrgent === 1) return getColorFromButton("urgentSample");
+    if (item.IsSampleCollected === 1) return getColorFromButton("sampleCollected");
+    if (item.IsDepartmentReceivingRequired === 1 && item.IsSampleReceivedByDepartment === 0)
+      return getColorFromButton("deptRecPending");
+
+    if (item.IsSampleReceivedByDepartment === 1) return getColorFromButton("deptReceived");
+
+    return getColorFromButton("collectionPending");
+  };
+
+  // filter by buttons
+  const filterByButton = (buttonName: string, source: SampleManagementTableData[]) => {
+    console.log("buttonName", buttonName);
+
+    switch (buttonName) {
+      case "all":
         return source;
-      case SampleManagementButtons.collectionPending.trim():
-        return source.filter(item => Number(item.IsSampleCollected) === 0);
-      case SampleManagementButtons.sampleCollected.trim():
-        return source.filter(item => Number(item.IsSampleCollected) === 1);
-      case SampleManagementButtons.DeptRecPending.trim():
+
+      case "collectionPending":
+        return source.filter(item => Number(item.IsSampleCollected) === Status?.INACTIVE);
+
+      case "sampleCollected":
+        return source.filter(item => Number(item.IsSampleCollected) === Status?.ACTIVE);
+
+      case "deptRecPending":
         return source.filter(
-          item =>
-            Number(item.IsDepartmentReceivingRequired) === 1 &&
-            Number(item.IsSampleReceivedByDepartment) === 0
+          item => Number(item.IsSampleReceivedByDepartment) === Status?.INACTIVE
         );
-      case SampleManagementButtons.deptReceived.trim():
-        return source.filter(item => Number(item.IsSampleReceivedByDepartment) === 1);
-      case SampleManagementButtons.urgent.trim():
-        return source.filter(item => Number(item.isUrgent) === 1);
-      case SampleManagementButtons.rejected.trim():
-        return source.filter(item => Number(item.isSampleRejected) === 1);
-      case SampleManagementButtons.snr.trim():
-        return source.filter(item => Number(item.IsSampleRequired) === 0);
+
+      case "deptReceived":
+        return source.filter(item => Number(item.IsSampleReceivedByDepartment) === Status?.ACTIVE);
+
+      case "urgentSample":
+        return source.filter(item => Number(item.isUrgent) === Status?.ACTIVE);
+
+      case "rejected":
+        return source.filter(item => Number(item.isSampleRejected) === Status?.ACTIVE);
+
       default:
         return source;
     }
   };
 
+  // button count
   const getButtonCount = (buttonName: string) =>
     filterByButton(buttonName, sampleManagementTableData).length;
 
@@ -125,7 +147,7 @@ const SampleManagement = () => {
 
       setSampleManagementTableData(data);
 
-      setFilteredData(filterByButton(sampleManagementButtons[0], data));
+      setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, data));
       setActiveIndex(0);
       setShowTable(true);
     };
@@ -175,7 +197,7 @@ const SampleManagement = () => {
     setShowTable(true);
 
     setActiveIndex(0);
-    setFilteredData(filterByButton(sampleManagementButtons[0], tableData));
+    setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, tableData));
   };
 
   // button click handler
@@ -240,6 +262,61 @@ const SampleManagement = () => {
           return prev;
       }
     });
+  };
+
+  // render button
+
+  const renderButton = (buttons: ButtonValue[]) => {
+    return buttons.map((b, idx) => {
+      const isActive = idx === activeIndex;
+
+      return (
+        <button
+          key={idx}
+          type="button"
+          onClick={() => {
+            setActiveIndex(idx);
+            buttonClickHandler(b.buttonName);
+          }}
+          style={{
+            backgroundColor: isActive ? b.color : "#fff",
+            color: isActive ? "#000" : "#333",
+            border: `1px solid ${b.color}`,
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition`}
+        >
+          <BriefcaseMedical
+            size={18}
+            style={{
+              backgroundColor: b.color,
+              borderRadius: "4px",
+              padding: "2px",
+            }}
+          />
+
+          <span>
+            {b.level} : {getButtonCount(b.buttonName)}
+          </span>
+        </button>
+      );
+    });
+  };
+
+  // sample name
+  const getBadgeStyle = (item: SampleManagementTableData) => {
+    const color = getInvestigationColor(item);
+
+    return {
+      backgroundColor: `${color}25`,
+      color: "#111",
+      padding: "4px 8px",
+      borderRadius: "6px",
+      fontWeight: 500,
+      display: "inline-block",
+      border: `1px solid ${color}`,
+      minWidth: "80px",
+      textAlign: "center" as const,
+    };
   };
 
   return (
@@ -340,55 +417,16 @@ const SampleManagement = () => {
           </div>
         </form>
       </div>
+      {/* render buttons */}
       <div className="flex lg:flex-row sm:flex-col gap-2 m-2 overflow-x-auto">
-        {sampleManagementButtons.map((b, idx) => {
-          const isActive = idx === activeIndex;
-
-          return (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => {
-                setActiveIndex(idx);
-                buttonClickHandler(b);
-              }}
-              className={` flex items-center gap-2 px-4 py-2 rounded-lg border whitespace-nowrap text-sm font-medium
-          ${isActive ? "save-btn" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 cursor-pointer"}
-        `}
-            >
-              <BriefcaseMedical size={20} />
-              <span>
-                {b} : {getButtonCount(b)}
-              </span>
-            </button>
-          );
-        })}
+        {renderButton(sampleManagementButtons)}
       </div>
+      {/* table data */}
       {!!showTable && (
         <div className="table-container  ">
           <div className="table-scroll-wrapper ">
             <div className="table-size lg:min-h-68 lg:max-h-68 ">
               <table className="base-table ">
-                {/* <thead className="table-head">
-                  <tr>
-                    {SampleManagementTableHeader.map((h, index) => (
-                      <th key={index} className="table-th">
-                        {h === "Sample Collection" || h === "Dept. Rec." ? (
-                          <span className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              className="input-checkbox"
-                              onChange={e => checkboxHandler(h, e.target.checked)}
-                            />
-                            {h}
-                          </span>
-                        ) : (
-                          h
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead> */}
                 <thead className="table-head">
                   <tr>
                     {SampleManagementTableHeader.map((h, index) => {
@@ -443,7 +481,9 @@ const SampleManagement = () => {
                         {item?.CurrentAge || "-"} / {item?.Gender}
                       </td>
                       <td className="table-td">{item?.CorporateName || "-"}</td>
-                      <td className="table-td">{item?.Name || "-"}</td>
+                      <td className="table-td">
+                        <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
+                      </td>
                       <td className="table-td">
                         <input
                           type="text"

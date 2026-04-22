@@ -8,7 +8,6 @@ import { createPortal } from "react-dom";
 import { PackageItems } from "../types";
 
 const PackagePopup = ({ isOpen, onClose, packageId }: PackagePopupProps) => {
-  console.log("packageId", packageId);
   const { loading, fetchApi, error } = useGlobalApi();
 
   const [packageList, setPackageList] = useState<PackageItems[]>([]);

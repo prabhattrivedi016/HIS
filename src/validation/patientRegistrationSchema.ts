@@ -70,35 +70,15 @@ export const patientRegistrationSchema = yup.object().shape({
     ),
   Email: yup.string().nullable().trim().email("Please enter a valid email address"),
   PrivilegedCardNumber: yup.string().nullable(),
-  Address: yup.string().trim().required("Address is required"),
+  Address: yup.string().trim().nullable(),
 
-  CountryId: yup
-    .number()
-    .transform(parseNumber)
-    .typeError("Country is required")
-    .moreThan(0, "Country is required")
-    .required("Country is required"),
+  CountryId: yup.number().nullable(),
   Country: yup.string().nullable(),
-  StateId: yup
-    .number()
-    .transform(parseNumber)
-    .typeError("State is required")
-    .moreThan(0, "State is required")
-    .required("State is required"),
+  StateId: yup.number().nullable(),
   State: yup.string().nullable(),
-  DistrictId: yup
-    .number()
-    .transform(parseNumber)
-    .typeError("District is required")
-    .moreThan(0, "District is required")
-    .required("District is required"),
+  DistrictId: yup.number().nullable(),
   District: yup.string().nullable(),
-  CityId: yup
-    .number()
-    .transform(parseNumber)
-    .typeError("City is required")
-    .moreThan(0, "City is required")
-    .required("City is required"),
+  CityId: yup.number().nullable(),
   City: yup.string().nullable(),
   InsuranceCompanyId: yup.number().transform(parseNullableNumber).nullable(),
   CorporateId: yup.number().transform(parseNullableNumber).nullable(),

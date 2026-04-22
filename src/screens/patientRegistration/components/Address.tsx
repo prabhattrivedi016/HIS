@@ -506,7 +506,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           {...register("Address")}
           rows={1}
         />
-        {errors.Address && <p className="input-field-error">{String(errors.Address.message)}</p>}
       </InputField>
       <InputField label="Pincode">
         <input
@@ -534,9 +533,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
-        {errors.CountryId && (
-          <p className="input-field-error">{String(errors.CountryId.message)}</p>
-        )}
       </InputField>
       <InputField label="State" required>
         <Select<OptionItem, false>
@@ -550,7 +546,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
-        {errors.StateId && <p className="input-field-error">{String(errors.StateId.message)}</p>}
       </InputField>
       <InputField label="District" required>
         <Select<OptionItem, false>
@@ -564,9 +559,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
-        {errors.DistrictId && (
-          <p className="input-field-error">{String(errors.DistrictId.message)}</p>
-        )}
       </InputField>
       <InputField label="City" required>
         <Select<OptionItem, false>
@@ -580,7 +572,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
-        {errors.CityId && <p className="input-field-error">{String(errors.CityId.message)}</p>}
       </InputField>
     </>
   );

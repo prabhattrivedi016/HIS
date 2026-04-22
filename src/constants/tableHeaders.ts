@@ -1,12 +1,11 @@
 export const sampleManagementButtons = [
-  "All",
-  "Collection Pending",
-  "Sample Collected",
-  "Dept. Rec. Pending",
-  "Dept Received",
-  "Urgent",
-  "Rejected",
-  "SNR",
+  { buttonName: "all", level: "All", color: "#8C8787" },
+  { buttonName: "collectionPending", level: "Collection Pending", color: "#F28E85" },
+  { buttonName: "sampleCollected", level: "Sample Collected", color: "#7BA1DB" },
+  { buttonName: "rejected", level: "Rejected", color: "#E05A5A" },
+  { buttonName: "deptRecPending", level: "Dept. Rec. Pending", color: "#D6D065" },
+  { buttonName: "deptReceived", level: "Dept Received", color: "#3DE3DC" },
+  { buttonName: "urgentSample", level: "Urgent Sample", color: "#7CD44A" },
 ];
 
 export const SampleManagementTableHeader = [

@@ -110,25 +110,17 @@ export const openReceiptInNewTab = (data: any, existingWindow: Window | null = n
     newWindow.document.getElementById("root")!.innerHTML = content.innerHTML;
 
     const images = newWindow.document.images;
-    let loaded = 0;
-
-    const triggerPrint = () => {
-      setTimeout(() => {
-        newWindow.focus();
-        newWindow.print();
-      }, 300);
-    };
-
     if (images.length === 0) {
-      triggerPrint();
+      newWindow.focus();
       return;
     }
 
+    let loaded = 0;
     for (let i = 0; i < images.length; i++) {
       images[i].onload = images[i].onerror = () => {
         loaded++;
         if (loaded === images.length) {
-          triggerPrint();
+          newWindow.focus();
         }
       };
     }
@@ -163,7 +155,7 @@ export const openOpdPrintInNewTab = (existingWindow: Window | null = null) => {
             width: 100%;
           }
 
-          #print-opd-card {
+          #print-opd-bill {
             page-break-after: always;
           }
         </style>
@@ -204,30 +196,22 @@ export const openOpdPrintInNewTab = (existingWindow: Window | null = null) => {
     }
 
     newWindow.document.getElementById("root")!.innerHTML = `
-      <div id="print-opd-card">${opdCard.innerHTML}</div>
       <div id="print-opd-bill">${receipt.innerHTML}</div>
+      <div id="print-opd-card">${opdCard.innerHTML}</div>
     `;
 
     const images = newWindow.document.images;
-    let loaded = 0;
-
-    const triggerPrint = () => {
-      setTimeout(() => {
-        newWindow.focus();
-        newWindow.print();
-      }, 300);
-    };
-
     if (images.length === 0) {
-      triggerPrint();
+      newWindow.focus();
       return;
     }
 
+    let loaded = 0;
     for (let i = 0; i < images.length; i++) {
       images[i].onload = images[i].onerror = () => {
         loaded++;
         if (loaded === images.length) {
-          triggerPrint();
+          newWindow.focus();
         }
       };
     }
@@ -303,25 +287,17 @@ export const openOpdCardInNewTab = (existingWindow: Window | null = null) => {
     newWindow.document.getElementById("root")!.innerHTML = content.innerHTML;
 
     const images = newWindow.document.images;
-    let loaded = 0;
-
-    const triggerPrint = () => {
-      setTimeout(() => {
-        newWindow.focus();
-        newWindow.print();
-      }, 300);
-    };
-
     if (images.length === 0) {
-      triggerPrint();
+      newWindow.focus();
       return;
     }
 
+    let loaded = 0;
     for (let i = 0; i < images.length; i++) {
       images[i].onload = images[i].onerror = () => {
         loaded++;
         if (loaded === images.length) {
-          triggerPrint();
+          newWindow.focus();
         }
       };
     }
