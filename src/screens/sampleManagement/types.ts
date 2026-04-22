@@ -58,4 +58,6 @@ type SampleManagementTableData = {
   SampleTypeName: string;
   DeliveryDate: string;
 };
-export type { CorporateList, SampleManagementTableData };
+
+type ButtonValue = { buttonName: string; level: string; color: string };
+export type { ButtonValue, CorporateList, SampleManagementTableData };

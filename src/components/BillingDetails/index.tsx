@@ -3,6 +3,7 @@ import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   ChangeEvent,
@@ -166,7 +167,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       key: "amount" | "bankId" | "refNo",
       value: string | number | null
     ) => {
-      // setPaymentValidationError("");
       setRowErrors(prev => ({
         ...prev,
         [index]: {
@@ -174,7 +174,24 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           [key]: undefined,
         },
       }));
-      setRows(prev => prev.map((row, idx) => (idx === index ? { ...row, [key]: value } : row)));
+
+      const updatedRows = [...rows];
+      updatedRows[index] = { ...updatedRows[index], [key]: value };
+
+      //  calculate total
+      const totalPaid = updatedRows.reduce((sum, r) => sum + toNumber(r.amount), 0);
+
+      const netAmount = toNumber(billingValues?.netAmount);
+
+      //  block over payment
+      if (totalPaid > netAmount) {
+        showError("Total paid amount cannot exceed Net Amount");
+
+        // revert change
+        return;
+      }
+
+      setRows(updatedRows);
     };
 
     const getAvailablePaymentModes = (currentIndex: number) => {

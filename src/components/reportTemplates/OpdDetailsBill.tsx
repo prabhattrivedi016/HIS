@@ -1,5 +1,5 @@
 import { PaymentModeItem } from "@/screens/opdBilling/types";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Barcode from "react-barcode";
 import logoImg from "../../../assets/logo.jpg";
 
@@ -94,25 +94,44 @@ export default function OpdDetailsBills({
   const todayDate = today.toLocaleDateString();
   const todayTime = today.toLocaleTimeString();
 
-  // amount calculation
-  const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [totalDiscount, setTotalDiscount] = useState<number>(0);
-  const [netAmount, setNetAmount] = useState<number>(0);
-  const [balanceAmount, setBalanceAmount] = useState<number>(0);
-  useEffect(() => {
-    const totalAmount = data?.reduce((acc: number, item: any) => acc + item?.Rate, 0);
-    const totalDiscount = data?.reduce((acc: number, item: any) => acc + item?.DiscAmt, 0);
-    const netAmount = data?.reduce((acc: number, item: any) => acc + item?.NetAmt, 0);
+  const toNumber = (value: unknown): number => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
 
-    const balanceAmount = data?.reduce(
-      (acc: number, item: any) => acc + item?.TotalBalanceAmount,
+  // amount calculation from API response (aggregate fields preferred)
+  const { totalAmount, totalDiscount, netAmount, balanceAmount } = useMemo(() => {
+    const rows = Array.isArray(data) ? data : [];
+    const firstRow = rows[0] ?? {};
+
+    const grossFromApi = toNumber(firstRow?.GrossAmount);
+    const discountFromApi = toNumber(firstRow?.DiscountAmount);
+    const netFromApi = toNumber(firstRow?.NetAmount);
+    const balanceFromApi = toNumber(firstRow?.TotalBalanceAmount);
+
+    const grossFromRows = rows.reduce(
+      (acc: number, item: any) => acc + toNumber(item?.GrossAmt || toNumber(item?.Rate) * toNumber(item?.Qty || 1)),
       0
     );
-    setTotalAmount(totalAmount);
-    setTotalDiscount(totalDiscount);
-    setNetAmount(netAmount);
-    setBalanceAmount(balanceAmount);
-  }, [data, paymentModeList]);
+    const discountFromRows = rows.reduce(
+      (acc: number, item: any) => acc + toNumber(item?.DiscAmt),
+      0
+    );
+    const netFromRows = rows.reduce((acc: number, item: any) => acc + toNumber(item?.NetAmt), 0);
+
+    const finalGross = grossFromApi || grossFromRows;
+    const finalDiscount = discountFromApi || discountFromRows;
+    const finalNet = netFromApi || netFromRows;
+    const finalPaid = toNumber(paidAmt);
+    const finalBalance = balanceFromApi || Number((finalNet - finalPaid).toFixed(2));
+
+    return {
+      totalAmount: Number(finalGross.toFixed(2)),
+      totalDiscount: Number(finalDiscount.toFixed(2)),
+      netAmount: Number(finalNet.toFixed(2)),
+      balanceAmount: Number(finalBalance.toFixed(2)),
+    };
+  }, [data, paidAmt]);
 
   const amountInWords = numberToWords(Math.floor(netAmount));
 

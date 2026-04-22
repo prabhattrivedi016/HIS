@@ -312,6 +312,26 @@ type OpdCardDetailItem = {
   AppointmentNo: number;
   BillNo: string;
 };
+
+type PackageItemsValue = {
+  packageId: number;
+  packageName: string;
+  packageCode: string;
+  isActive: number;
+  subSubCategoryId: number;
+  subCategoryId: number;
+  categoryId: number;
+  startsFrom: string;
+  expiresOn: string;
+  packageServiceNameCode: string;
+  packageServiceName: string;
+  packageServiceId: number;
+  qty: number;
+  packageServiceCategory: string;
+  packageServiceSubSubCategoryId: number;
+  packageServiceCode: string;
+  packageServiceCategoryId: number;
+};
 export type {
   CategoryItem,
   CollectOnDeviceProps,
@@ -320,6 +340,7 @@ export type {
   OpdPatientDetails,
   OptionItem,
   PackageItems,
+  PackageItemsValue,
   PackagePopupProps,
   PatientReceiptItem,
   PaymentModeItem,
