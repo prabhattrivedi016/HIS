@@ -14,10 +14,13 @@ import {
 } from "@/validation/sampleManagementSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
-import { ButtonValue, CorporateList, SampleManagementTableData } from "./types";
+import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
+import RejectSamplePopup from "./components/RejectSamplePopup";
+import RemarkPopup from "./components/RemarkPopup";
+import { ButtonValue, CorporateList, SampleManagementTableData, SampleTypeItem } from "./types";
 
 const SampleManagement = () => {
   const currentDate = new Date().toISOString().split("T")[0];
@@ -34,6 +37,16 @@ const SampleManagement = () => {
 
   const [openPatientDrawer, setOpenPatientDrawer] = useState<boolean>(false);
   const [renderPatientDrawer, setRenderPatientDrawer] = useState<boolean>(false);
+  const [patientInvestigation, setPatientInvestigation] =
+    useState<SampleManagementTableData | null>(null);
+
+  const [openRejectPopup, setOpenRejectPopup] = useState<boolean>(false);
+  const [renderRejectPopup, setRenderRejectPopup] = useState<boolean>(false);
+  const [rejectItem, setRejectItem] = useState<SampleManagementTableData | null>(null);
+
+  const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
+  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
+  const [remarkItem, setRemarkItem] = useState<SampleManagementTableData | null>(null);
 
   const [corporateList, setCorporateList] = useState<CorporateList[]>([]);
   const [sampleManagementTableData, setSampleManagementTableData] = useState<
@@ -43,9 +56,25 @@ const SampleManagement = () => {
   const [showTable, setShowTable] = useState<boolean>(false);
 
   const [tableData, setTableData] = useState(filteredData || []);
+  const [sampleTypeList, setSampleTypeList] = useState<SampleTypeItem[]>([]);
 
+  const sampleTypeMap = useMemo(() => {
+    return new Map(sampleTypeList.map(item => [item.sampleTypeId, item]));
+  }, [sampleTypeList]);
+
+  // close patient drawer
   const closeDrawer = useCallback(() => {
     setOpenPatientDrawer(false);
+  }, []);
+
+  // close reject popup
+  const closeRejectPopup = useCallback(() => {
+    setOpenRejectPopup(false);
+  }, []);
+
+  // close remark popup
+  const closeRemarkPopup = useCallback(() => {
+    setOpenRemarkPopup(false);
   }, []);
 
   // form data
@@ -93,8 +122,6 @@ const SampleManagement = () => {
 
   // filter by buttons
   const filterByButton = (buttonName: string, source: SampleManagementTableData[]) => {
-    console.log("buttonName", buttonName);
-
     switch (buttonName) {
       case "all":
         return source;
@@ -143,11 +170,12 @@ const SampleManagement = () => {
         return;
       }
 
-      const data = resp?.data ?? [];
+      const data = (resp?.data ?? []) as SampleManagementTableData[];
+      const enrichedData = sampleTypeList.length ? enrichRowsWithSampleType(data) : data;
 
-      setSampleManagementTableData(data);
+      setSampleManagementTableData(enrichedData);
 
-      setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, data));
+      setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, enrichedData));
       setActiveIndex(0);
       setShowTable(true);
     };
@@ -193,16 +221,19 @@ const SampleManagement = () => {
     }
 
     const tableData = (resp?.data ?? []) as SampleManagementTableData[];
-    setSampleManagementTableData(tableData);
+    const enrichedData = sampleTypeList.length ? enrichRowsWithSampleType(tableData) : tableData;
+    setSampleManagementTableData(enrichedData);
     setShowTable(true);
 
     setActiveIndex(0);
-    setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, tableData));
+    setFilteredData(filterByButton(sampleManagementButtons[0]?.buttonName, enrichedData));
   };
 
   // button click handler
   const buttonClickHandler = (value: string) => {
-    setFilteredData(filterByButton(value, sampleManagementTableData));
+    const filtered = filterByButton(value, sampleManagementTableData);
+    setFilteredData(filtered);
+    setTableData(filtered);
   };
 
   // search using enter
@@ -239,8 +270,6 @@ const SampleManagement = () => {
   useEffect(() => {
     setTableData(filteredData);
   }, [filteredData]);
-
-  console.log("tableData", tableData);
 
   // header checkbox handler
   const checkboxHandler = (h: string, checked: boolean) => {
@@ -317,6 +346,104 @@ const SampleManagement = () => {
       minWidth: "80px",
       textAlign: "center" as const,
     };
+  };
+
+  const normalizeSampleTypeName = (value: string) => (value || "").toLowerCase().trim();
+
+  const resolveSampleTypeId = (item: SampleManagementTableData) => {
+    if (item.DefaultSampleTypeId) return Number(item.DefaultSampleTypeId);
+
+    const rowSampleTypeName = normalizeSampleTypeName(
+      item.SampleTypeName || item.selectedSampleType || ""
+    );
+    if (!rowSampleTypeName) return 0;
+
+    const matched = sampleTypeList.find(
+      sampleType => normalizeSampleTypeName(sampleType.sampleType) === rowSampleTypeName
+    );
+    return matched?.sampleTypeId ?? 0;
+  };
+
+  const enrichRowsWithSampleType = (rows: SampleManagementTableData[]) => {
+    return rows.map(item => {
+      const sampleTypeId = resolveSampleTypeId(item);
+      const sampleTypeName =
+        sampleTypeMap.get(sampleTypeId)?.sampleType ?? item.SampleTypeName ?? "";
+      return {
+        ...item,
+        DefaultSampleTypeId: sampleTypeId || item.DefaultSampleTypeId || 0,
+        selectedSampleType: sampleTypeName,
+      };
+    });
+  };
+
+  // sample type list
+  const getSampleTypeList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
+      {},
+      { params: { isActive: Status?.ACTIVE } },
+      { component: "SampleManagement" }
+    );
+    setSampleTypeList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getSampleTypeList();
+  }, []);
+
+  // sample reject handler
+  const rejectSampleHandler = (item: SampleManagementTableData) => {
+    setRejectItem(item);
+    setRenderRejectPopup(true);
+    setOpenRejectPopup(true);
+  };
+
+  // sample reject handler
+  const rejectRemarkHandler = (item: SampleManagementTableData) => {
+    setRemarkItem(item);
+    setRenderRemarkPopup(true);
+    setOpenRemarkPopup(true);
+  };
+
+  // patient investigation handler
+  const patientInvestigationHandler = (item: SampleManagementTableData) => {
+    setPatientInvestigation(item);
+    setRenderPatientDrawer(true);
+    setOpenPatientDrawer(true);
+  };
+
+  useEffect(() => {
+    if (!sampleTypeList.length || !sampleManagementTableData.length) return;
+    const enriched = enrichRowsWithSampleType(sampleManagementTableData);
+    setSampleManagementTableData(enriched);
+    const activeButtonName = sampleManagementButtons[activeIndex]?.buttonName ?? "all";
+    const filtered = filterByButton(activeButtonName, enriched);
+    setFilteredData(filtered);
+    setTableData(filtered);
+  }, [sampleTypeList]);
+
+  /* -------------------- SELECT HANDLER -------------------- */
+  const selectSampleTypeHandler = (index: number, value: number) => {
+    const selectedType = sampleTypeMap.get(value);
+    const selectedTypeName = selectedType?.sampleType ?? "";
+    const row = tableData[index];
+    if (!row) return;
+
+    const updateRow = (item: SampleManagementTableData) =>
+      item.PatientInvestigationId === row.PatientInvestigationId
+        ? {
+            ...item,
+            DefaultSampleTypeId: value,
+            selectedSampleType: selectedTypeName,
+            SampleTypeName: selectedTypeName || item.SampleTypeName,
+          }
+        : item;
+
+    setTableData(prev => prev.map(updateRow));
+    setFilteredData(prev => prev.map(updateRow));
+    setSampleManagementTableData(prev => prev.map(updateRow));
   };
 
   return (
@@ -481,7 +608,7 @@ const SampleManagement = () => {
                         {item?.CurrentAge || "-"} / {item?.Gender}
                       </td>
                       <td className="table-td">{item?.CorporateName || "-"}</td>
-                      <td className="table-td">
+                      <td className="table-td max-w-70">
                         <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
                       </td>
                       <td className="table-td">
@@ -492,12 +619,43 @@ const SampleManagement = () => {
                           onChange={e => handleBarcodeChange(idx, e.target.value)}
                         />
                       </td>
-                      <td className="table-td">{item?.SampleTypeName || "-"}</td>
+                      <td className="table-td">
+                        <select
+                          className="input-field"
+                          value={item?.DefaultSampleTypeId ?? 0}
+                          onChange={e => selectSampleTypeHandler(idx, Number(e.target.value))}
+                        >
+                          <option value={0}>Select</option>
+                          {sampleTypeList?.map(s => (
+                            <option key={s?.sampleTypeId} value={s?.sampleTypeId}>
+                              {s?.sampleType}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      <td className="table-td">
+                        {/* Deterministic color from sample type master */}
+                        {(() => {
+                          const sampleTypeId = item?.DefaultSampleTypeId ?? 0;
+                          const sampleType = sampleTypeMap.get(sampleTypeId);
+                          const colorCode = sampleType?.colorCode || "#d1d5db";
+                          return (
+                            <span
+                              className="px-1 py-3 rounded-md border inline-block  min-w-6"
+                              style={{
+                                backgroundColor: colorCode,
+                                borderColor: colorCode,
+                                color: colorCode,
+                              }}
+                            ></span>
+                          );
+                        })()}
+                      </td>
                       <td className="table-td">
                         <input
                           type="checkbox"
                           className="input-checkbox"
-                          checked={item?.IsSampleCollected === 1}
                           onChange={() => handleCheckboxChange(idx)}
                         />
                       </td>
@@ -506,19 +664,18 @@ const SampleManagement = () => {
                         <input
                           type="checkbox"
                           className="input-checkbox"
-                          checked={item?.IsDepartmentReceivingRequired === 1}
                           onChange={() => handleDeptRecvChange(idx)}
                         />
                       </td>
 
-                      <td className="table-td">
+                      <td className="table-td" onClick={() => rejectSampleHandler(item)}>
                         <i className="fa-solid fa-check icon-color-delete"></i>
                       </td>
-                      <td className="table-td">
+                      <td className="table-td" onClick={() => rejectRemarkHandler(item)}>
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
-                      <td className="table-td">
+                      <td className="table-td" onClick={() => patientInvestigationHandler(item)}>
                         <i className="fa-solid fa-info icon-color-button"></i>
                       </td>
                     </tr>
@@ -541,13 +698,25 @@ const SampleManagement = () => {
           </div>
         </div>
       )}
-      {/* {!!renderPatientDrawer && (
+
+      {/* patient investigation drawer */}
+      {!!renderPatientDrawer && (
         <PatientInvestigationDetails
           isOpen={openPatientDrawer}
           onClose={closeDrawer}
-          data={selectedPatient}
+          data={patientInvestigation}
         />
-      )} */}
+      )}
+
+      {/* reject popup */}
+      {!!renderRejectPopup && (
+        <RejectSamplePopup isOpen={openRejectPopup} onClose={closeRejectPopup} data={rejectItem} />
+      )}
+
+      {/*remark popup  */}
+      {!!renderRemarkPopup && (
+        <RemarkPopup isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />
+      )}
 
       {!!loading && <CustomLoader isLoading={loading} />}
     </div>

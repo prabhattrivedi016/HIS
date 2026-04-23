@@ -320,3 +320,10 @@ export enum DefaultAddress {
   DISTRICT = "Varanasi",
   City = "Manduadih SO",
 }
+
+export enum SampleTypeColorCoding {
+  blood = "Blood",
+  anyFluid = "Any Fluid",
+  serum = "Serum",
+  container = "Container",
+}

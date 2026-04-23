@@ -19,6 +19,7 @@ export const SampleManagementTableHeader = [
   "Investigation",
   "Bar Code",
   "Sample Type",
+  "Color Code",
   "Sample Collection",
   "Dept. Rec.",
   "Reject",
@@ -429,4 +430,15 @@ export const PatientDocumentTableHeader = [
   "Uploaded",
   "Download",
   "Browse",
+];
+
+export const SampleRejectionRemarkTableHeader = [
+  "#",
+  "Sample Remark",
+  "Remark",
+  "Remark Date",
+  "Create By",
+  "Is Internal",
+  "	Edit",
+  "Delete",
 ];
