@@ -57,7 +57,37 @@ type SampleManagementTableData = {
   isSampleRejected: number;
   SampleTypeName: string;
   DeliveryDate: string;
+  CreatedOn?: string;
+  DefaultSampleTypeId?: number;
+  SampleTypeList?: string;
+  IsUnderPackage?: number;
+  selectedSampleType?: string;
 };
 
 type ButtonValue = { buttonName: string; level: string; color: string };
-export type { ButtonValue, CorporateList, SampleManagementTableData };
+
+type SampleRejectionRemarkItem = {
+  sampleRejectionRemarksID: number;
+  sampleRejectionRemarks: string;
+  isActive: number;
+};
+
+type SampleTypeItem = {
+  sampleTypeId: number;
+  sampleType: string;
+  containerColorId: number;
+  colorName: string;
+  colorCode: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+  isActive: number;
+};
+export type {
+  ButtonValue,
+  CorporateList,
+  SampleManagementTableData,
+  SampleRejectionRemarkItem,
+  SampleTypeItem,
+};
