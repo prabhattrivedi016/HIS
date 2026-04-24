@@ -7,7 +7,7 @@ import { sampleManagementButtons, SampleManagementTableHeader } from "@/constant
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showInfo, showWarning } from "@/utils/alert";
+import { showError, showWarning } from "@/utils/alert";
 import {
   SampleManagementFormData,
   sampleManagementSchema,
@@ -28,7 +28,7 @@ const SampleManagement = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const authContext = useContext(AuthContext);
-  const branchId = Number(authContext?.user?.branchId ?? 0);
+  const branchId = Number(authContext?.user?.branchId ?? 1);
 
   const roleContext = useContext(RoleContext);
   const roleId = Number(roleContext?.roleId ?? 3);
@@ -165,8 +165,9 @@ const SampleManagement = () => {
         { component: "SampleManagement" }
       );
 
-      if (!resp?.data) {
-        showInfo("No data found");
+      if (!resp?.data || resp.data.length === 0) {
+        // showInfo("No data found");
+        setShowTable(false);
         return;
       }
 
@@ -588,7 +589,7 @@ const SampleManagement = () => {
                 </thead>
 
                 <tbody>
-                  {tableData?.length === 0 && (
+                  {filteredData?.length === 0 && (
                     <tr>
                       <td colSpan={SampleManagementTableHeader.length} className="table-empty">
                         No records found
@@ -596,7 +597,7 @@ const SampleManagement = () => {
                     </tr>
                   )}
 
-                  {tableData.map((item, idx) => (
+                  {filteredData.map((item, idx) => (
                     <tr key={idx} className="table-row">
                       <td className="table-td">{idx + 1}</td>
                       <td className="table-td">{item?.LabNo || "-"}</td>

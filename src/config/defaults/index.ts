@@ -226,6 +226,10 @@ const ENDPOINTS = {
   // sample management
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT:
     "Lab/searchPatientInvestigationForSampleManagement",
+
+  //pathology result entry
+  SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:
+    "Lab/searchPatientInvestigationForSampleProcessingPathology",
 };
 
 export { ENDPOINTS };

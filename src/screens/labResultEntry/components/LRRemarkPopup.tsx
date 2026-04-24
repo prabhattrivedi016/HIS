@@ -1,10 +1,13 @@
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import { LRPatientRemarkTableHeader } from "@/constants/tableHeaders";
+import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { createPortal } from "react-dom";
 
 const LRRemarkPopup = ({ isOpen, onClose, data }) => {
   console.log("data", data);
+  const { loading, error, fetchApi } = useGlobalApi();
 
   useScrollLock(isOpen);
 
@@ -113,6 +116,7 @@ const LRRemarkPopup = ({ isOpen, onClose, data }) => {
             </div>
           </div>
         </div>
+        {!!loading && <CustomLoader isLoading={loading} />}
       </div>
       ,
     </div>,
