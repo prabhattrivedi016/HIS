@@ -11,9 +11,9 @@ import AuthBackground from "../../components/layout";
 import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
+import { useAppDispatch } from "../../store/hooks";
 import { fetchUserRightAccess } from "../../store/slices/accessRightSlices";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
-import { useAppDispatch } from "../../store/hooks";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
@@ -118,6 +118,8 @@ const Login = () => {
       });
 
       if (!loginRes) return;
+
+      console.log("loginRes", loginRes);
 
       const storage = rememberMe ? localStorage : sessionStorage;
       const { accessToken, branchId, userId } = loginRes.data;
