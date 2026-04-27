@@ -657,7 +657,7 @@ const LabResultEntry = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
+            {/* <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -689,7 +689,7 @@ const LabResultEntry = () => {
                   Search
                 </button>
               </div>
-            </div>
+            </div> */}
           </div>
         </form>
       </div>

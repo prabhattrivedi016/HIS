@@ -17,8 +17,8 @@ export const SampleManagementTableHeader = [
   "Age/Gender",
   "Corporate",
   "Investigation",
-  "Bar Code",
   "Sample Type",
+  "Bar Code",
   "Color Code",
   "Sample Collection",
   "Dept. Rec.",
@@ -104,12 +104,12 @@ export const LRPatientRemarkTableHeader = [
 ];
 
 export const ResultEntryRadiologyButtons = [
-  "Result Pending",
-  "Hold",
-  "Report Approved Pending",
-  "Approved",
-  "Printed",
-  "Dispatched",
+  { buttonName: "resultPending", level: "Result Pending", color: "#fbe24f" },
+  { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#00c0ef" },
+  { buttonName: "rejected", level: "Rejected", color: "#fc6464" },
+  { buttonName: "hold", level: "Hold", color: "#f09bf8" },
+  { buttonName: "approved", level: "Approved", color: "#2eeba3" },
+  { buttonName: "dispatched", level: "Dispatched", color: "#adeb74" },
 ];
 
 export const ResultEntryRadiologyTableHeader = [
@@ -117,17 +117,15 @@ export const ResultEntryRadiologyTableHeader = [
   "Lab No",
   "Bill Date",
   "UHID",
+  "IPD No",
   "Patient Name",
   "Age/Gender",
-  "Client Name",
-  "Due Amount",
-  "Refer Doctor",
-  "",
   "Investigation",
-  "Approve",
-  "Approved Date",
+  "BarCode",
+  "Print",
+  "Approved",
+  "Stickers",
   "Remark",
-  "Report",
   "Info",
 ];
 

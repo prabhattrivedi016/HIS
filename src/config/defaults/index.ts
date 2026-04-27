@@ -226,10 +226,15 @@ const ENDPOINTS = {
   // sample management
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT:
     "Lab/searchPatientInvestigationForSampleManagement",
+  UPDATE_SAMPLE_STATUS: "Lab/updateSampleStatus",
 
   //pathology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:
     "Lab/searchPatientInvestigationForSampleProcessingPathology",
+
+  // radiology result entry
+  SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_RADIOLOGY:
+    "Lab/searchPatientInvestigationForSampleProcessingRadiology",
 };
 
 export { ENDPOINTS };

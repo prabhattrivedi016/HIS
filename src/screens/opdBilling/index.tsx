@@ -88,7 +88,7 @@ const OpdBilling = () => {
   const [serviceValidationError] = useState<string>("");
 
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>("1, 3, 4, 5, 8, 11");
   const [subCategoryList, setSubCategoryList] = useState<SubCategoryItem[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState<OptionItem | null>(null);
 
@@ -395,7 +395,7 @@ const OpdBilling = () => {
   };
 
   const defaultSubCategory = { label: "All Sub Category", value: 0 };
-  const defaultSubSubCategory = { label: "All Sub Category", value: 0 };
+  const defaultSubSubCategory = { label: "All Sub Sub Category", value: 0 };
 
   useEffect(() => {
     if (!selectedInsurance) {
@@ -483,11 +483,15 @@ const OpdBilling = () => {
     setShowPopup(true);
   };
 
+  console.log("selected category", selectedCategory);
+
   // debounced api call
   useEffect(() => {
     if (!searchTerm) return;
 
     const timer = setTimeout(async () => {
+      console.log("selected category", selectedCategory);
+
       try {
         const resp = await fetchApi(
           "GET",
@@ -648,12 +652,13 @@ const OpdBilling = () => {
   };
 
   const categorySelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
+    const value = String(e.target.value);
     if (!value) {
+      setSelectedCategory("1,3,4,5,8,11");
       return;
     }
     setSelectedCategory(value);
-    getSubCategory(value);
+    getSubCategory(Number(value));
     setSelectedSubCategory(null);
     setSelectedSubSubCategory(null);
   };
@@ -673,12 +678,17 @@ const OpdBilling = () => {
   const subCategorySelectOption = useMemo(() => {
     return subCategoryList?.map(s => ({
       label: s?.subCategoryName,
-      value: s?.categoryId,
+      value: s?.subCategoryId,
     }));
   }, [subCategoryList]);
 
   const subCategorySelectHandler = (option: OptionItem | null) => {
-    if (!option) return;
+    console.log("subCategorySelectHandler", option?.value);
+
+    if (!option) {
+      setSelectedSubCategory(null);
+      return;
+    }
     setSelectedSubCategory(option);
     getSubSubCategory(Number(option?.value));
     setSelectedSubSubCategory(null);
@@ -693,6 +703,8 @@ const OpdBilling = () => {
       { params: { subCategoryIds } },
       { component: "OpdBilling" }
     );
+    console.log("resp of sub sub category", resp);
+
     setSubSubCategoryList(resp?.data ?? []);
   };
 
@@ -884,7 +896,7 @@ const OpdBilling = () => {
     setShowDuplicateError("");
 
     // Reset category and subcategories
-    setSelectedCategory(0);
+    setSelectedCategory("");
     setSelectedSubCategory(null);
     setSelectedSubSubCategory(null);
 
@@ -1418,7 +1430,7 @@ const OpdBilling = () => {
 
             <InputField>
               <select className="input-field" onChange={categorySelectHandler}>
-                <option>All category</option>
+                <option value={"1,3,4,5,8,11"}>All category</option>
                 {categoryList.map(c => (
                   <option key={c?.categoryId} value={c?.categoryId}>
                     {c?.categoryName}
