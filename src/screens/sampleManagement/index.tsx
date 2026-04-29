@@ -1,6 +1,9 @@
 import { getCorporateMaster } from "@/api/globalApiCall";
+import CustomDateInput from "@/components/customDateInput";
+import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import LabPatientInfo from "@/components/SingledrawerAndPopup";
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { sampleManagementButtons, SampleManagementTableHeader } from "@/constants/tableHeaders";
@@ -14,8 +17,8 @@ import {
 } from "@/validation/sampleManagementSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
 import RejectSamplePopup from "./components/RejectSamplePopup";
@@ -23,7 +26,14 @@ import RemarkPopup from "./components/RemarkPopup";
 import { ButtonValue, CorporateList, SampleManagementTableData, SampleTypeItem } from "./types";
 
 const SampleManagement = () => {
+  const getLocalDateTime = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
   const currentDate = new Date().toISOString().split("T")[0];
+  const currentDateTime = getLocalDateTime();
 
   const { loading, error, fetchApi } = useGlobalApi();
 
@@ -65,15 +75,42 @@ const SampleManagement = () => {
   const [showTable, setShowTable] = useState<boolean>(false);
   const [sampleTypeList, setSampleTypeList] = useState<SampleTypeItem[]>([]);
 
+  const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
+  const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
+  const [selectedPatient, setSelectedPatient] = useState<SampleManagementTableData | null>(null);
+
+  const [searchValue, setSearchValue] = useState<string>("");
+
+  const hasFetched = useRef(false);
+
   const sampleTypeMap = useMemo(() => {
     return new Map(sampleTypeList.map(item => [item.sampleTypeId, item]));
   }, [sampleTypeList]);
 
-  const visibleTableData = useMemo(
-    () => filterByButton(activeFilter, sampleManagementTableData),
-    [activeFilter, sampleManagementTableData]
-  );
+  // filter visible data
+  const visibleTableData = useMemo(() => {
+    const normalizedSearch = searchValue.toLowerCase().trim();
+    const isSearching = normalizedSearch.length > 0;
 
+    const baseData = isSearching
+      ? sampleManagementTableData.filter(row =>
+          [
+            row?.Barcode,
+            row?.LabNo,
+            row?.BillDate,
+            row?.UHID,
+            row?.PatientName,
+            row?.CurrentAge,
+            row?.CorporateName,
+            row?.Name,
+            row?.SampleTypeName,
+            row?.selectedSampleType,
+          ].some(field => field?.toString().toLowerCase().includes(normalizedSearch))
+        )
+      : sampleManagementTableData;
+
+    return filterByButton(activeFilter, baseData);
+  }, [activeFilter, sampleManagementTableData, searchValue]);
   // close patient drawer
   const closeDrawer = useCallback(() => {
     setOpenPatientDrawer(false);
@@ -90,7 +127,7 @@ const SampleManagement = () => {
   }, []);
 
   // form data
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, control, getValues } = useForm({
     resolver: yupResolver(sampleManagementSchema),
     defaultValues: {
       branchId: 1,
@@ -167,47 +204,16 @@ const SampleManagement = () => {
   const getButtonCount = (buttonName: string) =>
     filterByButton(buttonName, sampleManagementTableData).length;
 
-  useEffect(() => {
-    const getDataOnMount = async () => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT,
-        {},
-        { params: { branchId, roleId, fromDate: currentDate, toDate: currentDate } },
-        { component: "SampleManagement" }
-      );
+  // based on filter
+  // const getButtonCount = (buttonName: string) => {
+  //   const baseData = filteredSampleManagementData.length
+  //     ? filteredSampleManagementData
+  //     : sampleManagementTableData;
 
-      if (!resp?.data || resp.data.length === 0) {
-        // showInfo("No data found");
-        setShowTable(false);
-        return;
-      }
+  //   return filterByButton(buttonName, baseData).length;
+  // };
 
-      const data = (resp?.data ?? []) as SampleManagementTableData[];
-      const enrichedData = sampleTypeList.length ? enrichRowsWithSampleType(data) : data;
-
-      const finalData = enrichedData.map(item => {
-        const barcode = item?.Barcode?.toString().trim();
-
-        return {
-          ...item,
-          Barcode: barcode && barcode !== "0" ? barcode : item?.LabNo?.toString() || "", //  only initial fallback
-        };
-      });
-
-      setSampleManagementTableData(finalData);
-
-      setActiveFilter(sampleManagementButtons[0]?.buttonName);
-      setActiveIndex(0);
-      setShowTable(true);
-    };
-
-    if (branchId && roleId) {
-      getDataOnMount();
-    }
-  }, [branchId, roleId]);
-
-  // resuable fetch data function
+  // reusable fetch data function
   const fetchSampleData = async (formData?: SampleManagementFormData) => {
     if (!branchId || !roleId) {
       showError(error?.message ?? "Something went wrong!");
@@ -236,7 +242,7 @@ const SampleManagement = () => {
     );
 
     //  No data
-    if (!resp?.data || resp.data.length === 0) {
+    if (!resp?.result) {
       showWarning(resp?.message ?? "No data found");
       setShowTable(false);
       setSampleManagementTableData([]);
@@ -250,11 +256,15 @@ const SampleManagement = () => {
 
     //  Barcode fallback (ONLY ON LOAD)
     const finalData = enrichedData.map(item => {
-      const barcode = item?.Barcode?.toString().trim();
+      const existing = sampleManagementTableData.find(
+        prev => prev.PatientInvestigationId === item.PatientInvestigationId
+      );
 
       return {
         ...item,
-        Barcode: barcode && barcode !== "0" ? barcode : item?.LabNo?.toString() || "",
+        Barcode:
+          existing?.Barcode ||
+          (item?.Barcode && item.Barcode !== "0" ? item.Barcode : item?.LabNo?.toString() || ""),
       };
     });
 
@@ -271,7 +281,8 @@ const SampleManagement = () => {
   };
 
   useEffect(() => {
-    if (branchId && roleId) {
+    if (branchId && roleId && !hasFetched.current) {
+      hasFetched.current = true;
       fetchSampleData();
     }
   }, [branchId, roleId]);
@@ -286,24 +297,40 @@ const SampleManagement = () => {
     setActiveFilter(value);
   };
 
-  // search using enter
-  const searchByBarcode = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit(onsubmit)();
-    }
-  };
-
   // handle barcode change
   const handleBarcodeChange = (
     item: SampleManagementTableData,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
+    const id = item.PatientInvestigationId;
 
     setSampleManagementTableData(prev =>
       prev.map(prevItem =>
-        prevItem.PatientInvestigationId === item.PatientInvestigationId
+        prevItem.PatientInvestigationId === id
+          ? {
+              ...prevItem,
+              Barcode: value,
+            }
+          : prevItem
+      )
+    );
+
+    // Keep selected payload rows in sync with the latest typed barcode
+    setUpdatedSampleCollectionTable(prev =>
+      prev.map(prevItem =>
+        prevItem.PatientInvestigationId === id
+          ? {
+              ...prevItem,
+              Barcode: value,
+            }
+          : prevItem
+      )
+    );
+
+    setUpdatedDepartmentReceiving(prev =>
+      prev.map(prevItem =>
+        prevItem.PatientInvestigationId === id
           ? {
               ...prevItem,
               Barcode: value,
@@ -313,6 +340,8 @@ const SampleManagement = () => {
     );
   };
 
+  console.log("sampleManagementTableData", sampleManagementTableData);
+
   // handler checkbox change
   const handleCheckboxChange = (item: SampleManagementTableData) => {
     const barcode = item?.Barcode?.toString().trim() || item?.LabNo?.toString().trim() || "";
@@ -320,6 +349,11 @@ const SampleManagement = () => {
     if (!barcode || barcode === "0") {
       showWarning("Please enter valid barcode number");
       return;
+    }
+
+    if (item?.IsSampleCollected === 1) {
+      showWarning("'this sample is already collected");
+      return; // do not allow adding
     }
 
     const id = item.PatientInvestigationId;
@@ -335,20 +369,7 @@ const SampleManagement = () => {
     }
   };
 
-  // dept receiving checkbox change
-  // const handleDeptRecvChange = (item: SampleManagementTableData) => {
-  //   const id = item.PatientInvestigationId;
-  //   const departmentReceiving = updatedDepartmentReceiving?.find(
-  //     (S: SampleManagementTableData) => S?.PatientInvestigationId === id
-  //   );
-
-  //   if (departmentReceiving) {
-  //     setUpdatedDepartmentReceiving(prev => [...prev, { ...item }]);
-  //   } else {
-  //     setUpdatedDepartmentReceiving(prev => prev.filter(s => s.PatientInvestigationId !== id));
-  //   }
-  // };
-
+  // department receiving change
   const handleDeptRecvChange = (item: SampleManagementTableData) => {
     const id = item.PatientInvestigationId;
 
@@ -365,47 +386,18 @@ const SampleManagement = () => {
     });
   };
 
-  console.log("updatedDepartmentReceiving", updatedDepartmentReceiving);
-
   // header checkbox handler
-  // const checkboxHandler = (h: string, checked: boolean) => {
-  //   if (h !== "Sample Collection") return;
-
-  //   const visibleIds = new Set(visibleTableData.map(item => item.PatientInvestigationId));
-
-  //   if (checked) {
-  //     //  Add all visible valid rows
-  //     const validRows = visibleTableData.filter(item => {
-  //       const barcode = item?.Barcode?.toString().trim() || item?.LabNo?.toString().trim() || "";
-
-  //       return barcode && barcode !== "0";
-  //     });
-
-  //     setUpdatedSampleCollectionTable(prev => {
-  //       const existingIds = new Set(prev.map(p => p.PatientInvestigationId));
-
-  //       const newItems = validRows.filter(item => !existingIds.has(item.PatientInvestigationId));
-
-  //       return [...prev, ...newItems];
-  //     });
-  //   } else {
-  //     //  Remove all visible rows
-  //     setUpdatedSampleCollectionTable(prev =>
-  //       prev.filter(item => !visibleIds.has(item.PatientInvestigationId))
-  //     );
-  //   }
-  // };
 
   const checkboxHandler = (h: string, checked: boolean) => {
     const visibleIds = new Set(visibleTableData.map(item => item.PatientInvestigationId));
 
-    // 🔹 SAMPLE COLLECTION (existing)
+    // sample collection
     if (h === "Sample Collection") {
       if (checked) {
         const validRows = visibleTableData.filter(item => {
           const barcode = item?.Barcode?.toString().trim() || item?.LabNo?.toString().trim() || "";
 
-          return barcode && barcode !== "0";
+          return barcode && barcode !== "0" && item?.IsSampleCollected !== 1;
         });
 
         setUpdatedSampleCollectionTable(prev => {
@@ -420,7 +412,7 @@ const SampleManagement = () => {
       }
     }
 
-    // 🔹 DEPARTMENT RECEIVING (NEW)
+    // department receiving
     if (h === "Dept. Rec.") {
       const eligibleRows = visibleTableData.filter(
         item =>
@@ -564,9 +556,9 @@ const SampleManagement = () => {
 
   // patient investigation handler
   const patientInvestigationHandler = (item: SampleManagementTableData) => {
-    setPatientInvestigation(item);
-    setRenderPatientDrawer(true);
-    setOpenPatientDrawer(true);
+    setRenderPatientInfo(true);
+    setOpenPatientInfo(true);
+    setSelectedPatient(item);
   };
 
   useEffect(() => {
@@ -575,12 +567,13 @@ const SampleManagement = () => {
     setSampleManagementTableData(enriched);
   }, [sampleTypeList]);
 
-  /* -------------------- SELECT HANDLER -------------------- */
+  // select sample type handler
   const selectSampleTypeHandler = (index: number, value: number) => {
-    const selectedType = sampleTypeMap.get(value);
-    const selectedTypeName = selectedType?.sampleType ?? "";
     const row = visibleTableData[index];
     if (!row) return;
+    const parsedSampleTypes = sampleArrayFormation(row.SampleTypeList || "");
+    const selectedType = parsedSampleTypes.find(sampleType => sampleType.id === value);
+    const selectedTypeName = selectedType?.name ?? "";
 
     const updateRow = (item: SampleManagementTableData) =>
       item.PatientInvestigationId === row.PatientInvestigationId
@@ -608,14 +601,13 @@ const SampleManagement = () => {
         statusId: 1,
         defaultSampleTypeId: u?.DefaultSampleTypeId,
         labNo: u?.LabNo,
+        sampleDateTime: u.sampleDateTime || getLocalDateTime(),
       };
     });
 
     const finalPayload = {
       samples: payload,
     };
-
-    console.log("payload of sample collection", finalPayload);
 
     const resp = await fetchApi(
       "PATCH",
@@ -625,22 +617,16 @@ const SampleManagement = () => {
       { component: "SampleManagement" }
     );
     if (!resp?.result) {
-      showError(error?.message ?? "something went wrong");
+      showError(resp?.message ?? error?.message ?? "something went wrong");
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
 
-    await fetchSampleData();
+    await fetchSampleData(getValues());
   };
 
   // save dept receive
   const handleDepartmentReceive = async () => {
-    // const selectedDeptRec = sampleManagementTableData.filter(
-    //   item => item.IsDepartmentReceivingRequired === 1
-    // );
-    // console.log("Selected Department Receive:", selectedDeptRec);
-    // call API here with selectedDeptRec
-
     if (updatedDepartmentReceiving.length === 0) {
       showInfo("Please select ateast one department receiving");
       return;
@@ -652,14 +638,13 @@ const SampleManagement = () => {
         statusId: 3,
         defaultSampleTypeId: u?.DefaultSampleTypeId,
         labNo: u?.LabNo,
+        sampleDateTime: u?.sampleDateTime || getLocalDateTime(),
       };
     });
 
     const finalPayload = {
       samples: payload,
     };
-
-    console.log("payload of department receiving", finalPayload);
 
     const resp = await fetchApi(
       "PATCH",
@@ -669,13 +654,65 @@ const SampleManagement = () => {
       { component: "SampleManagement" }
     );
     if (!resp?.result) {
-      showError(error?.message ?? "something went wrong");
+      showError(resp?.message ?? error?.message ?? "something went wrong");
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
 
-    await fetchSampleData();
+    await fetchSampleData(getValues());
   };
+
+  // array formation of sample type
+  const sampleArrayFormation = (item: string) => {
+    return item
+      ?.split("$")
+      ?.filter(Boolean)
+      ?.map(i => {
+        const [id, name, color] = i.split("*");
+
+        return {
+          id: Number(id),
+          name: name?.trim() || "",
+          color: color?.trim() || "",
+        };
+      });
+  };
+
+  // quick search handler
+  const searchHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
+
+  // sample collection date time handler
+  const sampleCollectionDateTime = (item: SampleManagementTableData, value: string) => {
+    const id = item.PatientInvestigationId;
+
+    setSampleManagementTableData(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+
+    setUpdatedSampleCollectionTable(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+  };
+
+  // department receive date time handler
+  const departmentReceiveDateTime = (item: SampleManagementTableData, value: string) => {
+    const id = item.PatientInvestigationId;
+
+    setSampleManagementTableData(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+
+    setUpdatedDepartmentReceiving(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+  };
+
+  // close patient info
+  const closePatientInfo = useCallback(() => {
+    setOpenPatientInfo(false);
+  }, []);
 
   return (
     <div className="page-container">
@@ -692,15 +729,15 @@ const SampleManagement = () => {
       <div className="card">
         <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-4">
-            <InputField label="UHID">
+            {/* <InputField label="UHID">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter UHID "
                 {...register("uhid")}
               />
-            </InputField>
-
+            </InputField> */}
+            {/* 
             <InputField label="Bar Code">
               <input
                 type="text"
@@ -709,45 +746,43 @@ const SampleManagement = () => {
                 {...register("barCode")}
                 onKeyDown={searchByBarcode}
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Patient Name">
+            {/* <InputField label="Patient Name">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter patient name "
                 {...register("patientName")}
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Lab No">
+            {/* <InputField label="Lab No">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter lab number "
                 {...register("labNo")}
               />
-            </InputField>
+            </InputField> */}
 
             <InputField label="From Date">
-              <input
-                type="date"
-                className="input-field"
-                max={currentDate}
-                {...register("fromDate")}
+              <Controller
+                name="fromDate"
+                control={control}
+                render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
               />
             </InputField>
 
             <InputField label="To Date">
-              <input
-                type="date"
-                className="input-field"
-                max={currentDate}
-                {...register("toDate")}
+              <Controller
+                name="toDate"
+                control={control}
+                render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
               />
             </InputField>
 
-            <InputField label="Corporate">
+            {/* <InputField label="Corporate">
               <select className="input-field" {...register("corporateId")}>
                 <option value={"0"}>All</option>
                 {corporateList?.map(c => (
@@ -756,12 +791,27 @@ const SampleManagement = () => {
                   </option>
                 ))}
               </select>
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Status">
+            {/* <InputField label="Status">
               <select className="input-field" {...register("statusId")}>
                 <option value={"0"}>All</option>
               </select>
+            </InputField> */}
+
+            {/* <InputField label="Search By">
+              <select className="input-field">
+                <option>Select</option>
+                <option value={"uhid"}>UHID</option>
+                <option>Bar Code</option>
+                <option>Patient Name</option>
+                <option>Lab No</option>
+                <option>Corporate</option>
+              </select>
+            </InputField> */}
+
+            <InputField label="Quick Search">
+              <input className="input-field" onChange={searchHandler} />
             </InputField>
           </div>
 
@@ -783,7 +833,7 @@ const SampleManagement = () => {
       {!!showTable && (
         <div className="table-container  ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-68 lg:max-h-68 ">
+            <div className="table-size lg:min-h-96 lg:max-h-68 ">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>
@@ -846,7 +896,7 @@ const SampleManagement = () => {
                   )}
 
                   {visibleTableData.map((item, idx) => (
-                    <tr key={idx} className="table-row">
+                    <tr key={item?.PatientInvestigationId} className="table-row">
                       <td className="table-td">{idx + 1}</td>
                       <td className="table-td">{item?.LabNo || "-"}</td>
 
@@ -861,19 +911,34 @@ const SampleManagement = () => {
                         <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
                       </td>
 
+                      {/* sample type */}
                       <td className="table-td">
-                        <select
-                          className="input-field"
-                          value={item?.DefaultSampleTypeId ?? 0}
-                          onChange={e => selectSampleTypeHandler(idx, Number(e.target.value))}
-                        >
-                          <option value={0}>Select</option>
-                          {sampleTypeList?.map(s => (
-                            <option key={s?.sampleTypeId} value={s?.sampleTypeId}>
-                              {s?.sampleType}
-                            </option>
-                          ))}
-                        </select>
+                        {(() => {
+                          const parsedSampleTypes = sampleArrayFormation(
+                            item?.SampleTypeList || ""
+                          );
+                          const currentSampleTypeId = item?.DefaultSampleTypeId ?? 0;
+                          const hasCurrentOption = parsedSampleTypes.some(
+                            sampleType => sampleType.id === currentSampleTypeId
+                          );
+                          const selectedSampleTypeId = hasCurrentOption ? currentSampleTypeId : 0;
+
+                          return (
+                            <select
+                              className={`${item?.IsSampleCollected === 1 ? "disabled-input-field cursor-not-allowed" : "input-field"}`}
+                              disabled={item?.IsSampleCollected === 1}
+                              value={selectedSampleTypeId}
+                              onChange={e => selectSampleTypeHandler(idx, Number(e.target.value))}
+                            >
+                              <option value={0}></option>
+                              {parsedSampleTypes?.map(sampleType => (
+                                <option key={sampleType.id} value={sampleType.id}>
+                                  {sampleType.name}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
                       </td>
 
                       {/* barcode */}
@@ -887,41 +952,68 @@ const SampleManagement = () => {
                         />
                       </td>
                       <td className="table-td">
-                        {/* Deterministic color from sample type master */}
                         {(() => {
-                          const sampleTypeId = item?.DefaultSampleTypeId ?? 0;
-                          const sampleType = sampleTypeMap.get(sampleTypeId);
-                          const colorCode = sampleType?.colorCode || "#d1d5db";
+                          const parsedSampleTypes = sampleArrayFormation(
+                            item?.SampleTypeList || ""
+                          );
+                          const currentSampleTypeId = item?.DefaultSampleTypeId ?? 0;
+                          const hasCurrentOption = parsedSampleTypes.some(
+                            sampleType => sampleType.id === currentSampleTypeId
+                          );
+                          const sampleTypeId = hasCurrentOption ? currentSampleTypeId : 0;
+
+                          const selectedSampleType = parsedSampleTypes.find(
+                            sampleType => sampleType.id === sampleTypeId
+                          );
+                          const colorCode =
+                            sampleTypeId === 0
+                              ? "#ffffff"
+                              : selectedSampleType?.color ||
+                                sampleTypeMap.get(sampleTypeId)?.colorCode ||
+                                "#ffffff";
+
                           return (
-                            <span
-                              className="px-1 py-3 rounded-md border inline-block  min-w-6"
-                              style={{
-                                backgroundColor: colorCode,
-                                borderColor: colorCode,
-                                color: colorCode,
-                              }}
-                            ></span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="px-1 py-3 rounded-md border inline-block min-w-6"
+                                style={{
+                                  backgroundColor: colorCode,
+                                  borderColor: colorCode,
+                                  color: colorCode,
+                                }}
+                              ></span>
+                              {/* <span className="text-xs font-medium">{hexCode}</span> */}
+                            </div>
                           );
                         })()}
                       </td>
                       {/* sample collection checkbox */}
                       <td className="table-td">
                         {item?.IsSampleCollected === 0 && item?.isSampleRejected === 0 ? (
-                          <input
-                            type="checkbox"
-                            className="input-checkbox"
-                            checked={updatedSampleCollectionTable.some(
-                              s => s.PatientInvestigationId === item.PatientInvestigationId
-                            )}
-                            onChange={() => handleCheckboxChange(item)}
-                          />
+                          <div className="flex flex-col m-1">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox mb-1"
+                              checked={updatedSampleCollectionTable.some(
+                                s => s.PatientInvestigationId === item.PatientInvestigationId
+                              )}
+                              onChange={() => handleCheckboxChange(item)}
+                            />
+                            <CustomDateTimeInput
+                              value={item.sampleDateTime || currentDateTime}
+                              onChange={val => sampleCollectionDateTime(item, val)}
+                            />
+                          </div>
                         ) : (
-                          <input
-                            type="checkbox"
-                            className="input-checkbox"
-                            checked={Number(item.IsSampleCollected) === 1}
-                            disabled={Number(item.IsSampleCollected) === 1}
-                          />
+                          <div className="flex flex-col m-1">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox"
+                              checked={Number(item.IsSampleCollected) === 1}
+                              disabled={Number(item.IsSampleCollected) === 1}
+                            />
+                            <span className="font-semibold">{item?.SampleCollectedOn}</span>
+                          </div>
                         )}
                       </td>
 
@@ -933,13 +1025,16 @@ const SampleManagement = () => {
                           <div className="flex flex-col">
                             <input
                               type="checkbox"
-                              className="input-checkbox"
+                              className="input-checkbox mb-1"
                               checked={updatedDepartmentReceiving.some(
                                 s => s.PatientInvestigationId === item.PatientInvestigationId
                               )}
                               onChange={() => handleDeptRecvChange(item)}
                             />
-                            <span className="font-semibold">{currentDate}</span>
+                            <CustomDateTimeInput
+                              value={item.sampleDateTime || currentDateTime}
+                              onChange={val => departmentReceiveDateTime(item, val)}
+                            />
                           </div>
                         ) : item?.IsDepartmentReceivingRequired === 1 &&
                           item?.IsSampleReceivedByDepartment === 1 ? (
@@ -950,6 +1045,9 @@ const SampleManagement = () => {
                               checked={true}
                               disabled={true}
                             />
+                            <span className="font-semibold">
+                              {item?.SampleReceivedByDepartmentOn}
+                            </span>
                           </div>
                         ) : (
                           <></>
@@ -980,6 +1078,10 @@ const SampleManagement = () => {
               Save Dept Receive
             </button>
 
+            <button type="button" className="save-btn">
+              Reprint Barcode Sticker
+            </button>
+
             <button type="button" className="cancel-button ">
               Cancel
             </button>
@@ -1004,6 +1106,16 @@ const SampleManagement = () => {
       {/*remark popup  */}
       {!!renderRemarkPopup && (
         <RemarkPopup isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />
+      )}
+
+      {/* patient info */}
+
+      {!!renderPatientInfo && (
+        <LabPatientInfo
+          isOpen={openPatientInfo}
+          onClose={closePatientInfo}
+          data={selectedPatient}
+        />
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}

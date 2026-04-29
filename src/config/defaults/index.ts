@@ -227,6 +227,7 @@ const ENDPOINTS = {
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT:
     "Lab/searchPatientInvestigationForSampleManagement",
   UPDATE_SAMPLE_STATUS: "Lab/updateSampleStatus",
+  GET_PATIENT_INVESTIGATION_DETAILS: "Lab/getPatientInvestigationDetails",
 
   //pathology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:

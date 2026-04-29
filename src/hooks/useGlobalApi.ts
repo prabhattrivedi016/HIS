@@ -68,7 +68,31 @@ const useGlobalApi = () => {
           throw new Error("Invalid HTTP method");
       }
 
-      return response.data as T;
+      const responseData = response.data as any;
+
+      // Handle business-level errors returned with 2xx status codes
+      if (responseData && typeof responseData === "object" && "result" in responseData) {
+        if (responseData.result === false) {
+          const stack = new Error().stack;
+          const { line, column } = extractLineInfo(stack);
+          const apiError: ApiError = {
+            message: responseData.message || "Something went wrong",
+            status: response.status,
+            data: responseData,
+            component: meta.component,
+            method,
+            url,
+            stack: import.meta.env.DEV ? stack : undefined,
+            line: import.meta.env.DEV ? line : undefined,
+            column: import.meta.env.DEV ? column : undefined,
+          };
+
+          if (!meta.silent) setError(apiError);
+          if (meta.throwOnError) throw apiError;
+        }
+      }
+
+      return responseData as T;
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<any>;
 
@@ -92,16 +116,25 @@ const useGlobalApi = () => {
 
       if (!meta.silent) setError(apiError);
 
-      // 🔐 future global handling
-      if (apiError.status === 401) {
-        // logout / redirect hook
-      }
+      // 🔐 401 errors are handled globally by axios interceptor (redirects to login)
+      // No additional handling needed here
 
       if (meta.throwOnError) {
         throw apiError;
       }
 
-      return null;
+      // Return backend error payload immediately so first UI handling
+      // can show original message without waiting for React state update.
+      if (axiosErr.response?.data && typeof axiosErr.response.data === "object") {
+        return axiosErr.response.data as T;
+      }
+
+      return {
+        result: false,
+        messageType: "Error",
+        message: apiError.message,
+        data: null,
+      } as T;
     } finally {
       setLoading(false);
     }
