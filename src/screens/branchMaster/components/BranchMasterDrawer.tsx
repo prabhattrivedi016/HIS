@@ -1,3 +1,4 @@
+import { Status } from "@/constants/constants";
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -22,7 +23,21 @@ import {
 } from "../types";
 
 const BranchMasterDrawer = React.memo(
-  ({ isOpen, onClose, buttonTitle, drawerTitle, branchId, onCloseDrawer }) => {
+  ({
+    isOpen,
+    onClose,
+    buttonTitle,
+    drawerTitle,
+    branchId,
+    onCloseDrawer,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    buttonTitle: string;
+    drawerTitle: string;
+    branchId: number;
+    onCloseDrawer: () => void;
+  }) => {
     const { loading, error, fetchApi } = useGlobalApi();
 
     /* -------------------- values for extracting for dropdown -------------------- */
@@ -76,7 +91,7 @@ const BranchMasterDrawer = React.memo(
         "GET",
         ENDPOINTS.GET_COUNTRY_MASTER,
         {},
-        { params: { isActive: 0 } }
+        { params: { isActive: Status?.ACTIVE } }
       );
       setCountryList(res?.data ?? []);
     }, []);
@@ -311,18 +326,18 @@ const BranchMasterDrawer = React.memo(
             </button>
           </div>
 
-          <div className="p-4">
+          <div className="m-1">
             {/* success & error message*/}
             <div className="mb-2">
               {successMessage && <SuccessMessage text={successMessage} />}
               {error && <ErrorMessage text={error?.message} />}
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-2 ">
-              <div className=" shadow-lg m-2 p-6 rounded-lg  -mt-6 ">
-                <h1 className="mb-5 text-xl">Branch Details</h1>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="card ">
+                {/* <h1 className=" text-xl">Branch Details</h1> */}
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="form-grid-2">
                   <InputField label="Branch Name" required>
                     <input
                       placeholder="Enter Branch Name"
@@ -412,15 +427,15 @@ const BranchMasterDrawer = React.memo(
                 </div>
               </div>
 
-              <div className="shadow-lg m-2 p-6 rounded-lg">
+              <div className="card mt-1">
                 <h1 className="mb-5 text-xl">Default Branch Setting</h1>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="form-grid-3">
                   <InputField label="Default Country" required={false}>
                     <Select
                       options={countrySelectOption}
                       value={selectedCountryOption}
-                      placeholder="Select..."
+                      placeholder="Select  country"
                       isSearchable
                       isClearable
                       onChange={countryDropDownHandler}
@@ -434,7 +449,7 @@ const BranchMasterDrawer = React.memo(
                     <Select
                       options={stateSelectOption}
                       value={selectedStateOption}
-                      placeholder="Select..."
+                      placeholder="Select  state"
                       isSearchable
                       isClearable
                       onChange={stateDropDownHandler}
@@ -448,7 +463,7 @@ const BranchMasterDrawer = React.memo(
                     <Select
                       options={districtSelectOption}
                       value={selectedDistrictOption}
-                      placeholder="Select..."
+                      placeholder="Select district"
                       isSearchable
                       isClearable
                       onChange={distDropDownHandler}
@@ -459,12 +474,12 @@ const BranchMasterDrawer = React.memo(
                   </InputField>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="form-grid-3">
                   <InputField label="Default City" required={false}>
                     <Select
                       options={citySelectOption}
                       value={selectedCityOption}
-                      placeholder="Select..."
+                      placeholder="Select city"
                       isSearchable
                       isClearable
                       onChange={cityDropDownHandler}
@@ -478,7 +493,7 @@ const BranchMasterDrawer = React.memo(
                     <Select
                       options={insuranceSelectOption}
                       value={selectedInsuranceOption}
-                      placeholder="Select..."
+                      placeholder="Select insurance"
                       isSearchable
                       isClearable
                       onChange={insuranceDropDownHandler}
@@ -492,7 +507,7 @@ const BranchMasterDrawer = React.memo(
                     <Select
                       options={defaultCorporateSelectOption}
                       value={selectedCorporateOption}
-                      placeholder="Select..."
+                      placeholder="Select corporate"
                       isSearchable
                       isClearable
                       onChange={corporateDropDownHandler}
@@ -508,9 +523,7 @@ const BranchMasterDrawer = React.memo(
                 type="submit"
                 disabled={loading}
                 className={`w-full py-2 rounded mt-5 flex justify-center items-center font-medium active:scale-95 transition-colors ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed text-white"
-                    : "bg-[#1e6da1] hover:bg-blue-600 text-white"
+                  loading ? "bg-gray-400 cursor-not-allowed text-white" : "save-btn"
                 }`}
               >
                 {loading ? (

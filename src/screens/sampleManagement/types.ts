@@ -29,7 +29,7 @@ type SampleManagementTableData = {
   Type: string;
   UHID: string;
   IPDNo: number;
-  LabNo: number;
+  LabNo: string;
   PatientName: string;
   CurrentAge: string;
   CorporateName: string;
@@ -62,6 +62,7 @@ type SampleManagementTableData = {
   SampleTypeList?: string;
   IsUnderPackage?: number;
   selectedSampleType?: string;
+  sampleDateTime?: string;
 };
 
 type ButtonValue = { buttonName: string; level: string; color: string };

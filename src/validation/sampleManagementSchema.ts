@@ -11,6 +11,7 @@ export const sampleManagementSchema = yup.object().shape({
   toDate: yup.string().nullable(),
   corporateId: yup.number().nullable(),
   statusId: yup.number().nullable(),
+  sampleDateTime: yup.string().nullable(),
 });
 
 export type SampleManagementFormData = yup.InferType<typeof sampleManagementSchema>;

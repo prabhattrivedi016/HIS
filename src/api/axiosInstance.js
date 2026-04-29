@@ -27,4 +27,25 @@ axiosInstance.interceptors.request.use(
   error => Promise.reject(error)
 );
 
+// Handle 401 Unauthorized responses
+axiosInstance.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      // Clear auth data
+      const storage = getAuthStorage();
+      storage.removeItem("accessToken");
+      storage.removeItem("role");
+
+      // Dispatch custom event to notify listeners
+      window.dispatchEvent(new CustomEvent("unauthorized", { detail: { status: 401 } }));
+
+      // Redirect to login
+      window.location.href = "/GWSNHIS";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default axiosInstance;

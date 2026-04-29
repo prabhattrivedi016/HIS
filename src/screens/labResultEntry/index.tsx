@@ -1,6 +1,6 @@
+import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import { SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import { CATEGORY_ID, Status } from "@/constants/constants";
 import { LabResultEntryButtons, LabResultEntryTableHeader } from "@/constants/tableHeaders";
@@ -12,9 +12,8 @@ import { labResultEntrySchema } from "@/validation/labResultEntrySchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
-import Select, { StylesConfig } from "react-select";
 import { ButtonValue } from "../sampleManagement/types";
 import LRPatientInvestigation from "./components/LRPatientInvestigation";
 import LRRemarkPopup from "./components/LRRemarkPopup";
@@ -239,6 +238,7 @@ const LabResultEntry = () => {
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     formState: { errors },
   } = useForm({
@@ -532,32 +532,47 @@ const LabResultEntry = () => {
       <div className="card mb-2">
         <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-4">
-            <InputField label="UHID">
+            <InputField label="from Date">
+              <Controller
+                name="fromDate"
+                control={control}
+                render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
+              />
+            </InputField>
+
+            <InputField label="To Date">
+              <Controller
+                name="toDate"
+                control={control}
+                render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
+              />
+            </InputField>
+            {/* <InputField label="UHID">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter UHID"
                 {...register("uhid")}
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Barcode">
+            {/* <InputField label="Barcode">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter lab number "
                 {...register("barcode")}
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Patient Name">
+            {/* <InputField label="Patient Name">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter patient name"
                 {...register("patientName")}
               />
-            </InputField>
+            </InputField> */}
 
             <InputField label="Type">
               <select className="input-field" {...register("typeId")}>
@@ -567,23 +582,23 @@ const LabResultEntry = () => {
               </select>
             </InputField>
 
-            <InputField label="IPD Number">
+            {/* <InputField label="IPD Number">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter ipd number "
                 {...register("ipdNo")}
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="Lab Number">
+            {/* <InputField label="Lab Number">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter lab number "
                 {...register("labNo")}
               />
-            </InputField>
+            </InputField> */}
 
             <InputField label=" Department">
               <select className="input-field" {...register("subSubCategoryId")}>
@@ -600,7 +615,7 @@ const LabResultEntry = () => {
               </select>
             </InputField>
 
-            <InputField label="Investigation Name">
+            {/* <InputField label="Investigation Name">
               <Select<SelectItem, false>
                 value={selectedInvestigationName}
                 options={investigationNameSelectOptions}
@@ -612,26 +627,10 @@ const LabResultEntry = () => {
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
               />
-            </InputField>
+            </InputField> */}
 
-            <InputField label="from Date">
-              <input
-                type="date"
-                className="input-field"
-                placeholder="Enter contact number "
-                max={currentDate}
-                {...register("fromDate")}
-              />
-            </InputField>
-
-            <InputField label="To Date">
-              <input
-                type="date"
-                className="input-field"
-                placeholder="Enter contact number "
-                max={currentDate}
-                {...register("toDate")}
-              />
+            <InputField label="Quick Search">
+              <input type="text" className="input-field" placeholder="Enter for quick search " />
             </InputField>
           </div>
           <div className="mt-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -679,17 +678,17 @@ const LabResultEntry = () => {
                   <span className="font-bold">Login Header</span>
                 </label>
               </div>
+              */}
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <button type="button" className="save-btn w-full sm:w-auto">
-                  Print
-                </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button type="button" className="save-btn w-full sm:w-auto">
+                Print
+              </button>
 
-                <button type="submit" className="save-btn w-full sm:w-auto">
-                  Search
-                </button>
-              </div>
-            </div> */}
+              <button type="submit" className="save-btn w-full sm:w-auto">
+                Search
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -702,7 +701,7 @@ const LabResultEntry = () => {
       {!!showTable && (
         <div className="table-container  ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-60 lg:max-h-60">
+            <div className="table-size lg:min-h-85 lg:max-h-85">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>
