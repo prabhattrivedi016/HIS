@@ -23,7 +23,7 @@ import { NavLink } from "react-router-dom";
 import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
 import RejectSamplePopup from "./components/RejectSamplePopup";
 import RemarkPopup from "./components/RemarkPopup";
-import { ButtonValue, CorporateList, SampleManagementTableData, SampleTypeItem } from "./types";
+import { ButtonValue, CorporateList, SampleManagementTableData } from "./types";
 
 const SampleManagement = () => {
   const getLocalDateTime = () => {
@@ -73,7 +73,6 @@ const SampleManagement = () => {
 
   const [activeFilter, setActiveFilter] = useState<string>(sampleManagementButtons[0]?.buttonName);
   const [showTable, setShowTable] = useState<boolean>(false);
-  const [sampleTypeList, setSampleTypeList] = useState<SampleTypeItem[]>([]);
 
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
@@ -82,10 +81,6 @@ const SampleManagement = () => {
   const [searchValue, setSearchValue] = useState<string>("");
 
   const hasFetched = useRef(false);
-
-  const sampleTypeMap = useMemo(() => {
-    return new Map(sampleTypeList.map(item => [item.sampleTypeId, item]));
-  }, [sampleTypeList]);
 
   // filter visible data
   const visibleTableData = useMemo(() => {
@@ -252,10 +247,8 @@ const SampleManagement = () => {
     //  Process data
     const tableData = resp.data as SampleManagementTableData[];
 
-    const enrichedData = sampleTypeList.length ? enrichRowsWithSampleType(tableData) : tableData;
-
     //  Barcode fallback (ONLY ON LOAD)
-    const finalData = enrichedData.map(item => {
+    const finalData = tableData.map(item => {
       const existing = sampleManagementTableData.find(
         prev => prev.PatientInvestigationId === item.PatientInvestigationId
       );
@@ -340,8 +333,6 @@ const SampleManagement = () => {
     );
   };
 
-  console.log("sampleManagementTableData", sampleManagementTableData);
-
   // handler checkbox change
   const handleCheckboxChange = (item: SampleManagementTableData) => {
     const barcode = item?.Barcode?.toString().trim() || item?.LabNo?.toString().trim() || "";
@@ -353,7 +344,7 @@ const SampleManagement = () => {
 
     if (item?.IsSampleCollected === 1) {
       showWarning("'this sample is already collected");
-      return; // do not allow adding
+      return;
     }
 
     const id = item.PatientInvestigationId;
@@ -503,19 +494,12 @@ const SampleManagement = () => {
     const rowSampleTypeName = normalizeSampleTypeName(
       item.SampleTypeName || item.selectedSampleType || ""
     );
-    if (!rowSampleTypeName) return 0;
-
-    const matched = sampleTypeList.find(
-      sampleType => normalizeSampleTypeName(sampleType.sampleType) === rowSampleTypeName
-    );
-    return matched?.sampleTypeId ?? 0;
   };
 
   const enrichRowsWithSampleType = (rows: SampleManagementTableData[]) => {
     return rows.map(item => {
       const sampleTypeId = resolveSampleTypeId(item);
-      const sampleTypeName =
-        sampleTypeMap.get(sampleTypeId)?.sampleType ?? item.SampleTypeName ?? "";
+      const sampleTypeName = item.SampleTypeName ?? "";
       return {
         ...item,
         DefaultSampleTypeId: sampleTypeId || item.DefaultSampleTypeId || 0,
@@ -523,22 +507,6 @@ const SampleManagement = () => {
       };
     });
   };
-
-  // sample type list
-  const getSampleTypeList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
-      {},
-      { params: { isActive: Status?.ACTIVE } },
-      { component: "SampleManagement" }
-    );
-    setSampleTypeList(resp?.data ?? []);
-  };
-
-  useEffect(() => {
-    getSampleTypeList();
-  }, []);
 
   // sample reject handler
   const rejectSampleHandler = (item: SampleManagementTableData) => {
@@ -560,12 +528,6 @@ const SampleManagement = () => {
     setOpenPatientInfo(true);
     setSelectedPatient(item);
   };
-
-  useEffect(() => {
-    if (!sampleTypeList.length || !sampleManagementTableData.length) return;
-    const enriched = enrichRowsWithSampleType(sampleManagementTableData);
-    setSampleManagementTableData(enriched);
-  }, [sampleTypeList]);
 
   // select sample type handler
   const selectSampleTypeHandler = (index: number, value: number) => {
@@ -951,6 +913,8 @@ const SampleManagement = () => {
                           disabled={Number(item.IsSampleCollected) === 1}
                         />
                       </td>
+
+                      {/* color coding */}
                       <td className="table-td">
                         {(() => {
                           const parsedSampleTypes = sampleArrayFormation(
@@ -966,11 +930,7 @@ const SampleManagement = () => {
                             sampleType => sampleType.id === sampleTypeId
                           );
                           const colorCode =
-                            sampleTypeId === 0
-                              ? "#ffffff"
-                              : selectedSampleType?.color ||
-                                sampleTypeMap.get(sampleTypeId)?.colorCode ||
-                                "#ffffff";
+                            sampleTypeId === 0 ? "#ffffff" : selectedSampleType?.color || "#ffffff";
 
                           return (
                             <div className="flex items-center gap-2">

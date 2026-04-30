@@ -14,4 +14,5 @@ export const labResultEntrySchema = yup.object().shape({
   subCategoryId: yup.number().nullable(),
   subSubCategoryId: yup.number().nullable(),
   investigationId: yup.number().nullable(),
+  canSampleCollect: yup.number().nullable(),
 });
