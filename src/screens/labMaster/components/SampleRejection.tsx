@@ -2,7 +2,7 @@ import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { FieldBoyMasterTableHeader, SampleRejectionTableHeader } from "@/constants/constants";
+import { SampleRejectionTableHeader } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
 import { sampleRejectionSchema } from "@/validation/labMasterSchema";
@@ -205,7 +205,7 @@ const SampleRejection = () => {
                   <tbody>
                     {filteredList?.length === 0 && (
                       <tr>
-                        <td colSpan={FieldBoyMasterTableHeader.length} className="table-empty">
+                        <td colSpan={SampleRejectionTableHeader.length} className="table-empty">
                           No records found
                         </td>
                       </tr>

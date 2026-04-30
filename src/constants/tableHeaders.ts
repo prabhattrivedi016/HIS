@@ -24,6 +24,7 @@ export const SampleManagementTableHeader = [
   "Dept. Rec.",
   "Reject",
   "Remark",
+  "Report",
   "Info",
 ];
 
@@ -46,6 +47,7 @@ export const LabResultEntryTableHeaderForSampleCollect = [
   "Approved",
   "Approved Date",
   "Remark",
+  "Report",
   "Info",
 ];
 
@@ -65,6 +67,7 @@ export const LabResultEntryTableHeaderNotCollect = [
   "Approved",
   "Approved Date",
   "Remark",
+  "Report",
   "Info",
 ];
 
@@ -459,4 +462,15 @@ export const SampleRejectionRemarkTableHeader = [
   "Is Internal",
   "	Edit",
   "Delete",
+];
+
+export const SampleRemarksTableHeader = [
+  "#",
+  "Sample Remarks",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
 ];

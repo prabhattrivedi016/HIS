@@ -46,4 +46,17 @@ type SampleRejectionItem = {
   lastModifiedBy?: string;
   lastModifiedOn?: string;
 };
-export type { ColorItem, FieldBoyItem, LabMethodItem, SampleRejectionItem, SampleTypeItem };
+
+type SampleRemarksItem = {
+  sampleRemarksID: number;
+  sampleRemarks: string;
+  isActive: number;
+};
+export type {
+  ColorItem,
+  FieldBoyItem,
+  LabMethodItem,
+  SampleRejectionItem,
+  SampleRemarksItem,
+  SampleTypeItem,
+};

@@ -163,6 +163,8 @@ const ENDPOINTS = {
   CREATE_UPDATE_SUB_SUB_CATEGORY: "Home/createUpdateSubSubCategory",
   CREATE_UPDATE_INVESTIGATION_SERVICE_ITEM_MASTER: "Lab/createUpdateInvestigationServiceItemMaster",
   UPDATE_SERVICE_ITEM_MASTER_STATUS: "Home/updateServiceItemMasterStatus",
+  CREATE_UPDATE_SAMPLE_REMARKS_MASTER: "/Lab/createUpdateSampleRemarksMaster",
+  GET_SAMPLE_REMARKS_MASTER: "Lab/getSampleRemarksMaster",
 
   // investigation observation mapping
   CREATE_UPDATE_OBSERVATION_MASTER: "Lab/createUpdateObservationMaster",
