@@ -3,6 +3,7 @@ import { PatientInvestigationTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import React, { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -17,7 +18,7 @@ const LabPatientInfo = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  data: SampleManagementTableData;
+  data: SampleManagementTableData | LabResultEntryTableData;
 }) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;

@@ -1,21 +1,29 @@
 import CustomDateInput from "@/components/customDateInput";
+import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { CATEGORY_ID, Status } from "@/constants/constants";
-import { LabResultEntryButtons, LabResultEntryTableHeader } from "@/constants/tableHeaders";
+import {
+  LabInvestigationTableHeader,
+  LabResultEntryButtons,
+  LabResultEntryTableHeaderForSampleCollect,
+  LabResultEntryTableHeaderNotCollect,
+} from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showInfo } from "@/utils/alert";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchUserRightAccess } from "@/store/slices/accessRightSlices";
+import { showError, showInfo, showSuccess, showWarning } from "@/utils/alert";
 import { labResultEntrySchema } from "@/validation/labResultEntrySchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
+import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import { ButtonValue } from "../sampleManagement/types";
-import LRPatientInvestigation from "./components/LRPatientInvestigation";
 import LRRemarkPopup from "./components/LRRemarkPopup";
 import {
   InvestigationName,
@@ -24,162 +32,33 @@ import {
   SubSubCategoryItem,
 } from "./types";
 
-export const LabSampleData = [
-  {
-    BillDate: "28-Feb-2026 12:49 PM",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000057",
-    IPDNo: 0,
-    LabNo: 101,
-    WardName: "",
-    PatientName: "MR. RADHA",
-    CurrentAge: "100Y 0M 0D",
-    TotalBalanceAmount: 0.0,
-    CorporateName: "01 CASH",
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    referDoctorName: "",
-    Gender: "MALE",
-    VisitId: 4079,
-    isUrgent: 1,
-    Barcode: "101",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 1,
-    PatientInvestigationId: 5152,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 28 2026 12:49PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 28 2026 12:49PM",
-    IsSampleReceivedByDepartment: 1,
-    SampleReceivedByDepartmentOn: "Feb 28 2026 12:49PM",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    isReportPrinted: 0,
-    DeliveryDate: "Feb 28 2026  8:49PM",
-    RemainingTime: "16:48",
-    isExpired: "0",
-    IsAllergyTest: 0,
-    IsUnderPackage: 0,
-    Name: "CBC -(COMPLETE BLOOD COUNT)",
-    isMachineResult: 0,
-  },
-  {
-    BillDate: "28-Feb-2026 12:49 PM",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000057",
-    IPDNo: 0,
-    LabNo: 101,
-    WardName: "",
-    PatientName: "MR. RADHA",
-    CurrentAge: "100Y 0M 0D",
-    TotalBalanceAmount: 0.0,
-    CorporateName: "01 CASH",
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    referDoctorName: "",
-    Gender: "MALE",
-    VisitId: 4079,
-    isUrgent: 1,
-    Barcode: "101",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 5153,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 28 2026 12:49PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 28 2026 12:49PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    isReportPrinted: 0,
-    DeliveryDate: "Feb 28 2026  1:49PM",
-    RemainingTime: "0",
-    isExpired: "1",
-    IsAllergyTest: 0,
-    IsUnderPackage: 0,
-    Name: "LIVER FUNCTION TEST (LFT)",
-    isMachineResult: 0,
-  },
-  {
-    BillDate: "28-Feb-2026 12:49 PM",
-    Type: "OPD",
-    UHID: "GWT/25-26/00000057",
-    IPDNo: 0,
-    LabNo: 101,
-    WardName: "",
-    PatientName: "MR. RADHA",
-    CurrentAge: "100Y 0M 0D",
-    TotalBalanceAmount: 0.0,
-    CorporateName: "01 CASH",
-    ClientName: "01 : GRAVITY WEB TECHNOLOGIES",
-    referDoctorName: "",
-    Gender: "MALE",
-    VisitId: 4079,
-    isUrgent: 1,
-    Barcode: "101",
-    IsSampleRequired: 0,
-    IsSampleSegregationRequired: 0,
-    IsDepartmentReceivingRequired: 0,
-    PatientInvestigationId: 5154,
-    ReportTypeId: 1,
-    IsReportHold: 0,
-    CreatedOn: "Feb 28 2026 12:49PM",
-    VIPPatient: 0,
-    IsSampleSegregated: 0,
-    SampleSegregationOn: "",
-    IsSampleCollected: 1,
-    SampleCollectedOn: "Feb 28 2026 12:49PM",
-    IsSampleReceivedByDepartment: 0,
-    SampleReceivedByDepartmentOn: "",
-    IsResultDone: 0,
-    ResultDoneOn: "",
-    IsReportApproved: 0,
-    ReportApprovedOn: "",
-    IsDispatched: 0,
-    DispatchedOn: "",
-    isSampleRejected: 0,
-    isReportPrinted: 0,
-    DeliveryDate: "",
-    RemainingTime: "0",
-    isExpired: "0",
-    IsAllergyTest: 0,
-    IsUnderPackage: 0,
-    Name: "KIDNEY FUNCTION TEST (KFT)",
-    isMachineResult: 0,
-  },
-];
-
-const LabResultEntry = () => {
+const PathologyResultEntry = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
+  // Simple access rights from Redux store
+  const accessRights = useAppSelector(state => state.accessRights.accessRights);
+
+  const canCollectSample = Number(accessRights?.canCollectSampleFromPathologyResultEntry);
+
+  const dispatch = useAppDispatch();
+
+  const getLocalDateTime = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
   const currentDate = new Date().toISOString().split("T")[0];
-  const [activeIndex, setActiveIndex] = useState(0);
+  const currentDateTime = getLocalDateTime();
+  const [activeIndex, setActiveIndex] = useState(1);
 
   const [selectedPatient, setSelectedPatient] = useState<LabResultEntryTableData | null>(null);
   const [selectedRemarkPatient, setSelectedRemarkPatient] =
     useState<LabResultEntryTableData | null>(null);
 
-  const [openPatientDrawer, setOpenPatientDrawer] = useState<boolean>(false);
-  const [renderPatientDrawer, setRenderPatientDrawer] = useState<boolean>(false);
+  const [openPatientInfoPopup, setOpenPatientInfoPopup] = useState<boolean>(false);
+  const [renderPatientInfoPopup, setRenderPatientInfoPopup] = useState<boolean>(false);
   const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
   const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
 
@@ -200,7 +79,17 @@ const LabResultEntry = () => {
     null
   );
 
+  const [updatedSampleCollectionTable, setUpdatedSampleCollectionTable] = useState<
+    LabResultEntryTableData[]
+  >([]);
+
+  const [updatedDepartmentReceiving, setUpdatedDepartmentReceiving] = useState<
+    LabResultEntryTableData[]
+  >([]);
+
   const [showTable, setShowTable] = useState<boolean>(false);
+
+  const [searchValue, setSearchValue] = useState<string>("");
 
   const hasFetched = useRef(false);
 
@@ -212,12 +101,6 @@ const LabResultEntry = () => {
   const authData = useContext(AuthContext);
   const branchId = authData?.user?.branchId;
 
-  const openPatientInvestigation = (item: LabResultEntryTableData) => {
-    setSelectedPatient(item);
-    setRenderPatientDrawer(true);
-    setOpenPatientDrawer(true);
-  };
-
   const remarkHandler = (item: LabResultEntryTableData) => {
     setSelectedRemarkPatient(item);
     setRenderRemarkPopup(true);
@@ -225,10 +108,6 @@ const LabResultEntry = () => {
       setOpenRemarkPopup(true);
     });
   };
-
-  const closePatientDrawer = useCallback(() => {
-    setOpenPatientDrawer(false);
-  }, []);
 
   const closeHandler = useCallback(() => {
     setOpenRemarkPopup(false);
@@ -240,6 +119,9 @@ const LabResultEntry = () => {
     handleSubmit,
     control,
     setValue,
+
+    reset,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(labResultEntrySchema),
@@ -253,11 +135,16 @@ const LabResultEntry = () => {
       statusId: 0,
       barcode: "",
       patientName: "",
-      subCategoryId: 0,
+      subCategoryId: 1,
       subSubCategoryId: 0,
       investigationId: 0,
+      canSampleCollect: canCollectSample,
     },
   });
+
+  useEffect(() => {
+    setValue("canSampleCollect", canCollectSample);
+  }, [canCollectSample, setValue]);
 
   // sub sub category list
   const getSubSubCategory = async (subCategoryIds: number) => {
@@ -266,7 +153,7 @@ const LabResultEntry = () => {
       ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
       {},
       { params: { subCategoryIds } },
-      { component: "LabResultEntry" }
+      { component: "PathologyResultEntry" }
     );
     setSubSubCategoryList(resp?.data ?? []);
   };
@@ -284,7 +171,7 @@ const LabResultEntry = () => {
           isActive: Status?.ACTIVE,
         },
       },
-      { component: "LabResultEntry" }
+      { component: "PathologyResultEntry" }
     );
     setInvestigationNameList(resp?.data ?? []);
   };
@@ -317,14 +204,15 @@ const LabResultEntry = () => {
       uhid: "",
       ipdNo: "",
       labNo: "",
-      fromDate: currentDate,
-      toDate: currentDate,
+      fromDate: formData?.fromDate || getValues("fromDate"),
+      toDate: formData?.toDate || getValues("toDate"),
       statusId: 0,
       barcode: "",
       patientName: "",
       subCategoryId: 0,
       subSubCategoryId: 0,
       investigationId: 0,
+      canSampleCollect: getValues("canSampleCollect"),
       ...(formData || {}),
       branchId,
       roleId,
@@ -335,21 +223,32 @@ const LabResultEntry = () => {
       ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY,
       {},
       { params: payload },
-      { component: "LabResultEntry" }
+      { component: "PathologyResultEntry" }
     );
 
     if (!resp?.result) {
       setLabResultEntryTableData([]);
+      setUpdatedSampleCollectionTable([]);
       setTotalPatientCount(0);
       setTotalTestCount(0);
       setApprovedTestCount(0);
       setPendingTestCount(0);
-      showInfo(resp?.data?.message || "No data found");
+      showWarning(resp?.message ?? "No data found");
       setShowTable(false);
       return;
     }
 
-    setLabResultEntryTableData(resp?.data ?? []);
+    const tableData = (resp?.data ?? []).map((item: LabResultEntryTableData) => {
+      const barcode = item?.Barcode?.toString().trim();
+
+      return {
+        ...item,
+        Barcode: barcode && barcode !== "0" ? barcode : item?.LabNo?.toString() || "",
+      };
+    });
+
+    setLabResultEntryTableData(tableData);
+    setUpdatedSampleCollectionTable([]);
 
     setTotalPatientCount(new Set(resp?.data.map((i: LabResultEntryTableData) => i.UHID)).size);
     setTotalTestCount(resp?.data.length);
@@ -370,8 +269,12 @@ const LabResultEntry = () => {
 
     hasFetched.current = true;
 
+    // Fetch access rights
+    dispatch(fetchUserRightAccess({ branchId, roleId }));
+
+    // Fetch lab data
     fetchLabData();
-  }, [branchId, roleId]);
+  }, [branchId, roleId, dispatch]);
 
   // search button handler
   const onsubmit = async (data: Record<string, unknown>) => {
@@ -383,6 +286,8 @@ const LabResultEntry = () => {
     const data = labResultEntryTableData;
 
     switch (buttonName) {
+      case "sampleCollectionPending":
+        return data.filter(i => i?.IsSampleCollected === 0 && i?.IsSampleRequired === 1).length;
       case "resultPending":
         return data.filter(i => i.IsResultDone === 0).length;
 
@@ -390,7 +295,7 @@ const LabResultEntry = () => {
         return data.filter(i => i.IsReportHold === 1).length;
 
       case "reportApprovedPending":
-        return data.filter(i => i.IsResultDone === 1 && i.IsReportApproved === 0).length;
+        return data.filter(i => i.IsReportApproved === 0).length;
 
       case "approved":
         return data.filter(i => i.IsReportApproved === 1).length;
@@ -401,45 +306,13 @@ const LabResultEntry = () => {
       case "dispatched":
         return data.filter(i => i.IsDispatched === 1).length;
 
-      case "reRun":
-        return data.filter((i: LabResultEntryTableData) => i.isMachineResult === 1).length;
+      case "rejected":
+        return data.filter(i => i.isSampleRejected === 1).length;
 
       default:
         return 0;
     }
   };
-
-  // filter data on button click
-  const filteredData = useMemo(() => {
-    const data = labResultEntryTableData;
-    const activeButton = LabResultEntryButtons[activeIndex]?.buttonName;
-
-    switch (activeButton) {
-      case "resultPending":
-        return data.filter(i => i.IsResultDone === 0);
-
-      case "hold":
-        return data.filter(i => i.IsReportHold === 1);
-
-      case "reportApprovedPending":
-        return data.filter(i => i.IsResultDone === 1 && i.IsReportApproved === 0);
-
-      case "approved":
-        return data.filter(i => i.IsReportApproved === 1);
-
-      case "printed":
-        return data.filter(i => i.isReportPrinted === 1);
-
-      case "dispatched":
-        return data.filter(i => i.IsDispatched === 1);
-
-      case "reRun":
-        return data.filter(i => i.isMachineResult === 1);
-
-      default:
-        return data;
-    }
-  }, [activeIndex, labResultEntryTableData]);
 
   const renderButton = (buttons: ButtonValue[]) => {
     return buttons.map((b, idx) => {
@@ -482,21 +355,29 @@ const LabResultEntry = () => {
   };
 
   const getInvestigationColor = (item: LabResultEntryTableData) => {
-    const isPrinted = Number(
-      (item as LabResultEntryTableData & { isReportPrinted?: number })?.isReportPrinted
-    );
-    const isMachineResult = Number(
-      (item as LabResultEntryTableData & { isMachineResult?: number })?.isMachineResult
-    );
+    // Check conditions in priority order
 
+    // 1. Check if rejected
+    if (item.isSampleRejected === 1) return getColorFromButton("rejected");
+
+    // 2. Check if sample collection pending
+    if (item.IsSampleCollected === 0 && item.IsSampleRequired === 1)
+      return getColorFromButton("sampleCollectionPending");
+
+    // 3. Check if on hold
     if (item.IsReportHold === 1) return getColorFromButton("hold");
+
+    // 4. Check if dispatched
     if (item.IsDispatched === 1) return getColorFromButton("dispatched");
-    if (isPrinted === 1) return getColorFromButton("printed");
+
+    // 5. Check if approved
     if (item.IsReportApproved === 1) return getColorFromButton("approved");
+
+    // 6. Check if report approved pending
     if (item.IsResultDone === 1 && item.IsReportApproved === 0)
       return getColorFromButton("reportApprovedPending");
-    if (isMachineResult === 1) return getColorFromButton("reRun");
 
+    // 7. Default to result pending
     return getColorFromButton("resultPending");
   };
 
@@ -518,6 +399,381 @@ const LabResultEntry = () => {
     };
   };
 
+  // array formation of sample type
+  const sampleArrayFormation = (item: string) => {
+    return item
+      ?.split("$")
+      ?.filter(Boolean)
+      ?.map(i => {
+        const [id, name, color] = i.split("*");
+
+        return {
+          id: Number(id),
+          name: name?.trim() || "",
+          color: color?.trim() || "",
+        };
+      });
+  };
+
+  // select sample type handler
+  const selectSampleTypeHandler = (index: number, value: number) => {
+    const row = visibleTableData[index];
+    if (!row) return;
+    const parsedSampleTypes = sampleArrayFormation(row.SampleTypeList || "");
+    const selectedType = parsedSampleTypes.find(sampleType => sampleType.id === value);
+    const selectedTypeName = selectedType?.name ?? "";
+
+    const updateRow = (item: LabResultEntryTableData) =>
+      item.PatientInvestigationId === row.PatientInvestigationId
+        ? {
+            ...item,
+            DefaultSampleTypeId: value,
+            selectedSampleType: selectedTypeName,
+            SampleTypeName: selectedTypeName || item?.SampleTypeList,
+          }
+        : item;
+
+    setLabResultEntryTableData(prev => prev.map(updateRow));
+  };
+
+  // handle barcode change
+  const handleBarcodeChange = (
+    item: LabResultEntryTableData,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    const id = item.PatientInvestigationId;
+
+    setLabResultEntryTableData(prev =>
+      prev.map(prevItem =>
+        prevItem.PatientInvestigationId === id
+          ? {
+              ...prevItem,
+              Barcode: value,
+            }
+          : prevItem
+      )
+    );
+
+    // Keep selected payload rows in sync with the latest typed barcode
+    setUpdatedSampleCollectionTable(prev =>
+      prev.map(prevItem =>
+        prevItem.PatientInvestigationId === id
+          ? {
+              ...prevItem,
+              Barcode: value,
+            }
+          : prevItem
+      )
+    );
+  };
+
+  // handler checkbox change
+  const handleCheckboxChange = (item: LabResultEntryTableData) => {
+    const barcode = item?.Barcode?.toString().trim() || item?.LabNo?.toString().trim() || "";
+
+    if (!barcode || barcode === "0") {
+      showWarning("Please enter valid barcode number");
+      return;
+    }
+
+    if (item?.IsSampleCollected === 1) {
+      showWarning("'this sample is already collected");
+      return;
+    }
+
+    const id = item.PatientInvestigationId;
+
+    const collectedSample = updatedSampleCollectionTable?.find(
+      S => S?.PatientInvestigationId === id
+    );
+
+    if (!collectedSample) {
+      setUpdatedSampleCollectionTable(prev => [...prev, { ...item }]);
+    } else {
+      setUpdatedSampleCollectionTable(prev => prev.filter(s => s.PatientInvestigationId !== id));
+    }
+  };
+
+  // department receive date time handler
+  const departmentReceiveDateTime = (item: LabResultEntryTableData, value: string) => {
+    const id = item.PatientInvestigationId;
+
+    setLabResultEntryTableData(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+
+    setUpdatedDepartmentReceiving(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+  };
+
+  // department receiving change
+  const handleDeptRecvChange = (item: LabResultEntryTableData) => {
+    const id = item.PatientInvestigationId;
+
+    setUpdatedDepartmentReceiving(prev => {
+      const exists = prev.some(p => p.PatientInvestigationId === id);
+
+      if (exists) {
+        // remove
+        return prev.filter(p => p.PatientInvestigationId !== id);
+      } else {
+        // add
+        return [...prev, item];
+      }
+    });
+  };
+
+  // filter visible data
+  const visibleTableData = useMemo(() => {
+    const normalizedSearch = searchValue.toLowerCase().trim();
+    const isSearching = normalizedSearch.length > 0;
+
+    const baseData = isSearching
+      ? labResultEntryTableData.filter(row => {
+          // Search in regular fields with simple includes
+          const regularFields = [
+            row?.Barcode,
+            row?.LabNo,
+            row?.BillDate,
+            row?.UHID,
+            row?.PatientName,
+            row?.CurrentAge,
+            row?.CorporateName,
+            row?.Name,
+          ].some(field => field?.toString().toLowerCase().includes(normalizedSearch));
+
+          if (regularFields) return true;
+
+          // Smart search for sample types (word-boundary matching)
+          const sampleTypesStr = (
+            row?.SampleTypeName ||
+            row?.selectedSampleType ||
+            ""
+          ).toLowerCase();
+
+          // Parse sample types if available
+          const parsedSampleTypes = sampleArrayFormation(row?.SampleTypeList || "");
+          const sampleTypeNames = parsedSampleTypes.map(s => s.name.toLowerCase());
+
+          // Check for word-boundary match in sample type names
+          const searchWords = normalizedSearch.split(/\s+/).filter(Boolean);
+          const hasSampleTypeMatch = searchWords.some(word =>
+            sampleTypeNames.some(name =>
+              name.split(/\s+/).some(nameWord => nameWord.startsWith(word))
+            )
+          );
+
+          return hasSampleTypeMatch || sampleTypesStr.includes(normalizedSearch);
+        })
+      : labResultEntryTableData;
+
+    // Apply button filter based on activeIndex
+    const activeButton = LabResultEntryButtons[activeIndex]?.buttonName;
+
+    switch (activeButton) {
+      case "sampleCollectionPending":
+        return baseData?.filter(i => i?.IsSampleCollected === 0 && i?.IsSampleRequired === 1);
+      case "resultPending":
+        return baseData.filter(i => i.IsResultDone === 0);
+
+      case "hold":
+        return baseData.filter(i => i.IsReportHold === 1);
+
+      case "reportApprovedPending":
+        return baseData.filter(i => i.IsReportApproved === 0);
+
+      case "approved":
+        return baseData.filter(i => i.IsReportApproved === 1);
+
+      case "printed":
+        return baseData.filter(i => i.isReportPrinted === 1);
+
+      case "dispatched":
+        return baseData.filter(i => i.IsDispatched === 1);
+
+      case "rejected":
+        return baseData.filter(i => i.isSampleRejected === 1);
+
+      default:
+        return baseData;
+    }
+  }, [activeIndex, labResultEntryTableData, searchValue]);
+  // header checkbox handler
+  const checkboxHandler = (h: string, checked: boolean) => {
+    // Sample Collection header checkbox
+    if (h === "Sample Collection") {
+      if (checked) {
+        // Check all eligible sample collection rows
+        const eligibleSampleItems = visibleTableData.filter(
+          item => item.IsSampleCollected === 0 && item.isSampleRejected === 0
+        );
+        setUpdatedSampleCollectionTable(prev => {
+          const newItems = eligibleSampleItems.filter(
+            item => !prev.some(p => p.PatientInvestigationId === item.PatientInvestigationId)
+          );
+          return [...prev, ...newItems];
+        });
+      } else {
+        // Uncheck all visible sample collection rows
+        const visibleIds = new Set(visibleTableData.map(item => item.PatientInvestigationId));
+        setUpdatedSampleCollectionTable(prev =>
+          prev.filter(item => !visibleIds.has(item.PatientInvestigationId))
+        );
+      }
+    }
+
+    // Department Receiving header checkbox
+    if (h === "Dept. Rec.") {
+      if (checked) {
+        // Check all eligible department receiving rows
+        const eligibleDeptItems = visibleTableData.filter(
+          item =>
+            item.IsDepartmentReceivingRequired === 1 &&
+            item.IsSampleCollected === 1 &&
+            item.IsSampleReceivedByDepartment === 0 &&
+            item.Barcode !== "SNR"
+        );
+        setUpdatedDepartmentReceiving(prev => {
+          const newItems = eligibleDeptItems.filter(
+            item => !prev.some(p => p.PatientInvestigationId === item.PatientInvestigationId)
+          );
+          return [...prev, ...newItems];
+        });
+      } else {
+        // Uncheck all visible department receiving rows
+        const visibleIds = new Set(visibleTableData.map(item => item.PatientInvestigationId));
+        setUpdatedDepartmentReceiving(prev =>
+          prev.filter(item => !visibleIds.has(item.PatientInvestigationId))
+        );
+      }
+    }
+  };
+
+  // sample collection date time handler
+  const sampleCollectionDateTime = (item: LabResultEntryTableData, value: string) => {
+    const id = item.PatientInvestigationId;
+
+    setLabResultEntryTableData(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+
+    setUpdatedSampleCollectionTable(prev =>
+      prev.map(row => (row.PatientInvestigationId === id ? { ...row, sampleDateTime: value } : row))
+    );
+  };
+
+  // save sample collection
+  const handleSaveSampleCollection = async () => {
+    if (updatedSampleCollectionTable.length === 0) {
+      showInfo("Please select ateast one sample collection");
+      return;
+    }
+    const payload = updatedSampleCollectionTable?.map(u => {
+      return {
+        patientInvestigationId: u?.PatientInvestigationId,
+        barCode: u?.Barcode,
+        statusId: 1,
+        defaultSampleTypeId: u?.DefaultSampleTypeId,
+        labNo: u?.LabNo,
+        sampleDateTime: u.sampleDateTime || getLocalDateTime(),
+      };
+    });
+
+    const finalPayload = {
+      samples: payload,
+    };
+
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_SAMPLE_STATUS,
+      finalPayload,
+      {},
+      { component: "SampleManagement" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? error?.message ?? "something went wrong");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+
+    setUpdatedSampleCollectionTable([]);
+    setUpdatedDepartmentReceiving([]);
+
+    await fetchLabData(getValues());
+  };
+
+  // save dept receive
+  const handleDepartmentReceive = async () => {
+    if (updatedDepartmentReceiving.length === 0) {
+      showInfo("Please select ateast one department receiving");
+      return;
+    }
+    const payload = updatedDepartmentReceiving?.map(u => {
+      return {
+        patientInvestigationId: u?.PatientInvestigationId,
+        barCode: u?.Barcode,
+        statusId: 3,
+        defaultSampleTypeId: u?.DefaultSampleTypeId,
+        labNo: u?.LabNo,
+        sampleDateTime: u?.sampleDateTime || getLocalDateTime(),
+      };
+    });
+
+    const finalPayload = {
+      samples: payload,
+    };
+
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_SAMPLE_STATUS,
+      finalPayload,
+      {},
+      { component: "SampleManagement" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? error?.message ?? "something went wrong");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+
+    setUpdatedSampleCollectionTable([]);
+    setUpdatedDepartmentReceiving([]);
+
+    await fetchLabData(getValues());
+  };
+
+  // cancel handler
+  const cancelHandler = () => {
+    reset({
+      typeId: 0,
+      uhid: "",
+      ipdNo: "",
+      labNo: "",
+      fromDate: currentDate,
+      toDate: currentDate,
+      statusId: 0,
+      barcode: "",
+      patientName: "",
+      subCategoryId: 1,
+      subSubCategoryId: 0,
+      investigationId: 0,
+      canSampleCollect: canCollectSample,
+    });
+  };
+
+  // patient investigation info
+
+  const patientInvestigationInfoHandler = (item: LabResultEntryTableData) => {
+    setSelectedPatient(item);
+    setRenderPatientInfoPopup(true);
+    setOpenPatientInfoPopup(true);
+  };
+  const closePatientInvestigationInfo = useCallback(() => {
+    setOpenPatientInfoPopup(false);
+    setRenderPatientInfoPopup(false);
+  }, []);
   return (
     <div className="page-container">
       <h1 className="page-heading">Pathology Result Entry</h1>
@@ -630,7 +886,13 @@ const LabResultEntry = () => {
             </InputField> */}
 
             <InputField label="Quick Search">
-              <input type="text" className="input-field" placeholder="Enter for quick search " />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter for quick search "
+                value={searchValue}
+                onChange={e => setSearchValue(e.target.value)}
+              />
             </InputField>
           </div>
           <div className="mt-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -656,30 +918,6 @@ const LabResultEntry = () => {
               </div>
             </div>
 
-            {/* <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="headerType"
-                    value="proc"
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="font-bold">Proc Lab Header</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="headerType"
-                    value="login"
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="font-bold">Login Header</span>
-                </label>
-              </div>
-              */}
-
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <button type="button" className="save-btn w-full sm:w-auto">
                 Print
@@ -701,66 +939,293 @@ const LabResultEntry = () => {
       {!!showTable && (
         <div className="table-container  ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-85 lg:max-h-85">
+            <div className="table-size lg:min-h-73 lg:max-h-73 ">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>
-                    {LabResultEntryTableHeader.map((h, index) => (
-                      <th key={index} className="table-th ">
-                        {h}
-                      </th>
-                    ))}
+                    {(canCollectSample > 0
+                      ? LabResultEntryTableHeaderForSampleCollect
+                      : LabResultEntryTableHeaderNotCollect
+                    )?.map((h, index) => {
+                      const isSampleHeader = h === "Sample Collection";
+                      const isDeptHeader = h === "Dept. Rec.";
+
+                      const showCheckbox = canCollectSample > 0 && (isSampleHeader || isDeptHeader);
+
+                      // Calculate eligible sample items
+                      const eligibleSampleItems = visibleTableData.filter(
+                        item => item.IsSampleCollected === 0 && item.isSampleRejected === 0
+                      );
+
+                      // Check if all eligible sample items are in the updated list
+                      const isAllSampleChecked =
+                        eligibleSampleItems.length > 0 &&
+                        eligibleSampleItems.every(item =>
+                          updatedSampleCollectionTable.some(
+                            s => s.PatientInvestigationId === item.PatientInvestigationId
+                          )
+                        );
+
+                      // Calculate eligible department receiving items
+                      const eligibleDeptItems = visibleTableData.filter(
+                        item =>
+                          item.IsDepartmentReceivingRequired === 1 &&
+                          item.IsSampleCollected === 1 &&
+                          item.IsSampleReceivedByDepartment === 0 &&
+                          item.Barcode !== "SNR"
+                      );
+
+                      // Check if all eligible department items are in the updated list
+                      const isAllDeptChecked =
+                        eligibleDeptItems.length > 0 &&
+                        eligibleDeptItems.every(item =>
+                          updatedDepartmentReceiving.some(
+                            s => s.PatientInvestigationId === item.PatientInvestigationId
+                          )
+                        );
+
+                      return (
+                        <th key={index} className="table-th">
+                          {showCheckbox ? (
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="input-checkbox"
+                                checked={isSampleHeader ? isAllSampleChecked : isAllDeptChecked}
+                                onChange={e => checkboxHandler(h, e.target.checked)}
+                              />
+                              {h}
+                            </span>
+                          ) : (
+                            h
+                          )}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredData.length === 0 ? (
+                  {visibleTableData?.length === 0 && (
                     <tr>
-                      <td colSpan={17} className="text-center py-6 text-gray-500">
-                        No data found
+                      <td colSpan={LabInvestigationTableHeader.length} className="table-empty">
+                        No records found
                       </td>
                     </tr>
-                  ) : (
-                    filteredData.map((item, idx) => (
-                      <tr key={idx} className="table-row">
-                        <td className="table-td">{idx + 1}</td>
-                        <td className="table-td">{item?.LabNo || "-"}</td>
-                        <td className="table-td">{item?.BillDate || "-"}</td>
-                        <td className="table-td">{item?.Type || "-"}</td>
-                        <td className="table-td">{item?.UHID || "-"}</td>
-                        <td className="table-td">{item?.IPDNo || "-"}</td>
-                        <td className="table-td">{item?.xyz || "-"}</td>
-
-                        <td className="table-td">{item?.PatientName || "-"}</td>
-                        <td className="table-td">
-                          {item?.CurrentAge || "-"} / {item?.Gender}
-                        </td>
-
-                        <td className="table-td max-w-70">
-                          <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
-                        </td>
-
-                        <td className="table-td">{item?.Barcode || "-"}</td>
-                        <td className="table-td">{item?.xv || "-"}</td>
-                        <td className="table-td">{item?.sv || "-"}</td>
-                        <td className="table-td">{item?.ts || "-"}</td>
-
-                        <td className="table-td cursor-pointer" onClick={() => remarkHandler(item)}>
-                          <i className="fa-solid fa-plus text-xl items-center active:scale-80 cursor:pointer"></i>
-                        </td>
-                        <td
-                          className="table-td cursor-pointer"
-                          onClick={() => openPatientInvestigation(item)}
-                        >
-                          <i className="fa-solid fa-info text-xl  text-blue-500 active:scale-80"></i>
-                        </td>
-                      </tr>
-                    ))
                   )}
+
+                  {visibleTableData.map((item, idx) => (
+                    <tr key={item?.PatientInvestigationId} className="table-row">
+                      <td className="table-td">{idx + 1}</td>
+                      <td className="table-td">{item?.LabNo || "-"}</td>
+
+                      <td className="table-td">{item?.BillDate || "-"}</td>
+                      <td className="table-td">{item?.Type || "-"}</td>
+
+                      <td className="table-td">{item?.UHID || "-"}</td>
+                      <td className="table-td">{item?.IPDNo || 0}</td>
+
+                      <td className="table-td max-w-50">{item?.PatientName ?? "-"}</td>
+                      <td className="table-td">
+                        {item?.CurrentAge || "-"} / {item?.Gender}
+                      </td>
+                      <td className="table-td max-w-70">
+                        <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
+                      </td>
+
+                      {/* sample type */}
+                      <td className="table-td">
+                        {(() => {
+                          const parsedSampleTypes = sampleArrayFormation(
+                            item?.SampleTypeList || ""
+                          );
+                          const currentSampleTypeId = item?.DefaultSampleTypeId ?? 0;
+                          const hasCurrentOption = parsedSampleTypes.some(
+                            sampleType => sampleType.id === currentSampleTypeId
+                          );
+                          const selectedSampleTypeId = hasCurrentOption ? currentSampleTypeId : 0;
+
+                          return (
+                            <select
+                              className={`${item?.IsSampleCollected === 1 ? "disabled-input-field cursor-not-allowed" : "input-field"}`}
+                              disabled={item?.IsSampleCollected === 1}
+                              value={selectedSampleTypeId}
+                              onChange={e => selectSampleTypeHandler(idx, Number(e.target.value))}
+                            >
+                              <option value={0}></option>
+                              {parsedSampleTypes?.map(sampleType => (
+                                <option key={sampleType.id} value={sampleType.id}>
+                                  {sampleType.name}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
+                      </td>
+
+                      {/* barcode */}
+                      <td className="table-td">
+                        <input
+                          type="text"
+                          className={`${Number(item.IsSampleCollected) === 1 ? "disabled-input-field max-w-20" : "input-field max-w-20"}`}
+                          value={item?.Barcode ?? ""}
+                          onChange={e => handleBarcodeChange(item, e)}
+                          disabled={Number(item.IsSampleCollected) === 1}
+                        />
+                      </td>
+
+                      {canCollectSample > 0 ? (
+                        <>
+                          {/* color code */}
+                          <td className="table-td">
+                            {(() => {
+                              const parsedSampleTypes = sampleArrayFormation(
+                                item?.SampleTypeList || ""
+                              );
+                              const currentSampleTypeId = item?.DefaultSampleTypeId ?? 0;
+                              const hasCurrentOption = parsedSampleTypes.some(
+                                sampleType => sampleType.id === currentSampleTypeId
+                              );
+                              const sampleTypeId = hasCurrentOption ? currentSampleTypeId : 0;
+
+                              const selectedSampleType = parsedSampleTypes.find(
+                                sampleType => sampleType.id === sampleTypeId
+                              );
+                              const colorCode =
+                                sampleTypeId === 0
+                                  ? "#ffffff"
+                                  : selectedSampleType?.color || "#ffffff";
+
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="px-1 py-3 rounded-md border inline-block min-w-6"
+                                    style={{
+                                      backgroundColor: colorCode,
+                                      borderColor: colorCode,
+                                      color: colorCode,
+                                    }}
+                                  ></span>
+                                  {/* <span className="text-xs font-medium">{hexCode}</span> */}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          {/* sample collection */}
+                          <td className="table-td">
+                            {item?.IsSampleCollected === 0 && item?.isSampleRejected === 0 ? (
+                              <div className="flex flex-col m-1">
+                                <input
+                                  type="checkbox"
+                                  className="input-checkbox mb-1"
+                                  checked={updatedSampleCollectionTable.some(
+                                    s => s.PatientInvestigationId === item.PatientInvestigationId
+                                  )}
+                                  onChange={() => handleCheckboxChange(item)}
+                                />
+                                <CustomDateTimeInput
+                                  value={item.sampleDateTime || currentDateTime}
+                                  onChange={val => sampleCollectionDateTime(item, val)}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex flex-col m-1">
+                                <input
+                                  type="checkbox"
+                                  className="input-checkbox"
+                                  checked={Number(item.IsSampleCollected) === 1}
+                                  disabled={Number(item.IsSampleCollected) === 1}
+                                />
+                                <span className="font-semibold">{item?.SampleCollectedOn}</span>
+                              </div>
+                            )}
+                          </td>
+                          {/* department receiving required checkbox */}
+                          <td className="table-td">
+                            {item?.IsSampleReceivedByDepartment === 0 &&
+                            item?.IsDepartmentReceivingRequired === 1 &&
+                            item?.IsSampleCollected === 1 ? (
+                              <div className="flex flex-col">
+                                <input
+                                  type="checkbox"
+                                  className="input-checkbox mb-1"
+                                  checked={updatedDepartmentReceiving.some(
+                                    s => s.PatientInvestigationId === item.PatientInvestigationId
+                                  )}
+                                  onChange={() => handleDeptRecvChange(item)}
+                                />
+                                <CustomDateTimeInput
+                                  value={item.sampleDateTime || currentDateTime}
+                                  onChange={val => departmentReceiveDateTime(item, val)}
+                                />
+                              </div>
+                            ) : item?.IsDepartmentReceivingRequired === 1 &&
+                              item?.IsSampleReceivedByDepartment === 1 ? (
+                              <div className="flex flex-col">
+                                <input
+                                  type="checkbox"
+                                  className="input-checkbox"
+                                  checked={true}
+                                  disabled={true}
+                                />
+                                <span className="font-semibold">
+                                  {item?.SampleReceivedByDepartmentOn}
+                                </span>
+                              </div>
+                            ) : (
+                              <></>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <></>
+                      )}
+
+                      <td className="table-td">
+                        <i className="fa-solid fa-print icon-color-button"></i>
+                      </td>
+
+                      <td className="table-td max-w-50">{item?.IsReportApproved ?? "-"}</td>
+
+                      <td className="table-td max-w-50">{item?.ReportApprovedOn ?? "-"}</td>
+
+                      <td className="table-td">
+                        <i className="fa-solid fa-plus icon-color-button"></i>
+                      </td>
+
+                      <td
+                        className="table-td"
+                        onClick={() => patientInvestigationInfoHandler(item)}
+                      >
+                        <i className="fa-solid fa-info icon-color-button"></i>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {!!canCollectSample && canCollectSample > 0 ? (
+            <div className="form-actions-responsive mt-3">
+              <button type="submit" className="save-btn" onClick={handleSaveSampleCollection}>
+                Save Sample Collection
+              </button>
+              <button type="submit" className="save-btn" onClick={handleDepartmentReceive}>
+                Save Dept Receive
+              </button>
+
+              <button type="button" className="save-btn">
+                Reprint Barcode Sticker
+              </button>
+
+              <button type="button" className="cancel-button " onClick={cancelHandler}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       )}
       {/* remark popup */}
@@ -773,10 +1238,10 @@ const LabResultEntry = () => {
       )}
 
       {/* patient investigation details */}
-      {!!renderPatientDrawer && (
-        <LRPatientInvestigation
-          isOpen={openPatientDrawer}
-          onClose={closePatientDrawer}
+      {!!renderPatientInfoPopup && (
+        <LabPatientInfo
+          isOpen={openPatientInfoPopup}
+          onClose={closePatientInvestigationInfo}
           data={selectedPatient}
         />
       )}
@@ -786,4 +1251,4 @@ const LabResultEntry = () => {
   );
 };
 
-export default LabResultEntry;
+export default PathologyResultEntry;

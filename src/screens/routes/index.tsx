@@ -19,7 +19,7 @@ import IpdBilling from "../ipdBilling";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
 import LaboratoryHelpDesk from "../laboratoryHelpDesk";
-import LabResultEntry from "../labResultEntry";
+import PathologyResultEntry from "../labResultEntry";
 import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
 import MicroResultEntry from "../microResultEntry";
@@ -27,7 +27,6 @@ import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
 import PatientDocumentMaster from "../patientDocumentMaster";
-import PatientMaster from "../patientMaster";
 import PatientRegistration from "../patientRegistration";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
@@ -68,7 +67,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "bed-details": <BedDetails />,
   "no-page": <NoPage />,
   "sample-management": <SampleManagement />,
-  "lab-result-entry": <LabResultEntry />,
+  "lab-result-entry": <PathologyResultEntry />,
   "result-entry-radiology": <ResultEntryRadiology />,
   "histo-result-entry": <HistoResultEntry />,
   "micro-result-entry": <MicroResultEntry />,
@@ -76,7 +75,6 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "allergy-result-entry": <AllergyResultEntry />,
   "laboratory-help-desk": <LaboratoryHelpDesk />,
   "allergy-master": <AllergyMaster />,
-  "patient-master": <PatientMaster />,
   "corporate-master": <CorporateMaster />,
   "import-tariffs": <ImportTariffs />,
   "ipd-billing": <IpdBilling />,

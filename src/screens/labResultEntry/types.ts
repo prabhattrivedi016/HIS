@@ -36,10 +36,9 @@ type LabResultEntryTableData = {
   Name: string;
   isReportPrinted?: number;
   isMachineResult?: number;
-  xyz?: string;
-  xv?: string;
-  sv?: string;
-  ts?: string;
+  sampleDateTime?: string;
+  selectedSampleType?: string;
+  SampleTypeName?: string;
 };
 
 type SubCategory = {

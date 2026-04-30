@@ -27,6 +27,47 @@ export const SampleManagementTableHeader = [
   "Info",
 ];
 
+export const LabResultEntryTableHeaderForSampleCollect = [
+  "#",
+  "Lab No",
+  "Bill Date",
+  "Type",
+  "UHID",
+  "IPD No",
+  "Patient Name",
+  "Age/Gender",
+  "Investigation",
+  "Sample Type",
+  "Bar Code",
+  "Color Code",
+  "Sample Collection",
+  "Dept. Rec.",
+  "Print",
+  "Approved",
+  "Approved Date",
+  "Remark",
+  "Info",
+];
+
+export const LabResultEntryTableHeaderNotCollect = [
+  "#",
+  "Lab No",
+  "Bill Date",
+  "Type",
+  "UHID",
+  "IPD No",
+  "Patient Name",
+  "Age/Gender",
+  "Investigation",
+  "Sample Type",
+  "Bar Code",
+  "Print",
+  "Approved",
+  "Approved Date",
+  "Remark",
+  "Info",
+];
+
 export const PatientInvestigationTableHeader = [
   "#",
   "Investigation Name",
@@ -46,31 +87,13 @@ export const PatientInvestigationTableHeader = [
 ];
 
 export const LabResultEntryButtons = [
-  { buttonName: "resultPending", level: "Result Pending", color: "#8C8787" },
-  { buttonName: "hold", level: "Hold", color: "#F28E85" },
-  { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#7BA1DB" },
-  { buttonName: "approved", level: "Approved", color: "#E05A5A" },
-  { buttonName: "printed", level: "Printed", color: "#D6D065" },
-  { buttonName: "dispatched", level: "Dispatched", color: "#3DE3DC" },
-  { buttonName: "reRun", level: "ReRun", color: "#7CD44A" },
-];
-export const LabResultEntryTableHeader = [
-  "#",
-  "Lab No",
-  "Bill Date",
-  "Type",
-  "UHID",
-  "IPD No",
-  "Ward Name/Bed No",
-  "Patient Name",
-  "Age/Gender",
-  "Investigation",
-  "BarCode",
-  "Print",
-  "Approved",
-  "Stickers",
-  "Remark",
-  "Info",
+  { buttonName: "sampleCollectionPending", level: "Sample Collection Pending", color: "#ffb7ae" },
+  { buttonName: "resultPending", level: "Result Pending", color: "#fbe24f" },
+  { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#00c0ef" },
+  { buttonName: "rejected", level: "Rejected", color: "#fc6464" },
+  { buttonName: "hold", level: "Hold", color: "#f09bf8" },
+  { buttonName: "approved", level: "Approved", color: "#2eeba3" },
+  { buttonName: "dispatched", level: "Dispatched", color: "#adeb74" },
 ];
 
 export const LREPatientInvestigationTableHeader = [
