@@ -40,4 +40,21 @@ type PatientInfo = {
   NotificationRemark: string;
 };
 
-export type { PatientInfo };
+type SampleRemarksItem = {
+  sampleRemarksID: number;
+  sampleRemarks: string;
+  isActive: number;
+};
+
+type SampleRemarkTableDataItem = {
+  Id: number;
+  PatientInvestigationId: number;
+  testRemark: string;
+  testComment: string;
+  testCommentId: number;
+  isInternal: number;
+  CreatedOn: string;
+  CreatedBy: string;
+};
+
+export type { PatientInfo, SampleRemarksItem, SampleRemarkTableDataItem };

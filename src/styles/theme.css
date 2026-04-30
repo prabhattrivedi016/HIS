@@ -324,7 +324,7 @@
 
 /* Cells */
 .table-td {
-  @apply px-2 py-1 whitespace-normal border-gray-100;
+  @apply px-4 py-1 whitespace-normal border-gray-100;
 }
 
 /* Action column */

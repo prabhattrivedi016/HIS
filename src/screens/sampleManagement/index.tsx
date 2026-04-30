@@ -4,6 +4,7 @@ import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import LabPatientInfo from "@/components/SingledrawerAndPopup";
+import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { sampleManagementButtons, SampleManagementTableHeader } from "@/constants/tableHeaders";
@@ -22,7 +23,6 @@ import { Controller, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
 import RejectSamplePopup from "./components/RejectSamplePopup";
-import RemarkPopup from "./components/RemarkPopup";
 import { ButtonValue, CorporateList, SampleManagementTableData } from "./types";
 
 const SampleManagement = () => {
@@ -515,8 +515,8 @@ const SampleManagement = () => {
     setOpenRejectPopup(true);
   };
 
-  // sample reject handler
-  const rejectRemarkHandler = (item: SampleManagementTableData) => {
+  // sample remark handler
+  const sampleRemarkHandler = (item: SampleManagementTableData) => {
     setRemarkItem(item);
     setRenderRemarkPopup(true);
     setOpenRemarkPopup(true);
@@ -1017,7 +1017,7 @@ const SampleManagement = () => {
                       <td className="table-td" onClick={() => rejectSampleHandler(item)}>
                         <i className="fa-solid fa-check icon-color-delete"></i>
                       </td>
-                      <td className="table-td" onClick={() => rejectRemarkHandler(item)}>
+                      <td className="table-td" onClick={() => sampleRemarkHandler(item)}>
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
@@ -1069,7 +1069,7 @@ const SampleManagement = () => {
 
       {/*remark popup  */}
       {!!renderRemarkPopup && (
-        <RemarkPopup isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />
+        <SampleRemarks isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />
       )}
 
       {/* patient info */}
