@@ -27,3 +27,11 @@ export const sampleRejectionSchema = yup.object().shape({
   sampleRejectionRemarks: yup.string().required("Sample rejection remark is required"),
   isActive: yup.number().required("Status is required"),
 });
+
+export const sampleRemarksSchema = yup.object().shape({
+  sampleRemarksID: yup.number().nullable(),
+  sampleRemarks: yup.string().required("Sample remarks is required"),
+  isActive: yup.number().required("Status is required"),
+});
+
+export type SampleRemarkFormData = yup.InferType<typeof sampleRemarksSchema>;

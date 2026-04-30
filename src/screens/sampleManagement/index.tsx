@@ -1021,6 +1021,10 @@ const SampleManagement = () => {
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
+                      <td className="table-td" onClick={() => rejectRemarkHandler(item)}>
+                        <i className="fa-solid fa-print icon-color-button"></i>
+                      </td>
+
                       <td className="table-td" onClick={() => patientInvestigationHandler(item)}>
                         <i className="fa-solid fa-info icon-color-button"></i>
                       </td>
