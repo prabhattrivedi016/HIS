@@ -301,11 +301,11 @@ select:-webkit-autofill {
 
 /*----------------- icon color button ----------------*/
 .icon-color-button {
-  @apply text-sm text-blue-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-4;
+  @apply text-sm text-blue-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
 }
 
 .icon-color-delete {
-  @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-4;
+  @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
 }
 
 /* ================= PRINT STYLES ================= */

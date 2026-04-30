@@ -15,3 +15,14 @@ export const sampleManagementSchema = yup.object().shape({
 });
 
 export type SampleManagementFormData = yup.InferType<typeof sampleManagementSchema>;
+
+export const sampleManagementRemarksSchema = yup.object().shape({
+  id: yup.number().nullable(),
+  patientInvestigationId: yup.number().nullable(),
+  testRemark: yup.string().required("Remark is required"),
+  testComment: yup.string().required("Select atleast one remark"),
+  testCommentId: yup.number().required().moreThan(0, "Please select one remark"),
+  isInternal: yup.number().nullable(),
+});
+
+export type sampleManagementRemarksFormData = yup.InferType<typeof sampleManagementRemarksSchema>;
