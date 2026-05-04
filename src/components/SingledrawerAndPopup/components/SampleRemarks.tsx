@@ -147,7 +147,6 @@ const SampleRemarks = React.memo(
 
     // edit handler
     const editHandler = (item: SampleRemarkTableDataItem) => {
-      console.log("item", item);
       reset({
         id: item?.Id,
         patientInvestigationId: item?.PatientInvestigationId ?? 0,
@@ -160,7 +159,6 @@ const SampleRemarks = React.memo(
 
     // delete handler
     const deleteHandler = async (item: SampleRemarkTableDataItem) => {
-      console.log("formData", item);
       const resp = await fetchApi(
         "POST",
         ENDPOINTS.DELETE_PATIENT_INVESTIGATION_REMARK,
@@ -230,6 +228,10 @@ const SampleRemarks = React.memo(
                   </option>
                 ))}
               </select>
+
+              {errors.testCommentId && (
+                <p className="input-field-error">{errors.testCommentId.message}</p>
+              )}
             </InputField>
 
             {/* Hidden field for text */}
@@ -242,6 +244,9 @@ const SampleRemarks = React.memo(
                 placeholder="Enter Remarks"
                 {...register("testRemark")}
               />
+              {errors.testRemark && (
+                <p className="input-field-error">{errors.testRemark.message}</p>
+              )}
             </InputField>
 
             {/* Is Internal */}

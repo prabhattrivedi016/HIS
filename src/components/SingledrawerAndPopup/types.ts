@@ -57,4 +57,26 @@ type SampleRemarkTableDataItem = {
   CreatedBy: string;
 };
 
-export type { PatientInfo, SampleRemarksItem, SampleRemarkTableDataItem };
+type DocumentNameItem = {
+  documentId: number;
+  name: string;
+  isActive: number;
+  createdBy: number;
+};
+
+type SampleManagementDocumentTableItem = {
+  InvestigationDocumentId: number;
+  PatientInvestigationId: number;
+  InvestigationDocumentName: string;
+  UploadFileLocation: string;
+  UploadOn: string;
+  UploadedBy: string;
+};
+
+export type {
+  DocumentNameItem,
+  PatientInfo,
+  SampleManagementDocumentTableItem,
+  SampleRemarksItem,
+  SampleRemarkTableDataItem,
+};

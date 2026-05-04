@@ -25,6 +25,7 @@ export const SampleManagementTableHeader = [
   "Reject",
   "Remark",
   "Report",
+  "Document",
   "Info",
 ];
 
@@ -48,6 +49,7 @@ export const LabResultEntryTableHeaderForSampleCollect = [
   "Approved Date",
   "Remark",
   "Report",
+  "Document",
   "Info",
 ];
 
@@ -68,6 +70,7 @@ export const LabResultEntryTableHeaderNotCollect = [
   "Approved Date",
   "Remark",
   "Report",
+  "Document",
   "Info",
 ];
 
@@ -90,7 +93,7 @@ export const PatientInvestigationTableHeader = [
 ];
 
 export const LabResultEntryButtons = [
-  { buttonName: "sampleCollectionPending", level: "Sample Collection Pending", color: "#ffb7ae" },
+  { buttonName: "sampleCollectionPending", level: " Collection Pending", color: "#ffb7ae" },
   { buttonName: "resultPending", level: "Result Pending", color: "#fbe24f" },
   { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#00c0ef" },
   { buttonName: "rejected", level: "Rejected", color: "#fc6464" },
@@ -473,4 +476,14 @@ export const SampleRemarksTableHeader = [
   "Last ModifiedBy",
   "Last ModifiedOn",
   "Edit",
+];
+
+export const SampleManagementDocumentTableHeader = [
+  "#",
+  "Document",
+  "Uploaded On",
+  "Uploaded By",
+  "Preview",
+  "Download",
+  "Delete",
 ];

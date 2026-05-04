@@ -26,3 +26,41 @@ export const sampleManagementRemarksSchema = yup.object().shape({
 });
 
 export type sampleManagementRemarksFormData = yup.InferType<typeof sampleManagementRemarksSchema>;
+
+export const sampleManagementDocumentNameSchema = yup.object().shape({
+  documentId: yup.number().nullable(),
+  documentName: yup.string().required("Document name is required"),
+});
+
+export type SampleManagementDocumentNameFormData = yup.InferType<
+  typeof sampleManagementDocumentNameSchema
+>;
+
+export const sampleManagementDocumentUploadSchema = yup.object().shape({
+  PatientInvestigationId: yup.number().nullable(),
+
+  InvestigationDocumentNameId: yup
+    .number()
+    .required("Select atleast one investigation")
+    .moreThan(0, "Select atleast one investigation"),
+
+  UploadFile: yup
+    .mixed()
+    .required("File is required")
+    .test("fileType", "Unsupported file format", (value: any) => {
+      if (!value) return false;
+
+      const allowedTypes = ["image/jpeg", "image/png"];
+
+      return allowedTypes.includes(value.type);
+    })
+    .test("fileSize", "File size too large (max 5MB)", (value: any) => {
+      if (!value) return false;
+
+      return value.size <= 5 * 1024 * 1024;
+    }),
+});
+
+export type sampleManagementDocumentUploadFormData = yup.InferType<
+  typeof sampleManagementDocumentUploadSchema
+>;

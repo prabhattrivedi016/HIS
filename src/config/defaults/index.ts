@@ -234,6 +234,13 @@ const ENDPOINTS = {
   CREATE_UPDATE_PATIENT_INVESTIGATION_REMARK: "/Lab/createUpdatePatientInvestigationRemark",
   DELETE_PATIENT_INVESTIGATION_REMARK: "Lab/deletePatientInvestigationRemark",
 
+  GET_INVESTIGATION_DOCUMENT_NAME_MASTER: "Lab/getInvestigationDocumentNameMaster",
+  INSERT_PATIENT_INVESTIGATION_DOCUMENT: "Lab/insertPatientInvestigationDocument",
+  GET_PATIENT_INVESTIGATION_DOCUMENT_LIST: "Lab/getPatientInvestigationDocumentList",
+  DELETE_PATIENT_INVESTIGATION_DOCUMENT: "Lab/deletePatientInvestigationDocument",
+  CREATE_UPDATE_INVESTIGATION_DOCUMENT_NAME_MASTER:
+    "Lab/createUpdateInvestigationDocumentNameMaster",
+
   //pathology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:
     "Lab/searchPatientInvestigationForSampleProcessingPathology",
