@@ -2,6 +2,8 @@ import CustomDateInput from "@/components/customDateInput";
 import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
+import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
 import { CATEGORY_ID, Status } from "@/constants/constants";
 import {
@@ -59,8 +61,6 @@ const PathologyResultEntry = () => {
 
   const [openPatientInfoPopup, setOpenPatientInfoPopup] = useState<boolean>(false);
   const [renderPatientInfoPopup, setRenderPatientInfoPopup] = useState<boolean>(false);
-  const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
-  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
 
   const [labResultEntryTableData, setLabResultEntryTableData] = useState<LabResultEntryTableData[]>(
     []
@@ -92,6 +92,14 @@ const PathologyResultEntry = () => {
   const [searchValue, setSearchValue] = useState<string>("");
 
   const hasFetched = useRef(false);
+  const [openPatientDocuments, setOpenPatientDocuments] = useState<boolean>(false);
+  const [renderPatientDocument, setRenderPatientDocument] = useState<boolean>(false);
+  const [selectedPatientDocument, setSelectedPatientDocument] =
+    useState<LabResultEntryTableData | null>(null);
+
+  const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
+  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
+  const [remarkItem, setRemarkItem] = useState<LabResultEntryTableData | null>(null);
 
   // role
   const roleContext = useContext(RoleContext);
@@ -100,14 +108,6 @@ const PathologyResultEntry = () => {
   // branch
   const authData = useContext(AuthContext);
   const branchId = authData?.user?.branchId;
-
-  const remarkHandler = (item: LabResultEntryTableData) => {
-    setSelectedRemarkPatient(item);
-    setRenderRemarkPopup(true);
-    requestAnimationFrame(() => {
-      setOpenRemarkPopup(true);
-    });
-  };
 
   const closeHandler = useCallback(() => {
     setOpenRemarkPopup(false);
@@ -774,6 +774,35 @@ const PathologyResultEntry = () => {
     setOpenPatientInfoPopup(false);
     setRenderPatientInfoPopup(false);
   }, []);
+
+  // patient document handler
+  const patientDocumentHandler = (item: LabResultEntryTableData) => {
+    if (!item) return;
+    setOpenPatientDocuments(true);
+    setRenderPatientDocument(true);
+    setSelectedPatientDocument(item);
+  };
+
+  // close document handler
+  const closeDocumentHandler = useCallback(() => {
+    setOpenPatientDocuments(false);
+    setSelectedPatientDocument(null);
+  }, []);
+
+  // sample remark handler
+  const sampleRemarkHandler = (item: LabResultEntryTableData) => {
+    setRemarkItem(item);
+    setRenderRemarkPopup(true);
+    setOpenRemarkPopup(true);
+  };
+
+  // close remark popup
+  const closeRemarkPopup = useCallback(() => {
+    setOpenRemarkPopup(false);
+    setRenderRemarkPopup(false);
+    setRemarkItem(null);
+  }, []);
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Pathology Result Entry</h1>
@@ -1181,16 +1210,22 @@ const PathologyResultEntry = () => {
                         <></>
                       )}
 
+                      <td className="table-td max-w-50">
+                        {item?.IsReportApproved === 0 ? "No" : "yes"}
+                      </td>
+
+                      <td className="table-td max-w-50">{item?.ReportApprovedOn ?? "-"}</td>
+
+                      <td className="table-td" onClick={() => sampleRemarkHandler(item)}>
+                        <i className="fa-solid fa-plus icon-color-button"></i>
+                      </td>
+
                       <td className="table-td">
                         <i className="fa-solid fa-print icon-color-button"></i>
                       </td>
 
-                      <td className="table-td max-w-50">{item?.IsReportApproved ?? "-"}</td>
-
-                      <td className="table-td max-w-50">{item?.ReportApprovedOn ?? "-"}</td>
-
-                      <td className="table-td">
-                        <i className="fa-solid fa-plus icon-color-button"></i>
+                      <td className="table-td" onClick={() => patientDocumentHandler(item)}>
+                        <i className="fa-solid fa-file icon-color-button"></i>
                       </td>
 
                       <td
@@ -1243,6 +1278,20 @@ const PathologyResultEntry = () => {
           isOpen={openPatientInfoPopup}
           onClose={closePatientInvestigationInfo}
           data={selectedPatient}
+        />
+      )}
+
+      {/*remark popup  */}
+      {!!renderRemarkPopup && (
+        <SampleRemarks isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />
+      )}
+
+      {/* patient documents */}
+      {!!renderPatientDocument && (
+        <SampleManagementPatientDocument
+          isOpen={openPatientDocuments}
+          onClose={closeDocumentHandler}
+          data={selectedPatientDocument}
         />
       )}
 

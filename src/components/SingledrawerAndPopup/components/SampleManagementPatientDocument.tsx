@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { SampleManagementDocumentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import { showError, showSuccess } from "@/utils/alert";
 import { formatDisplayDate } from "@/utils/dateConvertHandler";
@@ -28,7 +29,7 @@ const SampleManagementPatientDocument = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementTableData;
+    data: SampleManagementTableData | LabResultEntryTableData;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
 

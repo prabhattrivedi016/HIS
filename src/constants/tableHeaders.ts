@@ -44,7 +44,6 @@ export const LabResultEntryTableHeaderForSampleCollect = [
   "Color Code",
   "Sample Collection",
   "Dept. Rec.",
-  "Print",
   "Approved",
   "Approved Date",
   "Remark",
