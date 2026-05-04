@@ -4,7 +4,7 @@ export const toInputDate = (date?: string) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-// ✅ UI FORMAT → "31st March"
+// UI FORMAT → "31st March"
 export const formatDisplayDate = (dateString?: string) => {
   if (!dateString) return "-";
 
@@ -19,7 +19,7 @@ export const formatDisplayDate = (dateString?: string) => {
 
   return `${d}${suffix(d)} ${monthName} ${y}`;
 };
-// ✅ API → INPUT
+//  API → INPUT
 export const formatToYYYYMMDD = (dateString?: string) => {
   if (!dateString) return "";
   const [day, month, year] = dateString.split("-");

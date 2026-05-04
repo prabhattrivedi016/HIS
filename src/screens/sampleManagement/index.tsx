@@ -4,6 +4,7 @@ import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import LabPatientInfo from "@/components/SingledrawerAndPopup";
+import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
 import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
@@ -77,6 +78,11 @@ const SampleManagement = () => {
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
   const [selectedPatient, setSelectedPatient] = useState<SampleManagementTableData | null>(null);
+
+  const [openPatientDocuments, setOpenPatientDocuments] = useState<boolean>(false);
+  const [renderPatientDocument, setRenderPatientDocument] = useState<boolean>(false);
+  const [selectedPatientDocument, setSelectedPatientDocument] =
+    useState<SampleManagementTableData | null>(null);
 
   const [searchValue, setSearchValue] = useState<string>("");
 
@@ -529,6 +535,14 @@ const SampleManagement = () => {
     setSelectedPatient(item);
   };
 
+  // patient document handler
+  const patientDocumentHandler = (item: SampleManagementTableData) => {
+    if (!item) return;
+    setOpenPatientDocuments(true);
+    setRenderPatientDocument(true);
+    setSelectedPatientDocument(item);
+  };
+
   // select sample type handler
   const selectSampleTypeHandler = (index: number, value: number) => {
     const row = visibleTableData[index];
@@ -674,6 +688,13 @@ const SampleManagement = () => {
   // close patient info
   const closePatientInfo = useCallback(() => {
     setOpenPatientInfo(false);
+    setSelectedPatient(null);
+  }, []);
+
+  // close document handler
+  const closeDocumentHandler = useCallback(() => {
+    setOpenPatientDocuments(false);
+    setSelectedPatientDocument(null);
   }, []);
 
   return (
@@ -1021,8 +1042,12 @@ const SampleManagement = () => {
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
-                      <td className="table-td" onClick={() => rejectRemarkHandler(item)}>
+                      <td className="table-td">
                         <i className="fa-solid fa-print icon-color-button"></i>
+                      </td>
+
+                      <td className="table-td" onClick={() => patientDocumentHandler(item)}>
+                        <i className="fa-solid fa-file icon-color-button"></i>
                       </td>
 
                       <td className="table-td" onClick={() => patientInvestigationHandler(item)}>
@@ -1079,6 +1104,15 @@ const SampleManagement = () => {
           isOpen={openPatientInfo}
           onClose={closePatientInfo}
           data={selectedPatient}
+        />
+      )}
+
+      {/* patient documents */}
+      {!!renderPatientDocument && (
+        <SampleManagementPatientDocument
+          isOpen={openPatientDocuments}
+          onClose={closeDocumentHandler}
+          data={selectedPatientDocument}
         />
       )}
 
