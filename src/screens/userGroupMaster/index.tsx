@@ -172,8 +172,8 @@ const UserGroupMaster = () => {
       return;
     }
     setGridBtnPopup({
-      top: rect.bottom + window.scrollY - 5,
-      left: rect.left + window.scrollX + 5,
+      top: rect.bottom + 6,
+      left: rect.left,
     });
     setIdGridBtn(id);
     setGridRightTopBtn(true);
@@ -199,7 +199,7 @@ const UserGroupMaster = () => {
         <div className="grid-card-page-layout">
           {gridFilteredData.map((user, index) => (
             <GridView
-              key={index}
+              key={user?.id ?? index}
               data={user}
               onStatusChange={updateUserGroupStatus}
               openDrawer={AddNewHandler}

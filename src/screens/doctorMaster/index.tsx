@@ -242,8 +242,8 @@ const DoctorMaster = () => {
       return;
     }
     setGridBtnPopup({
-      top: rect.bottom + window.scrollY - 5,
-      left: rect.left + window.scrollX + 5,
+      top: rect.bottom + 6,
+      left: rect.left,
     });
     setIdGridBtn(doctorId);
     setGridRightTopBtn(true);

@@ -114,7 +114,6 @@ const SearchPatientPopup = ({
       {},
       { component: "SearchPatientPopupOfRegistration" }
     );
-    console.log("resp", resp?.data.slice(0, 5));
     setSearchPatientDataList(resp?.data.slice(0, 99) ?? []);
     setShowTable(true);
     setIsTableData(true);
