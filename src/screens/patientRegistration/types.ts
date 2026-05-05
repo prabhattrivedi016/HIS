@@ -212,6 +212,12 @@ type PatientDataEditItem = {
   emergencyNo: number;
 };
 
+type PatientDocumentPayloadItem = {
+  DocumentId: number;
+  PatientId: number;
+  DocumentFile?: File | null;
+};
+
 export type {
   BranchItem,
   ButtonProps,
@@ -225,6 +231,7 @@ export type {
   PatientDataHandle,
   PatientDataItem,
   PatientDataProps,
+  PatientDocumentPayloadItem,
   SearchedPatientItem,
   StateItem,
 };

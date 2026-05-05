@@ -832,23 +832,6 @@ const PathologyResultEntry = () => {
                 render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
               />
             </InputField>
-            {/* <InputField label="UHID">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter UHID"
-                {...register("uhid")}
-              />
-            </InputField> */}
-
-            {/* <InputField label="Barcode">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter lab number "
-                {...register("barcode")}
-              />
-            </InputField> */}
 
             {/* <InputField label="Patient Name">
               <input
@@ -876,14 +859,32 @@ const PathologyResultEntry = () => {
               />
             </InputField> */}
 
-            {/* <InputField label="Lab Number">
+            <InputField label="Lab Number">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter lab number "
                 {...register("labNo")}
               />
-            </InputField> */}
+            </InputField>
+
+            <InputField label="UHID">
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter UHID"
+                {...register("uhid")}
+              />
+            </InputField>
+
+            <InputField label="Barcode">
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter lab number "
+                {...register("barcode")}
+              />
+            </InputField>
 
             <InputField label=" Department">
               <select className="input-field" {...register("subSubCategoryId")}>

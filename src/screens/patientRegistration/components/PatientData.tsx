@@ -10,7 +10,6 @@ import { showError, showSuccess } from "@/utils/alert";
 import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import {
   defaultPatientRegistrationValues,
-  PatientRegistrationFormItem,
   patientRegistrationSchema,
 } from "@/validation/patientRegistrationSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -33,6 +32,7 @@ import {
   PatientDataEditItem,
   PatientDataHandle,
   PatientDataProps,
+  PatientDocumentPayloadItem,
 } from "../types";
 import Address from "./Address";
 import {
@@ -77,8 +77,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     const [renderDocument, setRenderDocument] = useState<boolean>(false);
     const [openDocument, setOpenDocument] = useState<boolean>(false);
 
-    const [defaultGender, setDefaultGender] = useState<string>("Male");
-
     const relationType = usePickMaster("PatientRelation");
     const relationTypeList = relationType?.pickMasterValue ?? [];
 
@@ -92,7 +90,15 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
     const [existingImagePreview, setExistingImagePreview] = useState<string | null>(null);
 
-    const methods = useForm<PatientRegistrationFormItem>({
+    // patient document
+    const [documentFileStore, setDocumentFileStore] = useState<Record<number, File>>({});
+    const [patientDocumentPayload, setPatientDocumentPayload] = useState<
+      PatientDocumentPayloadItem[]
+    >([]);
+
+    console.log("patientDocumentPayload", patientDocumentPayload);
+
+    const methods = useForm({
       resolver: yupResolver(patientRegistrationSchema),
       defaultValues: defaultPatientRegistrationValues,
       mode: "onChange",
@@ -108,6 +114,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     const isEdit = Boolean(watch("PatientId"));
     const watchedPatientId = watch("PatientId");
+
     const watchedTitle = watch("Title");
 
     const today = formatDate(new Date());
@@ -383,6 +390,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         { headers: { "Content-Type": "multipart/form-data" } },
         { component: "Patient Registration" }
       );
+      console.log("resp", resp?.data);
+
       if (!resp?.result) {
         showError(error?.message ?? "Something went wrong");
         return;
@@ -390,6 +399,49 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
       showSuccess(resp?.message ?? "Patient registered successfully");
       resetPatientForm();
+
+      if (resp?.data?.patientId && patientDocumentPayload.length > 0) {
+        const updatedDocumentPayload = patientDocumentPayload.map(
+          (item: PatientDocumentPayloadItem) => ({
+            ...item,
+            PatientId: Number(resp?.data?.patientId),
+          })
+        );
+        setPatientDocumentPayload(updatedDocumentPayload);
+
+        console.log("updatedDocumentPayload", updatedDocumentPayload);
+
+        const patientDocumentFormData = new FormData();
+
+        updatedDocumentPayload.forEach((item: PatientDocumentPayloadItem) => {
+          if (!item.DocumentFile) return;
+          patientDocumentFormData.append(`DocumentId`, String(item.DocumentId));
+          patientDocumentFormData.append(`PatientId`, String(item.PatientId));
+          patientDocumentFormData.append(`DocumentFile`, item.DocumentFile);
+        });
+
+        const response = await fetchApi(
+          "POST",
+          ENDPOINTS.UPLOAD_PATIENT_DOCUMENT,
+          patientDocumentFormData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          },
+          { component: "PatientDocumentUpload" }
+        );
+
+        console.log("response", response?.data);
+
+        if (!response?.result) {
+          showError(response?.message || "Upload failed");
+          return;
+        }
+
+        setDocumentFileStore({});
+        setPatientDocumentPayload([]);
+      }
     };
 
     const resetPatientForm = () => {
@@ -1035,7 +1087,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <button type="button" className="save-btn w-full" onClick={openPhotoPicker}>
                       Upload Photo
                     </button>
-                    <button className="save-btn w-full" type="button" onClick={openDocumentHandler}>
+                    <button type="button" onClick={openDocumentHandler} className="save-btn">
                       Documents
                     </button>
                   </div>
@@ -1053,7 +1105,17 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         )}
 
         {/* documents */}
-        {!!renderDocument && <DocumentPopup isOpen={openDocument} onClose={closeDocument} />}
+        {!!renderDocument && (
+          <DocumentPopup
+            isOpen={openDocument}
+            onClose={closeDocument}
+            patientId={watchedPatientId}
+            fileStore={documentFileStore}
+            setFileStore={setDocumentFileStore}
+            payload={patientDocumentPayload}
+            setPayload={setPatientDocumentPayload}
+          />
+        )}
 
         {!!loading && <CustomLoader isLoading={loading} />}
       </FormProvider>
@@ -1064,208 +1126,3 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 PatientData.displayName = "PatientData";
 
 export default PatientData;
-
-/*
-{
-    "patientId": 28,
-    "branchId": 1,
-    "uhid": "GWS/00000016",
-    "title": "MR.",
-    "firstName": "PRABHAT",
-    "middleName": null,
-    "lastName": null,
-    "patientName": "MR. PRABHAT",
-    "ageYears": 0,
-    "ageMonths": 0,
-    "ageDays": 5,
-    "age": "0Y 0M 5D",
-    "dob": "05-04-2026",
-    "gender": "MALE",
-    "maritalStatus": null,
-    "relation": null,
-    "relativeName": null,
-    "idProofName": null,
-    "idProofNumber": null,
-    "contactNumber": "1234567890",
-    "emergencyContactNumber": "3456789234",
-    "email": null,
-
-
-
-    "privilegedCardNumber": null,
-    "address": "VARANASI",
-    "countryId": 2,
-    "country": "AFGHANISTAN",
-    "stateId": 30,
-    "state": "ABC",
-    "districtId": 793,
-    "district": "AB",
-    "cityId": 149693,
-    "city": "MNOPQ",
-    "insuranceCompanyId": 0,
-    "corporateId": 0,
-    "cardNo": null,
-
-    "isVaccination": 0,
-    "vipPatient": null,
-    "patientImagePath": "",
-    "policyNo": null,
-    "policyCardNo": null,
-    "expiryDate": null,
-    "cardHolder": null,
-    "referalNo": null,
-    "referalDate": null,
-    "landlineNo": "gfghjk",
-    "birthPlace": "dfghjk",
-    "religion": null,
-    "relationPhone": null,
-    "relationAge": null,
-    "relationGender": null,
-    "emG_FirstName": null,
-    "emG_LastName": null,
-    "emG_Relation": null,
-    "emG_MobileNo": null,
-    "emG_ResidentNo": null,
-    "emG_Address": null,
-    "isInternational": 0,
-    "locality": null,
-    "passportNumber": null,
-    "internationalNo": "fghjk",
-    "membershipNo": "dfghjk",
-    "patientType": null,
-    "identityMark": null,
-    "identityMark2": null,
-    "referenceType": null,
-    "remarks": null,
-    "doctorId": 1002,
-    "ipdNo": 0,
-    "dayCareNo": 0,
-    "dialysisNo": 0,
-    "emergencyNo": 0
-} */
-
-/*
-    UhidOrBarcode
-GWS/00000016
-UniqueId
-Pincode
-ipdNumber
-Remarks
-fdghjk
-ReferenceType
-Government Scheme
-IdentityMark2
-fghj
-IdentityMark
-e45678
-PatientType
-Dependent
-MembershipNo
-dfghjk
-InternationalNo
-fghjk
-PassportNumber
-123456789876
-Locality
-45678
-IsInternational
-1
-EMG_Address
-fghj
-EMG_ResidentNo
-45678
-EMG_MobileNo
-3456789
-EMG_Relation
-fghjk
-EMG_LastName
-dfghjk
-EMG_FirstName
-ghjkl
-RelationGender
-RelationAge
-4567890
-RelationPhone
-3456789
-Religion
-Hindu
-BirthPlace
-dfghjk
-LandlineNo
-gfghjk
-HealthIdNumber
-HealthId
-OnlinePtId
-0
-ReferalNo
-45678
-ReferalDate
-CardHolder
-dfghj
-ExpiryDate
-2026-04-10
-PolicyCardNo
-345678
-PolicyNo
-4789
-VipPatient
-IsVaccination
-0
-PatientImageFile
-CardNo
-345678
-CorporateId
-3
-InsuranceCompanyId
-3
-City
-MNOPQ
-CityId
-149693
-District
-AB
-DistrictId
-793
-State
-ABC
-StateId
-30
-Country
-AFGHANISTAN
-CountryId
-2
-Address
-VARANASI
-PrivilegedCardNumber
-Email
-EmergencyContactNumber
-3456789234
-SelfContactNumber
-1234567890
-IdProofName
-IdProofNumber
-RelativeName
-Relation
-MaritalStatus
-Gender
-Male
-Dob
-2026-04-06
-AgeDays
-5
-AgeMonths
-0
-AgeYears
-0
-LastName
-MiddleName
-FirstName
-PRABHAT
-Title
-Mr.
-BranchId
-1
-PatientId
-28
-ReferralDate
-2026-04-09 */

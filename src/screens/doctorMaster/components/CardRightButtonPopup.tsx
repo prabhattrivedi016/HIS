@@ -48,7 +48,6 @@ const CardRightButtonPopup = ({ position, doctorId, onClose }: CardRightButtonPo
       ref={popupRef}
       className="btn-popup"
       style={{
-        position: "absolute",
         top: position.top,
         left: position.left,
       }}

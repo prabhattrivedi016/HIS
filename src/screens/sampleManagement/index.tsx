@@ -492,28 +492,6 @@ const SampleManagement = () => {
     };
   };
 
-  const normalizeSampleTypeName = (value: string) => (value || "").toLowerCase().trim();
-
-  const resolveSampleTypeId = (item: SampleManagementTableData) => {
-    if (item.DefaultSampleTypeId) return Number(item.DefaultSampleTypeId);
-
-    const rowSampleTypeName = normalizeSampleTypeName(
-      item.SampleTypeName || item.selectedSampleType || ""
-    );
-  };
-
-  const enrichRowsWithSampleType = (rows: SampleManagementTableData[]) => {
-    return rows.map(item => {
-      const sampleTypeId = resolveSampleTypeId(item);
-      const sampleTypeName = item.SampleTypeName ?? "";
-      return {
-        ...item,
-        DefaultSampleTypeId: sampleTypeId || item.DefaultSampleTypeId || 0,
-        selectedSampleType: sampleTypeName,
-      };
-    });
-  };
-
   // sample reject handler
   const rejectSampleHandler = (item: SampleManagementTableData) => {
     setRejectItem(item);
@@ -698,6 +676,22 @@ const SampleManagement = () => {
     setSelectedPatientDocument(null);
   }, []);
 
+  // search by barcode
+
+  const searchByBarcode = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      fetchSampleData?.();
+    }
+  };
+
+  const searchByLabNo = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      fetchSampleData(getValues());
+    }
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Sample Management</h1>
@@ -713,40 +707,12 @@ const SampleManagement = () => {
       <div className="card">
         <form onSubmit={handleSubmit(onsubmit)}>
           <div className="form-grid-4">
-            {/* <InputField label="UHID">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter UHID "
-                {...register("uhid")}
-              />
-            </InputField> */}
-            {/* 
-            <InputField label="Bar Code">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter Barcode No  & press Enter to search"
-                {...register("barCode")}
-                onKeyDown={searchByBarcode}
-              />
-            </InputField> */}
-
             {/* <InputField label="Patient Name">
               <input
                 type="text"
                 className="input-field"
                 placeholder="Enter patient name "
                 {...register("patientName")}
-              />
-            </InputField> */}
-
-            {/* <InputField label="Lab No">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter lab number "
-                {...register("labNo")}
               />
             </InputField> */}
 
@@ -763,6 +729,35 @@ const SampleManagement = () => {
                 name="toDate"
                 control={control}
                 render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
+              />
+            </InputField>
+
+            <InputField label="UHID">
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter UHID "
+                {...register("uhid")}
+              />
+            </InputField>
+
+            <InputField label="Bar Code">
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter Barcode No  & press Enter to search"
+                {...register("barCode")}
+                onKeyDown={searchByBarcode}
+              />
+            </InputField>
+
+            <InputField label="Lab No">
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter lab number & press Enter to search"
+                {...register("labNo")}
+                onKeyDown={searchByLabNo}
               />
             </InputField>
 

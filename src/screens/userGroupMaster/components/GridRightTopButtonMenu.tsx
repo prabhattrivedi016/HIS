@@ -68,6 +68,10 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
     }
   };
 
+  if (!position) {
+    return null;
+  }
+
   return (
     <div
       ref={popupRef}
@@ -75,7 +79,6 @@ const GridRightTopButtonMenu = ({ position, userGroupId, onClose, onRefresh }) =
       onClick={e => e.stopPropagation()}
       onMouseDown={e => e.stopPropagation()}
       style={{
-        position: "absolute",
         top: position.top,
         left: position.left,
       }}
