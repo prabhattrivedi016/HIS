@@ -23,7 +23,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import { ButtonValue } from "../sampleManagement/types";
 import LRRemarkPopup from "./components/LRRemarkPopup";
@@ -36,6 +36,8 @@ import {
 
 const PathologyResultEntry = () => {
   const { loading, error, fetchApi } = useGlobalApi();
+
+  const navigate = useNavigate();
 
   // Simple access rights from Redux store
   const accessRights = useAppSelector(state => state.accessRights.accessRights);
@@ -803,6 +805,13 @@ const PathologyResultEntry = () => {
     setRemarkItem(null);
   }, []);
 
+  // lab result entry for investigation
+  const serviceNameHandler = (item: LabResultEntryTableData) => {
+    navigate(`/investigation-result-entry/pathology/${item?.PatientInvestigationId}`, {
+      state: item,
+    });
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Pathology Result Entry</h1>
@@ -881,7 +890,7 @@ const PathologyResultEntry = () => {
               <input
                 type="text"
                 className="input-field"
-                placeholder="Enter lab number "
+                placeholder="Enter barcode"
                 {...register("barcode")}
               />
             </InputField>
@@ -1059,8 +1068,21 @@ const PathologyResultEntry = () => {
                       <td className="table-td">
                         {item?.CurrentAge || "-"} / {item?.Gender}
                       </td>
-                      <td className="table-td max-w-70">
-                        <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
+                      <td
+                        className={`table-td max-w-70 ${
+                          !item?.IsSampleCollected || !item?.IsSampleReceivedByDepartment
+                            ? "cursor-not-allowed opacity-80"
+                            : "cursor-pointer"
+                        }`}
+                        onClick={() => {
+                          if (item?.IsSampleCollected && item?.IsSampleReceivedByDepartment) {
+                            serviceNameHandler(item);
+                          }
+                        }}
+                      >
+                        <span className="service-btn" style={getBadgeStyle(item)}>
+                          {item?.Name || "-"}
+                        </span>
                       </td>
 
                       {/* sample type */}

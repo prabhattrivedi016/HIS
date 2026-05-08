@@ -887,7 +887,9 @@ const SampleManagement = () => {
                       </td>
                       <td className="table-td">{item?.CorporateName || "-"}</td>
                       <td className="table-td max-w-70">
-                        <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
+                        <span className="service-btn" style={getBadgeStyle(item)}>
+                          {item?.Name || "-"}
+                        </span>
                       </td>
 
                       {/* sample type */}

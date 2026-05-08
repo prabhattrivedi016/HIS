@@ -65,6 +65,17 @@ export enum IPDBillingTabName {
   ZERO_ADVANCES = "Zero Advances",
 }
 
+export enum LabTypeIdValues {
+  PATHOLOGY = 1,
+  RADIOLOGY = 2,
+  CARDIOLOGY = 3,
+}
+
+export enum LabTypeName {
+  PATHOLOGY = "pathology",
+  RADIOLOGY = "radiology",
+  CARDIOLOGY = "cardiology",
+}
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",

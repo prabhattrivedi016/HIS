@@ -6,7 +6,7 @@ import { CATEGORY_ID, Status } from "@/constants/constants";
 import { ObservationMappingTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
-import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select, { SingleValue } from "react-select";
 import EditRangePopup from "./components/EditRangePopup";
@@ -47,6 +47,7 @@ const InvestigationObservationMapping = () => {
   const [ObservationToEdit, setObservationToEdit] = useState<observationTableDataItem | null>(null);
 
   const [mappingToEdit, setMappingToEdit] = useState<ObservationMappingItem | null>(null);
+  const [draggedObservationId, setDraggedObservationId] = useState<number | null>(null);
 
   // investigation name
   const getInvestigationName = async (iName: string) => {
@@ -69,11 +70,13 @@ const InvestigationObservationMapping = () => {
   };
 
   // selecting investigation name
-  const selectHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
+  const selectHandler = async (item: InvestigationObservationMappingItem) => {
+    const value = Number(item?.serviceItemId);
     if (!value) return;
 
     setSelectedInvestigationId(value);
+    setInvestigationName(item?.name ?? "");
+    setInvestigationList([]);
 
     const resp = await fetchApi(
       "GET",
@@ -214,6 +217,40 @@ const InvestigationObservationMapping = () => {
   const closeRangeHandler = useCallback(() => {
     setOpenSetRange(false);
   }, []);
+
+  // delete investigation
+  const deleteInvestigationHandler = (item: observationTableDataItem) => {
+    if (!item) return;
+    setObservationTableData(prev => prev.filter(row => row?.observationId !== item?.observationId));
+  };
+
+  // drag and drop handlers for observation row reordering
+  const handleDragStart = (id: number) => {
+    setDraggedObservationId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetId: number) => {
+    if (!draggedObservationId || draggedObservationId === targetId) return;
+
+    setObservationTableData(prev => {
+      const fromIndex = prev.findIndex(row => row.observationId === draggedObservationId);
+      const toIndex = prev.findIndex(row => row.observationId === targetId);
+
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+
+      return updated;
+    });
+
+    setDraggedObservationId(null);
+  };
   return (
     <div className="page-container">
       <h1 className="page-heading">Investigation Observation Mapping</h1>
@@ -226,25 +263,33 @@ const InvestigationObservationMapping = () => {
 
       <div className="card mb-1">
         <div className="form-grid-4 flex flex-col lg:flex-row">
+          {/* search investigation */}
           <InputField label="Search Investigation" required>
-            <input
-              className="input-field"
-              value={investigationName}
-              placeholder="Enter investigation name"
-              onChange={e => setInvestigationName(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+            <div className="relative">
+              <input
+                className="input-field"
+                value={investigationName}
+                placeholder="Enter investigation name"
+                onChange={e => setInvestigationName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="off"
+              />
 
-            {investigationList.length > 0 && (
-              <select className="input-field -mt-2" onChange={selectHandler}>
-                <option value="">Select</option>
-                {investigationList.map(i => (
-                  <option key={i.serviceItemId} value={i.serviceItemId}>
-                    {i.name}
-                  </option>
-                ))}
-              </select>
-            )}
+              {/*modal*/}
+              {investigationList.length > 0 && (
+                <div className="absolute z-50  w-full rounded-md  bg-white shadow-lg max-h-60 overflow-auto">
+                  {investigationList.map(item => (
+                    <div
+                      key={item.serviceItemId}
+                      className="px-2 py-2 cursor-pointer hover:bg-gray-200"
+                      onClick={() => selectHandler(item)}
+                    >
+                      <div className="font-sm text-sm">{item.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </InputField>
 
           <InputField label="Observation Mapping" required>
@@ -309,7 +354,14 @@ const InvestigationObservationMapping = () => {
                       </tr>
                     ) : (
                       observationTableData.map(item => (
-                        <tr key={item.observationId} className="table-row">
+                        <tr
+                          key={item.observationId}
+                          className="table-row cursor-move"
+                          draggable
+                          onDragStart={() => handleDragStart(item.observationId)}
+                          onDragOver={handleDragOver}
+                          onDrop={() => handleDrop(item.observationId)}
+                        >
                           <td className="table-td">{item.observationName}</td>
 
                           <td className="table-td">
@@ -363,7 +415,7 @@ const InvestigationObservationMapping = () => {
                             <i className="fa-solid fa-edit  icon-color-button"></i>
                           </td>
 
-                          <td className="table-td">
+                          <td className="table-td" onClick={() => deleteInvestigationHandler(item)}>
                             <i className="fa-solid fa-trash icon-color-delete"></i>
                           </td>
                         </tr>

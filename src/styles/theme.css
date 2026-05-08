@@ -12,6 +12,32 @@
   min-height: 200px;
   margin: 0 auto;
 }
+
+/* Tailwind reset can hide list markers; force visibility in CKEditor content */
+.ck-content ol,
+.ck-content ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.ck-content ol {
+  list-style: decimal !important;
+}
+
+.ck-content ul {
+  list-style: disc !important;
+}
+
+.ck-content li {
+  display: list-item;
+}
+
+/* Keep CKEditor UI visible above popup overlays */
+.ck.ck-reset_all,
+.ck.ck-balloon-panel,
+.ck.ck-dropdown__panel {
+  z-index: 10050 !important;
+}
 /* buttons */
 .login-btn {
   @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#4D34E9] text-white cursor-pointer active:scale-95;
@@ -63,6 +89,18 @@
 }
 .cancel-btn {
   @apply text-white font-medium bg-gray-400 hover:bg-gray-600 active:scale-95 w-full px-4 py-2 m-2 rounded-lg  transition-all flex items-center justify-center gap-2;
+}
+
+.prevNext-btn {
+  @apply text-black font-medium bg-[#f4f4f4] hover:bg-[#e0d2d2] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
+}
+
+.approve-btn {
+  @apply text-white font-medium bg-[#05884d] hover:bg-[#047b45] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
+}
+
+.hold-btn {
+  @apply text-white font-medium bg-[#f39c12] hover:bg-[#ea9610] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
 }
 
 .btn-not-allowed {
@@ -237,6 +275,10 @@
 /*------------------- TAB HEADINGS ---------------- */
 .tab-container {
   @apply flex gap-2 border-b border-gray-300 mb-4 shadow-sm mt-2;
+}
+
+.tab-card {
+  @apply bg-white rounded-xl  p-1 border border-gray-200 shadow-lg;
 }
 
 .tab-btn {

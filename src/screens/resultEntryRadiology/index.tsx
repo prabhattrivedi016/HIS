@@ -14,12 +14,14 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { ButtonValue, RadiologyTableItem, SubSubCategoryItem } from "./types";
 
 const ResultEntryRadiology = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const currentDate = new Date().toISOString().split("T")[0];
+
+  const navigate = useNavigate();
 
   // branch
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
@@ -199,7 +201,7 @@ const ResultEntryRadiology = () => {
         return data.filter(i => i.isReportPrinted === 1).length;
 
       case "dispatched":
-        return data.filter(i => i.IsDispatched === 1).length; //done
+        return data.filter(i => i.IsDispatched === 1).length;
 
       default:
         return 0;
@@ -271,6 +273,13 @@ const ResultEntryRadiology = () => {
       minWidth: "80px",
       textAlign: "center" as const,
     };
+  };
+
+  // radiology result entry
+  const serviceNameHandler = (item: RadiologyTableItem) => {
+    navigate(`/investigation-result-entry/radiology/${item?.PatientInvestigationId}`, {
+      state: item,
+    });
   };
   return (
     <div className="page-container">
@@ -536,8 +545,23 @@ const ResultEntryRadiology = () => {
                         {item?.CurrentAge || "-"} / {item?.Gender}
                       </td>
 
-                      <td className="table-td max-w-70">
+                      {/* <td className="table-td max-w-70">
                         <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
+                      </td> */}
+
+                      <td
+                        className={`table-td max-w-70 ${
+                          !item?.IsSampleCollected || !item?.IsSampleReceivedByDepartment
+                            ? "cursor-not-allowed opacity-80"
+                            : "cursor-pointer"
+                        }`}
+                        onClick={() => {
+                          serviceNameHandler(item);
+                        }}
+                      >
+                        <span className="service-btn cursor-pointer" style={getBadgeStyle(item)}>
+                          {item?.Name || "-"}
+                        </span>
                       </td>
                       <td className="table-td">{item?.Barcode ?? 0}</td>
 

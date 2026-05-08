@@ -1,6 +1,6 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import { ErrorMessage, SuccessMessage } from "@/components/infoText";
+import { SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import { EditRangesTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -289,7 +289,33 @@ const EditRangePopup = ({ isOpen, onClose, data }: EditRangePopupProps) => {
   const handleSubmitRange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (hasError) return;
+    let hasValidationError = false;
+
+    setRangeTableData(prev =>
+      prev.map(row => {
+        const fromAge = String(row.fromAge ?? "").trim();
+        const toAge = String(row.toAge ?? "").trim();
+
+        if (!fromAge) {
+          hasValidationError = true;
+          return { ...row, error: "From Age is required" };
+        }
+
+        if (!toAge) {
+          hasValidationError = true;
+          return { ...row, error: "To Age is required" };
+        }
+
+        if (Number(toAge) < Number(fromAge)) {
+          hasValidationError = true;
+          return { ...row, error: "To Age must be >= From Age" };
+        }
+
+        return { ...row, error: "" };
+      })
+    );
+
+    if (hasError || hasValidationError) return;
 
     const payload = createPayload();
 
@@ -337,7 +363,6 @@ const EditRangePopup = ({ isOpen, onClose, data }: EditRangePopupProps) => {
           </div>
 
           {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
-          {error ? <ErrorMessage text={error?.message} /> : <></>}
 
           <form>
             <div className="form-grid-4">

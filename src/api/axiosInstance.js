@@ -34,14 +34,21 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear auth data
       const storage = getAuthStorage();
+      storage.removeItem("auth");
       storage.removeItem("accessToken");
       storage.removeItem("role");
+      localStorage.removeItem("auth");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("role");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("role");
 
       // Dispatch custom event to notify listeners
       window.dispatchEvent(new CustomEvent("unauthorized", { detail: { status: 401 } }));
 
       // Redirect to login
-      window.location.href = "/GWSNHIS";
+      window.location.replace(`${window.location.origin}/GWSNHIS`);
     }
 
     return Promise.reject(error);

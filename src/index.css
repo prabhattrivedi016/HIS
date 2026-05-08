@@ -358,3 +358,8 @@ select:-webkit-autofill {
   size: A4;
   margin: 10mm;
 }
+
+/* clicking  on service name for result-entry */
+.service-btn {
+  @apply inline-block  hover:scale-95 active:scale-90;
+}

@@ -74,6 +74,11 @@ const Sidebar = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const sidebarWidth = window.innerWidth < 768 ? "0px" : sidebarOpen ? "15rem" : "4rem";
+    document.documentElement.style.setProperty("--app-sidebar-width", sidebarWidth);
+  }, [sidebarOpen]);
+
   /* ---------------- close on mobile on outside click---------------- */
 
   useEffect(() => {
