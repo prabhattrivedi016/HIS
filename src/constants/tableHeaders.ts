@@ -486,3 +486,19 @@ export const SampleManagementDocumentTableHeader = [
   "Download",
   "Delete",
 ];
+
+export const InvestigationResultEntryTableHeader = [
+  "Observation Name",
+  "B",
+  "Result",
+  "Flag",
+  "Comment",
+  "Min. Value",
+  "Max. Value",
+  "Display Range",
+  "Unit",
+  "Method Name",
+  "Machine Result",
+  "Machine Name",
+  "Machine Unit",
+];

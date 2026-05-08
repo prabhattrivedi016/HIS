@@ -249,6 +249,13 @@ const ENDPOINTS = {
   // radiology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_RADIOLOGY:
     "Lab/searchPatientInvestigationForSampleProcessingRadiology",
+
+  // investigation result entry
+  GET_PATIENT_TABULAR_REPORT_FOR_RESULT_ENTRY: "Lab/getPatientTabularReportForResultEntry",
+  GET_PATIENT_FREE_TEXT_REPORT_FOR_RESULT_ENTRY: "Lab/getPatientFreeTextReportForResultEntry",
+  SAVE_PATIENT_TABULAR_REPORT: "Lab/savePatientTabularReport",
+  SAVE_PATIENT_FREE_TEXT_REPORT: "Lab/savePatientFreeTextReport",
+  GET_ALL_INVESTIGATION_NAME_OF_PATIENT: "Lab/getAllInvestigationNameOfPatient",
 };
 
 export { ENDPOINTS };

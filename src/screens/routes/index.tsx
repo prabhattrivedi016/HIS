@@ -67,7 +67,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "bed-details": <BedDetails />,
   "no-page": <NoPage />,
   "sample-management": <SampleManagement />,
-  "lab-result-entry": <PathologyResultEntry />,
+  "pathology-result-entry": <PathologyResultEntry />,
   "result-entry-radiology": <ResultEntryRadiology />,
   "histo-result-entry": <HistoResultEntry />,
   "micro-result-entry": <MicroResultEntry />,

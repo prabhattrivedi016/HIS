@@ -5,6 +5,7 @@ import { useContext } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { normalizeRouteKey } from "../../utils/route";
+import InvestigationResultEntry from "../InvestigationResultEntry";
 import Login from "../login";
 import { authorizedRouteMap } from "../routes";
 import NoPage from "../unauthorized";
@@ -43,6 +44,11 @@ const Navbar = () => {
         {/* Protected Layout */}
         <Route element={isAuthenticated ? <Sidebar /> : <Navigate to="/" replace />}>
           <Route path="/dashboard" element={authorizedRouteMap["dashboard"]} />
+
+          <Route
+            path="/investigation-result-entry/:department/:patientInvestigationId/"
+            element={<InvestigationResultEntry />}
+          />
 
           {/* Dynamic Routes with Access Control */}
           {(Array.isArray(authorizedPages) ? authorizedPages : []).flatMap(tab =>
