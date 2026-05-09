@@ -33,6 +33,7 @@ const InvestigationTemplate = () => {
     register,
     setValue,
     watch,
+    clearErrors,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(investigationTemplateSchema),
@@ -69,7 +70,10 @@ const InvestigationTemplate = () => {
 
   //   text editor change handler
   const textEditorChangeHandler = (data: string) => {
-    setValue("contentValue", data ?? "", { shouldValidate: true, shouldDirty: true });
+    setValue("contentValue", data ?? "", { shouldDirty: true, shouldTouch: true });
+    if ((data ?? "").trim()) {
+      clearErrors("contentValue");
+    }
   };
 
   //   template name change handler
@@ -77,8 +81,9 @@ const InvestigationTemplate = () => {
     const value = Number(e.target.value);
     if (!value) return;
     const selected = templateList?.find(t => Number(t?.key) === value);
-    setValue("type", selected?.value ?? "", { shouldValidate: true, shouldDirty: true });
-    setValue("typeId", Number(selected?.key) || 1, { shouldValidate: true, shouldDirty: true });
+    setValue("type", selected?.value ?? "", { shouldDirty: true, shouldTouch: true });
+    setValue("typeId", Number(selected?.key) || 1, { shouldDirty: true, shouldTouch: true });
+    clearErrors(["type", "typeId"]);
   };
 
   //   submit handler
@@ -106,6 +111,7 @@ const InvestigationTemplate = () => {
       contentValue: "",
       isActive: 1,
     });
+    clearErrors();
     await getAllInvestigationComment();
   };
 
@@ -143,6 +149,7 @@ const InvestigationTemplate = () => {
       contentValue: "",
       isActive: 1,
     });
+    clearErrors();
   };
   return (
     <div className="mt-1">

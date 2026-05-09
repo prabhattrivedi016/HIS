@@ -483,15 +483,11 @@ const OpdBilling = () => {
     setShowPopup(true);
   };
 
-  console.log("selected category", selectedCategory);
-
   // debounced api call
   useEffect(() => {
     if (!searchTerm) return;
 
     const timer = setTimeout(async () => {
-      console.log("selected category", selectedCategory);
-
       try {
         const resp = await fetchApi(
           "GET",
@@ -683,8 +679,6 @@ const OpdBilling = () => {
   }, [subCategoryList]);
 
   const subCategorySelectHandler = (option: OptionItem | null) => {
-    console.log("subCategorySelectHandler", option?.value);
-
     if (!option) {
       setSelectedSubCategory(null);
       return;
@@ -703,7 +697,6 @@ const OpdBilling = () => {
       { params: { subCategoryIds } },
       { component: "OpdBilling" }
     );
-    console.log("resp of sub sub category", resp);
 
     setSubSubCategoryList(resp?.data ?? []);
   };
@@ -1141,36 +1134,51 @@ const OpdBilling = () => {
       let receiptData: any[] = [];
       let paymentModes: any[] = [];
 
-      if (isDoctorAppointment && ftid > 0) {
-        const resp = await fetchApi(
+      const promises = [
+        isDoctorAppointment && ftid > 0
+          ? fetchApi(
+              "GET",
+              ENDPOINTS.GET_OPD_CARD_DETAILS,
+              {},
+              { params: { ftid } },
+              { component: "OpdBilling" }
+            )
+          : Promise.resolve(null),
+
+        fetchApi(
           "GET",
-          ENDPOINTS.GET_OPD_CARD_DETAILS,
+          ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
           {},
-          { params: { ftid } },
+          { params: { ftid, isReceipt, receiptId } },
           { component: "OpdBilling" }
-        );
-        opdData = resp?.data?.[0] ?? null;
+        ),
+
+        fetchApi(
+          "GET",
+          ENDPOINTS.GET_OPD_RECEIPT_LIST,
+          {},
+          { params: { visitNo: visitId } },
+          { component: "OpdBilling" }
+        ),
+      ];
+
+      const [opdResult, receiptResult, paymentResult] = await Promise.allSettled(promises);
+
+      if (opdResult.status === "fulfilled") {
+        opdData = opdResult.value?.data?.[0] ?? null;
       }
 
-      const receiptResp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
-        {},
-        { params: { ftid, isReceipt, receiptId } },
-        { component: "OpdBilling" }
-      );
+      if (receiptResult.status === "fulfilled") {
+        receiptData = receiptResult.value?.data ?? [];
+      } else {
+        console.error("Receipt details fetch failed:", receiptResult.reason);
+      }
 
-      receiptData = receiptResp?.data ?? [];
-
-      const paymentResp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_OPD_RECEIPT_LIST,
-        {},
-        { params: { visitNo: visitId } },
-        { component: "OpdBilling" }
-      );
-
-      paymentModes = paymentResp?.data ?? [];
+      if (paymentResult.status === "fulfilled") {
+        paymentModes = paymentResult.value?.data ?? [];
+      } else {
+        console.error("Payment mode list fetch failed:", paymentResult.reason);
+      }
 
       //  update state
       setOpdCardDetails(opdData);
@@ -1184,6 +1192,10 @@ const OpdBilling = () => {
       if (isDoctorAppointment) {
         openOpdPrintInNewTab();
       } else {
+        if (!receiptData?.length) {
+          showError("Billing saved, but receipt data is unavailable for printing.");
+          return saveBillingResp;
+        }
         openReceiptInNewTab(receiptData);
       }
 

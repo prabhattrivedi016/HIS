@@ -107,6 +107,30 @@ export const openReceiptInNewTab = (data: any, existingWindow: Window | null = n
       return;
     }
 
+    const branchAddressNode = content.querySelector("#receipt-branch-address");
+    const branchNameNode = content.querySelector("#receipt-branch-name");
+    const branchAddressText = branchAddressNode?.textContent?.trim() || "";
+    const branchNameText = branchNameNode?.textContent?.trim() || "";
+
+    const hasResolvedBranchFooter =
+      branchAddressText.length > 0 &&
+      branchNameText.length > 0 &&
+      !branchAddressText.toLowerCase().includes("undefined") &&
+      !branchNameText.toLowerCase().includes("undefined") &&
+      branchAddressText !== "Subject to  Jurisdiction" &&
+      branchNameText !== "For";
+
+    if (!hasResolvedBranchFooter) {
+      attempts++;
+      if (attempts > 50) {
+        newWindow.document.body.innerHTML =
+          "<h3 style='text-align:center;margin-top:50px'>Error: Branch details not ready for receipt print</h3>";
+        return;
+      }
+      setTimeout(tryRender, 100);
+      return;
+    }
+
     newWindow.document.getElementById("root")!.innerHTML = content.innerHTML;
 
     const images = newWindow.document.images;
@@ -305,5 +329,3 @@ export const openOpdCardInNewTab = (existingWindow: Window | null = null) => {
 
   tryRender();
 };
-
-
