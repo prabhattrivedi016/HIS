@@ -113,7 +113,7 @@ const BankMasterPage = () => {
   };
 
   return (
-    <div className="-mt-3">
+    <div className="mt-1">
       <div className="card mb-1">
         <h2 className="card-title ">Bank Master Details</h2>
         {/* form */}

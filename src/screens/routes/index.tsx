@@ -14,6 +14,7 @@ import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import HistoResultEntry from "../histoResultEntry";
 import ImportTariffs from "../importTariffs";
+import InvestigationInterpretationTemplate from "../investigationInterpretationTemplate";
 import InvestigationObservationMapping from "../investigationObservationMapping";
 import IpdBilling from "../ipdBilling";
 import LabInvestigationMaster from "../labInvestigationMaster";
@@ -85,4 +86,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "patient-registration": <PatientRegistration />,
   "discount-approval-master": <DiscountApprovalMaster />,
   "opd-billing": <OpdBilling />,
+  "template-investigation-interpretation": <InvestigationInterpretationTemplate />,
 };

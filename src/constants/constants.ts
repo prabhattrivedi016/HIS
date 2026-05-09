@@ -338,3 +338,21 @@ export enum SampleTypeColorCoding {
   serum = "Serum",
   container = "Container",
 }
+
+export enum InvestigationInterpretationTemplateTabName {
+  INVESTIGATION_TEMPLATE_MASTER = "Investigation Template Master",
+  INVESTIGATION_INTERPRETATION_MAPPING = "Investigation -Template/Interpretation Mapping",
+  OBSERVATION_COMMENT_LOVS = "Observation-Comment/LOVS",
+}
+
+export const InvestigationCommentTableHeader = [
+  "#",
+  "Mapping Type",
+  "Template Name",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last Modified By",
+  "Last Modified On",
+  "Edit",
+];
