@@ -1,7 +1,28 @@
+import { ENDPOINTS } from "@/config/defaults";
+import { AuthContext } from "@/context/AuthContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
 import { PaymentModeItem } from "@/screens/opdBilling/types";
-import { useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Barcode from "react-barcode";
 import logoImg from "../../../assets/logo.jpg";
+
+type BranchItem = {
+  branchId: number;
+  branchName: string;
+  branchCode: string;
+  email: string;
+  contactNo1: string;
+  contactNo2: string;
+  address: string;
+  isActive: number;
+  fyStartMonth: string;
+  defaultCountryId: number;
+  defaultStateId: number;
+  defaultDistrictId: number;
+  defaultCityId: number;
+  defaultInsuranceCompanyId: number;
+  defaultCorporateId: number;
+};
 
 // number to word converter
 const numberToWords = (num: number): string => {
@@ -78,6 +99,28 @@ export default function OpdDetailsBills({
   paidAmt: number;
 }) {
   const patientDetails = data?.[0];
+  const { loading, fetchApi } = useGlobalApi();
+
+  const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
+  const [branchDetails, setBranchDetails] = useState<BranchItem | null>(null);
+  const branchAddress = branchDetails?.address?.trim() || "";
+  const branchName = branchDetails?.branchName?.trim() || "";
+
+  const getBranchDetails = async () => {
+    if (!branchId) return;
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BRANCH_DETAILS,
+      {},
+      { params: { branchId } },
+      { component: "OpdDetails" }
+    );
+    setBranchDetails(resp?.data?.[0]);
+  };
+
+  useEffect(() => {
+    getBranchDetails();
+  }, [branchId]);
 
   useEffect(() => {
     if (printOnMount && paymentModeList?.length > 0) {
@@ -110,7 +153,8 @@ export default function OpdDetailsBills({
     const balanceFromApi = toNumber(firstRow?.TotalBalanceAmount);
 
     const grossFromRows = rows.reduce(
-      (acc: number, item: any) => acc + toNumber(item?.GrossAmt || toNumber(item?.Rate) * toNumber(item?.Qty || 1)),
+      (acc: number, item: any) =>
+        acc + toNumber(item?.GrossAmt || toNumber(item?.Rate) * toNumber(item?.Qty || 1)),
       0
     );
     const discountFromRows = rows.reduce(
@@ -526,9 +570,9 @@ export default function OpdDetailsBills({
               zIndex: 1,
             }}
           >
-            <span>Subject to Varanasi Jurisdiction</span>
+            <span id="receipt-branch-address">{`Subject to ${branchAddress} Jurisdiction`}</span>
             <span style={{ paddingLeft: "40px" }}>E. & O.E.</span>
-            <span>For GWS</span>
+            <span id="receipt-branch-name">{`For ${branchName}`}</span>
           </div>
         </div>
       </div>
