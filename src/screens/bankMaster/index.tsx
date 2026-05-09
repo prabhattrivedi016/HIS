@@ -28,7 +28,7 @@ const BankMaster = () => {
         <span>Bank Master</span>
       </nav>
 
-      <div className="tab-container rounded-lg">
+      <div className="tab-card rounded-lg">
         <button
           type="button"
           onClick={() => setActiveTab(BankMasterTabName?.BANK_MASTER)}

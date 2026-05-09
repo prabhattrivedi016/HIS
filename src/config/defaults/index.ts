@@ -256,6 +256,20 @@ const ENDPOINTS = {
   SAVE_PATIENT_TABULAR_REPORT: "Lab/savePatientTabularReport",
   SAVE_PATIENT_FREE_TEXT_REPORT: "Lab/savePatientFreeTextReport",
   GET_ALL_INVESTIGATION_NAME_OF_PATIENT: "Lab/getAllInvestigationNameOfPatient",
+
+  // investigation interpretation template master
+  CREATE_UPDATE_INVESTIGATION_TEMPLATE_COMMENT_MASTER:
+    "Lab/createUpdateInvastigationTemplateCommentMaster",
+  GET_INVESTIGATION_TEMPLATE_COMMENT_MASTER: "Lab/getInvastigationTemplateCommentMaster",
+  GET_ALL_INVESTIGATION_TEMPLATE_COMMENTS: "Lab/getAllInvestigationTemplateComments",
+  CREATE_UPDATE_OBSERVATION_LOV_MASTER: "Lab/createUpdateObservationLOVMaster",
+  GET_OBSERVATION_LIST_OF_VALUES_MASTER: "Lab/getObservationListOfValuesMaster",
+  SAVE_INVESTIGATION_TEMPLATE_INTERPRETATION_MAPPING:
+    "Lab/saveInvestigationTemplateInterpretationMappings",
+  GET_INVESTIGATION_TEMPLATE_INTERPRETATION_MAPPINGS:
+    "Lab/getInvestigationTemplateInterpretationMappings",
+  SAVE_OBSERVATION_COMMENTS_LOVS_MAPPINGS: "Lab/saveObservationCommentsLOVsMappings",
+  GET_OBSERVATION_COMMENT_LOVS_MAPPINGS: "Lab/getObservationCommentLOVsMappings",
 };
 
 export { ENDPOINTS };
