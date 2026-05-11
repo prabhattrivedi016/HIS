@@ -502,3 +502,10 @@ export const InvestigationResultEntryTableHeader = [
   "Machine Name",
   "Machine Unit",
 ];
+
+export const ObservationCommentLovsTableHeader = [
+  "#",
+  "Observation Name",
+  "List of Value",
+  "Remove",
+];
