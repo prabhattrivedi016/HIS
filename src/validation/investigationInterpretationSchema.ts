@@ -30,3 +30,14 @@ export const lovsPopupSchema = yup.object().shape({
 });
 
 export type lovsPopupFormData = yup.InferType<typeof lovsPopupSchema>;
+
+export const investigationInterpretationSchema = yup.object().shape({
+  typeId: yup.number().required("Mapping type is required"),
+  type: yup.string().required("Mapping type is required"),
+  investigationId: yup.number().required("Investigation name is required"),
+  itemid: yup.number().nullable(),
+});
+
+export type investigationInterpretationFormData = yup.InferType<
+  typeof investigationInterpretationSchema
+>;
