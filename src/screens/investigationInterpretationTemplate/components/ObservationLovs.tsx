@@ -165,7 +165,12 @@ const ObservationLovs = () => {
               ...formData,
             },
           ]
-        : editableObservationCommentList;
+        : editableObservationCommentList.map(row => ({
+            TypeId: row?.TypeId,
+            Type: row?.Type,
+            ObservationId: row?.ObservationId,
+            ItemId: row?.ItemId,
+          }));
 
     if (!payload) return;
     const resp = await fetchApi(
