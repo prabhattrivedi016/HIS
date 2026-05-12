@@ -23,8 +23,11 @@ import { InvestigationItem, TabularTableDataItem, TemplateItem } from "./types";
 const InvestigationResultEntry = () => {
   const paramsValue = useParams();
   const location = useLocation();
+  const pathname = String(location?.pathname || "").toLowerCase();
+  const isRadiology = pathname.includes("radiology");
+  const isPathology = pathname.includes("pathology");
 
-  const item = location.state as InvestigationItem | null;
+  const item = location.state as InvestigationItem | null | TabularTableDataItem;
 
   const { loading, fetchApi } = useGlobalApi();
 
@@ -55,6 +58,9 @@ const InvestigationResultEntry = () => {
   const [templateItemList, setTemplateItemList] = useState<TemplateItem[]>([]);
 
   const [textEditorValue, setTextEditorValue] = useState<string>("");
+
+  const [getTabularComment, setGetTabularComment] = useState<string>("");
+  const [getIsAbnormal, setGetIsAbnormal] = useState<number>(0);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({
@@ -164,7 +170,10 @@ const InvestigationResultEntry = () => {
       { component: "InvestigationResultEntry" }
     );
 
-    setTabularInvestigationTableData(resp?.data ?? []);
+    const rows = resp?.data ?? [];
+    setTabularInvestigationTableData(rows);
+    setGetTabularComment(rows?.[0]?.InvestigationComment ?? "");
+    setGetIsAbnormal(Number(rows?.[0]?.IsAbnormalResult) || 0);
   };
 
   // free text entry value
@@ -229,6 +238,8 @@ const InvestigationResultEntry = () => {
         setTabularInvestigationTableData([]);
         setFreeTextInvestigationTableData([]);
         setTextEditorValue("");
+        setGetTabularComment("");
+        setGetIsAbnormal(0);
         setEditorInstanceKey(`investigation-${selectedInvestigation?.PatientInvestigationId}`);
 
         if (reportTypeId === LabTypeIdValues?.PATHOLOGY) {
@@ -317,26 +328,6 @@ const InvestigationResultEntry = () => {
       });
     };
 
-  // const onFreeTextFieldChange =
-  //   (
-  //     row: TabularTableDataItem,
-  //     field: keyof Pick<
-  //       TabularTableDataItem,
-  //       | "ResultValue"
-  //       | "MinValue"
-  //       | "MaxValue"
-  //       | "DisplayRange"
-  //       | "Unit"
-  //       | "MachineResult"
-  //       | "MachineUnit"
-  //     >
-  //   ) =>
-  //   (e: React.ChangeEvent<HTMLInputElement>) => {
-  //     updateTableRowByObservationId(setFreeTextInvestigationTableData, row, {
-  //       [field]: e.target.value,
-  //     });
-  //   };
-
   const isTabularReport = Number(activeReportTypeId) === LabTypeIdValues?.PATHOLOGY;
 
   // comment handler
@@ -349,7 +340,6 @@ const InvestigationResultEntry = () => {
 
   // close comment handler
   const closeCommentHandler = useCallback(() => {
-    setRenderInvestigationComment(false);
     setOpenInvestigationComment(false);
     setSelectedInvestigationComment(null);
   }, []);
@@ -360,8 +350,8 @@ const InvestigationResultEntry = () => {
     setValue("resultValue", data ?? "");
   };
 
-  // submit handler
-  const onSubmit = async (data: freeTextReportFormData) => {
+  // free text submit handler
+  const freeTextSubmitHandler = async (data: freeTextReportFormData) => {
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_PATIENT_FREE_TEXT_REPORT,
@@ -385,11 +375,79 @@ const InvestigationResultEntry = () => {
     setTextEditorValue("");
   };
 
+  // tabular report submit handler
+  const tabularReportSubmitHandler = async () => {
+    if (!tabularInvestigationTableData?.length) {
+      showWarning("No tabular result data found ");
+      return;
+    }
+
+    const selectedInvestigation = allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab);
+
+    const payload = {
+      patientInvestigationId:
+        selectedInvestigation?.PatientInvestigationId ?? item?.PatientInvestigationId ?? 0,
+      investigationId: selectedInvestigation?.InvestigationId ?? item?.InvestigationId ?? 0,
+      investigationComments: getTabularComment,
+      isAbnormalResult: getIsAbnormal,
+      tabularReport: tabularInvestigationTableData?.map(t => ({
+        observationId: t?.ObservationId ?? 0,
+        resultValue: t?.ResultValue ?? "",
+        minValue: t?.MinValue ?? "",
+        maxValue: t?.MaxValue ?? "",
+        displayRange: t?.DisplayRange ?? "",
+        unit: t?.Unit ?? "",
+        machineResult: t?.MachineResult ?? "",
+        machineDisplayRange: t?.MachineDisplayRange ?? "",
+        machineUnit: t?.MachineUnit ?? "",
+        sampleRemark: t?.SampleRemark ?? "",
+        isHeader: t?.IsHeader === true ? 1 : 0,
+        isResultBold: t?.IsResultBold ?? 0,
+      })),
+    };
+
+    if (!payload) return;
+
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_TABULAR_REPORT,
+      payload,
+      {},
+      { component: "InvestigationResultEntry" }
+    );
+
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setGetIsAbnormal(0);
+    setGetTabularComment("");
+  };
+
+  // submit handler
+  const onSubmit = async (data: freeTextReportFormData) => {
+    if (isRadiology) {
+      await freeTextSubmitHandler(data);
+      return;
+    }
+
+    if (isPathology) {
+      await tabularReportSubmitHandler();
+      return;
+    }
+  };
+
   // button click handler
   const buttonClickHandler = (buttonName: string) => {
     switch (buttonName) {
       case "save":
-        handleSubmit(onSubmit)();
+        if (isPathology) {
+          tabularReportSubmitHandler();
+        } else {
+          handleSubmit(onSubmit)();
+        }
 
         break;
 
@@ -541,14 +599,7 @@ const InvestigationResultEntry = () => {
         <span>››</span>
         <span>Investigation Result Entry</span>
       </nav>
-      {!item && (
-        <div className="card mb-3">
-          <p className="text-sm text-red-600">
-            Patient context is missing. Open this screen from the previous list so selected patient
-            data is passed correctly.
-          </p>
-        </div>
-      )}
+
       {/* patient details */}
       <div className="card form-grid-4">
         <div className="flex flex-row">
@@ -635,7 +686,7 @@ const InvestigationResultEntry = () => {
                       </tr>
                     )}
 
-                    {tabularInvestigationTableData.map((item, idx) => (
+                    {tabularInvestigationTableData.map((item: TabularTableDataItem, idx) => (
                       <tr key={idx} className="table-row">
                         <td className="table-td max-w-30">{item?.ObservationName || "-"}</td>
                         <td className="table-td">
@@ -737,11 +788,20 @@ const InvestigationResultEntry = () => {
           </div>
           <div className="flex flex-col lg:flex-row gap-4">
             <InputField label="Comments">
-              <textarea rows={1} className="input-field min-w-200" />
+              <textarea
+                rows={1}
+                className="input-field min-w-200"
+                onChange={e => setGetTabularComment(e.target.value)}
+                value={getTabularComment}
+              />
             </InputField>
 
             <InputField label="Abnormal Report">
-              <select className="input-field min-w-70">
+              <select
+                className="input-field min-w-70"
+                onChange={e => setGetIsAbnormal(Number(e.target.value))}
+                value={getIsAbnormal}
+              >
                 <option value={0}>No</option>
                 <option value={1}>yes</option>
               </select>
@@ -749,104 +809,12 @@ const InvestigationResultEntry = () => {
           </div>
         </div>
       ) : (
+        // free text
         <div className="flex flex-col gap-2 card mt-1">
           <h1 className="font-bold">{activeTab} </h1>
           <div className="table-container mt-1 ">
             <div className="table-scroll-wrapper ">
               <div className="table-size lg:min-h-80 lg:max-h-60">
-                {/* <table className="base-table ">
-                  <thead className="table-head">
-                    <tr>
-                      {InvestigationResultEntryTableHeader.map((h, index) => (
-                        <th key={index} className="table-th ">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {freeTextInvestigationTableData?.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={InvestigationResultEntryTableHeader.length}
-                          className="table-empty"
-                        >
-                          No records found
-                        </td>
-                      </tr>
-                    )}
-
-                    {freeTextInvestigationTableData.map((item, idx) => (
-                      <tr key={idx} className="table-row">
-                        <td className="table-td">{item?.ObservationName || "-"}</td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-25"
-                            value={item?.ResultValue ?? ""}
-                            onChange={onFreeTextFieldChange(item, "ResultValue")}
-                          />
-                        </td>
-
-                        <td className={`table-td ${flagClassName(getResultFlag(item))}`}>
-                          {getResultFlag(item)}
-                        </td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.MinValue ?? ""}
-                            onChange={onFreeTextFieldChange(item, "MinValue")}
-                          />
-                        </td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.MaxValue ?? ""}
-                            onChange={onFreeTextFieldChange(item, "MaxValue")}
-                          />
-                        </td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.DisplayRange ?? ""}
-                            onChange={onFreeTextFieldChange(item, "DisplayRange")}
-                          />
-                        </td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.Unit ?? ""}
-                            onChange={onFreeTextFieldChange(item, "Unit")}
-                          />
-                        </td>
-                        <td className="table-td">{item?.MethodName || "-"}</td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.MachineResult ?? ""}
-                            onChange={onFreeTextFieldChange(item, "MachineResult")}
-                          />
-                        </td>
-                        <td className="table-td">{"-"}</td>
-                        <td className="table-td">
-                          <input
-                            type="text"
-                            className="input-field max-w-20"
-                            value={item?.MachineUnit ?? ""}
-                            onChange={onFreeTextFieldChange(item, "MachineUnit")}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table> */}
-
                 {/* template */}
                 <div className="m-2 flex flex-col gap-3 lg:flex-row lg:items-start">
                   <div className="w-full lg:w-70">
