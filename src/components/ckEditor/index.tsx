@@ -1,5 +1,6 @@
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
+import { useEffect, useRef } from "react";
 
 type TextEditorProps = {
   value: string;
@@ -7,11 +8,28 @@ type TextEditorProps = {
 };
 
 const TextEditor = ({ value, onChange }: TextEditorProps) => {
+  const editorRef = useRef<any>(null);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const currentValue = editor.getData?.() ?? "";
+    const nextValue = value ?? "";
+
+    if (currentValue !== nextValue) {
+      editor.setData(nextValue);
+    }
+  }, [value]);
+
   return (
     <div className="custom-ckeditor">
       <CKEditor
         editor={ClassicEditor}
         data={value}
+        onReady={editor => {
+          editorRef.current = editor;
+        }}
         onChange={(_, editor) => onChange(editor.getData())}
         config={{
           toolbar: {
