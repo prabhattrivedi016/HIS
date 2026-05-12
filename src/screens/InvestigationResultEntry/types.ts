@@ -87,4 +87,12 @@ type pickMasterItem = {
   key: string;
 };
 
-export type { InvestigationItem, pickMasterItem, TabularTableDataItem };
+type TemplateItem = {
+  TypeId: number;
+  Type: string;
+  ItemId: number;
+  Name: string;
+  InvestigationId: number;
+};
+
+export type { InvestigationItem, pickMasterItem, TabularTableDataItem, TemplateItem };

@@ -2,25 +2,31 @@ import TextEditor from "@/components/ckEditor";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { LabTypeIdValues, LabTypeName } from "@/constants/constants";
+import { LabTypeIdValues, LabTypeName, Status } from "@/constants/constants";
 import { InvestigationResultEntryTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
-import { useCallback, useContext, useEffect, useState } from "react";
+import {
+  freeTextReportFormData,
+  freeTextReportSchema,
+} from "@/validation/investigationResultEntrySchema";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 import Buttons from "./components/Buttons";
 import ObservationCommentPopup from "./components/ObservationCommentPopup";
-import { InvestigationItem, TabularTableDataItem } from "./types";
+import { InvestigationItem, TabularTableDataItem, TemplateItem } from "./types";
 
 const InvestigationResultEntry = () => {
   const paramsValue = useParams();
   const location = useLocation();
 
-  const item = location.state;
-  const { loading, fetchApi } = useGlobalApi();
+  const item = location.state as InvestigationItem | null;
 
-  console.log("item", item);
+  const { loading, fetchApi } = useGlobalApi();
 
   const branchId = useContext(AuthContext)?.user?.branchId;
 
@@ -31,9 +37,11 @@ const InvestigationResultEntry = () => {
   const [freeTextInvestigationTableData, setFreeTextInvestigationTableData] = useState<
     TabularTableDataItem[]
   >([]);
+
   const [activeTab, setActiveTab] = useState<string>("");
   const [tabNames, setTabNames] = useState<string[]>([]);
   const [activeReportTypeId, setActiveReportTypeId] = useState<number | null>(null);
+  const [editorInstanceKey, setEditorInstanceKey] = useState<string>("initial");
 
   const [allInvestigationOfSinglePatient, setAllInvestigationOfSinglePatient] = useState<
     InvestigationItem[]
@@ -44,8 +52,11 @@ const InvestigationResultEntry = () => {
   const [selectedCommentInvestigation, setSelectedInvestigationComment] =
     useState<TabularTableDataItem | null>(null);
 
+  const [templateItemList, setTemplateItemList] = useState<TemplateItem[]>([]);
+
   const [textEditorValue, setTextEditorValue] = useState<string>("");
 
+  // patient details
   const [patientDetails, setPatientDetails] = useState({
     BarCode: 0,
     BillDate: "",
@@ -57,7 +68,41 @@ const InvestigationResultEntry = () => {
     referDoctorName: "",
   });
 
-  if (!paramsValue) return;
+  // create update template form data
+  const [createUpdateTemplateFormData, setCreateUpdateTemplateFormData] = useState({
+    id: 0,
+    typeId: 1,
+    type: "Template",
+    name: "",
+    contentValue: "",
+    isActive: 1,
+  });
+
+  useEffect(() => {
+    setCreateUpdateTemplateFormData(prev => ({
+      ...prev,
+      contentValue: textEditorValue,
+    }));
+  }, [textEditorValue]);
+
+  // free text form data
+  const {
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(freeTextReportSchema),
+    defaultValues: {
+      patientInvestigationId: item?.PatientInvestigationId,
+      investigationId: item?.InvestigationId,
+      resultValue: "",
+      templateId: 0,
+      investigationComments: "",
+      isAbnormalResult: 0,
+    },
+  });
 
   // button change handler
   const buttonChangeHandler = (b: string) => {
@@ -80,8 +125,6 @@ const InvestigationResultEntry = () => {
       { component: "InvestigationResultEntry" }
     );
 
-    console.log("resp of all investigation of one patient", resp?.data);
-
     const tabs = resp?.data?.map((i: InvestigationItem) => i?.Name) ?? [];
 
     setTabNames(tabs);
@@ -93,8 +136,6 @@ const InvestigationResultEntry = () => {
       paramsValue?.department === LabTypeName?.PATHOLOGY
         ? LabTypeIdValues?.PATHOLOGY
         : LabTypeIdValues?.RADIOLOGY;
-
-    console.log("labTypeId", labTypeId);
 
     if (item && branchId) {
       setPatientDetails({
@@ -110,7 +151,7 @@ const InvestigationResultEntry = () => {
       setActiveTab(item?.Name);
       getAllInvestigationOfPatient(branchId, item?.UHID, item?.LabNo, labTypeId, item?.VisitId);
     }
-  }, [paramsValue, item]);
+  }, [paramsValue, item, branchId]);
 
   // tabular result entry value
 
@@ -128,8 +169,6 @@ const InvestigationResultEntry = () => {
 
   // free text entry value
   const getFreeTextResultEntryValue = async (patientInvestigationId: number) => {
-    console.log("free text is called");
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_FREE_TEXT_REPORT_FOR_RESULT_ENTRY,
@@ -138,9 +177,37 @@ const InvestigationResultEntry = () => {
       { component: "InvestigationResultEntry" }
     );
 
+    const fetched = resp?.data?.[0];
     setFreeTextInvestigationTableData(resp?.data ?? []);
+    setTextEditorValue(fetched?.ResultValue ?? "");
+    reset({
+      patientInvestigationId: patientInvestigationId,
+      investigationId: fetched?.InvestigationId ?? 0,
+      resultValue: fetched?.ResultValue ?? "",
+      templateId: fetched?.TemplateId ?? 0,
+      investigationComments: fetched?.InvestigationComment ?? "",
+      isAbnormalResult: fetched?.IsAbnormalResult ?? 0,
+    });
   };
 
+  // template lists
+  const getTemplateName = async (investigationId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_INVESTIGATION_TEMPLATE_INTERPRETATION_MAPPINGS,
+      {},
+      {
+        params: { investigationId },
+      },
+      {
+        component: "InvestigationResultEntry",
+      }
+    );
+
+    setTemplateItemList(resp?.data ?? []);
+  };
+
+  //  getInvestigationTemplateInterpretationMappings
   useEffect(() => {
     if (item && paramsValue && activeTab) {
       const selectedInvestigation = allInvestigationOfSinglePatient?.find(
@@ -148,21 +215,31 @@ const InvestigationResultEntry = () => {
       );
 
       if (selectedInvestigation?.PatientInvestigationId) {
+        // Keep free-text payload identifiers synced with active investigation tab.
+        setValue(
+          "patientInvestigationId",
+          Number(selectedInvestigation?.PatientInvestigationId) || 0
+        );
+        setValue("investigationId", Number(selectedInvestigation?.InvestigationId) || 0);
+
         const reportTypeId = Number(selectedInvestigation?.ReportTypeId);
         setActiveReportTypeId(Number.isFinite(reportTypeId) ? reportTypeId : null);
 
         // Prevent showing stale data when switching tabs
         setTabularInvestigationTableData([]);
         setFreeTextInvestigationTableData([]);
+        setTextEditorValue("");
+        setEditorInstanceKey(`investigation-${selectedInvestigation?.PatientInvestigationId}`);
 
         if (reportTypeId === LabTypeIdValues?.PATHOLOGY) {
           getTabularResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
         } else {
           getFreeTextResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
+          getTemplateName(Number(selectedInvestigation?.InvestigationId));
         }
       }
     }
-  }, [item, paramsValue, activeTab, allInvestigationOfSinglePatient]);
+  }, [item, paramsValue, activeTab, allInvestigationOfSinglePatient, setValue]);
 
   const parseNumeric = (v: unknown): number | null => {
     if (v === null || v === undefined) return null;
@@ -240,25 +317,25 @@ const InvestigationResultEntry = () => {
       });
     };
 
-  const onFreeTextFieldChange =
-    (
-      row: TabularTableDataItem,
-      field: keyof Pick<
-        TabularTableDataItem,
-        | "ResultValue"
-        | "MinValue"
-        | "MaxValue"
-        | "DisplayRange"
-        | "Unit"
-        | "MachineResult"
-        | "MachineUnit"
-      >
-    ) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateTableRowByObservationId(setFreeTextInvestigationTableData, row, {
-        [field]: e.target.value,
-      });
-    };
+  // const onFreeTextFieldChange =
+  //   (
+  //     row: TabularTableDataItem,
+  //     field: keyof Pick<
+  //       TabularTableDataItem,
+  //       | "ResultValue"
+  //       | "MinValue"
+  //       | "MaxValue"
+  //       | "DisplayRange"
+  //       | "Unit"
+  //       | "MachineResult"
+  //       | "MachineUnit"
+  //     >
+  //   ) =>
+  //   (e: React.ChangeEvent<HTMLInputElement>) => {
+  //     updateTableRowByObservationId(setFreeTextInvestigationTableData, row, {
+  //       [field]: e.target.value,
+  //     });
+  //   };
 
   const isTabularReport = Number(activeReportTypeId) === LabTypeIdValues?.PATHOLOGY;
 
@@ -280,6 +357,177 @@ const InvestigationResultEntry = () => {
   // text editor change handler
   const textEditorChangeHandler = (data: string) => {
     setTextEditorValue(data);
+    setValue("resultValue", data ?? "");
+  };
+
+  // submit handler
+  const onSubmit = async (data: freeTextReportFormData) => {
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_FREE_TEXT_REPORT,
+      data,
+      {},
+      { component: "InvestigationResultEntry" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    reset({
+      patientInvestigationId: item?.PatientInvestigationId,
+      investigationId: item?.InvestigationId,
+      resultValue: "",
+      templateId: 0,
+      investigationComments: "",
+      isAbnormalResult: 0,
+    });
+    setTextEditorValue("");
+  };
+
+  // button click handler
+  const buttonClickHandler = (buttonName: string) => {
+    switch (buttonName) {
+      case "save":
+        handleSubmit(onSubmit)();
+
+        break;
+
+      case "approve":
+        break;
+
+      case "hold":
+        break;
+
+      case "next":
+        break;
+
+      case "previous":
+        break;
+
+      case "bulkPrint":
+        break;
+
+      case "deltaCheck":
+        break;
+
+      case "patientDetails":
+        break;
+
+      case "addReport":
+        break;
+
+      case "printReport":
+        break;
+
+      case "reRun":
+        break;
+
+      case "close":
+        break;
+
+      default:
+        break;
+    }
+  };
+
+  // input change handler
+  const inputChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+
+    setCreateUpdateTemplateFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // template change handler
+  const templateChangeHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    setValue("templateId", value || 0);
+    if (!value) {
+      setCreateUpdateTemplateFormData(prev => ({
+        ...prev,
+        id: 0,
+        name: "",
+        contentValue: "",
+      }));
+      setTextEditorValue("");
+      setValue("resultValue", "");
+      setEditorInstanceKey("template-new");
+      return;
+    }
+
+    getTemplateValue(value);
+  };
+
+  // fetch template value
+  const getTemplateValue = async (value: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_INVESTIGATION_TEMPLATE_COMMENT_MASTER,
+      {},
+      { params: { id: value, typeId: Status?.ACTIVE } },
+      { component: "InvestigationResultEntry" }
+    );
+    const fetchedTemplate = resp?.data?.[0] ?? {};
+    setCreateUpdateTemplateFormData({
+      id: fetchedTemplate?.Id ?? 0,
+      typeId: fetchedTemplate?.Typeid ?? 1,
+      type: fetchedTemplate?.Type ?? "Template",
+      name: fetchedTemplate?.Name ?? "",
+      contentValue: fetchedTemplate?.ContentValue ?? "",
+      isActive: fetchedTemplate?.IsActive ?? 1,
+    });
+    setTextEditorValue(fetchedTemplate?.ContentValue ?? "");
+    setValue("resultValue", fetchedTemplate?.ContentValue ?? "");
+    setEditorInstanceKey(`template-${fetchedTemplate?.Id ?? value}`);
+  };
+
+  // template save handler
+  const templateSaveHandler = async () => {
+    if (!createUpdateTemplateFormData?.name?.trim()) {
+      showWarning("Please enter template name");
+      return;
+    }
+    if (!createUpdateTemplateFormData?.contentValue?.trim()) {
+      showWarning("Please enter template content");
+      return;
+    }
+
+    const payload = [createUpdateTemplateFormData];
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_INVESTIGATION_TEMPLATE_COMMENT_MASTER,
+      payload,
+      {},
+      { component: "InvestigationResultEntry" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setCreateUpdateTemplateFormData({
+      id: 0,
+      typeId: 1,
+      type: "Template",
+      name: "",
+      contentValue: "",
+      isActive: 1,
+    });
+    setTextEditorValue("");
+    setValue("resultValue", "");
+    setValue("templateId", 0);
+    setEditorInstanceKey("template-new");
+    setTemplateItemList([]);
+    const currentInvestigationId = Number(
+      allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab)?.InvestigationId
+    );
+    if (currentInvestigationId) {
+      getTemplateName(currentInvestigationId);
+    }
   };
 
   return (
@@ -293,6 +541,14 @@ const InvestigationResultEntry = () => {
         <span>››</span>
         <span>Investigation Result Entry</span>
       </nav>
+      {!item && (
+        <div className="card mb-3">
+          <p className="text-sm text-red-600">
+            Patient context is missing. Open this screen from the previous list so selected patient
+            data is passed correctly.
+          </p>
+        </div>
+      )}
       {/* patient details */}
       <div className="card form-grid-4">
         <div className="flex flex-row">
@@ -595,7 +851,18 @@ const InvestigationResultEntry = () => {
                 <div className="m-2 flex flex-col gap-3 lg:flex-row lg:items-start">
                   <div className="w-full lg:w-70">
                     <InputField label="Select Template">
-                      <input type="text" className="input-field" />
+                      <select
+                        className="input-field"
+                        {...register("templateId", { valueAsNumber: true })}
+                        onChange={templateChangeHandler}
+                      >
+                        <option value={0}>Select</option>
+                        {templateItemList?.map(t => (
+                          <option key={t?.ItemId} value={t?.ItemId}>
+                            {t?.Name}
+                          </option>
+                        ))}
+                      </select>
                     </InputField>
                   </div>
 
@@ -605,33 +872,53 @@ const InvestigationResultEntry = () => {
                         type="text"
                         className="input-field"
                         placeholder="Enter template name"
+                        name="name"
+                        value={createUpdateTemplateFormData?.name}
+                        onChange={inputChangeHandler}
                       />
                     </InputField>
                   </div>
 
                   {/* Buttons */}
                   <div className="flex w-full justify-end gap-3 lg:mt-6 lg:w-auto">
-                    <button type="submit" className="save-btn h-10">
-                      Save New
-                    </button>
-
-                    <button type="button" className="save-btn h-10">
-                      Update
-                    </button>
+                    {Number(createUpdateTemplateFormData?.id) > 0 ? (
+                      <button type="button" className="save-btn h-10" onClick={templateSaveHandler}>
+                        Update
+                      </button>
+                    ) : (
+                      <button type="button" className="save-btn h-10" onClick={templateSaveHandler}>
+                        Save New
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* editor */}
-                <TextEditor onChange={textEditorChangeHandler} value={textEditorValue} />
+
+                <TextEditor
+                  key={editorInstanceKey}
+                  onChange={textEditorChangeHandler}
+                  value={textEditorValue}
+                />
               </div>
             </div>
+            {errors?.resultValue?.message && (
+              <p className="input-field-error">{String(errors.resultValue.message)}</p>
+            )}
           </div>
           <div className="flex flex-col lg:flex-row gap-4">
             <InputField label="Comments">
-              <textarea rows={1} className="input-field min-w-200" />
+              <textarea
+                rows={1}
+                className="input-field min-w-200"
+                {...register("investigationComments")}
+              />
             </InputField>
 
             <InputField label="Abnormal Report">
-              <select className="input-field min-w-70">
+              <select
+                className="input-field min-w-70"
+                {...register("isAbnormalResult", { valueAsNumber: true })}
+              >
                 <option value={0}>No</option>
                 <option value={1}>yes</option>
               </select>
@@ -641,7 +928,7 @@ const InvestigationResultEntry = () => {
       )}
 
       {/* buttons */}
-      <Buttons />
+      <Buttons onButtonClick={buttonClickHandler} />
       {/* comment */}
       {!!renderInvestigationComment && (
         <ObservationCommentPopup

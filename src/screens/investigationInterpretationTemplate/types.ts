@@ -102,8 +102,8 @@ type InvestigationInterpretationMappingItem = {
 };
 export type {
   CommentListItem,
-  InvestigationInterpretationMappingItem,
   InvestigationCommentItem,
+  InvestigationInterpretationMappingItem,
   InvestigationNameItem,
   LovLists,
   ObservationCommentItem,
