@@ -5,6 +5,7 @@ import { Status } from "@/constants/constants";
 import { SampleRejectionRemarkTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { RadiologyTableItem } from "@/screens/resultEntryRadiology/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import {
@@ -24,7 +25,7 @@ const SampleRemarks = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementTableData;
+    data: SampleManagementTableData | RadiologyTableItem | null;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
 
@@ -40,7 +41,7 @@ const SampleRemarks = React.memo(
       setValue,
       register,
       formState: { errors },
-    } = useForm<sampleManagementRemarksFormData>({
+    } = useForm({
       resolver: yupResolver(sampleManagementRemarksSchema),
       defaultValues: {
         id: 0,

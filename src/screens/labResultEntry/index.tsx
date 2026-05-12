@@ -774,7 +774,6 @@ const PathologyResultEntry = () => {
   };
   const closePatientInvestigationInfo = useCallback(() => {
     setOpenPatientInfoPopup(false);
-    setRenderPatientInfoPopup(false);
   }, []);
 
   // patient document handler
@@ -801,7 +800,6 @@ const PathologyResultEntry = () => {
   // close remark popup
   const closeRemarkPopup = useCallback(() => {
     setOpenRemarkPopup(false);
-    setRenderRemarkPopup(false);
     setRemarkItem(null);
   }, []);
 
