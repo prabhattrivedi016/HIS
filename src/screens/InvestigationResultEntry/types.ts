@@ -80,6 +80,8 @@ type InvestigationItem = {
   isUrgent: number;
   IsReportHold: number;
   NotificationRemark: string;
+  InvestigationComment?: string;
+  IsAbnormalResult?: number;
 };
 
 type pickMasterItem = {

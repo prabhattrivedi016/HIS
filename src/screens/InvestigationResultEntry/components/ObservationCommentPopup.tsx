@@ -11,7 +11,7 @@ const ObservationCommentPopup = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  data: TabularTableDataItem;
+  data: TabularTableDataItem | null;
 }) => {
   const [editorValue, setEditorValue] = useState("");
 
