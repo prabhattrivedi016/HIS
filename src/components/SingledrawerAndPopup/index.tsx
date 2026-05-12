@@ -4,6 +4,7 @@ import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
+import { RadiologyTableItem } from "@/screens/resultEntryRadiology/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import React, { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -18,7 +19,7 @@ const LabPatientInfo = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  data: SampleManagementTableData | LabResultEntryTableData;
+  data: SampleManagementTableData | LabResultEntryTableData | RadiologyTableItem | null;
 }) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
@@ -28,8 +29,6 @@ const LabPatientInfo = ({
   // get patient information
   const getPatientInfo = async () => {
     if (!data?.UHID || !data?.LabNo) return;
-
-    console.log("API calling...");
 
     const resp = await fetchApi(
       "GET",

@@ -1,5 +1,6 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
 import {
   ResultEntryRadiologyButtons,
@@ -12,9 +13,10 @@ import { showInfo } from "@/utils/alert";
 import { resultEntryRadiologySchema } from "@/validation/resultEntryRadiology";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink, useNavigate } from "react-router-dom";
+import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import { ButtonValue, RadiologyTableItem, SubSubCategoryItem } from "./types";
 
 const ResultEntryRadiology = () => {
@@ -46,16 +48,13 @@ const ResultEntryRadiology = () => {
   const [approvedTestCount, setApprovedTestCount] = useState(0);
   const [pendingTestCount, setPendingTestCount] = useState(0);
 
-  const [renderReport, setRenderReport] = useState<boolean>(false);
-  const [openReport, setOpenReport] = useState<boolean>(false);
+  const [openPatientInfoPopup, setOpenPatientInfoPopup] = useState<boolean>(false);
+  const [renderPatientInfoPopup, setRenderPatientInfoPopup] = useState<boolean>(false);
+  const [selectedPatient, setSelectedPatient] = useState<RadiologyTableItem | null>(null);
 
-  const [renderInfo, setRenderInfo] = useState<boolean>(false);
-  const [openInfo, setOpenInfo] = useState<boolean>(false);
-  const [selectedInfoData, setSelectedInfoData] = useState<any>(null);
-
-  const [renderRemark, setRenderRemark] = useState<boolean>(false);
-  const [openRemark, setOpenRemark] = useState<boolean>(false);
-  const [selectedRemarkData, setSelectedRemarkData] = useState<any>(null);
+  const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
+  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
+  const [remarkItem, setRemarkItem] = useState<RadiologyTableItem | null>(null);
 
   // form Data
   const { register, setValue, handleSubmit, reset } = useForm({
@@ -281,6 +280,37 @@ const ResultEntryRadiology = () => {
       state: item,
     });
   };
+
+  // close patient info modal
+  const closePatientInvestigationInfo = useCallback(() => {
+    setOpenPatientInfoPopup(false);
+  }, []);
+
+  // patient Info handler
+  const patientInfoHandler = (data: RadiologyTableItem) => {
+    if (!data) {
+      setRenderPatientInfoPopup(true);
+      setOpenPatientInfoPopup(true);
+      setSelectedPatient(null);
+      return;
+    }
+
+    setSelectedPatient(data);
+    setRenderPatientInfoPopup(true);
+    setOpenPatientInfoPopup(true);
+  };
+
+  // remark handler
+  const remarkHandler = (item: RadiologyTableItem) => {
+    if (!item) return;
+    setRemarkItem(item);
+    setRenderRemarkPopup(true);
+    setOpenRemarkPopup(true);
+  };
+
+  const closeHandler = useCallback(() => {
+    setOpenRemarkPopup(false);
+  }, []);
   return (
     <div className="page-container">
       <h1 className="page-heading">Radiology Result Entry </h1>
@@ -567,13 +597,17 @@ const ResultEntryRadiology = () => {
 
                       <td className="table-td">{item?.IsReportApproved || "-"}</td>
                       <td className="table-td">{item?.ReportApprovedOn || "-"}</td>
-                      <td className="table-td cursor-pointer">
-                        <i className="fa-solid fa-plus icon-color-button"></i>
-                      </td>
+
                       <td className="table-td cursor-pointer">
                         <i className="fa-solid fa-file icon-color-button"></i>
                       </td>
-                      <td className="table-td cursor-pointer">
+                      <td className="table-td cursor-pointer" onClick={() => remarkHandler(item)}>
+                        <i className="fa-solid fa-plus icon-color-button"></i>
+                      </td>
+                      <td
+                        className="table-td cursor-pointer"
+                        onClick={() => patientInfoHandler(item)}
+                      >
                         <i className="fa-solid fa-info icon-color-button"></i>
                       </td>
                     </tr>
@@ -585,25 +619,19 @@ const ResultEntryRadiology = () => {
         </div>
       </div>
 
-      {/*------------------------ report------------------------------ */}
-      {/* {!!renderReport && <RadiologyReport isOpen={openReport} onClose={closeHandler} />} */}
-      {/* ------------------------info------------------------- */}
-      {/* {!!renderInfo && (
-        <PatientInvestigationDetails
-          isOpen={openInfo}
-          onClose={closeInfoHandler}
-          data={selectedInfoData}
+      {/* patient investigation details */}
+      {!!renderPatientInfoPopup && (
+        <LabPatientInfo
+          isOpen={openPatientInfoPopup}
+          onClose={closePatientInvestigationInfo}
+          data={selectedPatient}
         />
-      )} */}
+      )}
 
-      {/* --------------------remark----------------------------- */}
-      {/* {!!renderRemark && (
-        <RadiologyRemark
-          isOpen={openRemark}
-          onClose={closeRemarkHandler}
-          data={selectedRemarkData}
-        />
-      )} */}
+      {/* remark popup */}
+      {!!renderRemarkPopup && (
+        <SampleRemarks isOpen={openRemarkPopup} onClose={closeHandler} data={remarkItem} />
+      )}
 
       {!!loading && <CustomLoader isLoading={loading} />}
     </div>
@@ -611,38 +639,3 @@ const ResultEntryRadiology = () => {
 };
 
 export default ResultEntryRadiology;
-
-/** {
-            "BillDate": "25-Apr-2026",
-            "Type": "OPD",
-            "UHID": "GWS/00000023",
-            "IPDNo": 0,
-            "LabNo": 114,
-            "WardName": "",
-            "PatientName": "MR. PRABHAT TRIVEDI",
-            "CurrentAge": "0Y 0M 19D",
-            "Gender": "MALE",
-            "Name": "CHEST X-RAY",
-            "VisitId": 185,
-            "TotalBalanceAmount": 0.000000,
-            "isUrgent": 0,
-            "Barcode": "0",
-            "IsSampleRequired": 0,
-            "IsDepartmentReceivingRequired": 0,
-            "PatientInvestigationId": 196,
-            "ReportTypeId": 2,
-            "IsReportHold": 0,
-            "CreatedOn": "Apr 25 2026 11:18AM",
-            "VIPPatient": 0,
-            "IsSampleCollected": 0,
-            "SampleCollectedOn": "",
-            "IsSampleReceivedByDepartment": 0,
-            "SampleReceivedByDepartmentOn": "",
-            "IsResultDone": 0,
-            "ResultDoneOn": "",
-            "IsReportApproved": 0,
-            "ReportApprovedOn": "",
-            "IsDispatched": 0,
-            "DispatchedOn": "",
-            "isSampleRejected": 0
-        }, */
