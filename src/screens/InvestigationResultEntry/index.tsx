@@ -7,7 +7,6 @@ import { InvestigationResultEntryTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess, showWarning } from "@/utils/alert";
-import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   freeTextReportFormData,
   freeTextReportSchema,
@@ -301,7 +300,9 @@ const InvestigationResultEntry = () => {
     patch: Partial<TabularTableDataItem>
   ) => {
     setter(prev =>
-      prev.map(i => (i?.ObservationId === row?.ObservationId ? { ...i, ...patch } : i))
+      prev.map(i =>
+        Number(i?.ObservationId) === Number(row?.ObservationId) ? { ...i, ...patch } : i
+      )
     );
   };
 
@@ -325,6 +326,13 @@ const InvestigationResultEntry = () => {
 
       updateTableRowByObservationId(setTabularInvestigationTableData, row, {
         [field]: value,
+      });
+    };
+
+  const onResultBoldChange =
+    (row: TabularTableDataItem) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateTableRowByObservationId(setTabularInvestigationTableData, row, {
+        IsResultBold: e.currentTarget.checked ? 1 : 0,
       });
     };
 
@@ -382,6 +390,15 @@ const InvestigationResultEntry = () => {
       return;
     }
 
+    const hasMandatoryEmpty = tabularInvestigationTableData.some(
+      i => Number(i?.IsMandatory) === 1 && !String(i?.ResultValue ?? "").trim()
+    );
+
+    if (hasMandatoryEmpty) {
+      showWarning("Result value is required ");
+      return;
+    }
+
     const selectedInvestigation = allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab);
 
     const payload = {
@@ -402,7 +419,10 @@ const InvestigationResultEntry = () => {
         machineUnit: t?.MachineUnit ?? "",
         sampleRemark: t?.SampleRemark ?? "",
         isHeader: t?.IsHeader === true ? 1 : 0,
-        isResultBold: t?.IsResultBold ?? 0,
+        isResultBold:
+          Number(t?.IsResultBold) === 1 || t?.IsResultBold === true || t?.IsResultBold === "1"
+            ? 1
+            : 0,
       })),
     };
 
@@ -588,6 +608,19 @@ const InvestigationResultEntry = () => {
     }
   };
 
+  // observation lovs dropsdown
+  const getResultValueDropdown = (value?: string) =>
+    String(value ?? "")
+      .split("#")
+      .map(v => v.trim())
+      .filter(Boolean);
+
+  const onLovResultClick = (row: TabularTableDataItem, value: string) => {
+    updateTableRowByObservationId(setTabularInvestigationTableData, row, {
+      ResultValue: value,
+    });
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Investigation Result Entry</h1>
@@ -688,97 +721,156 @@ const InvestigationResultEntry = () => {
 
                     {tabularInvestigationTableData.map((item: TabularTableDataItem, idx) => (
                       <tr key={idx} className="table-row">
-                        <td className="table-td max-w-30">{item?.ObservationName || "-"}</td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="checkbox"
-                              className="input-checkbox"
-                              value={item?.IsBold}
-                              onChange={onTabularFieldChange(item, "IsBold")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-25"
-                              value={item?.ResultValue ?? ""}
-                              onChange={onTabularFieldChange(item, "ResultValue")}
-                              onInput={allowOnlyNumbers}
-                            />
-                          }
-                        </td>
-                        <td className={`table-td ${flagClassName(getResultFlag(item))}`}>
-                          {getResultFlag(item)}
-                        </td>
+                        {item?.IsHeader ? (
+                          <td className="table-td max-w-30">
+                            {item?.IsBold && item.IsUnderLine ? (
+                              <span className="font-bold underline">{item?.ObservationName}</span>
+                            ) : item?.IsBold ? (
+                              <span className="font-bold ">{item?.ObservationName}</span>
+                            ) : item?.IsUnderLine ? (
+                              <span className="underline">{item?.ObservationName}</span>
+                            ) : (
+                              <span className="font-bold">{item?.ObservationName} </span>
+                            )}
+                          </td>
+                        ) : (
+                          <>
+                            <td className="table-td max-w-30">
+                              {item?.IsBold && item.IsUnderLine ? (
+                                <span className="font-bold underline">{item?.ObservationName}</span>
+                              ) : item?.IsBold ? (
+                                <span className="font-bold ">{item?.ObservationName}</span>
+                              ) : item?.IsUnderLine ? (
+                                <span className="underline">{item?.ObservationName}</span>
+                              ) : (
+                                item?.ObservationName || "-"
+                              )}
+                            </td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="checkbox"
+                                  className="input-checkbox"
+                                  onChange={onResultBoldChange(item)}
+                                  checked={Number(item?.IsResultBold) === 1}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">
+                              {(() => {
+                                const lovs = getResultValueDropdown(item?.ObservationLOVs);
 
-                        <td className="table-td" onClick={() => commentHandler(item)}>
-                          {<i className="fa-solid fa-comments icon-color-button "></i>}
-                        </td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.MinValue ?? ""}
-                              onChange={onTabularFieldChange(item, "MinValue")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.MaxValue ?? ""}
-                              onChange={onTabularFieldChange(item, "MaxValue")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.DisplayRange ?? ""}
-                              onChange={onTabularFieldChange(item, "DisplayRange")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.Unit ?? ""}
-                              onChange={onTabularFieldChange(item, "Unit")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">{item?.MethodName || "-"}</td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.MachineResult ?? ""}
-                              onChange={onTabularFieldChange(item, "MachineResult")}
-                            />
-                          }
-                        </td>
-                        <td className="table-td">{"-"}</td>
-                        <td className="table-td">
-                          {
-                            <input
-                              type="text"
-                              className="input-field max-w-20"
-                              value={item?.MachineUnit ?? ""}
-                              onChange={onTabularFieldChange(item, "MachineUnit")}
-                            />
-                          }
-                        </td>
+                                return (
+                                  <div className="relative group flex items-start gap-1">
+                                    <input
+                                      type="text"
+                                      className={`input-field max-w-25 ${
+                                        Number(item?.IsMandatory) === 1
+                                          ? "border! border-red-500! focus:border-red-500!"
+                                          : ""
+                                      }`}
+                                      value={item?.ResultValue ?? ""}
+                                      onChange={onTabularFieldChange(item, "ResultValue")}
+                                    />
+
+                                    {lovs.length > 0 && (
+                                      <>
+                                        <span className="mt-2 " title="Show options">
+                                          <i className="fa-solid fa-chevron-down text-xs"></i>
+                                        </span>
+
+                                        <div className="result-entry-chervondown-popup">
+                                          {lovs.map((lov, index) => (
+                                            <button
+                                              key={`${item?.ObservationId}-${index}`}
+                                              type="button"
+                                              className="chervon-down-button"
+                                              onClick={() => onLovResultClick(item, lov)}
+                                            >
+                                              {lov}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
+                            {/*  */}
+
+                            <td className={`table-td ${flagClassName(getResultFlag(item))}`}>
+                              {getResultFlag(item)}
+                            </td>
+
+                            <td className="table-td" onClick={() => commentHandler(item)}>
+                              {<i className="fa-solid fa-comments icon-color-button "></i>}
+                            </td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.MinValue ?? ""}
+                                  onChange={onTabularFieldChange(item, "MinValue")}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.MaxValue ?? ""}
+                                  onChange={onTabularFieldChange(item, "MaxValue")}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.DisplayRange ?? ""}
+                                  onChange={onTabularFieldChange(item, "DisplayRange")}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.Unit ?? ""}
+                                  onChange={onTabularFieldChange(item, "Unit")}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">{item?.MethodName || "-"}</td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.MachineResult ?? ""}
+                                  onChange={onTabularFieldChange(item, "MachineResult")}
+                                />
+                              }
+                            </td>
+                            <td className="table-td">{"-"}</td>
+                            <td className="table-td">
+                              {
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20"
+                                  value={item?.MachineUnit ?? ""}
+                                  onChange={onTabularFieldChange(item, "MachineUnit")}
+                                />
+                              }
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -911,3 +1003,47 @@ const InvestigationResultEntry = () => {
 };
 
 export default InvestigationResultEntry;
+
+/*
+{
+            "UHID": "GWS/00000030",
+            "PatientName": "MR. ANMOL KUSHAWAHA",
+            "CurrentAge": "0Y 0M 16D",
+            "Gender": "MALE",
+            "LabNo": 156,
+            "BarCode": "84",
+            "BillDate": "13-May-2026 10:38 AM",
+            "referDoctorName": "",
+            "InvestigationName": "LFT (SERUM)",
+            "ObservationName": "Influenza B",
+            "ObservationId": 2,
+            "Prefix": "B",
+            "Suffix": "I",
+            "ResultValue": "12",
+            "MinValue": "6.00",
+            "MaxValue": "17.00",
+            "DisplayRange": "4.5 - 11.0",
+            "Unit": "g/dL",
+            "MachineResult": "",
+            "MachineUnit": "",
+            "SampleRemark": "",
+            "MachineDisplayRange": "",
+            "MethodName": "Microscopy",
+            "Formula": "$(\"#txt_2\").val(Number(Number($(\"#txt_1\").val())123).toFixed(2))",
+            "FormulaRight": "{\"Number($(\"#txt_1\").val())123\"}",
+            "ObservationLOVs": "Serumic#testing 2",
+            "IsHeader": true,
+            "InvestigationComment": "LFT",
+            "IsAbnormalResult": 0,
+            "InvestigationId": 298,
+            "IsResultDone": 1,
+            "IsReportApproved": 0,
+            "FieldTypeId": 1,
+            "PatientId": 42,
+            "isUrgent": 1,
+            "RoundUp": "4",
+            "IsBold": false,
+            "IsUnderLine": false,
+            "IsMandatory": 0,
+            "IsResultBold": 0
+        } */
