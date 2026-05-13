@@ -37,9 +37,9 @@ const Buttons = ({ onButtonClick }: { onButtonClick: (value: ButtonAction) => vo
             <i className="fa-solid fa-chevron-right"></i>
           </button>
 
-          <button type="button" className="save-btn" onClick={() => onButtonClick("reRun")}>
+          {/* <button type="button" className="save-btn" onClick={() => onButtonClick("reRun")}>
             Re-Run
-          </button>
+          </button> */}
 
           <button type="button" className="save-btn" onClick={() => onButtonClick("deltaCheck")}>
             Delta Check
