@@ -101,6 +101,25 @@ const Sidebar = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  useEffect(() => {
+    const handleGlobalMouseDown = (e: globalThis.MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-context-menu='true']")) return;
+      setContextMenu(null);
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+
+    document.addEventListener("mousedown", handleGlobalMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleGlobalMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   /* ---------------- Filtering ---------------- */
 
   const filteredTabs: TabItem[] = useMemo(() => {
@@ -269,14 +288,15 @@ const Sidebar = () => {
                                 to={path}
                                 onContextMenu={e => {
                                   e.preventDefault();
+                                  e.stopPropagation();
                                   setContextMenu({
                                     id: page.subMenuId,
-                                    x: e.clientX,
-                                    y: e.clientY,
+                                    x: Math.min(e.clientX, window.innerWidth - 180),
+                                    y: Math.min(e.clientY, window.innerHeight - 80),
                                   });
                                 }}
                                 className={({ isActive }) =>
-                                  `block w-full px-3 py-2 rounded hover:bg-gray-300 whitespace-nowrap overflow-hidden text-ellipsis ${
+                                  `block w-full px-3 py-2 rounded hover:bg-gray-300 whitespace-nowrap overflow-hidden text-ellipsis transition-colors linear-bg-blue-500 to linear-yellow-500 ${
                                     isActive || location.pathname.startsWith(path)
                                       ? "bg-gray-200"
                                       : ""
@@ -285,6 +305,35 @@ const Sidebar = () => {
                               >
                                 {page.subMenuName}
                               </NavLink>
+
+                              <AnimatePresence>
+                                {contextMenu?.id === page.subMenuId && (
+                                  <motion.div
+                                    data-context-menu="true"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{
+                                      position: "fixed",
+                                      top: contextMenu.y,
+                                      left: contextMenu.x,
+                                    }}
+                                    className="w-40 bg-linear-to-br from-indigo-700 to-blue-700 shadow-lg rounded-md z-999"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await rightClickButtonHandler(page);
+                                        setContextMenu(null);
+                                      }}
+                                      className="w-full px-1 py-2 text-white active:scale-90"
+                                    >
+                                      Mark Quick Link
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           );
                         })}{" "}

@@ -391,7 +391,10 @@ const InvestigationResultEntry = () => {
     }
 
     const hasMandatoryEmpty = tabularInvestigationTableData.some(
-      i => Number(i?.IsMandatory) === 1 && !String(i?.ResultValue ?? "").trim()
+      i =>
+        Number(i?.IsMandatory) === 1 &&
+        Number(i?.IsHeader) === 0 &&
+        !String(i?.ResultValue ?? "").trim()
     );
 
     if (hasMandatoryEmpty) {
@@ -1003,47 +1006,3 @@ const InvestigationResultEntry = () => {
 };
 
 export default InvestigationResultEntry;
-
-/*
-{
-            "UHID": "GWS/00000030",
-            "PatientName": "MR. ANMOL KUSHAWAHA",
-            "CurrentAge": "0Y 0M 16D",
-            "Gender": "MALE",
-            "LabNo": 156,
-            "BarCode": "84",
-            "BillDate": "13-May-2026 10:38 AM",
-            "referDoctorName": "",
-            "InvestigationName": "LFT (SERUM)",
-            "ObservationName": "Influenza B",
-            "ObservationId": 2,
-            "Prefix": "B",
-            "Suffix": "I",
-            "ResultValue": "12",
-            "MinValue": "6.00",
-            "MaxValue": "17.00",
-            "DisplayRange": "4.5 - 11.0",
-            "Unit": "g/dL",
-            "MachineResult": "",
-            "MachineUnit": "",
-            "SampleRemark": "",
-            "MachineDisplayRange": "",
-            "MethodName": "Microscopy",
-            "Formula": "$(\"#txt_2\").val(Number(Number($(\"#txt_1\").val())123).toFixed(2))",
-            "FormulaRight": "{\"Number($(\"#txt_1\").val())123\"}",
-            "ObservationLOVs": "Serumic#testing 2",
-            "IsHeader": true,
-            "InvestigationComment": "LFT",
-            "IsAbnormalResult": 0,
-            "InvestigationId": 298,
-            "IsResultDone": 1,
-            "IsReportApproved": 0,
-            "FieldTypeId": 1,
-            "PatientId": 42,
-            "isUrgent": 1,
-            "RoundUp": "4",
-            "IsBold": false,
-            "IsUnderLine": false,
-            "IsMandatory": 0,
-            "IsResultBold": 0
-        } */
