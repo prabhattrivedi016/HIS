@@ -40,11 +40,14 @@ type TabularTableDataItem = {
   IsUnderLine: boolean;
   IsMandatory: number;
   IsResultBold: null | boolean | string | number;
+  VisitId?: number;
+  VisitNo?: number;
 };
 
 type InvestigationItem = {
   UHID: string;
   VisitNo: number;
+  VisitId?: number;
   LabNo: number;
   PatientName: string;
   CurrentAge: string;
@@ -97,4 +100,93 @@ type TemplateItem = {
   InvestigationId: number;
 };
 
-export type { InvestigationItem, pickMasterItem, TabularTableDataItem, TemplateItem };
+type PatientAllInvestigationItem = {
+  UHID: string;
+  VisitNo: number;
+  LabNo: number;
+  PatientName: string;
+  CurrentAge: string;
+  Gender: string;
+  LabNo1: number;
+  BarCode: string;
+  LabTypeId: number;
+  LabType: string;
+  SubCategoryName: string;
+  Name: string;
+  BillDate: string;
+  BillingBy: string;
+  SampleCollectedOn: string;
+  SampleCollectedBy: string;
+  SampleReceivedByDepartmentOn: string;
+  SampleReceivedBy: string;
+  SampleCollectionRejectedOn: string;
+  SampleCollectionRejectedBy: string;
+  SampleCollectionRejectionReason: string;
+  ResultDoneOn: string;
+  ResultDoneBy: string;
+  ApprovedDate: string;
+  ReportApprovedBy: string;
+  PatientInvestigationId: number;
+  InvestigationId: number;
+  ReportTypeId: number;
+  IsSampleSegregated: number;
+  IsSampleRequired: number;
+  IsSampleSegregationRequired: number;
+  IsDepartmentReceivingRequired: number;
+  IsSampleCollected: number;
+  IsSampleReceivedByDepartment: number;
+  IsResultDone: number;
+  IsReportApproved: number;
+  IsDispatched: number;
+  isUrgent: number;
+  NotificationRemark: string;
+};
+
+type InvestigationPatientItem = {
+  Barcode: string;
+  BillDate: string;
+  CorporateName: string;
+  CreatedOn: string;
+  CurrentAge: string;
+  DefaultSampleTypeId: number;
+  DeliveryDate: string;
+  DispatchedOn: string;
+  Gender: string;
+  IPDNo: number;
+  IsDepartmentReceivingRequired: number;
+  IsDispatched: number;
+  IsReportApproved: number;
+  IsReportHold: number;
+  IsResultDone: number;
+  IsSampleCollected: number;
+  IsSampleReceivedByDepartment: number;
+  IsSampleRequired: number;
+  IsUnderPackage: number;
+  LabNo: number;
+  Name: string;
+  PatientInvestigationId: number;
+  PatientName: string;
+  ReportApprovedOn: string;
+  ReportTypeId: number;
+  ResultDoneOn: string;
+  SampleCollectedOn: string;
+  SampleReceivedByDepartmentOn: string;
+  SampleTypeList: string;
+  TotalBalanceAmount: number;
+  Type: string;
+  UHID: string;
+  VIPPatient: number;
+  VisitId: number;
+  WardName: string;
+  isSampleRejected: number;
+  isUrgent: number;
+  InvestigationId?: number;
+};
+export type {
+  InvestigationItem,
+  InvestigationPatientItem,
+  PatientAllInvestigationItem,
+  pickMasterItem,
+  TabularTableDataItem,
+  TemplateItem,
+};

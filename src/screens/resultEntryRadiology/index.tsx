@@ -19,6 +19,8 @@ import { NavLink, useNavigate } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import { ButtonValue, RadiologyTableItem, SubSubCategoryItem } from "./types";
 
+const RADIOLOGY_RESULT_ENTRY_FILTERS_KEY = "radiologyResultEntryFilters";
+
 const ResultEntryRadiology = () => {
   const { loading, error, fetchApi } = useGlobalApi();
   const currentDate = new Date().toISOString().split("T")[0];
@@ -57,7 +59,7 @@ const ResultEntryRadiology = () => {
   const [remarkItem, setRemarkItem] = useState<RadiologyTableItem | null>(null);
 
   // form Data
-  const { register, setValue, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, getValues } = useForm({
     resolver: yupResolver(resultEntryRadiologySchema),
     defaultValues: {
       branchId: branchId,
@@ -131,8 +133,8 @@ const ResultEntryRadiology = () => {
       uhid: "",
       ipdNo: "",
       labNo: "",
-      fromDate: currentDate,
-      toDate: currentDate,
+      fromDate: formData?.fromDate || getValues("fromDate"),
+      toDate: formData?.toDate || getValues("toDate"),
       statusId: 0,
       barcode: "",
       patientName: "",
@@ -149,6 +151,7 @@ const ResultEntryRadiology = () => {
       { params: payload },
       { component: "ResultEntryRadiology" }
     );
+    sessionStorage.setItem(RADIOLOGY_RESULT_ENTRY_FILTERS_KEY, JSON.stringify(payload));
     setTestActiveBtn("all");
 
     if (!resp?.result) {
@@ -171,6 +174,41 @@ const ResultEntryRadiology = () => {
     if (hasFetched.current) return;
 
     hasFetched.current = true;
+    const savedFiltersRaw = sessionStorage.getItem(RADIOLOGY_RESULT_ENTRY_FILTERS_KEY);
+    let savedFilters: Record<string, unknown> | null = null;
+    try {
+      savedFilters = savedFiltersRaw ? JSON.parse(savedFiltersRaw) : null;
+    } catch {
+      savedFilters = null;
+    }
+    if (savedFilters && typeof savedFilters === "object") {
+      const restoredFilters = {
+        ...savedFilters,
+        branchId,
+        roleId,
+      };
+
+      reset({
+        branchId,
+        typeId: Number(restoredFilters?.typeId) || 0,
+        uhid: String(restoredFilters?.uhid ?? ""),
+        ipdNo: String(restoredFilters?.ipdNo ?? ""),
+        labNo: String(restoredFilters?.labNo ?? ""),
+        fromDate: String(restoredFilters?.fromDate ?? currentDate),
+        toDate: String(restoredFilters?.toDate ?? currentDate),
+        statusId: Number(restoredFilters?.statusId) || 0,
+        barcode: String(restoredFilters?.barcode ?? ""),
+        patientName: String(restoredFilters?.patientName ?? ""),
+        subCategoryId: Number(restoredFilters?.subCategoryId) || 2,
+        subSubCategoryId: Number(restoredFilters?.subSubCategoryId) || 0,
+        investigationId: Number(restoredFilters?.investigationId) || 0,
+        roleId,
+        corporateId: Number(restoredFilters?.corporateId) || 0,
+        canSampleCollect: Number(restoredFilters?.canSampleCollect) || 0,
+      });
+      fetchRadiologyData(restoredFilters);
+      return;
+    }
 
     fetchRadiologyData();
   }, [branchId, roleId]);
