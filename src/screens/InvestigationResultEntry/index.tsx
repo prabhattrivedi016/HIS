@@ -61,6 +61,10 @@ const InvestigationResultEntry = () => {
   const [getTabularComment, setGetTabularComment] = useState<string>("");
   const [getIsAbnormal, setGetIsAbnormal] = useState<number>(0);
 
+  const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
+  const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
   // patient details
   const [patientDetails, setPatientDetails] = useState({
     BarCode: 0,
@@ -129,6 +133,7 @@ const InvestigationResultEntry = () => {
       { params: { branchId, uhid, labNo, labTypeId, visitId } },
       { component: "InvestigationResultEntry" }
     );
+    console.log("resp of all investigation of patient", resp);
 
     const tabs = resp?.data?.map((i: InvestigationItem) => i?.Name) ?? [];
 
@@ -169,7 +174,7 @@ const InvestigationResultEntry = () => {
       { component: "InvestigationResultEntry" }
     );
 
-    const rows = resp?.data ?? [];
+    const rows = recalculateObservationFormulaResults(resp?.data ?? []);
     setTabularInvestigationTableData(rows);
     setGetTabularComment(rows?.[0]?.InvestigationComment ?? "");
     setGetIsAbnormal(Number(rows?.[0]?.IsAbnormalResult) || 0);
@@ -259,6 +264,148 @@ const InvestigationResultEntry = () => {
     return Number.isFinite(n) ? n : null;
   };
 
+  const formulaToReadableExpression = (formula?: string, formulaRight?: string): string => {
+    const right = String(formulaRight ?? "").trim();
+    if (right) {
+      const normalizedRight = right
+        .replace(/^\{\s*"/, "")
+        .replace(/"\s*\}$/, "")
+        .trim();
+      if (/^\d+\s*=/.test(normalizedRight)) return normalizedRight.replace(/\s+/g, "");
+
+      // New format support: FormulaRight contains only RHS (e.g. obs(2)+5)
+      const currentRowObsId = Number(
+        String(formula ?? "").match(/#txt_(\d+)\s*"\)\.val\s*\(/i)?.[1] ?? ""
+      );
+      if (currentRowObsId && normalizedRight) {
+        return `${currentRowObsId}=${normalizedRight.replace(/\s+/g, "")}`;
+      }
+    }
+
+    const text = String(formula ?? "").trim();
+    if (!text) return "";
+
+    const targetMatch = text.match(/#txt_(\d+)\s*"\)\.val\s*\(/i);
+    const targetId = targetMatch?.[1];
+    if (!targetId) return "";
+
+    const rightSide = text
+      .replace(/^[\s\S]*?\.val\s*\(/i, "")
+      .replace(/\)\s*;?\s*$/, "")
+      .replace(/\.toFixed\(\d+\)\s*$/i, "");
+
+    const expression = rightSide
+      .replace(/\$\(\"\#txt_(\d+)\"\)\.val\(\)/gi, "$1")
+      .replace(/Number\s*\(/gi, "")
+      .replace(/\)/g, "")
+      .replace(/\s+/g, "");
+
+    if (!expression) return "";
+    return `${targetId}=${expression}`;
+  };
+
+  const evaluateReadableExpression = (
+    formulaText: string,
+    valueByObservationId: Map<number, string>,
+    roundDigits = 2
+  ): { targetObservationId: number; computedValue: string } | null => {
+    const normalized = String(formulaText ?? "").replace(/\s+/g, "");
+    const splitIndex = normalized.indexOf("=");
+    if (splitIndex <= 0) return null;
+
+    const targetRaw = normalized.slice(0, splitIndex);
+    const rhs = normalized.slice(splitIndex + 1);
+    const targetObservationId = Number(targetRaw);
+    if (!Number.isFinite(targetObservationId) || !rhs) return null;
+
+    let substituted = rhs.replace(/obs\((\d+)\)/gi, (_m, idRaw: string) => {
+      const id = Number(idRaw);
+      const n = parseNumeric(valueByObservationId.get(id));
+      return String(n ?? 0);
+    });
+
+    // Backward compatible fallback: old numeric-id format like 1=2+1002
+    substituted = substituted.replace(/\b(\d+)\b/g, (token: string, idRaw: string) => {
+      const id = Number(idRaw);
+      if (!valueByObservationId.has(id)) return token;
+      const n = parseNumeric(valueByObservationId.get(id));
+      return String(n ?? 0);
+    });
+
+    if (/[^0-9+\-*/%.()]/.test(substituted)) return null;
+
+    try {
+      const value = Function(`"use strict"; return (${substituted});`)();
+      if (!Number.isFinite(value)) return null;
+      return {
+        targetObservationId,
+        computedValue: Number(value).toFixed(roundDigits),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const recalculateObservationFormulaResults = (
+    rows: TabularTableDataItem[]
+  ): TabularTableDataItem[] => {
+    if (!rows?.length) return rows;
+
+    const nextRows = rows.map(r => ({ ...r }));
+    const maxPasses = Math.min(5, nextRows.length);
+
+    for (let pass = 0; pass < maxPasses; pass++) {
+      let changed = false;
+      const valueByObservationId = new Map<number, string>();
+
+      nextRows.forEach(row => {
+        const id = Number(row?.ObservationId);
+        if (id) valueByObservationId.set(id, String(row?.ResultValue ?? ""));
+      });
+
+      nextRows.forEach(row => {
+        if (Number(row?.IsHeader) === 1) return;
+
+        let readableFormula = formulaToReadableExpression(row?.Formula, row?.FormulaRight);
+        if (
+          !readableFormula &&
+          String(row?.FormulaRight ?? "").trim() &&
+          Number(row?.ObservationId)
+        ) {
+          const rhsOnly = String(row?.FormulaRight)
+            .replace(/^\{\s*"/, "")
+            .replace(/"\s*\}$/, "")
+            .replace(/\s+/g, "");
+          if (rhsOnly) {
+            readableFormula = `${Number(row?.ObservationId)}=${rhsOnly}`;
+          }
+        }
+        if (!readableFormula) return;
+
+        const result = evaluateReadableExpression(readableFormula, valueByObservationId, 2);
+        if (!result) return;
+
+        const targetIndex = nextRows.findIndex(
+          r => Number(r?.ObservationId) === result.targetObservationId
+        );
+        if (targetIndex < 0) return;
+
+        if (String(nextRows[targetIndex]?.ResultValue ?? "") !== result.computedValue) {
+          nextRows[targetIndex] = {
+            ...nextRows[targetIndex],
+            ResultValue: result.computedValue,
+          };
+          changed = true;
+          valueByObservationId.set(result.targetObservationId, result.computedValue);
+        }
+      });
+
+      if (!changed) break;
+    }
+
+    return nextRows;
+  };
+
   const getResultFlag = (row: TabularTableDataItem): "H" | "L" | "N" | "" => {
     const result = parseNumeric(row?.ResultValue);
     if (result === null) return "";
@@ -300,8 +447,10 @@ const InvestigationResultEntry = () => {
     patch: Partial<TabularTableDataItem>
   ) => {
     setter(prev =>
-      prev.map(i =>
-        Number(i?.ObservationId) === Number(row?.ObservationId) ? { ...i, ...patch } : i
+      recalculateObservationFormulaResults(
+        prev.map(i =>
+          Number(i?.ObservationId) === Number(row?.ObservationId) ? { ...i, ...patch } : i
+        )
       )
     );
   };
@@ -493,6 +642,11 @@ const InvestigationResultEntry = () => {
         break;
 
       case "patientDetails":
+        console.log("patientDetails button is clicked");
+        setOpenPatientInfo(true);
+        setRenderPatientInfo(true);
+        // setSelectedPatient()
+
         break;
 
       case "addReport":
@@ -722,9 +876,16 @@ const InvestigationResultEntry = () => {
                       </tr>
                     )}
 
-                    {tabularInvestigationTableData.map((item: TabularTableDataItem, idx) => (
-                      <tr key={idx} className="table-row">
-                        {item?.IsHeader ? (
+                    {tabularInvestigationTableData.map((item: TabularTableDataItem, idx) => {
+                      const fieldTypeId = Number(item?.FieldTypeId) || 1;
+                      const isHeader = Number(item?.IsHeader) === 1;
+                      const mandatoryClass =
+                        Number(item?.IsMandatory) === 1
+                          ? "border! border-red-500! focus:border-red-500!"
+                          : "";
+
+                      return (
+                        <tr key={idx} className="table-row">
                           <td className="table-td max-w-30">
                             {item?.IsBold && item.IsUnderLine ? (
                               <span className="font-bold underline">{item?.ObservationName}</span>
@@ -732,150 +893,144 @@ const InvestigationResultEntry = () => {
                               <span className="font-bold ">{item?.ObservationName}</span>
                             ) : item?.IsUnderLine ? (
                               <span className="underline">{item?.ObservationName}</span>
-                            ) : (
+                            ) : isHeader ? (
                               <span className="font-bold">{item?.ObservationName} </span>
+                            ) : (
+                              item?.ObservationName || "-"
                             )}
                           </td>
-                        ) : (
-                          <>
-                            <td className="table-td max-w-30">
-                              {item?.IsBold && item.IsUnderLine ? (
-                                <span className="font-bold underline">{item?.ObservationName}</span>
-                              ) : item?.IsBold ? (
-                                <span className="font-bold ">{item?.ObservationName}</span>
-                              ) : item?.IsUnderLine ? (
-                                <span className="underline">{item?.ObservationName}</span>
-                              ) : (
-                                item?.ObservationName || "-"
-                              )}
-                            </td>
-                            <td className="table-td">
-                              {
-                                <input
-                                  type="checkbox"
-                                  className="input-checkbox"
-                                  onChange={onResultBoldChange(item)}
-                                  checked={Number(item?.IsResultBold) === 1}
-                                />
-                              }
-                            </td>
-                            <td className="table-td">
-                              {(() => {
-                                const lovs = getResultValueDropdown(item?.ObservationLOVs);
 
-                                return (
-                                  <div className="relative group flex items-start gap-1">
-                                    <input
-                                      type="text"
-                                      className={`input-field max-w-25 ${
-                                        Number(item?.IsMandatory) === 1
-                                          ? "border! border-red-500! focus:border-red-500!"
-                                          : ""
-                                      }`}
-                                      value={item?.ResultValue ?? ""}
-                                      onChange={onTabularFieldChange(item, "ResultValue")}
-                                    />
+                          <td className="table-td">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox"
+                              onChange={onResultBoldChange(item)}
+                              checked={Number(item?.IsResultBold) === 1}
+                            />
+                          </td>
 
-                                    {lovs.length > 0 && (
-                                      <>
-                                        <span className="mt-2 " title="Show options">
-                                          <i className="fa-solid fa-chevron-down text-xs"></i>
-                                        </span>
+                          {fieldTypeId === 1 && (
+                            <>
+                              <td className="table-td">
+                                {(() => {
+                                  const lovs = getResultValueDropdown(item?.ObservationLOVs);
 
-                                        <div className="result-entry-chervondown-popup">
-                                          {lovs.map((lov, index) => (
-                                            <button
-                                              key={`${item?.ObservationId}-${index}`}
-                                              type="button"
-                                              className="chervon-down-button"
-                                              onClick={() => onLovResultClick(item, lov)}
-                                            >
-                                              {lov}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </td>
+                                  return (
+                                    <div className="relative group flex items-start gap-1">
+                                      <input
+                                        type="text"
+                                        className={`input-field max-w-25 ${mandatoryClass}`}
+                                        value={item?.ResultValue ?? ""}
+                                        onChange={onTabularFieldChange(item, "ResultValue")}
+                                      />
 
-                            {/*  */}
+                                      {lovs.length > 0 && (
+                                        <>
+                                          <span className="mt-2 " title="Show options">
+                                            <i className="fa-solid fa-chevron-down text-xs"></i>
+                                          </span>
 
-                            <td className={`table-td ${flagClassName(getResultFlag(item))}`}>
-                              {getResultFlag(item)}
-                            </td>
-
-                            <td className="table-td" onClick={() => commentHandler(item)}>
-                              {<i className="fa-solid fa-comments icon-color-button "></i>}
-                            </td>
-                            <td className="table-td">
-                              {
+                                          <div className="result-entry-chervondown-popup">
+                                            {lovs.map((lov, index) => (
+                                              <button
+                                                key={`${item?.ObservationId}-${index}`}
+                                                type="button"
+                                                className="chervon-down-button"
+                                                onClick={() => onLovResultClick(item, lov)}
+                                              >
+                                                {lov}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td className={`table-td ${flagClassName(getResultFlag(item))}`}>
+                                {getResultFlag(item)}
+                              </td>
+                              <td className="table-td" onClick={() => commentHandler(item)}>
+                                <i className="fa-solid fa-comments icon-color-button "></i>
+                              </td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.MinValue ?? ""}
                                   onChange={onTabularFieldChange(item, "MinValue")}
                                 />
-                              }
-                            </td>
-                            <td className="table-td">
-                              {
+                              </td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.MaxValue ?? ""}
                                   onChange={onTabularFieldChange(item, "MaxValue")}
                                 />
-                              }
-                            </td>
-                            <td className="table-td">
-                              {
+                              </td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.DisplayRange ?? ""}
                                   onChange={onTabularFieldChange(item, "DisplayRange")}
                                 />
-                              }
-                            </td>
-                            <td className="table-td">
-                              {
+                              </td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.Unit ?? ""}
                                   onChange={onTabularFieldChange(item, "Unit")}
                                 />
-                              }
-                            </td>
-                            <td className="table-td">{item?.MethodName || "-"}</td>
-                            <td className="table-td">
-                              {
+                              </td>
+                              <td className="table-td">{item?.MethodName || "-"}</td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.MachineResult ?? ""}
                                   onChange={onTabularFieldChange(item, "MachineResult")}
                                 />
-                              }
-                            </td>
-                            <td className="table-td">{"-"}</td>
-                            <td className="table-td">
-                              {
+                              </td>
+                              <td className="table-td">{"-"}</td>
+                              <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field max-w-20"
                                   value={item?.MachineUnit ?? ""}
                                   onChange={onTabularFieldChange(item, "MachineUnit")}
                                 />
-                              }
+                              </td>
+                            </>
+                          )}
+
+                          {fieldTypeId === 2 && (
+                            <td className="table-td" colSpan={11}>
+                              <input
+                                type="text"
+                                className={`input-field w-full ${mandatoryClass}`}
+                                value={item?.ResultValue ?? ""}
+                                onChange={onTabularFieldChange(item, "ResultValue")}
+                              />
                             </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
+                          )}
+
+                          {fieldTypeId === 3 && (
+                            <td className="table-td" colSpan={11}>
+                              <textarea
+                                rows={2}
+                                className={`input-field w-full ${mandatoryClass}`}
+                                value={item?.ResultValue ?? ""}
+                                onChange={onTabularFieldChange(item, "ResultValue")}
+                              />
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

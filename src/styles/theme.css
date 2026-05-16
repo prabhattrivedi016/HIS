@@ -356,7 +356,7 @@
 
 /* Header cells */
 .table-th {
-  @apply px-1 py-3 text-left  font-semibold whitespace-normal;
+  @apply px-2 py-3 text-left  font-semibold whitespace-normal;
 }
 
 /* Rows */
@@ -366,7 +366,7 @@
 
 /* Cells */
 .table-td {
-  @apply px-1 py-1 whitespace-normal border-gray-100 ml-2;
+  @apply px-2 py-1 whitespace-normal border-gray-100 ml-2;
 }
 
 /* Action column */

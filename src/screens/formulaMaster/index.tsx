@@ -180,29 +180,25 @@ const FormulaMaster = () => {
     setFormula(prev => prev + item.observationName);
   };
 
-  // generate formula expression right
-  const generateFormulaExpressionRight = (arr: CalculatorItem[]) => {
-    if (!arr?.length || !selectedObservation) return "";
+  const buildFormulaRhs = (arr: CalculatorItem[]): string => {
+    if (!arr?.length) return "";
 
-    const formula = arr
+    return [...arr]
+      .sort((a, b) => Number(a.sequenceNo) - Number(b.sequenceNo))
       .map(v => {
-        if (v.type === "observationId") {
-          return `Number($("#txt_${v.component}").val())`;
-        }
-
-        if (v.type === "operator") {
-          return v.component;
-        }
-
-        if (v.type === "numbers") {
-          return v.component;
-        }
-
+        if (v.type === "observationId") return `obs(${v.component})`;
+        if (v.type === "operator") return v.component;
+        if (v.type === "numbers") return v.component;
         return "";
       })
-      .join("");
+      .join("")
+      .trim();
+  };
 
-    return `{"${formula}"}`.trim();
+  // generate formula expression right (rhs only)
+  const generateFormulaExpressionRight = (arr: CalculatorItem[]) => {
+    if (!arr?.length || !selectedObservation) return "";
+    return buildFormulaRhs(arr);
   };
 
   useEffect(() => {
@@ -210,34 +206,13 @@ const FormulaMaster = () => {
     setFormulaExpressionRight(generatedFormula);
   }, [formulaComponents, selectedObservation]);
 
-  // generate formula expression
+  // generate formula expression (target=rhs)
   const generateFormulaExpression = (arr: CalculatorItem[]) => {
     if (!arr?.length || !selectedObservation) return "";
 
-    const formula = arr
-      .sort((a, b) => Number(a.sequenceNo) - Number(b.sequenceNo)) // important
-      .map(v => {
-        if (v.type === "observationId") {
-          return `Number($("#txt_${v.component}").val())`;
-        }
-
-        if (v.type === "operator") {
-          return v.component;
-        }
-
-        if (v.type === "numbers") {
-          // fix ".12" issue
-          if (v.component.startsWith(".")) {
-            return `+0${v.component}`;
-          }
-          return v.component;
-        }
-
-        return "";
-      })
-      .join("");
-
-    return `$("#txt_${selectedObservation.value}").val(Number(${formula}).toFixed(2))`;
+    const rhs = buildFormulaRhs(arr);
+    if (!rhs) return "";
+    return `${selectedObservation.value}=${rhs}`;
   };
   useEffect(() => {
     const generatedFormula = generateFormulaExpression(formulaComponents);
@@ -481,7 +456,7 @@ const FormulaMaster = () => {
         {!!formulaTableData && formulaTableData?.length > 0 && (
           <div className="mt-3">
             <div className="card-header">
-              <h2 className="card-title ">Bank Details List</h2>
+              <h2 className="card-title ">Formula Lists</h2>
             </div>
 
             <div className="table-container ">
