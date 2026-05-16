@@ -15,9 +15,16 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink, useLocation, useParams } from "react-router-dom";
+import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import Buttons from "./components/Buttons";
 import ObservationCommentPopup from "./components/ObservationCommentPopup";
-import { InvestigationItem, TabularTableDataItem, TemplateItem } from "./types";
+import {
+  InvestigationItem,
+  InvestigationPatientItem,
+  PatientAllInvestigationItem,
+  TabularTableDataItem,
+  TemplateItem,
+} from "./types";
 
 const InvestigationResultEntry = () => {
   const paramsValue = useParams();
@@ -26,7 +33,11 @@ const InvestigationResultEntry = () => {
   const isRadiology = pathname.includes("radiology");
   const isPathology = pathname.includes("pathology");
 
-  const item = location.state as InvestigationItem | null | TabularTableDataItem;
+  const item = location.state as
+    | InvestigationItem
+    | InvestigationPatientItem
+    | null
+    | TabularTableDataItem;
 
   const { loading, fetchApi } = useGlobalApi();
 
@@ -55,15 +66,19 @@ const InvestigationResultEntry = () => {
     useState<TabularTableDataItem | null>(null);
 
   const [templateItemList, setTemplateItemList] = useState<TemplateItem[]>([]);
+  const [templateDraftById, setTemplateDraftById] = useState<Record<number, string>>({});
+  const [templateCommentById, setTemplateCommentById] = useState<Record<number, string>>({});
 
   const [textEditorValue, setTextEditorValue] = useState<string>("");
 
   const [getTabularComment, setGetTabularComment] = useState<string>("");
   const [getIsAbnormal, setGetIsAbnormal] = useState<number>(0);
 
+  const [patientAllInvestigation, setPatientAllInvestigation] =
+    useState<PatientAllInvestigationItem | null>(null);
+
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({
@@ -100,6 +115,8 @@ const InvestigationResultEntry = () => {
     register,
     reset,
     setValue,
+    getValues,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(freeTextReportSchema),
@@ -133,12 +150,30 @@ const InvestigationResultEntry = () => {
       { params: { branchId, uhid, labNo, labTypeId, visitId } },
       { component: "InvestigationResultEntry" }
     );
-    console.log("resp of all investigation of patient", resp);
 
     const tabs = resp?.data?.map((i: InvestigationItem) => i?.Name) ?? [];
 
     setTabNames(tabs);
     setAllInvestigationOfSinglePatient(resp?.data ?? []);
+  };
+
+  // get patient investigation details
+  const getPatientInvestigation = async (
+    branchId: number,
+    uhid: string,
+    labNo: number,
+    visitId: number
+  ) => {
+    console.log("visitId of patient investigation", visitId);
+
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_INVESTIGATION_DETAILS,
+      {},
+      { params: { branchId, uhid, labNo, visitId } },
+      { component: "InvestigationResultEntry" }
+    );
+    setPatientAllInvestigation(resp?.data?.[0] ?? null);
   };
 
   useEffect(() => {
@@ -148,6 +183,7 @@ const InvestigationResultEntry = () => {
         : LabTypeIdValues?.RADIOLOGY;
 
     if (item && branchId) {
+      const visitId = Number(item?.VisitId ?? 0);
       setPatientDetails({
         BarCode: item?.Barcode,
         BillDate: item?.BillDate,
@@ -158,10 +194,23 @@ const InvestigationResultEntry = () => {
         UHID: item?.UHID,
         referDoctorName: item?.referDoctorName,
       });
+      console.log("visitId", item?.VisitId);
+
       setActiveTab(item?.Name);
-      getAllInvestigationOfPatient(branchId, item?.UHID, item?.LabNo, labTypeId, item?.VisitId);
+      if (visitId > 0) {
+        getAllInvestigationOfPatient(
+          branchId,
+          item?.UHID,
+          item?.LabNo,
+          labTypeId,
+          Number(item?.VisitId!)
+        );
+      }
+      if (openPatientInfo) {
+        getPatientInvestigation(branchId, item?.UHID, item?.LabNo, Number(item?.VisitId!));
+      }
     }
-  }, [paramsValue, item, branchId]);
+  }, [paramsValue, item, branchId, openPatientInfo]);
 
   // tabular result entry value
 
@@ -191,8 +240,11 @@ const InvestigationResultEntry = () => {
     );
 
     const fetched = resp?.data?.[0];
+
     setFreeTextInvestigationTableData(resp?.data ?? []);
     setTextEditorValue(fetched?.ResultValue ?? "");
+    setTemplateDraftById({});
+    setTemplateCommentById({});
     reset({
       patientInvestigationId: patientInvestigationId,
       investigationId: fetched?.InvestigationId ?? 0,
@@ -264,6 +316,8 @@ const InvestigationResultEntry = () => {
     return Number.isFinite(n) ? n : null;
   };
 
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const formulaToReadableExpression = (formula?: string, formulaRight?: string): string => {
     const right = String(formulaRight ?? "").trim();
     if (right) {
@@ -307,15 +361,26 @@ const InvestigationResultEntry = () => {
   const evaluateReadableExpression = (
     formulaText: string,
     valueByObservationId: Map<number, string>,
+    rows: TabularTableDataItem[],
+    fallbackTargetObservationId?: number,
     roundDigits = 2
   ): { targetObservationId: number; computedValue: string } | null => {
     const normalized = String(formulaText ?? "").replace(/\s+/g, "");
+    if (!normalized) return null;
     const splitIndex = normalized.indexOf("=");
-    if (splitIndex <= 0) return null;
 
-    const targetRaw = normalized.slice(0, splitIndex);
-    const rhs = normalized.slice(splitIndex + 1);
-    const targetObservationId = Number(targetRaw);
+    let targetObservationId: number | null = null;
+    let rhs = normalized;
+    if (splitIndex > 0) {
+      const targetRaw = normalized.slice(0, splitIndex);
+      const parsedTarget = Number(targetRaw);
+      rhs = normalized.slice(splitIndex + 1);
+      targetObservationId = Number.isFinite(parsedTarget)
+        ? parsedTarget
+        : Number(fallbackTargetObservationId);
+    } else {
+      targetObservationId = Number(fallbackTargetObservationId);
+    }
     if (!Number.isFinite(targetObservationId) || !rhs) return null;
 
     let substituted = rhs.replace(/obs\((\d+)\)/gi, (_m, idRaw: string) => {
@@ -324,13 +389,52 @@ const InvestigationResultEntry = () => {
       return String(n ?? 0);
     });
 
-    // Backward compatible fallback: old numeric-id format like 1=2+1002
-    substituted = substituted.replace(/\b(\d+)\b/g, (token: string, idRaw: string) => {
-      const id = Number(idRaw);
-      if (!valueByObservationId.has(id)) return token;
-      const n = parseNumeric(valueByObservationId.get(id));
-      return String(n ?? 0);
-    });
+    const usesObsSyntax = /obs\(\d+\)/i.test(rhs);
+    if (!usesObsSyntax) {
+      // Support legacy/name-based formulas like:
+      // "Haemoglobin (Hb)(Influenza B)+4"
+      const observationNameEntries = rows
+        .map(r => {
+          const id = Number(r?.ObservationId);
+          const name = String(r?.ObservationName ?? "").trim();
+          return { id, name };
+        })
+        .filter(x => x.id && x.name)
+        .sort((a, b) => b.name.length - a.name.length);
+
+      observationNameEntries.forEach(({ id, name }) => {
+        const n = parseNumeric(valueByObservationId.get(id));
+        const replacement = String(n ?? 0);
+        const namePattern = name
+          .split(/\s+/)
+          .map(part => escapeRegex(part))
+          .join("\\s*");
+
+        // Handle formulas where a plain observation name is wrapped in parentheses,
+        // e.g. (Influenza B).
+        if (!/[()]/.test(name)) {
+          const wrappedNamePattern = new RegExp(`\\(\\s*${namePattern}\\s*\\)`, "gi");
+          substituted = substituted.replace(wrappedNamePattern, `(${replacement})`);
+        }
+
+        const tokenPattern = new RegExp(namePattern, "gi");
+        substituted = substituted.replace(tokenPattern, replacement);
+      });
+
+      const observationIds = Array.from(valueByObservationId.keys())
+        .filter(id => Number.isFinite(id) && id >= 100)
+        .sort((a, b) => b - a);
+
+      observationIds.forEach(id => {
+        const obsValue = parseNumeric(valueByObservationId.get(id));
+        const replacement = String(obsValue ?? 0);
+        const tokenPattern = new RegExp(`\\b${id}\\b`, "g");
+        substituted = substituted.replace(tokenPattern, replacement);
+      });
+
+      // Support implicit multiplication in legacy formulas, e.g. "12(3)+4" => "12*(3)+4".
+      substituted = substituted.replace(/(\d|\))\s*\(/g, "$1*(").replace(/\)\s*(\d)/g, ")*$1");
+    }
 
     if (/[^0-9+\-*/%.()]/.test(substituted)) return null;
 
@@ -338,7 +442,7 @@ const InvestigationResultEntry = () => {
       const value = Function(`"use strict"; return (${substituted});`)();
       if (!Number.isFinite(value)) return null;
       return {
-        targetObservationId,
+        targetObservationId: Number(targetObservationId),
         computedValue: Number(value).toFixed(roundDigits),
       };
     } catch {
@@ -380,9 +484,25 @@ const InvestigationResultEntry = () => {
             readableFormula = `${Number(row?.ObservationId)}=${rhsOnly}`;
           }
         }
+
+        if (!readableFormula && String(row?.Formula ?? "").trim() && Number(row?.ObservationId)) {
+          const rhsFromFormula = String(row?.Formula)
+            .replace(/^\{\s*"/, "")
+            .replace(/"\s*\}$/, "")
+            .trim();
+          if (rhsFromFormula) {
+            readableFormula = `${Number(row?.ObservationId)}=${rhsFromFormula}`;
+          }
+        }
         if (!readableFormula) return;
 
-        const result = evaluateReadableExpression(readableFormula, valueByObservationId, 2);
+        const result = evaluateReadableExpression(
+          readableFormula,
+          valueByObservationId,
+          nextRows,
+          Number(row?.ObservationId),
+          2
+        );
         if (!result) return;
 
         const targetIndex = nextRows.findIndex(
@@ -505,6 +625,13 @@ const InvestigationResultEntry = () => {
   const textEditorChangeHandler = (data: string) => {
     setTextEditorValue(data);
     setValue("resultValue", data ?? "");
+    const selectedTemplateId = Number(getValues("templateId") || 0);
+    if (selectedTemplateId > 0) {
+      setTemplateDraftById(prev => ({
+        ...prev,
+        [selectedTemplateId]: data ?? "",
+      }));
+    }
   };
 
   // free text submit handler
@@ -521,15 +648,6 @@ const InvestigationResultEntry = () => {
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
-    reset({
-      patientInvestigationId: item?.PatientInvestigationId,
-      investigationId: item?.InvestigationId,
-      resultValue: "",
-      templateId: 0,
-      investigationComments: "",
-      isAbnormalResult: 0,
-    });
-    setTextEditorValue("");
   };
 
   // tabular report submit handler
@@ -594,8 +712,6 @@ const InvestigationResultEntry = () => {
     }
 
     showSuccess(resp?.message ?? "Data saved successfully");
-    setGetIsAbnormal(0);
-    setGetTabularComment("");
   };
 
   // submit handler
@@ -644,7 +760,14 @@ const InvestigationResultEntry = () => {
       case "patientDetails":
         console.log("patientDetails button is clicked");
         setOpenPatientInfo(true);
+
         setRenderPatientInfo(true);
+        if (item && branchId) {
+          const visitId = Number(item?.VisitId ?? item?.VisitNo ?? 0);
+          if (visitId > 0) {
+            getPatientInvestigation(branchId, item?.UHID, item?.LabNo, visitId);
+          }
+        }
         // setSelectedPatient()
 
         break;
@@ -679,6 +802,18 @@ const InvestigationResultEntry = () => {
 
   // template change handler
   const templateChangeHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const previousTemplateId = Number(getValues("templateId") || 0);
+    if (previousTemplateId > 0) {
+      setTemplateDraftById(prev => ({
+        ...prev,
+        [previousTemplateId]: textEditorValue ?? "",
+      }));
+      setTemplateCommentById(prev => ({
+        ...prev,
+        [previousTemplateId]: String(getValues("investigationComments") ?? ""),
+      }));
+    }
+
     const value = Number(e.target.value);
     setValue("templateId", value || 0);
     if (!value) {
@@ -690,6 +825,7 @@ const InvestigationResultEntry = () => {
       }));
       setTextEditorValue("");
       setValue("resultValue", "");
+      setValue("investigationComments", "");
       setEditorInstanceKey("template-new");
       return;
     }
@@ -699,6 +835,21 @@ const InvestigationResultEntry = () => {
 
   // fetch template value
   const getTemplateValue = async (value: number) => {
+    const draftValue = templateDraftById[value];
+    const draftComment = templateCommentById[value];
+    if (typeof draftValue === "string") {
+      setCreateUpdateTemplateFormData(prev => ({
+        ...prev,
+        id: value,
+        contentValue: draftValue,
+      }));
+      setTextEditorValue(draftValue);
+      setValue("resultValue", draftValue);
+      setValue("investigationComments", typeof draftComment === "string" ? draftComment : "");
+      setEditorInstanceKey(`template-${value}`);
+      return;
+    }
+
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_INVESTIGATION_TEMPLATE_COMMENT_MASTER,
@@ -717,11 +868,12 @@ const InvestigationResultEntry = () => {
     });
     setTextEditorValue(fetchedTemplate?.ContentValue ?? "");
     setValue("resultValue", fetchedTemplate?.ContentValue ?? "");
+    setValue("investigationComments", "");
     setEditorInstanceKey(`template-${fetchedTemplate?.Id ?? value}`);
   };
 
-  // template save handler
-  const templateSaveHandler = async () => {
+  // template save/update handlers (both call same API)
+  const submitTemplate = async (isSaveNew: boolean) => {
     if (!createUpdateTemplateFormData?.name?.trim()) {
       showWarning("Please enter template name");
       return;
@@ -731,7 +883,17 @@ const InvestigationResultEntry = () => {
       return;
     }
 
-    const payload = [createUpdateTemplateFormData];
+    if (!isSaveNew && Number(createUpdateTemplateFormData?.id) <= 0) {
+      showWarning("Please select a template to update");
+      return;
+    }
+
+    const payload = [
+      {
+        ...createUpdateTemplateFormData,
+        id: isSaveNew ? 0 : Number(createUpdateTemplateFormData?.id) || 0,
+      },
+    ];
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_INVESTIGATION_TEMPLATE_COMMENT_MASTER,
@@ -744,19 +906,28 @@ const InvestigationResultEntry = () => {
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
-    setCreateUpdateTemplateFormData({
-      id: 0,
-      typeId: 1,
-      type: "Template",
-      name: "",
-      contentValue: "",
-      isActive: 1,
-    });
-    setTextEditorValue("");
-    setValue("resultValue", "");
-    setValue("templateId", 0);
-    setEditorInstanceKey("template-new");
-    setTemplateItemList([]);
+
+    if (isSaveNew) {
+      setCreateUpdateTemplateFormData({
+        id: 0,
+        typeId: 1,
+        type: "Template",
+        name: "",
+        contentValue: "",
+        isActive: 1,
+      });
+      setTextEditorValue("");
+      setValue("resultValue", "");
+      setValue("templateId", 0);
+      setEditorInstanceKey("template-new");
+    }
+    if (!isSaveNew && Number(createUpdateTemplateFormData?.id) > 0) {
+      setTemplateDraftById(prev => ({
+        ...prev,
+        [Number(createUpdateTemplateFormData.id)]: createUpdateTemplateFormData.contentValue ?? "",
+      }));
+    }
+
     const currentInvestigationId = Number(
       allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab)?.InvestigationId
     );
@@ -764,6 +935,10 @@ const InvestigationResultEntry = () => {
       getTemplateName(currentInvestigationId);
     }
   };
+
+  const templateSaveNewHandler = () => submitTemplate(true);
+  const templateUpdateHandler = () => submitTemplate(false);
+  const investigationCommentsValue = watch("investigationComments");
 
   // observation lovs dropsdown
   const getResultValueDropdown = (value?: string) =>
@@ -777,6 +952,12 @@ const InvestigationResultEntry = () => {
       ResultValue: value,
     });
   };
+
+  // close patient info
+  const closePatientInfoHandler = useCallback(() => {
+    setOpenPatientInfo(false);
+    setPatientAllInvestigation(null);
+  }, []);
 
   return (
     <div className="page-container">
@@ -1099,15 +1280,16 @@ const InvestigationResultEntry = () => {
 
                   {/* Buttons */}
                   <div className="flex w-full justify-end gap-3 lg:mt-6 lg:w-auto">
-                    {Number(createUpdateTemplateFormData?.id) > 0 ? (
-                      <button type="button" className="save-btn h-10" onClick={templateSaveHandler}>
-                        Update
-                      </button>
-                    ) : (
-                      <button type="button" className="save-btn h-10" onClick={templateSaveHandler}>
-                        Save New
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="save-btn h-10"
+                      onClick={templateSaveNewHandler}
+                    >
+                      Save New
+                    </button>
+                    <button type="button" className="save-btn h-10" onClick={templateUpdateHandler}>
+                      Update
+                    </button>
                   </div>
                 </div>
                 {/* editor */}
@@ -1128,7 +1310,18 @@ const InvestigationResultEntry = () => {
               <textarea
                 rows={1}
                 className="input-field min-w-200"
-                {...register("investigationComments")}
+                value={investigationCommentsValue ?? ""}
+                onChange={e => {
+                  const nextComment = e.target.value;
+                  setValue("investigationComments", nextComment);
+                  const selectedTemplateId = Number(getValues("templateId") || 0);
+                  if (selectedTemplateId > 0) {
+                    setTemplateCommentById(prev => ({
+                      ...prev,
+                      [selectedTemplateId]: nextComment,
+                    }));
+                  }
+                }}
               />
             </InputField>
 
@@ -1153,6 +1346,15 @@ const InvestigationResultEntry = () => {
           isOpen={openInvestigationComment}
           onClose={closeCommentHandler}
           data={selectedCommentInvestigation}
+        />
+      )}
+
+      {/* patient info */}
+      {!!renderPatientInfo && (
+        <LabPatientInfo
+          isOpen={openPatientInfo}
+          onClose={closePatientInfoHandler}
+          data={patientAllInvestigation}
         />
       )}
       {!!loading && <CustomLoader isLoading={loading} />}

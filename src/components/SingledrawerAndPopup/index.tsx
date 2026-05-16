@@ -3,13 +3,13 @@ import { PatientInvestigationTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { PatientAllInvestigationItem } from "@/screens/InvestigationResultEntry/types";
 import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
 import { RadiologyTableItem } from "@/screens/resultEntryRadiology/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import React, { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import CustomLoader from "../customLoader";
-import { ErrorMessage } from "../infoText";
 import { PatientInfo } from "./types";
 
 const LabPatientInfo = ({
@@ -19,10 +19,17 @@ const LabPatientInfo = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  data: SampleManagementTableData | LabResultEntryTableData | RadiologyTableItem | null;
+  data:
+    | SampleManagementTableData
+    | LabResultEntryTableData
+    | RadiologyTableItem
+    | PatientAllInvestigationItem
+    | null;
 }) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+
+  console.log("data", data);
 
   const [patientInfo, setPatientInfo] = useState<PatientInfo[]>([]);
 
@@ -39,7 +46,7 @@ const LabPatientInfo = ({
           branchId,
           uhid: data.UHID,
           labNo: data.LabNo,
-          visitId: data.VisitId,
+          visitId: data.VisitId || data?.VisitNo,
         },
       },
       { component: "SingleDrawerAndPopup" }
@@ -69,7 +76,6 @@ const LabPatientInfo = ({
           </button>
         </div>
 
-        {!!error && <ErrorMessage text={error?.message} />}
         <div className="card m-1 form-grid-2">
           <div className="flex flex-row">
             <h1 className="name-header">UHID : </h1>

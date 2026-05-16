@@ -34,6 +34,8 @@ import {
   SubSubCategoryItem,
 } from "./types";
 
+const PATHOLOGY_RESULT_ENTRY_FILTERS_KEY = "pathologyResultEntryFilters";
+
 const PathologyResultEntry = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
@@ -227,6 +229,7 @@ const PathologyResultEntry = () => {
       { params: payload },
       { component: "PathologyResultEntry" }
     );
+    sessionStorage.setItem(PATHOLOGY_RESULT_ENTRY_FILTERS_KEY, JSON.stringify(payload));
 
     if (!resp?.result) {
       setLabResultEntryTableData([]);
@@ -274,7 +277,40 @@ const PathologyResultEntry = () => {
     // Fetch access rights
     dispatch(fetchUserRightAccess({ branchId, roleId }));
 
-    // Fetch lab data
+    const savedFiltersRaw = sessionStorage.getItem(PATHOLOGY_RESULT_ENTRY_FILTERS_KEY);
+    let savedFilters: Record<string, unknown> | null = null;
+    try {
+      savedFilters = savedFiltersRaw ? JSON.parse(savedFiltersRaw) : null;
+    } catch {
+      savedFilters = null;
+    }
+
+    if (savedFilters && typeof savedFilters === "object") {
+      const restoredFilters = {
+        ...savedFilters,
+        branchId,
+        roleId,
+      };
+      reset({
+        typeId: Number(restoredFilters?.typeId) || 0,
+        uhid: String(restoredFilters?.uhid ?? ""),
+        ipdNo: String(restoredFilters?.ipdNo ?? ""),
+        labNo: String(restoredFilters?.labNo ?? ""),
+        fromDate: String(restoredFilters?.fromDate ?? currentDate),
+        toDate: String(restoredFilters?.toDate ?? currentDate),
+        statusId: Number(restoredFilters?.statusId) || 0,
+        barcode: String(restoredFilters?.barcode ?? ""),
+        patientName: String(restoredFilters?.patientName ?? ""),
+        subCategoryId: Number(restoredFilters?.subCategoryId) || 1,
+        subSubCategoryId: Number(restoredFilters?.subSubCategoryId) || 0,
+        investigationId: Number(restoredFilters?.investigationId) || 0,
+        canSampleCollect: Number(restoredFilters?.canSampleCollect) || canCollectSample || 0,
+      });
+      fetchLabData(restoredFilters);
+      return;
+    }
+
+    // Fetch default lab data
     fetchLabData();
   }, [branchId, roleId, dispatch]);
 
