@@ -1,3 +1,4 @@
+import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
@@ -13,8 +14,8 @@ import { showInfo } from "@/utils/alert";
 import { resultEntryRadiologySchema } from "@/validation/resultEntryRadiology";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { NavLink, useNavigate } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
 import { ButtonValue, RadiologyTableItem, SubSubCategoryItem } from "./types";
@@ -59,7 +60,7 @@ const ResultEntryRadiology = () => {
   const [remarkItem, setRemarkItem] = useState<RadiologyTableItem | null>(null);
 
   // form Data
-  const { register, handleSubmit, reset, getValues } = useForm({
+  const { register, handleSubmit, reset, getValues, control } = useForm({
     resolver: yupResolver(resultEntryRadiologySchema),
     defaultValues: {
       branchId: branchId,
@@ -152,6 +153,7 @@ const ResultEntryRadiology = () => {
       { component: "ResultEntryRadiology" }
     );
     sessionStorage.setItem(RADIOLOGY_RESULT_ENTRY_FILTERS_KEY, JSON.stringify(payload));
+    setActiveIndex(0);
     setTestActiveBtn("all");
 
     if (!resp?.result) {
@@ -222,6 +224,8 @@ const ResultEntryRadiology = () => {
     const data = radiologyFilteredTableData ?? [];
 
     switch (buttonName) {
+      case "all":
+        return data.length;
       case "resultPending":
         return data.filter(i => i.IsResultDone === 0).length;
 
@@ -244,6 +248,32 @@ const ResultEntryRadiology = () => {
         return 0;
     }
   };
+
+  const visibleTableData = useMemo(() => {
+    const data = radiologyFilteredTableData ?? [];
+    const activeButton = ResultEntryRadiologyButtons[activeIndex]?.buttonName;
+
+    switch (activeButton) {
+      case "all":
+        return data;
+      case "resultPending":
+        return data.filter(i => i.IsResultDone === 0);
+      case "hold":
+        return data.filter(i => i.IsReportHold === 1);
+      case "reportApprovedPending":
+        return data.filter(i => i.IsResultDone === 1 && i.IsReportApproved === 0);
+      case "approved":
+        return data.filter(i => i.IsReportApproved === 1);
+      case "printed":
+        return data.filter(i => i.isReportPrinted === 1);
+      case "dispatched":
+        return data.filter(i => i.IsDispatched === 1);
+      case "rejected":
+        return data.filter(i => i.isSampleRejected === 1);
+      default:
+        return data;
+    }
+  }, [activeIndex, radiologyFilteredTableData]);
 
   // render buttons
   const renderButton = (buttons: ButtonValue[]) => {
@@ -427,22 +457,18 @@ const ResultEntryRadiology = () => {
           </InputField>
 
           <InputField label="From Date" required>
-            <input
-              type="date"
-              className="input-field"
-              {...register("fromDate")}
-              placeholder="Enter contact number "
-              max={currentDate}
+            <Controller
+              name="fromDate"
+              control={control}
+              render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
             />
           </InputField>
 
           <InputField label="To Date">
-            <input
-              type="date"
-              className="input-field"
-              {...register("toDate")}
-              placeholder="Enter contact number "
-              max={currentDate}
+            <Controller
+              name="toDate"
+              control={control}
+              render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
             />
           </InputField>
         </div>
@@ -594,14 +620,14 @@ const ResultEntryRadiology = () => {
               </thead>
 
               <tbody>
-                {radiologyFilteredTableData.length === 0 ? (
+                {visibleTableData.length === 0 ? (
                   <tr>
                     <td colSpan={17} className="text-center py-6 text-gray-500">
                       No data found
                     </td>
                   </tr>
                 ) : (
-                  radiologyFilteredTableData.map((item, idx) => (
+                  visibleTableData.map((item, idx) => (
                     <tr key={idx} className="table-row">
                       <td className="table-td">{idx + 1}</td>
                       <td className="table-td">{item?.LabNo || "-"}</td>

@@ -499,6 +499,34 @@ const SampleManagement = () => {
     setOpenRejectPopup(true);
   };
 
+  // accept sample handler
+  const acceptSampleHandler = async (item: SampleManagementTableData) => {
+    const payload = {
+      samples: [
+        {
+          patientInvestigationId: item?.PatientInvestigationId,
+          statusId: 2,
+          cancellationReason: "",
+        },
+      ],
+    };
+
+    if (!item || !payload) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.REJECT_SAMPLE_STATUS,
+      payload,
+      {},
+      { component: "SampleManagement" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    fetchSampleData?.(getValues());
+  };
+
   // sample remark handler
   const sampleRemarkHandler = (item: SampleManagementTableData) => {
     if (!item) return;
@@ -689,6 +717,34 @@ const SampleManagement = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       fetchSampleData(getValues());
+    }
+  };
+
+  // accept reject handler
+
+  const acceptRejectHandler = (item: SampleManagementTableData) => {
+    if (!item) return;
+    if (item?.IsResultDone === 0 && item?.IsSampleCollected === 1) {
+      return (
+        <button
+          type="button"
+          className=" icon-color-delete active:scale-80"
+          onClick={() => rejectSampleHandler(item)}
+        >
+          Reject
+        </button>
+      );
+    }
+    if (item?.isSampleRejected === 1 && item?.IsSampleCollected === 0) {
+      return (
+        <button
+          type="button"
+          className="accept-color-button active:scale-80"
+          onClick={() => acceptSampleHandler(item)}
+        >
+          Accept
+        </button>
+      );
     }
   };
 
@@ -1032,10 +1088,8 @@ const SampleManagement = () => {
                           <></>
                         )}
                       </td>
-
-                      <td className="table-td" onClick={() => rejectSampleHandler(item)}>
-                        <i className="fa-solid fa-check icon-color-delete"></i>
-                      </td>
+                      {/* accept reject handler */}
+                      <td className="table-td">{acceptRejectHandler(item)}</td>
                       <td className="table-td" onClick={() => sampleRemarkHandler(item)}>
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
@@ -1087,7 +1141,12 @@ const SampleManagement = () => {
 
       {/* reject popup */}
       {!!renderRejectPopup && (
-        <RejectSamplePopup isOpen={openRejectPopup} onClose={closeRejectPopup} data={rejectItem} />
+        <RejectSamplePopup
+          isOpen={openRejectPopup}
+          onClose={closeRejectPopup}
+          data={rejectItem}
+          refreshSampleReject={() => fetchSampleData(getValues())}
+        />
       )}
 
       {/*remark popup  */}

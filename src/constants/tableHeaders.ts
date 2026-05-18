@@ -22,7 +22,7 @@ export const SampleManagementTableHeader = [
   "Color Code",
   "Sample Collection",
   "Dept. Rec.",
-  "Reject",
+  "Reject/Accept",
   "Remark",
   "Report",
   "Document",
@@ -92,6 +92,7 @@ export const PatientInvestigationTableHeader = [
 ];
 
 export const LabResultEntryButtons = [
+  { buttonName: "all", level: "All", color: "#8C8787" },
   { buttonName: "sampleCollectionPending", level: " Collection Pending", color: "#ffb7ae" },
   { buttonName: "resultPending", level: "Result Pending", color: "#fbe24f" },
   { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#00c0ef" },
@@ -132,6 +133,7 @@ export const LRPatientRemarkTableHeader = [
 ];
 
 export const ResultEntryRadiologyButtons = [
+  { buttonName: "all", level: "All", color: "#8C8787" },
   { buttonName: "resultPending", level: "Result Pending", color: "#fbe24f" },
   { buttonName: "reportApprovedPending", level: "Report Approved Pending", color: "#00c0ef" },
   { buttonName: "rejected", level: "Rejected", color: "#fc6464" },

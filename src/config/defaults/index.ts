@@ -241,6 +241,7 @@ const ENDPOINTS = {
   DELETE_PATIENT_INVESTIGATION_DOCUMENT: "Lab/deletePatientInvestigationDocument",
   CREATE_UPDATE_INVESTIGATION_DOCUMENT_NAME_MASTER:
     "Lab/createUpdateInvestigationDocumentNameMaster",
+  REJECT_SAMPLE_STATUS: "Lab/rejectSampleStatus",
 
   //pathology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:
