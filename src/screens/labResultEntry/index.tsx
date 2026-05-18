@@ -57,7 +57,7 @@ const PathologyResultEntry = () => {
 
   const currentDate = new Date().toISOString().split("T")[0];
   const currentDateTime = getLocalDateTime();
-  const [activeIndex, setActiveIndex] = useState(1);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const [selectedPatient, setSelectedPatient] = useState<LabResultEntryTableData | null>(null);
   const [selectedRemarkPatient, setSelectedRemarkPatient] =
@@ -229,6 +229,7 @@ const PathologyResultEntry = () => {
       { params: payload },
       { component: "PathologyResultEntry" }
     );
+    setActiveIndex(0);
     sessionStorage.setItem(PATHOLOGY_RESULT_ENTRY_FILTERS_KEY, JSON.stringify(payload));
 
     if (!resp?.result) {
@@ -324,6 +325,8 @@ const PathologyResultEntry = () => {
     const data = labResultEntryTableData;
 
     switch (buttonName) {
+      case "all":
+        return data.length;
       case "sampleCollectionPending":
         return data.filter(i => i?.IsSampleCollected === 0 && i?.IsSampleRequired === 1).length;
       case "resultPending":
