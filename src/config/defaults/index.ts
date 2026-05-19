@@ -257,6 +257,7 @@ const ENDPOINTS = {
   SAVE_PATIENT_TABULAR_REPORT: "Lab/savePatientTabularReport",
   SAVE_PATIENT_FREE_TEXT_REPORT: "Lab/savePatientFreeTextReport",
   GET_ALL_INVESTIGATION_NAME_OF_PATIENT: "Lab/getAllInvestigationNameOfPatient",
+  UPDATE_REPORT_APPROVAL: "Lab/updateReportApproval",
 
   // investigation interpretation template master
   CREATE_UPDATE_INVESTIGATION_TEMPLATE_COMMENT_MASTER:

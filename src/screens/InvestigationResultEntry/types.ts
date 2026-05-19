@@ -42,6 +42,7 @@ type TabularTableDataItem = {
   IsResultBold: null | boolean | string | number;
   VisitId?: number;
   VisitNo?: number;
+  PatientInvestigationId?: number;
 };
 
 type InvestigationItem = {
@@ -68,7 +69,7 @@ type InvestigationItem = {
   ResultDoneBy: string;
   ApprovedDate: string;
   ReportApprovedBy: string;
-  PatientInvestigationId: number;
+  PatientInvestigationId?: number;
   InvestigationId: number;
   ReportTypeId: number;
   IsSampleSegregated: number;
