@@ -6,7 +6,7 @@ import { LabTypeIdValues, LabTypeName, Status } from "@/constants/constants";
 import { InvestigationResultEntryTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showSuccess, showWarning } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import {
   freeTextReportFormData,
   freeTextReportSchema,
@@ -90,6 +90,10 @@ const InvestigationResultEntry = () => {
 
   const [isOpenApproved, setIsOpenApproved] = useState<boolean>(false);
   const [renderApprove, setRenderApprove] = useState<boolean>(false);
+
+  const [patientIds, setPatientIds] = useState<number[]>([]);
+
+  console.log("patientIds", patientIds);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({
@@ -177,8 +181,6 @@ const InvestigationResultEntry = () => {
     labNo: number,
     visitId: number
   ) => {
-    console.log("visitId of patient investigation", visitId);
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_INVESTIGATION_DETAILS,
@@ -207,7 +209,6 @@ const InvestigationResultEntry = () => {
         UHID: item?.UHID,
         referDoctorName: item?.referDoctorName,
       });
-      console.log("visitId", item?.VisitId);
 
       setActiveTab(item?.Name);
       if (visitId > 0) {
@@ -786,6 +787,60 @@ const InvestigationResultEntry = () => {
     }
   };
 
+  // report print handler (bulk and single)
+  const printReportHandler = async (selectedIds: number[]) => {
+    const validIds = selectedIds.map(id => Number(id)).filter(id => Number.isFinite(id) && id > 0);
+
+    if (!branchId) {
+      showWarning("Branch not found");
+      return;
+    }
+
+    if (!validIds.length) {
+      showWarning("Please select at least one Observation");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: 0,
+            PatientInvestigationIds: validIds.join(","),
+            Download: true,
+          },
+          responseType: "blob",
+        },
+        { component: "InvestigationResultEntry" }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      // remove all checked checkboxes after successful API response
+      setPatientIds([]);
+
+      const pdfBlob = new Blob([resp], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+      if (!newTab) {
+        return;
+      }
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
+  };
+
   // button click handler
   const buttonClickHandler = (buttonName: string) => {
     switch (buttonName) {
@@ -821,13 +876,14 @@ const InvestigationResultEntry = () => {
         break;
 
       case "bulkPrint":
+        void printReportHandler(patientIds);
+
         break;
 
       case "deltaCheck":
         break;
 
       case "patientDetails":
-        console.log("patientDetails button is clicked");
         setOpenPatientInfo(true);
 
         setRenderPatientInfo(true);
@@ -845,6 +901,18 @@ const InvestigationResultEntry = () => {
         break;
 
       case "printReport":
+        {
+          const selectedInvestigation = allInvestigationOfSinglePatient?.find(
+            i => i?.Name === activeTab
+          );
+          const selectedPatientInvestigationId = Number(
+            selectedInvestigation?.PatientInvestigationId ??
+              item?.PatientInvestigationId ??
+              paramsValue?.patientInvestigationId ??
+              0
+          );
+          void printReportHandler([selectedPatientInvestigationId]);
+        }
         break;
 
       case "reRun":
@@ -1075,6 +1143,20 @@ const InvestigationResultEntry = () => {
     await getFreeTextResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
     await getTemplateName(Number(selectedInvestigation?.InvestigationId));
   }, [item, branchId, paramsValue?.department, allInvestigationOfSinglePatient, activeTab]);
+
+  // tab checkbox handler (stores selected PatientInvestigationIds)
+  const tabCheckboxHandler = (patientInvestigationId: number, checked: boolean) => {
+    if (!patientInvestigationId) return;
+
+    setPatientIds(prev => {
+      if (checked) {
+        return [...new Set([...prev, patientInvestigationId])];
+      }
+
+      return prev.filter(id => id !== patientInvestigationId);
+    });
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Investigation Result Entry</h1>
@@ -1130,17 +1212,31 @@ const InvestigationResultEntry = () => {
       </div>
 
       {/* tabs */}
-      <div className="tab-card -mt-3">
-        {tabNames?.map(b => (
-          <button
-            type="button"
-            onClick={() => buttonChangeHandler(b)}
-            className={` tab-btn transition
-                        ${activeTab === b ? "tab-btn-active" : "tab-btn-inactive"}
-                      `}
+      <div className="tab-card -mt-3 flex flex-wrap items-center gap-3">
+        {allInvestigationOfSinglePatient?.map((investigation, index) => (
+          <div
+            key={`${investigation?.PatientInvestigationId}-${index}`}
+            className="flex items-center gap-2"
           >
-            {b}
-          </button>
+            <input
+              type="checkbox"
+              className="input-checkbox"
+              checked={patientIds.includes(Number(investigation?.PatientInvestigationId))}
+              onChange={e =>
+                tabCheckboxHandler(Number(investigation?.PatientInvestigationId), e.target.checked)
+              }
+            />
+
+            <button
+              type="button"
+              onClick={() => buttonChangeHandler(investigation?.Name)}
+              className={`tab-btn transition ${
+                activeTab === investigation?.Name ? "tab-btn-active" : "tab-btn-inactive"
+              }`}
+            >
+              {investigation?.Name}
+            </button>
+          </div>
         ))}
       </div>
 

@@ -47,6 +47,7 @@ export const LabResultEntryTableHeaderForSampleCollect = [
   "Approved",
   "Approved Date",
   "Remark",
+  "Print",
   "Report",
   "Document",
   "Info",

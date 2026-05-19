@@ -10,11 +10,11 @@ import {
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showInfo } from "@/utils/alert";
+import { showError, showInfo, showWarning } from "@/utils/alert";
 import { resultEntryRadiologySchema } from "@/validation/resultEntryRadiology";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { NavLink, useNavigate } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
@@ -50,6 +50,10 @@ const ResultEntryRadiology = () => {
   const [totalTestCount, setTotalTestCount] = useState(0);
   const [approvedTestCount, setApprovedTestCount] = useState(0);
   const [pendingTestCount, setPendingTestCount] = useState(0);
+  const [selectedReportPatientInvestigationIds, setSelectedReportPatientInvestigationIds] =
+    useState<number[]>([]);
+  const [patientInvestigationIds, setPatientInvestigationIds] = useState<string>("");
+  const [isHeaderPng, setIsHeaderPng] = useState<number>(0);
 
   const [openPatientInfoPopup, setOpenPatientInfoPopup] = useState<boolean>(false);
   const [renderPatientInfoPopup, setRenderPatientInfoPopup] = useState<boolean>(false);
@@ -162,6 +166,9 @@ const ResultEntryRadiology = () => {
     }
     setRadiologyTableData(resp?.data ?? []);
     setRadiologyFilteredTableData(resp?.data ?? []);
+    setSelectedReportPatientInvestigationIds([]);
+    setPatientInvestigationIds("");
+    setIsHeaderPng(0);
 
     const totalPatient = new Set(resp?.data?.map((d: any) => d.UHID)).size;
     setTotalPatientCount(totalPatient);
@@ -379,6 +386,93 @@ const ResultEntryRadiology = () => {
   const closeHandler = useCallback(() => {
     setOpenRemarkPopup(false);
   }, []);
+
+  const allReportPrintHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const checkedValue = e.target.checked ? 1 : 0;
+    setIsHeaderPng(checkedValue);
+  };
+
+  const reportHeaderCheckboxHandler = (checked: boolean) => {
+    const eligibleReportIds = visibleTableData
+      .filter(item => Number(item?.IsReportApproved) === 1)
+      .map(item => Number(item?.PatientInvestigationId))
+      .filter(id => Number.isFinite(id) && id > 0);
+
+    if (checked) {
+      setSelectedReportPatientInvestigationIds(prev => {
+        const merged = Array.from(new Set([...prev, ...eligibleReportIds]));
+        setPatientInvestigationIds(merged.join(","));
+        return merged;
+      });
+      return;
+    }
+
+    const visibleEligibleSet = new Set(eligibleReportIds);
+    setSelectedReportPatientInvestigationIds(prev => {
+      const next = prev.filter(id => !visibleEligibleSet.has(id));
+      setPatientInvestigationIds(next.join(","));
+      return next;
+    });
+  };
+
+  const reportRowCheckboxHandler = (item: RadiologyTableItem, checked: boolean) => {
+    const id = Number(item?.PatientInvestigationId);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    setSelectedReportPatientInvestigationIds(prev => {
+      const next = checked ? Array.from(new Set([...prev, id])) : prev.filter(v => v !== id);
+      setPatientInvestigationIds(next.join(","));
+      return next;
+    });
+  };
+
+  const printBulkReportHandler = async () => {
+    if (!branchId) {
+      showWarning("Branch not found");
+      return;
+    }
+
+    if (!patientInvestigationIds.trim()) {
+      showWarning("Please select at least one approved report");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: isHeaderPng,
+            PatientInvestigationIds: patientInvestigationIds,
+            Download: true,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      const pdfBlob = new Blob([resp], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+      setSelectedReportPatientInvestigationIds([]);
+      setPatientInvestigationIds("");
+      setIsHeaderPng(0);
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
+  };
   return (
     <div className="page-container">
       <h1 className="page-heading">Radiology Result Entry </h1>
@@ -586,7 +680,20 @@ const ResultEntryRadiology = () => {
           </div> */}
 
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <button type="button" className="save-btn w-full sm:w-auto">
+            <div>
+              <input
+                type="checkbox"
+                className="input-checkbox mt-3"
+                checked={isHeaderPng === 1}
+                onChange={allReportPrintHandler}
+              />
+              <span className="m-2 font-bold">IsHeader</span>
+            </div>
+            <button
+              type="button"
+              className="save-btn w-full sm:w-auto"
+              onClick={printBulkReportHandler}
+            >
               Print
             </button>
 
@@ -611,11 +718,37 @@ const ResultEntryRadiology = () => {
             <table className="base-table ">
               <thead className="table-head">
                 <tr>
-                  {ResultEntryRadiologyTableHeader.map((h, index) => (
-                    <th key={index} className="table-th ">
-                      {h}
-                    </th>
-                  ))}
+                  {ResultEntryRadiologyTableHeader.map((h, index) => {
+                    const isPrintHeader = h === "Print";
+                    const eligibleReportItems = visibleTableData.filter(
+                      item => Number(item?.IsReportApproved) === 1
+                    );
+                    const isAllReportChecked =
+                      eligibleReportItems.length > 0 &&
+                      eligibleReportItems.every(item =>
+                        selectedReportPatientInvestigationIds.includes(
+                          Number(item?.PatientInvestigationId)
+                        )
+                      );
+
+                    return (
+                      <th key={index} className="table-th ">
+                        {isPrintHeader ? (
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox"
+                              checked={isAllReportChecked}
+                              onChange={e => reportHeaderCheckboxHandler(e.target.checked)}
+                            />
+                            {h}
+                          </span>
+                        ) : (
+                          h
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
 
@@ -659,7 +792,20 @@ const ResultEntryRadiology = () => {
                       </td>
                       <td className="table-td">{item?.Barcode ?? 0}</td>
 
-                      <td className="table-td">{item?.IsReportApproved || "-"}</td>
+                      <td className="table-td">
+                        {item?.IsReportApproved ? (
+                          <input
+                            type="checkbox"
+                            className="input-checkbox"
+                            checked={selectedReportPatientInvestigationIds.includes(
+                              Number(item?.PatientInvestigationId)
+                            )}
+                            onChange={e => reportRowCheckboxHandler(item, e.target.checked)}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </td>
                       <td className="table-td">{item?.ReportApprovedOn || "-"}</td>
 
                       <td className="table-td cursor-pointer">
