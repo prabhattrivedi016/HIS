@@ -11,7 +11,15 @@ type ButtonAction =
   | "hold"
   | "save"
   | "close";
-const Buttons = ({ onButtonClick }: { onButtonClick: (value: ButtonAction) => void }) => {
+const Buttons = ({
+  onButtonClick,
+  isApprove,
+}: {
+  onButtonClick: (value: ButtonAction) => void;
+  isApprove?: boolean;
+}) => {
+  console.log("isApprove", isApprove);
+
   return (
     <div
       className="fixed bottom-0 right-0 z-20 bg-white border-t border-gray-200 shadow-lg px-2 py-2"
@@ -61,8 +69,12 @@ const Buttons = ({ onButtonClick }: { onButtonClick: (value: ButtonAction) => vo
             Print Report
           </button>
 
-          <button type="button" className="approve-btn" onClick={() => onButtonClick("approve")}>
-            Approve
+          <button
+            type="button"
+            className={`${isApprove === false ? "approve-btn" : "un-approve-btn"}`}
+            onClick={() => onButtonClick("approve")}
+          >
+            {isApprove === false ? "Approve" : "Un-Approve"}
           </button>
 
           <button type="button" className="hold-btn" onClick={() => onButtonClick("hold")}>

@@ -16,7 +16,9 @@ import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react
 import { useForm } from "react-hook-form";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
+import ApproveUnapproveInvestigationResult from "./components/ApproveUnapproveInvestigationResuilt";
 import Buttons from "./components/Buttons";
+import HoldInvestigationResult from "./components/HoldInvestigationResult";
 import ObservationCommentPopup from "./components/ObservationCommentPopup";
 import {
   InvestigationItem,
@@ -29,6 +31,9 @@ import {
 const InvestigationResultEntry = () => {
   const paramsValue = useParams();
   const location = useLocation();
+
+  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+
   const pathname = String(location?.pathname || "").toLowerCase();
   const isRadiology = pathname.includes("radiology");
   const isPathology = pathname.includes("pathology");
@@ -40,8 +45,6 @@ const InvestigationResultEntry = () => {
     | TabularTableDataItem;
 
   const { loading, fetchApi } = useGlobalApi();
-
-  const branchId = useContext(AuthContext)?.user?.branchId;
 
   const [tabularInvestigationTableData, setTabularInvestigationTableData] = useState<
     TabularTableDataItem[]
@@ -79,6 +82,14 @@ const InvestigationResultEntry = () => {
 
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
+
+  const [renderHoldPopup, setRenderHoldPopup] = useState<boolean>(false);
+  const [openHoldPopup, setOpenHoldPopup] = useState<boolean>(false);
+
+  const [isApproved, setIsApproved] = useState<boolean>(false);
+
+  const [isOpenApproved, setIsOpenApproved] = useState<boolean>(false);
+  const [renderApprove, setRenderApprove] = useState<boolean>(false);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({
@@ -151,10 +162,12 @@ const InvestigationResultEntry = () => {
       { component: "InvestigationResultEntry" }
     );
 
-    const tabs = resp?.data?.map((i: InvestigationItem) => i?.Name) ?? [];
+    const data = (resp?.data ?? []) as InvestigationItem[];
+    const tabs = data.map((i: InvestigationItem) => i?.Name) ?? [];
 
     setTabNames(tabs);
-    setAllInvestigationOfSinglePatient(resp?.data ?? []);
+    setAllInvestigationOfSinglePatient(data);
+    return data;
   };
 
   // get patient investigation details
@@ -280,7 +293,8 @@ const InvestigationResultEntry = () => {
       );
 
       if (selectedInvestigation?.PatientInvestigationId) {
-        // Keep free-text payload identifiers synced with active investigation tab.
+        setIsApproved(Number(selectedInvestigation?.IsReportApproved) === 1);
+
         setValue(
           "patientInvestigationId",
           Number(selectedInvestigation?.PatientInvestigationId) || 0
@@ -290,7 +304,6 @@ const InvestigationResultEntry = () => {
         const reportTypeId = Number(selectedInvestigation?.ReportTypeId);
         setActiveReportTypeId(Number.isFinite(reportTypeId) ? reportTypeId : null);
 
-        // Prevent showing stale data when switching tabs
         setTabularInvestigationTableData([]);
         setFreeTextInvestigationTableData([]);
         setTextEditorValue("");
@@ -727,6 +740,52 @@ const InvestigationResultEntry = () => {
     }
   };
 
+  const getCurrentSelectedInvestigation = () =>
+    allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab) ?? null;
+
+  const getCurrentPatientInvestigationId = () =>
+    Number(
+      getCurrentSelectedInvestigation()?.PatientInvestigationId ??
+        item?.PatientInvestigationId ??
+        paramsValue?.patientInvestigationId ??
+        0
+    );
+
+  // Approve action (no popup). Unapprove uses popup with reason.
+  const approveHandler = async () => {
+    const patientInvestigationId = getCurrentPatientInvestigationId();
+    if (!patientInvestigationId || !branchId) {
+      showWarning("Invalid investigation selection");
+      return;
+    }
+
+    try {
+      const payload = {
+        patientInvestigationIds: [patientInvestigationId],
+        branchId,
+        approvedByDoctorId: 1,
+      };
+
+      const resp = await fetchApi(
+        "PATCH",
+        ENDPOINTS.UPDATE_REPORT_APPROVAL,
+        payload,
+        {},
+        { component: "ApproveUnapproveInvestigationResult" }
+      );
+
+      if (!resp?.result) {
+        showWarning(resp?.message ?? "Something went wrong");
+        return;
+      }
+
+      showSuccess(resp?.message ?? "Approved successfully");
+      await refreshCurrentInvestigationData();
+    } catch {
+      showWarning("Something went wrong");
+    }
+  };
+
   // button click handler
   const buttonClickHandler = (buttonName: string) => {
     switch (buttonName) {
@@ -740,9 +799,19 @@ const InvestigationResultEntry = () => {
         break;
 
       case "approve":
+        setIsApproved(Number(getCurrentSelectedInvestigation()?.IsReportApproved) === 1);
+        if (Number(getCurrentSelectedInvestigation()?.IsReportApproved) === 0) {
+          void approveHandler();
+        } else {
+          setIsOpenApproved(true);
+          setRenderApprove(true);
+        }
+
         break;
 
       case "hold":
+        setRenderHoldPopup(true);
+        setOpenHoldPopup(true);
         break;
 
       case "next":
@@ -959,6 +1028,53 @@ const InvestigationResultEntry = () => {
     setPatientAllInvestigation(null);
   }, []);
 
+  // close hold popup
+  const closeHoldPopupHandler = useCallback(() => {
+    setOpenHoldPopup(false);
+    setRenderHoldPopup(false);
+  }, []);
+
+  // close approve popup
+  const closeApprovePopupHandler = useCallback(() => {
+    setIsOpenApproved(false);
+    setRenderApprove(false);
+  }, []);
+
+  const refreshCurrentInvestigationData = useCallback(async () => {
+    if (!item || !branchId) return;
+
+    const labTypeId =
+      paramsValue?.department === LabTypeName?.PATHOLOGY
+        ? LabTypeIdValues?.PATHOLOGY
+        : LabTypeIdValues?.RADIOLOGY;
+
+    const visitId = Number(item?.VisitId ?? item?.VisitNo ?? 0);
+    let latestInvestigations = allInvestigationOfSinglePatient;
+    if (visitId > 0) {
+      latestInvestigations =
+        (await getAllInvestigationOfPatient(
+          branchId,
+          item?.UHID,
+          item?.LabNo,
+          labTypeId,
+          visitId
+        )) ?? [];
+    }
+
+    const selectedInvestigation = latestInvestigations?.find(i => i?.Name === activeTab);
+    if (!selectedInvestigation?.PatientInvestigationId) return;
+
+    setIsApproved(Number(selectedInvestigation?.IsReportApproved) === 1);
+
+    const reportTypeId = Number(selectedInvestigation?.ReportTypeId);
+    if (reportTypeId === LabTypeIdValues?.PATHOLOGY) {
+      await getTabularResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
+      return;
+    }
+
+    await getFreeTextResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
+    await getTemplateName(Number(selectedInvestigation?.InvestigationId));
+  }, [item, branchId, paramsValue?.department, allInvestigationOfSinglePatient, activeTab]);
   return (
     <div className="page-container">
       <h1 className="page-heading">Investigation Result Entry</h1>
@@ -1339,7 +1455,7 @@ const InvestigationResultEntry = () => {
       )}
 
       {/* buttons */}
-      <Buttons onButtonClick={buttonClickHandler} />
+      <Buttons onButtonClick={buttonClickHandler} isApprove={isApproved} />
       {/* comment */}
       {!!renderInvestigationComment && (
         <ObservationCommentPopup
@@ -1355,6 +1471,25 @@ const InvestigationResultEntry = () => {
           isOpen={openPatientInfo}
           onClose={closePatientInfoHandler}
           data={patientAllInvestigation}
+        />
+      )}
+
+      {/* hold popup */}
+      {!!renderHoldPopup && (
+        <HoldInvestigationResult
+          isOpen={openHoldPopup}
+          onClose={closeHoldPopupHandler}
+          pId={Number(paramsValue?.patientInvestigationId)}
+        />
+      )}
+
+      {/* approve popup */}
+      {!!renderApprove && (
+        <ApproveUnapproveInvestigationResult
+          isOpen={isOpenApproved}
+          onClose={closeApprovePopupHandler}
+          pId={getCurrentPatientInvestigationId()}
+          onSuccess={refreshCurrentInvestigationData}
         />
       )}
       {!!loading && <CustomLoader isLoading={loading} />}

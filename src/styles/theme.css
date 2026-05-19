@@ -99,6 +99,10 @@
   @apply text-white font-medium bg-[#05884d] hover:bg-[#047b45] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
 }
 
+.un-approve-btn {
+  @apply text-white font-medium bg-[#990726] hover:bg-[#6e0715] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
+}
+
 .hold-btn {
   @apply text-white font-medium bg-[#f39c12] hover:bg-[#ea9610] active:scale-95  px-2 py-2 rounded-lg  transition-all flex items-center justify-center gap-2;
 }
