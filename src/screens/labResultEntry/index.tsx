@@ -7,7 +7,6 @@ import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRe
 import { ENDPOINTS } from "@/config/defaults";
 import { CATEGORY_ID, Status } from "@/constants/constants";
 import {
-  LabInvestigationTableHeader,
   LabResultEntryButtons,
   LabResultEntryTableHeaderForSampleCollect,
   LabResultEntryTableHeaderNotCollect,
@@ -21,7 +20,7 @@ import { showError, showInfo, showSuccess, showWarning } from "@/utils/alert";
 import { labResultEntrySchema } from "@/validation/labResultEntrySchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BriefcaseMedical } from "lucide-react";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { NavLink, useNavigate } from "react-router-dom";
 import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
@@ -92,6 +91,9 @@ const PathologyResultEntry = () => {
   >([]);
 
   const [showTable, setShowTable] = useState<boolean>(false);
+  const [selectedReportPatientInvestigationIds, setSelectedReportPatientInvestigationIds] =
+    useState<number[]>([]);
+  const [patientInvestigationIds, setPatientInvestigationIds] = useState<string>("");
 
   const [searchValue, setSearchValue] = useState<string>("");
 
@@ -104,6 +106,8 @@ const PathologyResultEntry = () => {
   const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
   const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
   const [remarkItem, setRemarkItem] = useState<LabResultEntryTableData | null>(null);
+
+  const [isHeaderPng, setIsHeaderPng] = useState<number>(0);
 
   // role
   const roleContext = useContext(RoleContext);
@@ -255,6 +259,8 @@ const PathologyResultEntry = () => {
 
     setLabResultEntryTableData(tableData);
     setUpdatedSampleCollectionTable([]);
+    setSelectedReportPatientInvestigationIds([]);
+    setPatientInvestigationIds("");
 
     setTotalPatientCount(new Set(resp?.data.map((i: LabResultEntryTableData) => i.UHID)).size);
     setTotalTestCount(resp?.data.length);
@@ -690,6 +696,40 @@ const PathologyResultEntry = () => {
         );
       }
     }
+
+    // Report/Print header checkbox
+    if (h === "Print") {
+      const eligibleReportIds = visibleTableData
+        .filter(item => Number(item?.IsReportApproved) === 1)
+        .map(item => Number(item?.PatientInvestigationId))
+        .filter(id => Number.isFinite(id) && id > 0);
+
+      if (checked) {
+        setSelectedReportPatientInvestigationIds(prev => {
+          const merged = Array.from(new Set([...prev, ...eligibleReportIds]));
+          setPatientInvestigationIds(merged.join(","));
+          return merged;
+        });
+      } else {
+        const visibleEligibleSet = new Set(eligibleReportIds);
+        setSelectedReportPatientInvestigationIds(prev => {
+          const next = prev.filter(id => !visibleEligibleSet.has(id));
+          setPatientInvestigationIds(next.join(","));
+          return next;
+        });
+      }
+    }
+  };
+
+  const reportCheckboxRowHandler = (item: LabResultEntryTableData, checked: boolean) => {
+    const id = Number(item?.PatientInvestigationId);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    setSelectedReportPatientInvestigationIds(prev => {
+      const next = checked ? Array.from(new Set([...prev, id])) : prev.filter(v => v !== id);
+      setPatientInvestigationIds(next.join(","));
+      return next;
+    });
   };
 
   // sample collection date time handler
@@ -849,6 +889,68 @@ const PathologyResultEntry = () => {
     });
   };
 
+  // allReportPrintHandler
+  const allReportPrintHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const checkedValue = e.target.checked ? 1 : 0;
+    setIsHeaderPng(checkedValue);
+  };
+
+  // print  bulk report handler
+  const printBulkReportHandler = async () => {
+    if (!branchId) {
+      showWarning("Branch not found");
+      return;
+    }
+
+    if (!patientInvestigationIds.trim()) {
+      showWarning("Please select at least one approved report");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: isHeaderPng,
+            PatientInvestigationIds: patientInvestigationIds,
+            Download: true,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      // create blob url
+      const pdfBlob = new Blob([resp], {
+        type: "application/pdf",
+      });
+
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      // open in new tab
+      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+      // Reset print selections after successful open
+      setSelectedReportPatientInvestigationIds([]);
+      setPatientInvestigationIds("");
+      setIsHeaderPng(0);
+
+      // cleanup memory
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
+  };
   return (
     <div className="page-container">
       <h1 className="page-heading">Pathology Result Entry</h1>
@@ -995,7 +1097,20 @@ const PathologyResultEntry = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <button type="button" className="save-btn w-full sm:w-auto">
+              <div>
+                <input
+                  type="checkbox"
+                  className="input-checkbox mt-3"
+                  checked={isHeaderPng === 1}
+                  onChange={allReportPrintHandler}
+                />
+                <span className="m-2 font-bold">IsHeader</span>
+              </div>
+              <button
+                type="button"
+                className="save-btn w-full sm:w-auto"
+                onClick={printBulkReportHandler}
+              >
                 Print
               </button>
 
@@ -1025,8 +1140,10 @@ const PathologyResultEntry = () => {
                     )?.map((h, index) => {
                       const isSampleHeader = h === "Sample Collection";
                       const isDeptHeader = h === "Dept. Rec.";
+                      const isReportPrint = h === "Print";
 
-                      const showCheckbox = canCollectSample > 0 && (isSampleHeader || isDeptHeader);
+                      const showCheckbox =
+                        (canCollectSample > 0 && (isSampleHeader || isDeptHeader)) || isReportPrint;
 
                       // Calculate eligible sample items
                       const eligibleSampleItems = visibleTableData.filter(
@@ -1060,6 +1177,17 @@ const PathologyResultEntry = () => {
                           )
                         );
 
+                      const eligibleReportItems = visibleTableData.filter(
+                        item => Number(item?.IsReportApproved) === 1
+                      );
+                      const isAllReportChecked =
+                        eligibleReportItems.length > 0 &&
+                        eligibleReportItems.every(item =>
+                          selectedReportPatientInvestigationIds.includes(
+                            Number(item?.PatientInvestigationId)
+                          )
+                        );
+
                       return (
                         <th key={index} className="table-th">
                           {showCheckbox ? (
@@ -1067,7 +1195,15 @@ const PathologyResultEntry = () => {
                               <input
                                 type="checkbox"
                                 className="input-checkbox"
-                                checked={isSampleHeader ? isAllSampleChecked : isAllDeptChecked}
+                                checked={
+                                  isSampleHeader
+                                    ? isAllSampleChecked
+                                    : isDeptHeader
+                                      ? isAllDeptChecked
+                                      : isReportPrint
+                                        ? isAllReportChecked
+                                        : false
+                                }
                                 onChange={e => checkboxHandler(h, e.target.checked)}
                               />
                               {h}
@@ -1084,7 +1220,10 @@ const PathologyResultEntry = () => {
                 <tbody>
                   {visibleTableData?.length === 0 && (
                     <tr>
-                      <td colSpan={LabInvestigationTableHeader.length} className="table-empty">
+                      <td
+                        colSpan={LabResultEntryTableHeaderForSampleCollect.length}
+                        className="table-empty"
+                      >
                         No records found
                       </td>
                     </tr>
@@ -1280,12 +1419,31 @@ const PathologyResultEntry = () => {
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
+                      <td className="table-td max-w-50">
+                        {item?.IsReportApproved ? (
+                          <input
+                            type="checkbox"
+                            className="input-checkbox"
+                            checked={selectedReportPatientInvestigationIds.includes(
+                              Number(item?.PatientInvestigationId)
+                            )}
+                            onChange={e => reportCheckboxRowHandler(item, e.target.checked)}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </td>
+
                       <td className="table-td">
-                        <i className="fa-solid fa-print icon-color-button"></i>
+                        {item?.IsReportApproved ? (
+                          <i className="fa-solid fa-print icon-color-button"></i>
+                        ) : (
+                          <></>
+                        )}
                       </td>
 
                       <td className="table-td" onClick={() => patientDocumentHandler(item)}>
-                        <i className="fa-solid fa-file icon-color-button"></i>
+                        <i className="fa-solid fa-file icon-color-button ml-5"></i>
                       </td>
 
                       <td

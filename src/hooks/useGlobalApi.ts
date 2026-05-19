@@ -9,6 +9,7 @@ type Payload = Record<string, any>;
 interface FetchApiOptions {
   params?: Record<string, any>;
   headers?: Record<string, string>;
+  responseType?: "arraybuffer" | "blob" | "document" | "json" | "text" | "stream";
 }
 
 interface FetchMeta {
