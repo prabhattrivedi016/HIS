@@ -16,7 +16,7 @@ const RejectSamplePopup = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementTableData;
+    data: SampleManagementTableData | null;
     refreshSampleReject: () => Promise<void>;
   }) => {
     const { loading, fetchApi } = useGlobalApi();

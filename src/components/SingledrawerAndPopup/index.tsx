@@ -29,13 +29,13 @@ const LabPatientInfo = ({
   const { loading, error, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
 
-  console.log("data", data);
-
   const [patientInfo, setPatientInfo] = useState<PatientInfo[]>([]);
 
   // get patient information
   const getPatientInfo = async () => {
     if (!data?.UHID || !data?.LabNo) return;
+    const resolvedVisitId = Number((data as any)?.VisitId ?? (data as any)?.VisitNo ?? 0);
+    if (!resolvedVisitId) return;
 
     const resp = await fetchApi(
       "GET",
@@ -46,7 +46,7 @@ const LabPatientInfo = ({
           branchId,
           uhid: data.UHID,
           labNo: data.LabNo,
-          visitId: data.VisitId || data?.VisitNo,
+          visitId: resolvedVisitId,
         },
       },
       { component: "SingleDrawerAndPopup" }
