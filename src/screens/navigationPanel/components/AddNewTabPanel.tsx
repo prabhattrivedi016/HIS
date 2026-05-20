@@ -111,7 +111,9 @@ const AddNewTabPanel = ({
       <div className={`popup-bg-overlay ${isOpenTab ? "opacity-100 visible" : ""}`} />
 
       {/* Drawer */}
-      <div className={`central-popup ${isOpenTab ? "opacity-full" : ""}`}>
+      <div
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpenTab ? "opacity-full" : ""}`}
+      >
         {/* Header */}
         <div className="popup-header">
           <h2 className="popup-header">{tabId ? "Update Tab" : "Add New Tab"}</h2>

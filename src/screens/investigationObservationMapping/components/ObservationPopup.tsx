@@ -199,7 +199,7 @@ const ObservationPopup = ({ isOpen, onClose, data, onSuccess }: ObservationPopup
       />
 
       <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] lg:min-w-240 ${isOpen ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-250 ${isOpen ? "opacity-full" : ""}`}
       >
         <div className="popup-header">
           <h2 className="popup-helper-text">{buttonTitle} Observation Mapping</h2>

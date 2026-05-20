@@ -96,7 +96,7 @@ const UserReset = ({ isOpenTab, onCloseTab }) => {
         className={`popup-bg-overlay ${isOpenTab ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
       <div
-        className={`central-popup overflow-auto  max-h-[calc(100vh-100px)] lg:min-w-[800px] ${isOpenTab ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-250 ${isOpenTab ? "opacity-full" : ""}`}
       >
         <div className="popup-header min-w-0">
           <h2 className="popup-helper-text truncate">{headerName}</h2>

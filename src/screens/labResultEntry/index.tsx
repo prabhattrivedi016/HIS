@@ -935,9 +935,6 @@ const PathologyResultEntry = () => {
 
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
 
-      // open in new tab
-      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
-
       // Reset print selections after successful open
       setSelectedReportPatientInvestigationIds([]);
       setPatientInvestigationIds("");

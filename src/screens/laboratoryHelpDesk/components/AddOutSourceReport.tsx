@@ -1,4 +1,4 @@
-﻿import InputField from "@/components/customInputField";
+import InputField from "@/components/customInputField";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { createPortal } from "react-dom";
 
@@ -11,7 +11,7 @@ const AddOutSourceReport = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
       <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)]  ${isOpen ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpen ? "opacity-full" : ""}`}
       >
         <div className="popup-header min-w-0">
           <h2 className="popup-helper-text truncate">Add OutSource Report</h2>
