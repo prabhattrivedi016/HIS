@@ -1,6 +1,7 @@
 import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { doctorSignatureSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
@@ -18,6 +19,27 @@ import LetterHeadImagePreview from "./LetterHeadImagePreview";
 const DoctorSignature = () => {
   const { loading, fetchApi } = useGlobalApi();
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [doctorTableList, setDoctorTableList] = useState<DoctorTableItem[]>([]);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
+
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(0);
+
+  const [doctorsList, setDoctorsList] = useState<DoctorItem[]>([]);
+  const [selectedDoctor, setSelectedDoctor] = useState<SelectItem | null>(null);
+  const [defaultBranch, setDefaultBranch] = useState<BranchItem | null>(null);
+
+  const buttonTitle = isEdit ? "Update" : "Create";
+
+  const branchValues = useGetBranchList();
+
+  const branches = useMemo<BranchItem[]>(
+    () => branchValues?.branchList?.data ?? [],
+    [branchValues]
+  );
+
   const {
     handleSubmit,
     reset,
@@ -29,7 +51,7 @@ const DoctorSignature = () => {
     resolver: yupResolver(doctorSignatureSchema),
     defaultValues: {
       Id: 0,
-      BranchId: 0,
+      BranchId: defaultBranch?.branchId,
       DoctorId: 0,
       xSign: 20,
       ySign: 10,
@@ -37,27 +59,11 @@ const DoctorSignature = () => {
     },
   });
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const selectedFileName = watch("DocSignFile")?.name ?? "";
-
-  const [doctorTableList, setDoctorTableList] = useState<DoctorTableItem[]>([]);
-  const [showDetails, setShowDetails] = useState<boolean>(false);
-
-  const [isEdit, setIsEdit] = useState(false);
-  const [selectedId, setSelectedId] = useState(0);
-
-  const [doctorsList, setDoctorsList] = useState<DoctorItem[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<SelectItem | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string>("");
-
-  const buttonTitle = isEdit ? "Update" : "Create";
-
-  const branchValues = useGetBranchList();
-
-  const branches = useMemo<BranchItem[]>(
-    () => branchValues?.branchList?.data ?? [],
-    [branchValues]
-  );
+  useEffect(() => {
+    const selected = branches.find(b => b?.branchId === 1);
+    setValue("BranchId", selected?.branchId!);
+    setDefaultBranch(selected!);
+  }, [branches]);
 
   const currentBranch = watch("BranchId");
 
@@ -119,10 +125,13 @@ const DoctorSignature = () => {
         component: "DoctorSignature",
       }
     );
-    if (!resp) return;
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
 
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      showSuccess(resp?.message ?? "Data saved successfully");
       resetForm();
       await getDoctorTableList();
     }
@@ -132,7 +141,7 @@ const DoctorSignature = () => {
   const resetForm = () => {
     reset({
       Id: 0,
-      BranchId: 0,
+      BranchId: defaultBranch?.branchId,
       DoctorId: 0,
       xSign: 20,
       ySign: 10,
@@ -195,7 +204,7 @@ const DoctorSignature = () => {
         params: { filePath: pathName },
         responseType: "blob",
       },
-      { LetterHeadImagePreview }
+      { component: "DoctorSignature" }
     );
 
     const blob = resp;
@@ -275,11 +284,6 @@ const DoctorSignature = () => {
                       setValue("DocSignFile", file, { shouldValidate: true });
                     }}
                   />
-                  {selectedFileName && (
-                    <span className="text-sm text-gray-600 truncate" title={selectedFileName}>
-                      Selected: {selectedFileName}
-                    </span>
-                  )}
                 </div>
 
                 {errors.DocSignFile && (
@@ -323,45 +327,51 @@ const DoctorSignature = () => {
                     </thead>
 
                     <tbody>
-                      {doctorTableList?.length === 0 && (
+                      {doctorTableList?.length === 0 ? (
                         <tr>
-                          <td colSpan={doctorTableList.length} className="table-empty">
+                          <td
+                            colSpan={DoctorSignatureTableHeader.length}
+                            className="table-empty text-center"
+                          >
                             No records found
                           </td>
                         </tr>
+                      ) : (
+                        doctorTableList.map((item, idx) => (
+                          <tr key={idx} className="table-row">
+                            <td className="table-td">{idx + 1}</td>
+                            <td className="table-td">{item?.branchName || "-"}</td>
+
+                            <td className="table-td">{item?.doctorName || "-"}</td>
+
+                            <td className="table-td">{item?.xSign || "-"}</td>
+
+                            <td className="table-td">{item?.ySign || "-"}</td>
+
+                            <td>
+                              <LetterHeadImagePreview pathName={item.docSignPath} />
+                            </td>
+
+                            <td
+                              className="table-td"
+                              onClick={() => downloadHandler(item?.docSignPath)}
+                            >
+                              <i className="fa-solid fa-download icon-color-button"></i>
+                            </td>
+
+                            <td className="table-td" onClick={() => editHandler(item)}>
+                              <i className="fa-edit fa-solid icon-color-button"></i>
+                            </td>
+
+                            <td className="table-td" onClick={() => deleteHandler(item)}>
+                              <i
+                                className="fa-solid fa-trash icon-color-delete"
+                                aria-hidden="true"
+                              ></i>
+                            </td>
+                          </tr>
+                        ))
                       )}
-
-                      {doctorTableList.map((item, idx) => (
-                        <tr key={idx} className="table-row">
-                          <td className="table-td">{idx + 1}</td>
-                          <td className="table-td">{item?.branchName || "-"}</td>
-
-                          <td className="table-td">{item?.doctorName || "-"}</td>
-
-                          <td className="table-td">{item?.xSign || "-"}</td>
-
-                          <td className="table-td">{item?.ySign || "-"}</td>
-
-                          <td>
-                            <LetterHeadImagePreview pathName={item.docSignPath} />
-                          </td>
-
-                          <td
-                            className="table-td"
-                            onClick={() => downloadHandler(item?.docSignPath)}
-                          >
-                            <i className="fa-solid fa-download fa-2xl text-blue-600 ml-5"></i>
-                          </td>
-
-                          <td className="table-td" onClick={() => editHandler(item)}>
-                            <i className="fa-edit fa-solid fa-xl "></i>
-                          </td>
-
-                          <td className="table-td" onClick={() => deleteHandler(item)}>
-                            <i className="fa fa-trash text-red-500 fa-xl " aria-hidden="true"></i>
-                          </td>
-                        </tr>
-                      ))}
                     </tbody>
                   </table>
                 </div>

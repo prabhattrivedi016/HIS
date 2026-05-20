@@ -1,5 +1,6 @@
 import Animation from "@/components/animation";
 import CustomLoader from "@/components/customLoader";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { sequenceMappingSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
@@ -14,6 +15,7 @@ import { sequenceBranchMasterHeader, Status } from "../../../constants/constants
 import useGetBranchList from "../../../hooks/useGetBranchList";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import {
+  BranchItem,
   RoleItem,
   SelectItem,
   SequenceDropDownItem,
@@ -27,28 +29,6 @@ type SequenceMappingFormItem = InferType<typeof sequenceMappingSchema>;
 const SequenceMapping = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const {
-    handleSubmit,
-    register,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-  } = useForm({
-    resolver: yupResolver(sequenceMappingSchema),
-    defaultValues: {
-      mappingId: 0,
-      branchId: 0,
-      roleId: 0,
-      typeId: 0,
-      sequenceId: 0,
-    },
-  });
-  const mappingId = watch("mappingId");
-  const isEditMode = Boolean(mappingId && mappingId > 0);
-
-  const buttonTitle = isEditMode ? "Update" : "Create";
-
   const [typeId, setTypeId] = useState<number | null>(null);
   const [typeName, setTypeName] = useState<string>("");
 
@@ -61,16 +41,45 @@ const SequenceMapping = () => {
 
   const [sequenceToEdit, setSequenceToEdit] = useState<SequenceEditItem | null>(null);
 
-  const [successMessage, setSuccessMessage] = useState<string>("");
-
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [typeError, setTypeError] = useState<string>("");
+  const [defaultBranch, setDefaultBranch] = useState<BranchItem | null>(null);
 
-  /*----------------------branch lists------------------------ */
+  const {
+    handleSubmit,
+    register,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+  } = useForm({
+    resolver: yupResolver(sequenceMappingSchema),
+    defaultValues: {
+      mappingId: 0,
+      branchId: defaultBranch?.branchId,
+      roleId: 0,
+      typeId: 0,
+      sequenceId: 0,
+    },
+  });
+
+  const mappingId = watch("mappingId");
+  const isEditMode = Boolean(mappingId && mappingId > 0);
+
+  const buttonTitle = isEditMode ? "Update" : "Create";
+
+  // branch lists
   const branchList = useGetBranchList();
 
-  const branches = useMemo(() => branchList?.branchList?.data, [branchList]);
+  const branches = useMemo(() => branchList?.branchList?.data ?? [], [branchList]);
+
+  useEffect(() => {
+    const selected = branches.find(b => b?.branchId === 1);
+    setValue("branchId", selected?.branchId!);
+    setDefaultBranch(selected!);
+  }, [branches]);
 
   /*-------------------roles------------------------ */
   const getRoles = async () => {
@@ -87,9 +96,14 @@ const SequenceMapping = () => {
     setRoles(activeRoles);
   };
 
+  const defaultRoleOption: SelectItem = {
+    label: "Default",
+    value: 0,
+  };
+
   const roleSelectOption = useMemo(
     () => [
-      { label: "Default", value: 0 },
+      defaultRoleOption,
       ...(roles?.map(r => ({
         label: r?.roleName,
         value: r?.roleId,
@@ -105,6 +119,14 @@ const SequenceMapping = () => {
       shouldValidate: true,
     });
   };
+
+  useEffect(() => {
+    setSelectedRole(defaultRoleOption);
+
+    setValue("roleId", 0, {
+      shouldValidate: true,
+    });
+  }, []);
 
   /*----------------------------sequence type------------------------------ */
   const getSequenceType = useCallback(async () => {
@@ -123,6 +145,13 @@ const SequenceMapping = () => {
   );
 
   const sequenceTypeChangeHandler = (option: SelectItem | null) => {
+    // changing sequence type must always clear previously selected sequence
+    // to avoid cross-type stale sequence mapping
+    setValue("sequenceId", 0);
+    setSequenceDropDown([]);
+    setSequenceToEdit(null);
+    setTypeError("");
+
     setSelectedSequenceType(option);
 
     setValue("typeId", option?.value ?? 0, {
@@ -158,23 +187,25 @@ const SequenceMapping = () => {
       {},
       { component: "SequenceMapping" }
     );
-
-    if (resp?.result) {
-      setSuccessMessage(resp.message || "Saved successfully");
-
-      reset({
-        mappingId: 0,
-        branchId: 0,
-        roleId: 0,
-        typeId: 0,
-        sequenceId: 0,
-      });
-
-      setSelectedRole(null);
-      setSelectedSequenceType(null);
-
-      await getBranchSequence();
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
     }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+
+    reset({
+      mappingId: 0,
+      branchId: defaultBranch?.branchId,
+      roleId: 0,
+      typeId: 0,
+      sequenceId: 0,
+    });
+
+    setSelectedRole(defaultRoleOption);
+    setSelectedSequenceType(null);
+
+    await getBranchSequence();
   };
 
   const tablePopupHandler = () => {
@@ -199,12 +230,14 @@ const SequenceMapping = () => {
     }
   }, [showDetails]);
 
+  // handler add sequence
   const handleAddSequence = () => {
     if (!typeId) {
       setTypeError("Please select sequence type first");
       return;
     }
-    const currentSequenceId = watch("sequenceId");
+
+    const currentSequenceId = Number(watch("sequenceId")) || 0;
 
     const edit = sequenceDropDown.find(s => s?.sequenceId === currentSequenceId) ?? {};
 
@@ -223,13 +256,22 @@ const SequenceMapping = () => {
 
     setTypeError("");
 
-    setOpenDrawer(true);
+    // open drawer smoothly
+    requestAnimationFrame(() => {
+      setOpenDrawer(true);
+    });
   };
 
+  // close handler
   const closeHandler = useCallback(() => {
     setOpenDrawer(false);
-    setSequenceToEdit(null);
   }, []);
+
+  const handleDrawerExited = useCallback(() => {
+    if (!openDrawer) {
+      setSequenceToEdit(null);
+    }
+  }, [openDrawer]);
 
   /*--------------------------edit handler--------------------------- */
 
@@ -294,7 +336,7 @@ const SequenceMapping = () => {
       sequenceId: 0,
     });
 
-    setSelectedRole(null);
+    setSelectedRole(defaultRoleOption);
     setSelectedSequenceType(null);
     setTypeId(null);
     setTypeName("");
@@ -357,9 +399,9 @@ const SequenceMapping = () => {
                     className="input-field"
                     {...register("sequenceId", { valueAsNumber: true })}
                   >
-                    <option value="">Select</option>
+                    <option value={0}>Select</option>
                     {sequenceDropDown?.map((v: SequenceDropDownItem) => (
-                      <option key={v?.typeId} value={v?.sequenceId}>
+                      <option key={v?.sequenceId} value={v?.sequenceId}>
                         {v?.preview}
                       </option>
                     ))}
@@ -371,9 +413,6 @@ const SequenceMapping = () => {
                 </div>
                 {errors.sequenceId && (
                   <p className="input-field-error">{errors.sequenceId.message}</p>
-                )}
-                {typeError && (
-                  <p className="input-field-error">{"Please select type before button click"}</p>
                 )}
               </InputField>
             </div>
@@ -387,18 +426,6 @@ const SequenceMapping = () => {
             </button>
           </div>
         </form>
-
-        {/* -----------------drawer for add & update sequence----------------- */}
-        {openDrawer && sequenceToEdit && (
-          <SequenceDrawer
-            isOpen={openDrawer}
-            data={sequenceToEdit}
-            onClose={closeHandler}
-            handleRefresh={getBranchSequence}
-            resetType={resetSequenceType}
-            resetSequence={resetSequenceSelection}
-          />
-        )}
       </div>
 
       {/* -----------------------table------------------- */}
@@ -462,9 +489,22 @@ const SequenceMapping = () => {
             </div>
           </div>
         </Animation>
-
-        {loading && <CustomLoader isLoading={loading} />}
       </div>
+
+      {/* -----------------drawer for add & update sequence----------------- */}
+      {sequenceToEdit && (
+        <SequenceDrawer
+          isOpen={openDrawer}
+          data={sequenceToEdit}
+          onClose={closeHandler}
+          onExited={handleDrawerExited}
+          handleRefresh={getBranchSequence}
+          resetType={resetSequenceType}
+          resetSequence={resetSequenceSelection}
+        />
+      )}
+
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

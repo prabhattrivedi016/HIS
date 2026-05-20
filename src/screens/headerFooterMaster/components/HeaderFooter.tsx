@@ -9,23 +9,23 @@ import { usePickMaster } from "@/hooks/usePickMaster";
 import { headerFooterSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DOMPurify from "dompurify";
-import { ChangeEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import Select from "react-select";
 import { InferType } from "yup";
 
 import CustomLoader from "@/components/customLoader";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { BranchItem, ReportItem, RoleItem, SelectItem, VariableNameItem } from "../types";
 type HeaderFooterFormItem = InferType<typeof headerFooterSchema>;
 
 const HeaderFooter = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const [content, setContent] = useState<string>("");
   const [defaultBranch, setDefaultBranch] = useState<BranchItem | undefined>();
   const [selectedRole, setSelectedRole] = useState<SelectItem | null>(null);
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [selectedVariable, setSelectedVariable] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
     register,
@@ -56,7 +56,7 @@ const HeaderFooter = () => {
   const isEdit = Boolean(isBody);
   const buttonTitle = isEdit ? "Update" : "Create";
 
-  /*--------------------branch---------- */
+  // branches
   const branchValues = useGetBranchList();
   const branches = useMemo<BranchItem[]>(
     () => branchValues?.branchList?.data ?? [],
@@ -69,7 +69,7 @@ const HeaderFooter = () => {
     setDefaultBranch(selected);
   }, [branches]);
 
-  /* -------------------- header types -------------------- */
+  // header types
   const headerReportType = usePickMaster("headerReportType");
 
   const reportType = useMemo<ReportItem[]>(
@@ -86,7 +86,7 @@ const HeaderFooter = () => {
     setValue("type", selected?.value ?? "", { shouldValidate: true });
   };
 
-  /* -------------------- roles -------------------- */
+  //  get roles
   const getRoles = async () => {
     const resp = await fetchApi(
       "GET",
@@ -103,9 +103,14 @@ const HeaderFooter = () => {
     getRoles();
   }, []);
 
+  const defaultRoleOption = {
+    label: "Default",
+    value: 0,
+  };
+
   const roleSelectOption = useMemo(
     () => [
-      { label: "Default", value: 0 },
+      defaultRoleOption,
       ...(roles?.map(r => ({
         label: r?.roleName,
         value: r?.roleId,
@@ -113,6 +118,14 @@ const HeaderFooter = () => {
     ],
     [roles]
   );
+
+  useEffect(() => {
+    setSelectedRole(defaultRoleOption);
+
+    setValue("roleId", 0, {
+      shouldValidate: true,
+    });
+  }, []);
 
   const roleChangeHandler = (option: SelectItem | null) => {
     setSelectedRole(option);
@@ -122,7 +135,7 @@ const HeaderFooter = () => {
     });
   };
 
-  /* -------------------- header variables -------------------- */
+  //  header variables
   const headerVariables = usePickMaster("headerVariable");
 
   const variableNames = useMemo<VariableNameItem[]>(
@@ -134,18 +147,11 @@ const HeaderFooter = () => {
     setSelectedVariable(e.target.value);
   };
 
-  /*-----------------header body----------------- */
-
-  const sanitizedHtml = DOMPurify.sanitize(content);
-
-  useEffect(() => {
-    setValue("headerBody", sanitizedHtml, {
-      shouldValidate: true,
-    });
-  }, [sanitizedHtml]);
-
-  /*-------------------submit handler----------- */
+  // submit handler
   const onSubmit = async (formData: HeaderFooterFormItem) => {
+    const sanitizedHtml = DOMPurify.sanitize(content);
+
+    formData.headerBody = sanitizedHtml;
     if (!branchId || !typeId) return;
     const resp = await fetchApi(
       "POST",
@@ -154,13 +160,13 @@ const HeaderFooter = () => {
       {},
       { component: "HeaderFooter" }
     );
-    console.log("resp", resp);
-    if (!resp) {
+    if (!resp?.result) {
       setContent("");
+      showWarning(resp?.message ?? "Something went wrong");
       return;
     }
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      showSuccess(resp?.message ?? "Data saved successfully");
       reset({
         headerId: 0,
         roleId: 0,
@@ -171,12 +177,18 @@ const HeaderFooter = () => {
         headerBody: "",
         isActive: 1,
       });
+      // reset selected role
+      setSelectedRole(defaultRoleOption);
+
+      // reset form role value
+      setValue("roleId", 0);
+      await getHeaderMaster?.();
     }
   };
 
   /* -------------------- pre filled data -------------------- */
 
-  const getHeaderMaster = useCallback(async () => {
+  const getHeaderMaster = async () => {
     if (!branchId || !typeId) return;
 
     const response = await fetchApi(
@@ -198,30 +210,36 @@ const HeaderFooter = () => {
 
     if (!data) {
       setContent("");
-
-      reset(prev => ({
-        ...prev,
+      reset({
         headerId: 0,
+        roleId: roleId ?? 0,
+        branchId: branchId ?? 0,
+        typeId: typeId ?? 0,
+        type: "",
+        isHeader: isHeader ?? 1,
         headerBody: "",
         isActive: Status.ACTIVE,
-      }));
+      });
 
       return;
     }
 
     setContent(data.headerBody);
-
-    reset(prev => ({
-      ...prev,
+    reset({
       headerId: data.headerId,
+      roleId: roleId ?? 0,
+      branchId: branchId ?? 0,
+      typeId: typeId ?? 0,
+      type: "",
+      isHeader: isHeader ?? 1,
       headerBody: data.headerBody,
       isActive: data.isActive,
-    }));
-  }, [branchId, roleId, typeId, isHeader, reset]);
+    });
+  };
 
   useEffect(() => {
     getHeaderMaster();
-  }, [getHeaderMaster]);
+  }, [branchId, roleId, typeId, isHeader]);
 
   /*----------------cancel handler--------------- */
   const cancelHandler = () => {
@@ -239,6 +257,15 @@ const HeaderFooter = () => {
     setSelectedRole(null);
     setContent("");
     setSelectedVariable("");
+  };
+
+  const valueChangeHandler = (value: string) => {
+    setContent(value);
+
+    setValue("headerBody", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
   };
 
   return (
@@ -272,7 +299,7 @@ const HeaderFooter = () => {
               {errors.typeId && <p className="input-field-error">{errors.typeId.message}</p>}
             </InputField>
 
-            <InputField label="Role" required>
+            <InputField label="Role">
               <Select
                 value={selectedRole}
                 options={roleSelectOption}
@@ -284,7 +311,6 @@ const HeaderFooter = () => {
                 menuPortalTarget={document?.body}
                 menuPosition="fixed"
               />
-              {errors.roleId && <p className="input-field-error">{errors.roleId.message}</p>}
             </InputField>
 
             <InputField label=" Type" required>
@@ -325,7 +351,7 @@ const HeaderFooter = () => {
           </div>
           <div>
             <Suspense fallback={<p>Loading Editor</p>}>
-              <TextEditor value={content} onChange={setContent} />
+              <TextEditor value={content} onChange={valueChangeHandler} />
             </Suspense>
           </div>
           <div className="form-actions-responsive mt-5">
