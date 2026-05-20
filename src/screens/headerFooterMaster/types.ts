@@ -69,6 +69,7 @@ type SequenceDrawerProps = {
   isOpen: boolean;
   data: SequenceEditItem | null;
   onClose: () => void;
+  onExited?: () => void;
   handleRefresh: () => Promise<void>;
   resetType: () => void;
   resetSequence: () => void;

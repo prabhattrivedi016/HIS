@@ -39,6 +39,7 @@ type LabResultEntryTableData = {
   sampleDateTime?: string;
   selectedSampleType?: string;
   SampleTypeName?: string;
+  BarCode?: string;
 };
 
 type SubCategory = {

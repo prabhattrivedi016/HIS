@@ -37,6 +37,7 @@ type RadiologyTableItem = {
   IsDispatched: number;
   DispatchedOn: string;
   isSampleRejected: number;
+  BarCode?: string;
 };
 type ButtonValue = { buttonName: string; level: string; color: string };
 

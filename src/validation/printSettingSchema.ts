@@ -3,7 +3,7 @@ import * as yup from "yup";
 export const headerFooterSchema = yup.object().shape({
   headerId: yup.number().nullable(),
 
-  roleId: yup.number().moreThan(0, "Role name is required"),
+  roleId: yup.number().nullable(),
 
   branchId: yup.number().moreThan(0, "Branch is required"),
 

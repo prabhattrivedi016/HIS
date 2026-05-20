@@ -1,6 +1,7 @@
 import Animation from "@/components/animation";
 import CustomLoader from "@/components/customLoader";
 import { letterHeaderTableHeader } from "@/constants/constants";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { letterHeadSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Minus, Plus } from "lucide-react";
@@ -11,7 +12,7 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGetBranchList from "../../../hooks/useGetBranchList";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { usePickMaster } from "../../../hooks/usePickMaster";
-import { LetterHeadItem } from "../types";
+import { BranchItem, LetterHeadItem } from "../types";
 import LetterHeadImagePreview from "./LetterHeadImagePreview";
 
 const LetterHead = () => {
@@ -24,8 +25,8 @@ const LetterHead = () => {
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [letterHeadTableData, setLetterHeadTableData] = useState<LetterHeadItem[]>([]);
   const [isEdit, setIsEdit] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [defaultBranch, setDefaultBranch] = useState<BranchItem | null>(null);
 
   const buttonLabel = isEdit ? "Update" : "Save";
 
@@ -40,7 +41,7 @@ const LetterHead = () => {
     resolver: yupResolver(letterHeadSchema),
     defaultValues: {
       id: 0,
-      BranchId: 0,
+      BranchId: defaultBranch?.branchId ?? 1,
       TypeId: 0,
       TypeName: "",
       PaddingLeft: 100,
@@ -50,6 +51,12 @@ const LetterHead = () => {
       LetterHeadFile: null,
     },
   });
+
+  useEffect(() => {
+    const selected = branches.find(b => b?.branchId === 1);
+    setValue("BranchId", selected?.branchId!);
+    setDefaultBranch(selected!);
+  }, [branches]);
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
@@ -77,14 +84,17 @@ const LetterHead = () => {
       {},
       { component: "LetterHead" }
     );
-    if (!resp) return;
+    if (!resp.result) {
+      showWarning(resp?.message ?? "Something went wrong");
+      return;
+    }
     if (resp?.result) {
-      setSuccessMessage(resp?.message || "Saved successfully");
+      showSuccess(resp?.message ?? "Data saved successfully");
 
       setIsEdit(false);
       reset({
         id: 0,
-        BranchId: 0,
+        BranchId: defaultBranch?.branchId ?? 1,
         TypeId: 0,
         TypeName: "",
         PaddingLeft: 100,
@@ -120,7 +130,7 @@ const LetterHead = () => {
     setIsEdit(false);
     reset({
       id: 0,
-      BranchId: 0,
+      BranchId: defaultBranch?.branchId ?? 1,
       TypeId: 0,
       TypeName: "",
       PaddingLeft: 100,
@@ -179,7 +189,7 @@ const LetterHead = () => {
         params: { filePath: pathName },
         responseType: "blob",
       },
-      { LetterHeadImagePreview }
+      { component: "LetterHead" }
     );
 
     const blob = resp;
@@ -326,47 +336,51 @@ const LetterHead = () => {
                     </thead>
 
                     <tbody>
-                      {letterHeadTableData?.length === 0 && (
+                      {letterHeadTableData?.length === 0 ? (
                         <tr>
-                          <td colSpan={letterHeadTableData.length} className="table-empty">
+                          <td
+                            colSpan={letterHeaderTableHeader.length}
+                            className="table-empty text-center align-middle"
+                          >
                             No records found
                           </td>
                         </tr>
+                      ) : (
+                        letterHeadTableData.map((item, idx) => (
+                          <tr key={idx} className="table-row">
+                            <td className="table-td">{idx + 1}</td>
+
+                            <td className="table-td">{item?.branchName || "-"}</td>
+
+                            <td className="table-td">{item?.paddingLeft || "-"}</td>
+
+                            <td className="table-td">{item?.paddingRight || "-"}</td>
+
+                            <td className="table-td">{item?.paddingTop || "-"}</td>
+
+                            <td className="table-td">{item?.paddingBottom || "-"}</td>
+
+                            <td>
+                              <LetterHeadImagePreview pathName={item?.letterHeadFilePath} />
+                            </td>
+
+                            <td
+                              className="table-td"
+                              onClick={() => downloadHandler(item?.letterHeadFilePath)}
+                            >
+                              <i className="fa-solid fa-download icon-color-button"></i>
+                            </td>
+
+                            <td className="table-td" onClick={() => editHandler(item)}>
+                              <i className="fa-edit fa-solid icon-color-button"></i>
+                            </td>
+
+                            <td className="table-td" onClick={() => deleteHandler(item)}>
+                              <i className="fa-solid fa-trash icon-color-delete"></i>
+                            </td>
+                          </tr>
+                        ))
                       )}
-
-                      {letterHeadTableData.map((item, idx) => (
-                        <tr key={idx} className="table-row">
-                          <td className="table-td">{idx + 1}</td>
-                          <td className="table-td">{item?.branchName || "-"}</td>
-
-                          <td className="table-td">{item?.paddingLeft || "-"}</td>
-
-                          <td className="table-td">{item?.paddingRight || "-"}</td>
-
-                          <td className="table-td">{item?.paddingTop || "-"}</td>
-
-                          <td className="table-td">{item?.paddingBottom || "-"}</td>
-
-                          <td>
-                            <LetterHeadImagePreview pathName={item?.letterHeadFilePath} />
-                          </td>
-
-                          <td
-                            className="table-td"
-                            onClick={() => downloadHandler(item?.letterHeadFilePath)}
-                          >
-                            <i className="fa-solid fa-download fa-2xl text-blue-600 ml-5"></i>
-                          </td>
-
-                          <td className="table-td" onClick={() => editHandler(item)}>
-                            <i className="fa-edit fa-solid fa-xl "></i>
-                          </td>
-
-                          <td className="table-td" onClick={() => deleteHandler(item)}>
-                            <i className="fa fa-trash text-red-500 fa-xl " aria-hidden="true"></i>
-                          </td>
-                        </tr>
-                      ))}
                     </tbody>
                   </table>
                 </div>

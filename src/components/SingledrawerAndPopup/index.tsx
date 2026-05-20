@@ -103,7 +103,7 @@ const LabPatientInfo = ({
 
           <div className="flex flex-row">
             <h1 className="name-header">Bar Code: </h1>
-            <span className="ml-2">{data?.Barcode}</span>
+            <span className="ml-2">{data?.BarCode}</span>
           </div>
 
           <div className="flex flex-row">

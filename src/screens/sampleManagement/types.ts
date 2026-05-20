@@ -63,6 +63,7 @@ type SampleManagementTableData = {
   IsUnderPackage?: number;
   selectedSampleType?: string;
   sampleDateTime?: string;
+  BarCode?: string;
 };
 
 type ButtonValue = { buttonName: string; level: string; color: string };

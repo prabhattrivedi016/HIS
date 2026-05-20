@@ -15,6 +15,7 @@ const SequenceDrawer = ({
   isOpen,
   data,
   onClose,
+  onExited,
   handleRefresh,
   resetType,
   resetSequence,
@@ -26,6 +27,7 @@ const SequenceDrawer = ({
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(sequenceMappingDrawerSchema),
@@ -103,6 +105,11 @@ const SequenceDrawer = ({
     setPreview(previewValue);
   }, [prefix, firstSeprator, secondSeprator, length, year]);
 
+  // keep computed preview in RHF state so yup validation can pass
+  useEffect(() => {
+    setValue("preview", preview, { shouldValidate: true });
+  }, [preview, setValue]);
+
   /* ---------- submit ---------- */
   const onSubmit = async (formData: any) => {
     if (!formData?.typeId || !formData?.typeName) return;
@@ -154,14 +161,22 @@ const SequenceDrawer = ({
     });
   };
 
-  if (!isOpen) return null;
-
   return createPortal(
-    <div className="fixed inset-0 z-999">
+    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
-        <div className="drawer-bg-fade opacity-100 visible" onClick={onClose} />
+        <div
+          className={`drawer-bg-fade ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          onClick={onClose}
+        />
 
-        <div className="drawer-layout drawer-bg translate-x-0">
+        <div
+          className={`drawer-layout drawer-bg ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+          onTransitionEnd={e => {
+            if (!isOpen && e.propertyName === "transform") {
+              onExited?.();
+            }
+          }}
+        >
           <div className="drawer-title-border">
             <h2 className="drawer-title">{buttonTitle} Sequence</h2>
             <button onClick={onClose} className="drawer-close-btn">
@@ -174,6 +189,10 @@ const SequenceDrawer = ({
 
           <div className="card m-1">
             <form onSubmit={handleSubmit(onSubmit)}>
+              <input type="hidden" {...register("typeId", { valueAsNumber: true })} />
+              <input type="hidden" {...register("typeName")} />
+              <input type="hidden" {...register("preview")} />
+
               <div className="form-grid-2">
                 <InputField label="Name" required>
                   <input className="input-field" {...register("name")} />
