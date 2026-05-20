@@ -29,7 +29,7 @@ const SampleManagementPatientDocument = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementTableData | LabResultEntryTableData;
+    data: SampleManagementTableData | LabResultEntryTableData | null;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
 

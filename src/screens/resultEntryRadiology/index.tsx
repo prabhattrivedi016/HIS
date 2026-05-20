@@ -460,7 +460,12 @@ const ResultEntryRadiology = () => {
 
       const pdfBlob = new Blob([resp], { type: "application/pdf" });
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
-      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+      const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+      if (!printWindow) {
+        window.URL.revokeObjectURL(pdfUrl);
+        return;
+      }
 
       setSelectedReportPatientInvestigationIds([]);
       setPatientInvestigationIds("");

@@ -1,4 +1,3 @@
-import { getCorporateMaster } from "@/api/globalApiCall";
 import CustomDateInput from "@/components/customDateInput";
 import CustomDateTimeInput from "@/components/customDateTimeInput";
 import InputField from "@/components/customInputField";
@@ -22,9 +21,8 @@ import { BriefcaseMedical } from "lucide-react";
 import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
-import PatientInvestigationDetails from "./components/PatientInvestigationDetails";
 import RejectSamplePopup from "./components/RejectSamplePopup";
-import { ButtonValue, CorporateList, SampleManagementTableData } from "./types";
+import { ButtonValue, SampleManagementTableData } from "./types";
 
 const SampleManagement = () => {
   const getLocalDateTime = () => {
@@ -46,11 +44,6 @@ const SampleManagement = () => {
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const [openPatientDrawer, setOpenPatientDrawer] = useState<boolean>(false);
-  const [renderPatientDrawer, setRenderPatientDrawer] = useState<boolean>(false);
-  const [patientInvestigation, setPatientInvestigation] =
-    useState<SampleManagementTableData | null>(null);
-
   const [openRejectPopup, setOpenRejectPopup] = useState<boolean>(false);
   const [renderRejectPopup, setRenderRejectPopup] = useState<boolean>(false);
   const [rejectItem, setRejectItem] = useState<SampleManagementTableData | null>(null);
@@ -59,7 +52,6 @@ const SampleManagement = () => {
   const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
   const [remarkItem, setRemarkItem] = useState<SampleManagementTableData | null>(null);
 
-  const [corporateList, setCorporateList] = useState<CorporateList[]>([]);
   const [sampleManagementTableData, setSampleManagementTableData] = useState<
     SampleManagementTableData[]
   >([]);
@@ -112,10 +104,6 @@ const SampleManagement = () => {
 
     return filterByButton(activeFilter, baseData);
   }, [activeFilter, sampleManagementTableData, searchValue]);
-  // close patient drawer
-  const closeDrawer = useCallback(() => {
-    setOpenPatientDrawer(false);
-  }, []);
 
   // close reject popup
   const closeRejectPopup = useCallback(() => {
@@ -142,16 +130,6 @@ const SampleManagement = () => {
       statusId: 0,
     },
   });
-
-  // corporate master data
-  const fetchCorporateData = async () => {
-    const resp = await getCorporateMaster(fetchApi, "SampleManagement");
-    setCorporateList(resp);
-  };
-
-  useEffect(() => {
-    fetchCorporateData();
-  }, []);
 
   // sample management color coding
   const getColorFromButton = (buttonName: string) => {
@@ -494,6 +472,8 @@ const SampleManagement = () => {
 
   // sample reject handler
   const rejectSampleHandler = (item: SampleManagementTableData) => {
+    console.log("reject button is clicked");
+
     setRejectItem(item);
     setRenderRejectPopup(true);
     setOpenRejectPopup(true);
@@ -724,7 +704,11 @@ const SampleManagement = () => {
 
   const acceptRejectHandler = (item: SampleManagementTableData) => {
     if (!item) return;
-    if (item?.IsResultDone === 0 && item?.IsSampleCollected === 1) {
+    const isResultDone = Number(item?.IsResultDone) || 0;
+    const isSampleCollected = Number(item?.IsSampleCollected) || 0;
+    const isSampleRejected = Number(item?.isSampleRejected) || 0;
+
+    if (isResultDone === 0 && isSampleCollected === 1) {
       return (
         <button
           type="button"
@@ -735,7 +719,7 @@ const SampleManagement = () => {
         </button>
       );
     }
-    if (item?.isSampleRejected === 1 && item?.IsSampleCollected === 0) {
+    if (isSampleRejected === 1 && isSampleCollected === 0) {
       return (
         <button
           type="button"
@@ -745,6 +729,58 @@ const SampleManagement = () => {
           Accept
         </button>
       );
+    }
+  };
+
+  // report print handler
+  const reportPrintHandler = async (item: SampleManagementTableData) => {
+    try {
+      if (!item?.PatientInvestigationId) return;
+      if (!branchId) {
+        showWarning("Branch not found");
+        return;
+      }
+
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            PatientInvestigationIds: String(item.PatientInvestigationId),
+            BranchId: branchId,
+            Download: true,
+          },
+          responseType: "blob",
+        }
+      );
+      if (!resp) {
+        showWarning("Unable to download report");
+        return;
+      }
+
+      // create pdf blob
+      const pdfBlob = new Blob([resp], {
+        type: "application/pdf",
+      });
+
+      // create url
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      // force download
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = `report_${item.PatientInvestigationId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60_000);
+    } catch {
+      showWarning("Unable to open report");
     }
   };
 
@@ -1094,9 +1130,15 @@ const SampleManagement = () => {
                         <i className="fa-solid fa-plus icon-color-button"></i>
                       </td>
 
-                      <td className="table-td">
-                        <i className="fa-solid fa-print icon-color-button"></i>
-                      </td>
+                      {item?.IsReportApproved === 1 ? (
+                        <td className="table-td" onClick={() => reportPrintHandler(item)}>
+                          <i className="fa-solid fa-print icon-color-button"></i>
+                        </td>
+                      ) : (
+                        <td className="table-td">
+                          {/* <i className="fa-solid fa-print icon-color-button"></i> */}
+                        </td>
+                      )}
 
                       <td className="table-td" onClick={() => patientDocumentHandler(item)}>
                         <i className="fa-solid fa-file icon-color-button"></i>
@@ -1130,15 +1172,6 @@ const SampleManagement = () => {
         </div>
       )}
 
-      {/* patient investigation drawer */}
-      {!!renderPatientDrawer && (
-        <PatientInvestigationDetails
-          isOpen={openPatientDrawer}
-          onClose={closeDrawer}
-          data={patientInvestigation}
-        />
-      )}
-
       {/* reject popup */}
       {!!renderRejectPopup && (
         <RejectSamplePopup
@@ -1148,7 +1181,6 @@ const SampleManagement = () => {
           refreshSampleReject={() => fetchSampleData(getValues())}
         />
       )}
-
       {/*remark popup  */}
       {!!renderRemarkPopup && (
         <SampleRemarks isOpen={openRemarkPopup} onClose={closeRemarkPopup} data={remarkItem} />

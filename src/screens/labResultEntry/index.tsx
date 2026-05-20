@@ -934,6 +934,12 @@ const PathologyResultEntry = () => {
       });
 
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+      if (!printWindow) {
+        window.URL.revokeObjectURL(pdfUrl);
+        return;
+      }
 
       // Reset print selections after successful open
       setSelectedReportPatientInvestigationIds([]);
@@ -1407,7 +1413,13 @@ const PathologyResultEntry = () => {
                       )}
 
                       <td className="table-td max-w-50">
-                        {item?.IsReportApproved === 0 ? "No" : "yes"}
+                        <span
+                          className={
+                            Number(item?.IsReportApproved) === 1 ? "active-text" : "inactive-text"
+                          }
+                        >
+                          {Number(item?.IsReportApproved) === 1 ? "Yes" : "No"}
+                        </span>
                       </td>
 
                       <td className="table-td max-w-50">{item?.ReportApprovedOn ?? "-"}</td>

@@ -172,20 +172,18 @@ const InvestigationResultEntry = () => {
     return data;
   };
 
-  // get patient investigation details
-  const getPatientInvestigation = async (
-    branchId: number,
-    uhid: string,
-    labNo: number,
-    visitId: number
-  ) => {
+  // get patient investigation details by visitId
+  const getPatientInvestigation = async (visitId: number) => {
+    if (!branchId || !item?.UHID || !item?.LabNo || !visitId) return;
+
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_INVESTIGATION_DETAILS,
       {},
-      { params: { branchId, uhid, labNo, visitId } },
+      { params: { branchId, uhid: item?.UHID, labNo: item?.LabNo, visitId } },
       { component: "InvestigationResultEntry" }
     );
+
     setPatientAllInvestigation(resp?.data?.[0] ?? null);
   };
 
@@ -218,11 +216,20 @@ const InvestigationResultEntry = () => {
           Number(item?.VisitId!)
         );
       }
-      if (openPatientInfo) {
-        getPatientInvestigation(branchId, item?.UHID, item?.LabNo, Number(item?.VisitId!));
-      }
     }
-  }, [paramsValue, item, branchId, openPatientInfo]);
+  }, [paramsValue, item, branchId]);
+
+  useEffect(() => {
+    if (!openPatientInfo || !item) return;
+
+    const selectedInvestigation = allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab);
+    const visitIdForPopup = Number(
+      selectedInvestigation?.VisitId ?? item?.VisitId ?? item?.VisitNo ?? 0
+    );
+    if (visitIdForPopup > 0) {
+      getPatientInvestigation(visitIdForPopup);
+    }
+  }, [openPatientInfo, item, activeTab]);
 
   // tabular result entry value
 
@@ -885,14 +892,13 @@ const InvestigationResultEntry = () => {
         setOpenPatientInfo(true);
 
         setRenderPatientInfo(true);
-        if (item && branchId) {
-          console.log("item", item);
-          const visitId = Number(item?.VisitId ?? item?.VisitNo ?? 0);
+
+        if (item) {
+          const visitId = Number(item?.VisitId ?? 0);
           if (visitId > 0) {
-            getPatientInvestigation(branchId, item?.UHID, item?.LabNo, visitId);
+            setPatientAllInvestigation(item!);
           }
         }
-        // setSelectedPatient()
 
         break;
 
