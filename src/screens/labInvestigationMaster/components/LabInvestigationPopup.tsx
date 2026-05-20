@@ -302,7 +302,7 @@ const LabInvestigationPopup = ({
         className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
 
-      <div className={`central-popup ${isOpen ? "opacity-full" : ""}`}>
+      <div className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpen ? "opacity-full" : ""}`}>
         <div className="popup-header">
           <h2 className="popup-helper-text">{popupTitle}</h2>
           <button onClick={onClose} className="close-drawer-btn">

@@ -93,8 +93,6 @@ const InvestigationResultEntry = () => {
 
   const [patientIds, setPatientIds] = useState<number[]>([]);
 
-  console.log("patientIds", patientIds);
-
   // patient details
   const [patientDetails, setPatientDetails] = useState({
     BarCode: 0,
@@ -888,6 +886,7 @@ const InvestigationResultEntry = () => {
 
         setRenderPatientInfo(true);
         if (item && branchId) {
+          console.log("item", item);
           const visitId = Number(item?.VisitId ?? item?.VisitNo ?? 0);
           if (visitId > 0) {
             getPatientInvestigation(branchId, item?.UHID, item?.LabNo, visitId);

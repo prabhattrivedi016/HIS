@@ -133,7 +133,7 @@ const SearchPatientPopup = ({
       />
 
       <div
-        className={`central-popup lg:min-w-7xl lg:min-h-auto h-[calc(100%-20px)] overflow-auto ${isOpen ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-7xl  ${isOpen ? "opacity-full" : ""}`}
       >
         <div className="popup-header">
           <h2 className="popup-helper-text">Search Old Patient</h2>

@@ -88,7 +88,7 @@ const LovsPopup = React.memo(
           onClick={onClose}
         />
 
-        <div className={`central-popup ${isOpen ? "opacity-full" : ""}`}>
+        <div className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpen ? "opacity-full" : ""}`}>
           <div className="popup-header">
             <h2 className="popup-helper-text">{buttonTitle} List of values</h2>
 

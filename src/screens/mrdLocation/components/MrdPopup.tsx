@@ -142,7 +142,7 @@ const MrdPopUp = ({
       <div className="popup-bg-overlay opacity-100 visible" onClick={onCloseTab} />
 
       {/* Drawer */}
-      <div className="central-popup opacity-full">
+      <div className="central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] opacity-full">
         {/* Header */}
         <div className="popup-header">
           <h2 className="popup-helper-text">{headerName}</h2>

@@ -35,7 +35,9 @@ const PackagePopup = ({ isOpen, onClose, packageId }: PackagePopupProps) => {
         className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
 
-      <div className={`central-popup lg:min-w-140 ${isOpen ? "opacity-full" : ""}`}>
+      <div
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-140 ${isOpen ? "opacity-full" : ""}`}
+      >
         <div className="popup-header">
           <h2 className="popup-helper-text">Test package</h2>
           <button type="button" onClick={onClose} className="close-drawer-btn">
