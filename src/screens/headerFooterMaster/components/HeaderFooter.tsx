@@ -9,7 +9,7 @@ import { usePickMaster } from "@/hooks/usePickMaster";
 import { headerFooterSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DOMPurify from "dompurify";
-import { ChangeEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import Select from "react-select";
 import { InferType } from "yup";
@@ -39,7 +39,7 @@ const HeaderFooter = () => {
     defaultValues: {
       headerId: 0,
       roleId: 0,
-      branchId: 0,
+      branchId: defaultBranch?.branchId,
       typeId: 0,
       type: "",
       isHeader: 1,
@@ -69,7 +69,7 @@ const HeaderFooter = () => {
     setDefaultBranch(selected);
   }, [branches]);
 
-  // header types
+  // header report types
   const headerReportType = usePickMaster("headerReportType");
 
   const reportType = useMemo<ReportItem[]>(
@@ -77,14 +77,46 @@ const HeaderFooter = () => {
     [headerReportType]
   );
 
+  const reportTypeByKey = useMemo(() => {
+    const map = new Map<number, ReportItem>();
+    for (const item of reportType) {
+      const key = Number(item.key);
+      if (!Number.isNaN(key)) map.set(key, item);
+    }
+    return map;
+  }, [reportType]);
+
+  const resolveTypeName = useCallback(
+    (id: number | null | undefined) => reportTypeByKey.get(Number(id))?.value ?? "",
+    [reportTypeByKey]
+  );
+
+  const syncTypeFields = useCallback(
+    (id: number, options?: { shouldDirty?: boolean; shouldTouch?: boolean }) => {
+      setValue("typeId", id, {
+        shouldValidate: true,
+        shouldDirty: options?.shouldDirty ?? true,
+        shouldTouch: options?.shouldTouch ?? true,
+      });
+      setValue("type", resolveTypeName(id), {
+        shouldValidate: true,
+        shouldDirty: options?.shouldDirty ?? true,
+      });
+    },
+    [resolveTypeName, setValue]
+  );
+
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const id = Number(e.target.value);
-
-    const selected = reportType.find(r => Number(r.key) === id);
-
-    setValue("typeId", id, { shouldValidate: true });
-    setValue("type", selected?.value ?? "", { shouldValidate: true });
+    syncTypeFields(Number(e.target.value));
   };
+
+  useEffect(() => {
+    if (!typeId) return;
+    const typeName = resolveTypeName(typeId);
+    if (typeName) {
+      setValue("type", typeName, { shouldDirty: false });
+    }
+  }, [typeId, resolveTypeName, setValue]);
 
   //  get roles
   const getRoles = async () => {
@@ -152,6 +184,7 @@ const HeaderFooter = () => {
     const sanitizedHtml = DOMPurify.sanitize(content);
 
     formData.headerBody = sanitizedHtml;
+    formData.type = resolveTypeName(formData.typeId) || formData.type || "";
     if (!branchId || !typeId) return;
     const resp = await fetchApi(
       "POST",
@@ -208,6 +241,8 @@ const HeaderFooter = () => {
 
     const data = response?.data?.[0];
 
+    const resolvedType = resolveTypeName(typeId) || data?.type || "";
+
     if (!data) {
       setContent("");
       reset({
@@ -215,7 +250,7 @@ const HeaderFooter = () => {
         roleId: roleId ?? 0,
         branchId: branchId ?? 0,
         typeId: typeId ?? 0,
-        type: "",
+        type: resolvedType,
         isHeader: isHeader ?? 1,
         headerBody: "",
         isActive: Status.ACTIVE,
@@ -230,7 +265,7 @@ const HeaderFooter = () => {
       roleId: roleId ?? 0,
       branchId: branchId ?? 0,
       typeId: typeId ?? 0,
-      type: "",
+      type: resolvedType,
       isHeader: isHeader ?? 1,
       headerBody: data.headerBody,
       isActive: data.isActive,
@@ -288,7 +323,7 @@ const HeaderFooter = () => {
             </InputField>
 
             <InputField label="Header Type" required>
-              <select className="input-field" {...register("typeId")} onChange={handleTypeChange}>
+              <select className="input-field" value={typeId ?? 0} onChange={handleTypeChange}>
                 <option value={0}>Select</option>
                 {reportType.map(h => (
                   <option key={h.id} value={h.key}>
@@ -350,9 +385,7 @@ const HeaderFooter = () => {
             </InputField>
           </div>
           <div>
-            <Suspense fallback={<p>Loading Editor</p>}>
-              <TextEditor value={content} onChange={valueChangeHandler} />
-            </Suspense>
+            <TextEditor value={content} onChange={valueChangeHandler} />
           </div>
           <div className="form-actions-responsive mt-5">
             <button type="submit" className="save-btn">
