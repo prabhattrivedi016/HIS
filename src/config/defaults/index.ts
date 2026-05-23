@@ -273,6 +273,10 @@ const ENDPOINTS = {
     "Lab/getInvestigationTemplateInterpretationMappings",
   SAVE_OBSERVATION_COMMENTS_LOVS_MAPPINGS: "Lab/saveObservationCommentsLOVsMappings",
   GET_OBSERVATION_COMMENT_LOVS_MAPPINGS: "Lab/getObservationCommentLOVsMappings",
+
+  // laboratory help desk
+  SEARCH_PATIENT_INVESTIGATION_FOR_LABORATORY_HELP_DESK:
+    "Lab/searchPatientInvestigationForLaboratoryHelpDesk",
 };
 
 export { ENDPOINTS };

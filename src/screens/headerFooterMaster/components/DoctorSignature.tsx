@@ -75,7 +75,7 @@ const DoctorSignature = () => {
       "GET",
       ENDPOINTS.GET_DOCTOR_MASTER_LIST_BY_BRANCH_ID,
       {},
-      { params: { branchId } },
+      { params: { branchId, isDoctorUnit: 0 } },
       { component: "DoctorSignature" }
     );
 

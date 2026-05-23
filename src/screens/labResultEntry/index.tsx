@@ -5,7 +5,6 @@ import CustomLoader from "@/components/customLoader";
 import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
 import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
-import { CATEGORY_ID, Status } from "@/constants/constants";
 import {
   LabResultEntryButtons,
   LabResultEntryTableHeaderForSampleCollect,
@@ -167,40 +166,40 @@ const PathologyResultEntry = () => {
   };
 
   // investigation name search
-  const getInvestigationName = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
-      {},
-      {
-        params: {
-          categoryId: CATEGORY_ID?.categoryId,
-          labTypeId: Status?.ACTIVE,
-          isActive: Status?.ACTIVE,
-        },
-      },
-      { component: "PathologyResultEntry" }
-    );
-    setInvestigationNameList(resp?.data ?? []);
-  };
+  // const getInvestigationName = async () => {
+  //   const resp = await fetchApi(
+  //     "GET",
+  //     ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
+  //     {},
+  //     {
+  //       params: {
+  //         categoryId: CATEGORY_ID?.categoryId,
+  //         labTypeId: Status?.ACTIVE,
+  //         isActive: Status?.ACTIVE,
+  //       },
+  //     },
+  //     { component: "PathologyResultEntry" }
+  //   );
+  //   setInvestigationNameList(resp?.data ?? []);
+  // };
 
-  const investigationNameSelectOptions = useMemo(() => {
-    return (
-      investigationNameList?.map(i => ({
-        label: i.name,
-        value: i.serviceItemId,
-      })) || []
-    );
-  }, [investigationNameList]);
+  // const investigationNameSelectOptions = useMemo(() => {
+  //   return (
+  //     investigationNameList?.map(i => ({
+  //       label: i.name,
+  //       value: i.serviceItemId,
+  //     })) || []
+  //   );
+  // }, [investigationNameList]);
 
-  const investigationSelectHandler = (option: SelectItem | null) => {
-    setSelectedInvestigationName(option);
-    setValue("investigationId", option?.value ?? 0);
-  };
+  // const investigationSelectHandler = (option: SelectItem | null) => {
+  //   setSelectedInvestigationName(option);
+  //   setValue("investigationId", option?.value ?? 0);
+  // };
 
   useEffect(() => {
     getSubSubCategory(1);
-    getInvestigationName();
+    // getInvestigationName();
   }, []);
 
   // api call for search patient investigation for sample processing pathology on mount
@@ -1066,7 +1065,7 @@ const PathologyResultEntry = () => {
               />
             </InputField> */}
 
-            <InputField label="Quick Search">
+            {/* <InputField label="Quick Search">
               <input
                 type="text"
                 className="input-field"
@@ -1074,7 +1073,7 @@ const PathologyResultEntry = () => {
                 value={searchValue}
                 onChange={e => setSearchValue(e.target.value)}
               />
-            </InputField>
+            </InputField> */}
           </div>
           <div className="mt-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">

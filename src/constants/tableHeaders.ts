@@ -255,15 +255,16 @@ export const AllergyResultEntryTableHeader = [
 ];
 
 export const LaboratoryHelpDeskButtons = [
-  "Sample Collection Pending",
-  "Sample Collected",
-  "Department Received",
-  "Abnormal",
-  "Hold",
-  "Report Approval Pending",
-  "Approved",
-  "Dispatched",
-  "Urgent",
+  { buttonName: "all", level: "All", color: "#8C8787" },
+  { buttonName: "sampleCollectionPending", level: "Sample Collection Pending", color: "#ffb7ae" },
+  { buttonName: "sampleCollected", level: "Sample Collected", color: "#fbe24f" },
+  { buttonName: "departmentReceived", level: "Department Received", color: "#9a37a3" },
+  { buttonName: "abnormal", level: "Abnormal", color: "#332eeb" },
+  { buttonName: "hold", level: "Hold", color: "#f09bf8" },
+  { buttonName: "reportApprovalPending", level: "Report Approval Pending", color: "#00c0ef" },
+  { buttonName: "approved", level: "Approved", color: "#2eeba3" },
+  { buttonName: "dispatched", level: "Dispatched", color: "#adeb74" },
+  { buttonName: "urgent", level: "Urgent", color: "#ab6d02" },
 ];
 
 export const LaboratoryHelpDeskTableHeader = [
@@ -274,10 +275,10 @@ export const LaboratoryHelpDeskTableHeader = [
   "Patient Name",
   "Age/Gender",
   "Contact No.",
-  "Client Name",
   "Investigation",
+  "Print",
   "OutSource",
-  "	DisPatch",
+  "DisPatch",
   "",
   "",
   "",
@@ -511,4 +512,23 @@ export const ObservationCommentLovsTableHeader = [
   "Observation Name",
   "List of Value",
   "Remove",
+];
+
+export const LaboratoryHelpDeskNotificationTableHeader = [
+  "Notification",
+  "DateTime",
+  "Remark",
+  "Entry By",
+  "Reply",
+  "Reply By",
+  "Reply DateTime",
+];
+
+export const LaboratoryHelpDeskAddReportTableHeader = [
+  "#",
+  "Document",
+  "Uploaded On",
+  "Uploaded By",
+  "View",
+  "Delete",
 ];

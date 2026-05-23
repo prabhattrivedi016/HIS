@@ -72,3 +72,43 @@ interface ListItem {
 type ColumnVisibility = Record<string, boolean>;
 
 export type { ColumnVisibility, GridItem, ListItem };
+
+type SubSubCategoryItem = {
+  subCategoryId: number;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+};
+
+type InvestigationName = {
+  serviceItemId: number;
+  hospId: number;
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number;
+  name: string;
+  code: string;
+  reportTypeId: number;
+  labTypeId: number;
+  reportType: string;
+  isSampleRequired: number;
+  sampleTypeId: number;
+  sampleTypeIdList: string;
+  labMethodId: number;
+  forGenderId: number;
+  forGender: string;
+  isOutSource: number;
+  isPrintAlone: number;
+  isDepartmentReceivingRequired: number;
+  shortName: string;
+  sampleVolume: string;
+  investigationComment: string;
+  tatInMin: number;
+  isActive: number;
+};
+
+type SelectItem = {
+  label: string;
+  value: number;
+};
+
+export type { InvestigationName, SelectItem, SubSubCategoryItem };
