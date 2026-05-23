@@ -23,11 +23,18 @@ export enum HeaderFooterTabName {
   FOOTER_REMARK = "Footer Remark",
 }
 
+export enum HistoMasterReportTabName {
+  HISTO_TEMPLATE_MASTER = "Histo Template Master",
+  SPECIMEN_MASTER = "Specimen Master",
+  SPECIMEN_TEMPLATE_MAPPING = "Specimen Template Mapping",
+  HISTO_PENDING_REASON_MASTER = "Histo Pending Reason Master",
+  HISTO_IMMUNO_ANTIBIOTIC_MASTER = "Histo Immuno Antibiotic Master",
+}
+
 export enum BankMasterTabName {
   BANK_MASTER = "Bank Master",
   BANK_DETAILS = "Bank Details",
 }
-
 export enum Radiology {
   RADIOLOGY = "radiology",
   DEFAULT_REPORT_TYPE = "2",
