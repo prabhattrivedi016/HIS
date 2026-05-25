@@ -31,6 +31,13 @@ export enum HistoMasterReportTabName {
   HISTO_IMMUNO_ANTIBIOTIC_MASTER = "Histo Immuno Antibiotic Master",
 }
 
+export enum MicroReportMasterTabName {
+  ORGANISM_MASTER = "Organism Master",
+  ANTIBIOTIC_MASTER = "Antibiotic Master",
+  ORGANISM_ANTIBIOTIC_MAPPING = "Organism Antibiotic Mapping",
+  CULTURE_TEMPLATE_MASTER = "Culture Template Master",
+}
+
 export enum BankMasterTabName {
   BANK_MASTER = "Bank Master",
   BANK_DETAILS = "Bank Details",
