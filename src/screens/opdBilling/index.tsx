@@ -133,11 +133,24 @@ const OpdBilling = () => {
 
   const doctorRef = useRef<any>(null);
 
+  const serviceInputRef = useRef<HTMLInputElement | null>(null);
+
   // autoFill patient data
 
   useEffect(() => {
     if (patientRegistrationDetails?.PatientId) {
       const fetchPatientData = async () => {
+        // clear previous patient billing data
+        SetServiceDataTableItem([]);
+        SetServiceItemList([]);
+        setSearchTerm("");
+        setShowPopup(false);
+        setShowDuplicateError("");
+        setPackagePayload([]);
+        setIsPackageUrgent(0);
+
+        calculateAndUpdateBillingDetails([]);
+
         const resp = await getPatientDataByPatientId(
           fetchApi,
           Number(patientRegistrationDetails?.PatientId),
@@ -148,15 +161,21 @@ const OpdBilling = () => {
 
         setPatientRegistrationDetails(prev => ({
           ...prev,
-          ...resp, // auto-fill
+          ...resp,
         }));
 
         if (resp?.doctorId) {
           const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
+
           if (doctor) {
             setSelectedDoctor(doctor);
           }
         }
+
+        // focus service search input
+        setTimeout(() => {
+          serviceInputRef.current?.focus();
+        }, 300);
       };
 
       fetchPatientData();
@@ -1483,12 +1502,12 @@ const OpdBilling = () => {
               <InputField>
                 <div className="relative w-full">
                   <input
+                    ref={serviceInputRef}
                     className="input-field"
                     placeholder="Type to search services"
                     value={searchTerm}
                     onChange={serviceItemHandler}
                   />
-
                   {showPopup && serviceNameList?.length > 0 && (
                     <div className="absolute top-full left-0  w-full bg-white border border-gray-300 rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
                       {serviceNameList.map((s, index) => (
@@ -1634,6 +1653,9 @@ const OpdBilling = () => {
                                   )}
                                   onChange={e => urgentChangeHandler(e, idx)}
                                 />
+                              </td>
+                              <td className="table-td">
+                                <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
                               </td>
                             </tr>
                           ))}

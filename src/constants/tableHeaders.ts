@@ -433,6 +433,7 @@ export const OpdBillingServiceTableHeader = [
   "Disc",
   "Net Amt",
   "U",
+  "View",
 ];
 
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No."];

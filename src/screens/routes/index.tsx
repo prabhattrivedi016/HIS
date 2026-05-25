@@ -24,6 +24,7 @@ import LaboratoryHelpDesk from "../laboratoryHelpDesk";
 import PathologyResultEntry from "../labResultEntry";
 import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
+import MicroReportMaster from "../microReportMaster";
 import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
@@ -89,4 +90,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "opd-billing": <OpdBilling />,
   "template-investigation-interpretation": <InvestigationInterpretationTemplate />,
   "histo-report-master": <HistoReportMaster />,
+  "micro-report-master": <MicroReportMaster />,
 };

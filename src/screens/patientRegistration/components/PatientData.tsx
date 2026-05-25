@@ -96,8 +96,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       PatientDocumentPayloadItem[]
     >([]);
 
-    console.log("patientDocumentPayload", patientDocumentPayload);
-
     const methods = useForm({
       resolver: yupResolver(patientRegistrationSchema),
       defaultValues: defaultPatientRegistrationValues,
@@ -134,8 +132,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
         const extension = mimeType === "image/png" ? "png" : "jpg";
         const file = new File([blob], `photo.${extension}`, { type: mimeType });
-
-        console.log("file", file);
 
         if (file.size > MAX_IMAGE_SIZE_BYTES) {
           showError("Image size must be 2MB or less.");
@@ -390,7 +386,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         { headers: { "Content-Type": "multipart/form-data" } },
         { component: "Patient Registration" }
       );
-      console.log("resp", resp?.data);
 
       if (!resp?.result) {
         showError(error?.message ?? "Something went wrong");
@@ -408,8 +403,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
           })
         );
         setPatientDocumentPayload(updatedDocumentPayload);
-
-        console.log("updatedDocumentPayload", updatedDocumentPayload);
 
         const patientDocumentFormData = new FormData();
 
@@ -431,8 +424,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
           },
           { component: "PatientDocumentUpload" }
         );
-
-        console.log("response", response?.data);
 
         if (!response?.result) {
           showError(response?.message || "Upload failed");
