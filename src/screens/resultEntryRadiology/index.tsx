@@ -1,6 +1,7 @@
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
 import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
 import {
@@ -62,6 +63,12 @@ const ResultEntryRadiology = () => {
   const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
   const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
   const [remarkItem, setRemarkItem] = useState<RadiologyTableItem | null>(null);
+
+  const [openPatientDocuments, setOpenPatientDocuments] = useState<boolean>(false);
+  const [renderPatientDocument, setRenderPatientDocument] = useState<boolean>(false);
+  const [selectedPatientDocument, setSelectedPatientDocument] = useState<RadiologyTableItem | null>(
+    null
+  );
 
   // form Data
   const { register, handleSubmit, reset, getValues, control } = useForm({
@@ -462,14 +469,14 @@ const ResultEntryRadiology = () => {
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
       const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
 
+      setSelectedReportPatientInvestigationIds([]);
+      setPatientInvestigationIds("");
+      setIsHeaderPng(0);
+
       if (!printWindow) {
         window.URL.revokeObjectURL(pdfUrl);
         return;
       }
-
-      setSelectedReportPatientInvestigationIds([]);
-      setPatientInvestigationIds("");
-      setIsHeaderPng(0);
 
       setTimeout(() => {
         window.URL.revokeObjectURL(pdfUrl);
@@ -478,6 +485,21 @@ const ResultEntryRadiology = () => {
       showError("Unable to open report");
     }
   };
+
+  // close document handler
+  const closeDocumentHandler = useCallback(() => {
+    setOpenPatientDocuments(false);
+    setRenderPatientDocument(false);
+  }, []);
+
+  // patient document handler
+  const patientDocumentHandler = (item: RadiologyTableItem) => {
+    if (!item) return;
+    setSelectedPatientDocument(item);
+    setRenderPatientDocument(true);
+    setOpenPatientDocuments(true);
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Radiology Result Entry </h1>
@@ -814,7 +836,10 @@ const ResultEntryRadiology = () => {
                       <td className="table-td">{item?.ReportApprovedOn || "-"}</td>
 
                       <td className="table-td cursor-pointer">
-                        <i className="fa-solid fa-file icon-color-button"></i>
+                        <i
+                          className="fa-solid fa-file icon-color-button"
+                          onClick={() => patientDocumentHandler(item)}
+                        ></i>
                       </td>
                       <td className="table-td cursor-pointer" onClick={() => remarkHandler(item)}>
                         <i className="fa-solid fa-plus icon-color-button"></i>
@@ -846,6 +871,15 @@ const ResultEntryRadiology = () => {
       {/* remark popup */}
       {!!renderRemarkPopup && (
         <SampleRemarks isOpen={openRemarkPopup} onClose={closeHandler} data={remarkItem} />
+      )}
+
+      {/* investigation documents */}
+      {!!renderPatientDocument && (
+        <SampleManagementPatientDocument
+          isOpen={openPatientDocuments}
+          onClose={closeDocumentHandler}
+          data={selectedPatientDocument}
+        />
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}

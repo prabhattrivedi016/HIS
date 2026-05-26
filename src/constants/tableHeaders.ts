@@ -155,7 +155,7 @@ export const ResultEntryRadiologyTableHeader = [
   "BarCode",
   "Print",
   "Approved",
-  "Stickers",
+  "Document",
   "Remark",
   "Info",
 ];
