@@ -935,15 +935,72 @@ const PathologyResultEntry = () => {
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
       const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
 
+      // Reset print selections after successful open
+      setSelectedReportPatientInvestigationIds([]);
+      setPatientInvestigationIds("");
+      setIsHeaderPng(0);
+
       if (!printWindow) {
         window.URL.revokeObjectURL(pdfUrl);
         return;
       }
 
-      // Reset print selections after successful open
+      // cleanup memory
+      setTimeout(() => {
+        window.URL.revokeObjectURL(pdfUrl);
+      }, 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
+  };
+
+  // print single report handler
+  const printSingleReport = async (item: LabResultEntryTableData) => {
+    if (!item?.PatientInvestigationId || !branchId) {
+      showWarning("Invalid report");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: isHeaderPng,
+            PatientInvestigationIds: item.PatientInvestigationId.toString(),
+            Download: true,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      // create blob
+      const pdfBlob = new Blob([resp], {
+        type: "application/pdf",
+      });
+
+      // create url
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      // open report
+      const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+      if (!printWindow) {
+        window.URL.revokeObjectURL(pdfUrl);
+        return;
+      }
+
+      // optional reset
       setSelectedReportPatientInvestigationIds([]);
       setPatientInvestigationIds("");
-      setIsHeaderPng(0);
 
       // cleanup memory
       setTimeout(() => {
@@ -1444,7 +1501,10 @@ const PathologyResultEntry = () => {
 
                       <td className="table-td">
                         {item?.IsReportApproved ? (
-                          <i className="fa-solid fa-print icon-color-button"></i>
+                          <i
+                            className="fa-solid fa-print icon-color-button"
+                            onClick={() => printSingleReport(item)}
+                          ></i>
                         ) : (
                           <></>
                         )}

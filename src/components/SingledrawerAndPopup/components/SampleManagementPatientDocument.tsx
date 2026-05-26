@@ -10,6 +10,7 @@ import {
   PatientAllInvestigationItem,
 } from "@/screens/InvestigationResultEntry/types";
 import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
+import { RadiologyTableItem } from "@/screens/resultEntryRadiology/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import { showError, showSuccess } from "@/utils/alert";
 import { formatDisplayDate } from "@/utils/dateConvertHandler";
@@ -38,6 +39,7 @@ const SampleManagementPatientDocument = React.memo(
       | LabResultEntryTableData
       | InvestigationItem
       | PatientAllInvestigationItem
+      | RadiologyTableItem
       | null;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
