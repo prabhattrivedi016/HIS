@@ -3,7 +3,10 @@ import { PatientInvestigationTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { PatientAllInvestigationItem } from "@/screens/InvestigationResultEntry/types";
+import {
+  InvestigationItem,
+  PatientAllInvestigationItem,
+} from "@/screens/InvestigationResultEntry/types";
 import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
 import { RadiologyTableItem } from "@/screens/resultEntryRadiology/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
@@ -23,6 +26,7 @@ const LabPatientInfo = ({
     | SampleManagementTableData
     | LabResultEntryTableData
     | RadiologyTableItem
+    | InvestigationItem
     | PatientAllInvestigationItem
     | null;
 }) => {

@@ -183,7 +183,17 @@ type InvestigationPatientItem = {
   isUrgent: number;
   InvestigationId?: number;
 };
+
+type ApprovedDoctorItem = {
+  doctorId: number;
+  name: string;
+  specializationId: number;
+  departmentId: number;
+  canApproveLabReport: number;
+  isDoctorUnit: number;
+};
 export type {
+  ApprovedDoctorItem,
   InvestigationItem,
   InvestigationPatientItem,
   PatientAllInvestigationItem,

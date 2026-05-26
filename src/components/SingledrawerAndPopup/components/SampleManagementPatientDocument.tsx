@@ -5,6 +5,10 @@ import { ENDPOINTS } from "@/config/defaults";
 import { SampleManagementDocumentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import {
+  InvestigationItem,
+  PatientAllInvestigationItem,
+} from "@/screens/InvestigationResultEntry/types";
 import { LabResultEntryTableData } from "@/screens/labResultEntry/types";
 import { SampleManagementTableData } from "@/screens/sampleManagement/types";
 import { showError, showSuccess } from "@/utils/alert";
@@ -29,7 +33,12 @@ const SampleManagementPatientDocument = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementTableData | LabResultEntryTableData | null;
+    data:
+      | SampleManagementTableData
+      | LabResultEntryTableData
+      | InvestigationItem
+      | PatientAllInvestigationItem
+      | null;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
 

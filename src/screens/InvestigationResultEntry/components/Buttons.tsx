@@ -1,3 +1,11 @@
+import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
+import { ENDPOINTS } from "@/config/defaults";
+import { AuthContext } from "@/context/AuthContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { useContext, useEffect, useState } from "react";
+import { ApprovedDoctorItem } from "../types";
+
 type ButtonAction =
   | "bulkPrint"
   | "previous"
@@ -14,11 +22,40 @@ type ButtonAction =
 const Buttons = ({
   onButtonClick,
   isApprove,
+  isResultDone,
+  approvedDoctorId,
+  onApprovedDoctorChange,
 }: {
   onButtonClick: (value: ButtonAction) => void;
   isApprove?: boolean;
+  isResultDone?: boolean;
+  approvedDoctorId?: number;
+  onApprovedDoctorChange?: (doctorId: number) => void;
 }) => {
+  const { loading, fetchApi } = useGlobalApi();
+  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+
   console.log("isApprove", isApprove);
+  console.log("isResultDone", isResultDone);
+  console.log("approvedDoctorId", approvedDoctorId);
+
+  const [approvedDoctorList, setApprovedDoctorList] = useState<ApprovedDoctorItem[]>([]);
+  const getApprovedDoctorList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_MASTER_LIST_BY_BRANCH_ID,
+      {},
+      {
+        params: { branchId, canApproveLabReport: 1, isDoctorUnit: 0 },
+      },
+      { component: "Buttons - getApprovedDoctorList" }
+    );
+    setApprovedDoctorList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getApprovedDoctorList();
+  }, []);
 
   return (
     <div
@@ -65,23 +102,57 @@ const Buttons = ({
             Add Report
           </button>
 
-          <button type="button" className="save-btn" onClick={() => onButtonClick("printReport")}>
-            Print Report
-          </button>
+          {isResultDone === true && (
+            <>
+              <button
+                type="button"
+                className="save-btn"
+                onClick={() => onButtonClick("printReport")}
+              >
+                Print Report
+              </button>
+
+              {isApprove === false && (
+                <InputField>
+                  <select
+                    className="input-field min-w-50"
+                    value={Number(approvedDoctorId) || 0}
+                    onChange={e => onApprovedDoctorChange?.(Number(e.target.value) || 0)}
+                  >
+                    <option value={0}>Select Approved by</option>
+                    {approvedDoctorList.map(doctor => (
+                      <option key={doctor.doctorId} value={doctor.doctorId}>
+                        {doctor.name}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+              )}
+
+              <button
+                type="button"
+                className={isApprove === false ? "approve-btn" : "un-approve-btn"}
+                onClick={() => onButtonClick("approve")}
+              >
+                {isApprove === false ? "Approve" : "Un-Approve"}
+              </button>
+
+              <button
+                type="button"
+                disabled={isApprove}
+                className={isApprove ? "disabled-btn" : "hold-btn"}
+                onClick={() => onButtonClick("hold")}
+              >
+                Hold
+              </button>
+            </>
+          )}
 
           <button
             type="button"
-            className={`${isApprove === false ? "approve-btn" : "un-approve-btn"}`}
-            onClick={() => onButtonClick("approve")}
+            className={isApprove ? "disabled-btn" : "save-btn"}
+            onClick={() => onButtonClick("save")}
           >
-            {isApprove === false ? "Approve" : "Un-Approve"}
-          </button>
-
-          <button type="button" className="hold-btn" onClick={() => onButtonClick("hold")}>
-            Hold
-          </button>
-
-          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
             Save
           </button>
 
@@ -90,10 +161,10 @@ const Buttons = ({
           </button>
         </div>
       </div>
+
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };
 
 export default Buttons;
-
-// approve-btn

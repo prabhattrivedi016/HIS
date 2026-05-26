@@ -1,6 +1,7 @@
 import TextEditor from "@/components/ckEditor";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
 import { ENDPOINTS } from "@/config/defaults";
 import { LabTypeIdValues, LabTypeName, Status } from "@/constants/constants";
 import { InvestigationResultEntryTableHeader } from "@/constants/tableHeaders";
@@ -50,12 +51,10 @@ const InvestigationResultEntry = () => {
     TabularTableDataItem[]
   >([]);
 
-  const [freeTextInvestigationTableData, setFreeTextInvestigationTableData] = useState<
-    TabularTableDataItem[]
-  >([]);
+  const [, setFreeTextInvestigationTableData] = useState<TabularTableDataItem[]>([]);
 
-  const [activeTab, setActiveTab] = useState<string>("");
-  const [tabNames, setTabNames] = useState<string[]>([]);
+  const [activePatientInvestigationId, setActivePatientInvestigationId] = useState<number>(0);
+  const [, setTabNames] = useState<string[]>([]);
   const [activeReportTypeId, setActiveReportTypeId] = useState<number | null>(null);
   const [editorInstanceKey, setEditorInstanceKey] = useState<string>("initial");
 
@@ -78,7 +77,7 @@ const InvestigationResultEntry = () => {
   const [getIsAbnormal, setGetIsAbnormal] = useState<number>(0);
 
   const [patientAllInvestigation, setPatientAllInvestigation] =
-    useState<PatientAllInvestigationItem | null>(null);
+    useState<InvestigationItem | PatientAllInvestigationItem | null>(null);
 
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
@@ -92,6 +91,14 @@ const InvestigationResultEntry = () => {
   const [renderApprove, setRenderApprove] = useState<boolean>(false);
 
   const [patientIds, setPatientIds] = useState<number[]>([]);
+
+  const [isResultDone, setIsResultDone] = useState<boolean>(false);
+  const [approvedDoctorId, setApprovedDoctorId] = useState<number>(0);
+
+  const [openInvestigationDocuments, setOpenInvestigationDocuments] = useState<boolean>(false);
+  const [renderInvestigationDocument, setRenderInvestigationDocument] = useState<boolean>(false);
+  const [selectedInvestigationDocument, setSelectedInvestigationDocument] =
+    useState<InvestigationItem | PatientAllInvestigationItem | null>(null);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({
@@ -144,8 +151,9 @@ const InvestigationResultEntry = () => {
   });
 
   // button change handler
-  const buttonChangeHandler = (b: string) => {
-    setActiveTab(b);
+
+  const buttonChangeHandler = (id: number) => {
+    setActivePatientInvestigationId(id);
   };
 
   // all investigation of patient
@@ -206,7 +214,7 @@ const InvestigationResultEntry = () => {
         referDoctorName: item?.referDoctorName,
       });
 
-      setActiveTab(item?.Name);
+      setActivePatientInvestigationId(Number(item?.PatientInvestigationId) || 0);
       if (visitId > 0) {
         getAllInvestigationOfPatient(
           branchId,
@@ -222,14 +230,16 @@ const InvestigationResultEntry = () => {
   useEffect(() => {
     if (!openPatientInfo || !item) return;
 
-    const selectedInvestigation = allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab);
+    const selectedInvestigation = allInvestigationOfSinglePatient?.find(
+      i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+    );
     const visitIdForPopup = Number(
       selectedInvestigation?.VisitId ?? item?.VisitId ?? item?.VisitNo ?? 0
     );
     if (visitIdForPopup > 0) {
       getPatientInvestigation(visitIdForPopup);
     }
-  }, [openPatientInfo, item, activeTab]);
+  }, [openPatientInfo, item, activePatientInvestigationId]);
 
   // tabular result entry value
 
@@ -293,13 +303,31 @@ const InvestigationResultEntry = () => {
 
   //  getInvestigationTemplateInterpretationMappings
   useEffect(() => {
-    if (item && paramsValue && activeTab) {
+    if (item && paramsValue && activePatientInvestigationId) {
       const selectedInvestigation = allInvestigationOfSinglePatient?.find(
-        i => i?.Name === activeTab
+        i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
       );
 
       if (selectedInvestigation?.PatientInvestigationId) {
         setIsApproved(Number(selectedInvestigation?.IsReportApproved) === 1);
+        setIsResultDone(Number(selectedInvestigation?.IsResultDone) === 1);
+        setApprovedDoctorId(
+          Number(
+            (
+              selectedInvestigation as InvestigationItem & {
+                referDoctorId?: number;
+                ReferDoctorId?: number;
+              }
+            )?.referDoctorId ??
+              (
+                selectedInvestigation as InvestigationItem & {
+                  referDoctorId?: number;
+                  ReferDoctorId?: number;
+                }
+              )?.ReferDoctorId ??
+              0
+          ) || 0
+        );
 
         setValue(
           "patientInvestigationId",
@@ -323,9 +351,12 @@ const InvestigationResultEntry = () => {
           getFreeTextResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
           getTemplateName(Number(selectedInvestigation?.InvestigationId));
         }
+      } else {
+        setIsResultDone(false);
+        setApprovedDoctorId(0);
       }
     }
-  }, [item, paramsValue, activeTab, allInvestigationOfSinglePatient, setValue]);
+  }, [item, paramsValue, activePatientInvestigationId, allInvestigationOfSinglePatient, setValue]);
 
   const parseNumeric = (v: unknown): number | null => {
     if (v === null || v === undefined) return null;
@@ -667,6 +698,7 @@ const InvestigationResultEntry = () => {
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
+    await refreshCurrentInvestigationData();
   };
 
   // tabular report submit handler
@@ -688,7 +720,9 @@ const InvestigationResultEntry = () => {
       return;
     }
 
-    const selectedInvestigation = allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab);
+    const selectedInvestigation = allInvestigationOfSinglePatient?.find(
+      i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+    );
 
     const payload = {
       patientInvestigationId:
@@ -731,6 +765,7 @@ const InvestigationResultEntry = () => {
     }
 
     showSuccess(resp?.message ?? "Data saved successfully");
+    await refreshCurrentInvestigationData();
   };
 
   // submit handler
@@ -747,7 +782,9 @@ const InvestigationResultEntry = () => {
   };
 
   const getCurrentSelectedInvestigation = () =>
-    allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab) ?? null;
+    allInvestigationOfSinglePatient?.find(
+      i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+    ) ?? null;
 
   const getCurrentPatientInvestigationId = () =>
     Number(
@@ -764,12 +801,16 @@ const InvestigationResultEntry = () => {
       showWarning("Invalid investigation selection");
       return;
     }
+    if (!approvedDoctorId) {
+      showWarning("Please select refer doctor");
+      return;
+    }
 
     try {
       const payload = {
         patientInvestigationIds: [patientInvestigationId],
         branchId,
-        approvedByDoctorId: 1,
+        approvedByDoctorId: Number(approvedDoctorId),
       };
 
       const resp = await fetchApi(
@@ -851,9 +892,9 @@ const InvestigationResultEntry = () => {
     switch (buttonName) {
       case "save":
         if (isPathology) {
-          tabularReportSubmitHandler();
+          void tabularReportSubmitHandler();
         } else {
-          handleSubmit(onSubmit)();
+          void handleSubmit(onSubmit)();
         }
 
         break;
@@ -903,12 +944,22 @@ const InvestigationResultEntry = () => {
         break;
 
       case "addReport":
+        {
+          const selectedInvestigation = allInvestigationOfSinglePatient?.find(
+            i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+          );
+
+          setSelectedInvestigationDocument(selectedInvestigation ?? null);
+
+          setOpenInvestigationDocuments(true);
+          setRenderInvestigationDocument(true);
+        }
         break;
 
       case "printReport":
         {
           const selectedInvestigation = allInvestigationOfSinglePatient?.find(
-            i => i?.Name === activeTab
+            i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
           );
           const selectedPatientInvestigationId = Number(
             selectedInvestigation?.PatientInvestigationId ??
@@ -1071,7 +1122,9 @@ const InvestigationResultEntry = () => {
     }
 
     const currentInvestigationId = Number(
-      allInvestigationOfSinglePatient?.find(i => i?.Name === activeTab)?.InvestigationId
+      allInvestigationOfSinglePatient?.find(
+        i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+      )?.InvestigationId
     );
     if (currentInvestigationId) {
       getTemplateName(currentInvestigationId);
@@ -1134,10 +1187,35 @@ const InvestigationResultEntry = () => {
         )) ?? [];
     }
 
-    const selectedInvestigation = latestInvestigations?.find(i => i?.Name === activeTab);
-    if (!selectedInvestigation?.PatientInvestigationId) return;
+    const selectedInvestigation = latestInvestigations?.find(
+      i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+    );
+    if (!selectedInvestigation?.PatientInvestigationId) {
+      setIsApproved(false);
+      setIsResultDone(false);
+      setApprovedDoctorId(0);
+      return;
+    }
 
     setIsApproved(Number(selectedInvestigation?.IsReportApproved) === 1);
+    setIsResultDone(Number(selectedInvestigation?.IsResultDone) === 1);
+    setApprovedDoctorId(
+      Number(
+        (
+          selectedInvestigation as InvestigationItem & {
+            referDoctorId?: number;
+            ReferDoctorId?: number;
+          }
+        )?.referDoctorId ??
+          (
+            selectedInvestigation as InvestigationItem & {
+              referDoctorId?: number;
+              ReferDoctorId?: number;
+            }
+          )?.ReferDoctorId ??
+          0
+      ) || 0
+    );
 
     const reportTypeId = Number(selectedInvestigation?.ReportTypeId);
     if (reportTypeId === LabTypeIdValues?.PATHOLOGY) {
@@ -1147,7 +1225,13 @@ const InvestigationResultEntry = () => {
 
     await getFreeTextResultEntryValue(Number(selectedInvestigation?.PatientInvestigationId));
     await getTemplateName(Number(selectedInvestigation?.InvestigationId));
-  }, [item, branchId, paramsValue?.department, allInvestigationOfSinglePatient, activeTab]);
+  }, [
+    item,
+    branchId,
+    paramsValue?.department,
+    allInvestigationOfSinglePatient,
+    activePatientInvestigationId,
+  ]);
 
   // tab checkbox handler (stores selected PatientInvestigationIds)
   const tabCheckboxHandler = (patientInvestigationId: number, checked: boolean) => {
@@ -1161,6 +1245,26 @@ const InvestigationResultEntry = () => {
       return prev.filter(id => id !== patientInvestigationId);
     });
   };
+
+  // selected investigation
+  const selectedInvestigation = allInvestigationOfSinglePatient?.find(
+    i => Number(i?.PatientInvestigationId) === activePatientInvestigationId
+  );
+
+  // update observation comment
+  const updateObservationComment = (row: TabularTableDataItem | null, comment: string) => {
+    if (!row) return;
+
+    updateTableRowByObservationId(setTabularInvestigationTableData, row, {
+      SampleRemark: comment,
+    });
+  };
+
+  // close document handler
+  const closeDocumentHandler = useCallback(() => {
+    setOpenInvestigationDocuments(false);
+    setSelectedInvestigationDocument(null);
+  }, []);
 
   return (
     <div className="page-container">
@@ -1234,9 +1338,11 @@ const InvestigationResultEntry = () => {
 
             <button
               type="button"
-              onClick={() => buttonChangeHandler(investigation?.Name)}
+              onClick={() => buttonChangeHandler(Number(investigation?.PatientInvestigationId))}
               className={`tab-btn transition ${
-                activeTab === investigation?.Name ? "tab-btn-active" : "tab-btn-inactive"
+                activePatientInvestigationId === Number(investigation?.PatientInvestigationId)
+                  ? "tab-btn-active"
+                  : "tab-btn-inactive"
               }`}
             >
               {investigation?.Name}
@@ -1247,7 +1353,8 @@ const InvestigationResultEntry = () => {
 
       {isTabularReport ? (
         <div className="flex flex-col gap-2 card mt-1">
-          <h1 className="font-bold">{activeTab} </h1>
+          {/* <h1 className="font-bold">{activePatientInvestigationId} </h1> */}
+          <h1 className="font-bold">{selectedInvestigation?.Name || "-"}</h1>
           <div className="table-container mt-1 ">
             <div className="table-scroll-wrapper ">
               <div className="table-size lg:min-h-80 lg:max-h-80">
@@ -1459,7 +1566,7 @@ const InvestigationResultEntry = () => {
       ) : (
         // free text
         <div className="flex flex-col gap-2 card mt-1">
-          <h1 className="font-bold">{activeTab} </h1>
+          <h1 className="font-bold">{selectedInvestigation?.Name || "-"}</h1>
           <div className="table-container mt-1 ">
             <div className="table-scroll-wrapper ">
               <div className="table-size lg:min-h-80 lg:max-h-60">
@@ -1556,13 +1663,20 @@ const InvestigationResultEntry = () => {
       )}
 
       {/* buttons */}
-      <Buttons onButtonClick={buttonClickHandler} isApprove={isApproved} />
+      <Buttons
+        onButtonClick={buttonClickHandler}
+        isApprove={isApproved}
+        isResultDone={isResultDone}
+        approvedDoctorId={approvedDoctorId}
+        onApprovedDoctorChange={setApprovedDoctorId}
+      />
       {/* comment */}
       {!!renderInvestigationComment && (
         <ObservationCommentPopup
           isOpen={openInvestigationComment}
           onClose={closeCommentHandler}
           data={selectedCommentInvestigation}
+          onSave={updateObservationComment}
         />
       )}
 
@@ -1591,6 +1705,15 @@ const InvestigationResultEntry = () => {
           onClose={closeApprovePopupHandler}
           pId={getCurrentPatientInvestigationId()}
           onSuccess={refreshCurrentInvestigationData}
+        />
+      )}
+
+      {/* investigation documents */}
+      {!!renderInvestigationDocument && (
+        <SampleManagementPatientDocument
+          isOpen={openInvestigationDocuments}
+          onClose={closeDocumentHandler}
+          data={selectedInvestigationDocument}
         />
       )}
       {!!loading && <CustomLoader isLoading={loading} />}
