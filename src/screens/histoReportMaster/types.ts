@@ -14,5 +14,10 @@ type SpecimenMasterItem={
     "isActive": number
 }
 
-export type { HistoTemplateMasterItem, SpecimenMasterItem };
+type  HistoPendingReasonMasterItem={
+    "id": number,
+    "pendingReason": string,
+    "isActive": number
+}
+export type { HistoPendingReasonMasterItem, HistoTemplateMasterItem, SpecimenMasterItem };
 

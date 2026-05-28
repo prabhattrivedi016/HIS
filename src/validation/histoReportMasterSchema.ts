@@ -20,3 +20,11 @@ export const specimenMasterSchema = yup.object().shape({
 export type SpecimenMasterFormItem = yup.InferType<typeof specimenMasterSchema>;
 
 
+export const histoPendingReasonMasterSchema=yup.object().shape({
+  id: yup.number().nullable(),
+  pendingReason: yup.string().required("Pending Reason is required"),
+  isActive: yup.number().required("Status is required"),
+})
+
+
+export type HistoPendingReasonMasterFormItem=yup.InferType<typeof histoPendingReasonMasterSchema>

@@ -166,7 +166,7 @@ const submitHandler=useMutation({
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title ">Histo Template List</h2>
+          <h2 className="card-title ">Specimen Master List</h2>
         </div>
 
         <div className="table-container ">
