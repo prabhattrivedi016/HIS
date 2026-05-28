@@ -28,3 +28,12 @@ export const histoPendingReasonMasterSchema=yup.object().shape({
 
 
 export type HistoPendingReasonMasterFormItem=yup.InferType<typeof histoPendingReasonMasterSchema>
+
+export const histoImmunoAntibioticMasterSchema=yup.object().shape({
+  id: yup.number().nullable(),
+  antibioticName: yup.string().required("Antibiotic Name is required"),
+  isActive: yup.number().required("Status is required"),
+})  
+
+export type HistoImmunoAntibioticMasterFormItem=yup.InferType<typeof histoImmunoAntibioticMasterSchema> 
+
