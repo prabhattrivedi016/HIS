@@ -1,3 +1,4 @@
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { HistoPendingReasonMasterTableHeader } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -210,6 +211,7 @@ const HistoPendingReasonMaster = () => {
                   </div>
                 </div>
               </div>
+              {!!loading && <CustomLoader isLoading={loading}/>}
     </div>
   );
 };

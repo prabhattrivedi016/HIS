@@ -8,16 +8,26 @@ type HistoTemplateMasterItem = {
   ipAddress: string;
 };
 
-type SpecimenMasterItem={
-    "id": number,
-    "specimenName":string,
-    "isActive": number
-}
+type SpecimenMasterItem = {
+  id: number;
+  specimenName: string;
+  isActive: number;
+};
+type HistoPendingReasonMasterItem = {
+  id: number;
+  pendingReason: string;
+  isActive: number;
+};
 
-type  HistoPendingReasonMasterItem={
-    "id": number,
-    "pendingReason": string,
-    "isActive": number
-}
-export type { HistoPendingReasonMasterItem, HistoTemplateMasterItem, SpecimenMasterItem };
+type HistoImmunoAntibioticMasterItem = {
+  id: number;
+  antibioticName: string;
+  isActive: number;
+};
 
+export type {
+  HistoImmunoAntibioticMasterItem,
+  HistoPendingReasonMasterItem,
+  HistoTemplateMasterItem,
+  SpecimenMasterItem,
+};

@@ -285,6 +285,8 @@ const ENDPOINTS = {
   GET_SPECIMEN_MASTER: "Lab/getSpecimenMaster",
   CREATE_UPDATE_HISTO_PENDING_REASON_MASTER:"Lab/createUpdateHistoPendingReasonMaster",
   GET_HISTO_PENDING_REASON_MASTER:"Lab/getHistoPendingReasonMaster",
+  CREATE_UPDATE_HISTO_IMMUNO_ANTIBIOTIC_MASTER:"Lab/createUpdateHistoImmunoAntibioticMaster",
+  GET_HISTO_IMMUNO_ANTIBIOTIC_MASTER:"Lab/getHistoImmunoAntibioticMaster",
 };
 
 export { ENDPOINTS };

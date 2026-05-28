@@ -34,7 +34,6 @@ declare global {
 
 window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 
-
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
@@ -50,9 +49,8 @@ if (rootElement) {
             </BillingAmountProvider>
           </AuthProvider>
         </Provider>
-                {/* React Query Devtools */}
+        {/* React Query Devtools */}
         <ReactQueryDevtools initialIsOpen={false} />
-
       </QueryClientProvider>
     </React.StrictMode>
   );
