@@ -21,6 +21,9 @@ export enum HeaderFooterTabName {
   DOCTOR = "Doctor Signature",
   LETTER = "Letter Head",
   FOOTER_REMARK = "Footer Remark",
+  NABL_LOGO = "NABL Logo",
+  QR_CODE_BARCODE = "QR Code/Barcode",
+  OTHER_PRINT_SETTINGS = "Other Print Settings",
 }
 
 export enum HistoMasterReportTabName {
@@ -368,5 +371,13 @@ export const InvestigationCommentTableHeader = [
   "Created On",
   "Last Modified By",
   "Last Modified On",
+  "Edit",
+];
+
+export const HistoTemplateMasterTableHeader = [
+  "#",
+  "Template Type",
+  "Template Name",
+  "Status",
   "Edit",
 ];

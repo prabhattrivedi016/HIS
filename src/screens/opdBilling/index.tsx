@@ -1749,28 +1749,3 @@ const OpdBilling = () => {
 };
 
 export default OpdBilling;
-
-/*
-
-{
-    "packageId": 133956,
-    "packageName": "Test package",
-    "packageCode": "",
-    "isActive": 1,
-    "subSubCategoryId": 24123,
-    "subCategoryId": 20867,
-    "categoryId": 11,
-    "startsFrom": "04-11-2025",
-    "expiresOn": "30-11-2025",
-    "packageServiceNameCode": ":ABG + ELECTROLYTE",
-    "packageServiceName": "ABG + ELECTROLYTE",
-    "packageServiceId": 126,
-    "qty": 1,
-    "packageServiceCategory": "Investigations",
-    "packageServiceSubCategoryId": 1,
-    "packageServiceSubSubCategoryId": 10,
-    "packageServiceCode": "",
-    "packageServiceCategoryId": 3
-}
-
-*/
