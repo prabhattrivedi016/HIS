@@ -19,21 +19,20 @@ export const specimenMasterSchema = yup.object().shape({
 
 export type SpecimenMasterFormItem = yup.InferType<typeof specimenMasterSchema>;
 
-
-export const histoPendingReasonMasterSchema=yup.object().shape({
+export const histoPendingReasonMasterSchema = yup.object().shape({
   id: yup.number().nullable(),
   pendingReason: yup.string().required("Pending Reason is required"),
   isActive: yup.number().required("Status is required"),
-})
+});
 
+export type HistoPendingReasonMasterFormItem = yup.InferType<typeof histoPendingReasonMasterSchema>;
 
-export type HistoPendingReasonMasterFormItem=yup.InferType<typeof histoPendingReasonMasterSchema>
-
-export const histoImmunoAntibioticMasterSchema=yup.object().shape({
+export const histoImmunoAntibioticMasterSchema = yup.object().shape({
   id: yup.number().nullable(),
   antibioticName: yup.string().required("Antibiotic Name is required"),
   isActive: yup.number().required("Status is required"),
-})  
+});
 
-export type HistoImmunoAntibioticMasterFormItem=yup.InferType<typeof histoImmunoAntibioticMasterSchema> 
-
+export type HistoImmunoAntibioticMasterFormItem = yup.InferType<
+  typeof histoImmunoAntibioticMasterSchema
+>;
