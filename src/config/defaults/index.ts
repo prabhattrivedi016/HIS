@@ -283,6 +283,8 @@ const ENDPOINTS = {
   CREATE_UPDATE_HISTO_TEMPLATE_MASTER: "Lab/createUpdateHistoTemplateMaster",
   CREATE_UPDATE_SPECIMEN_MASTER: "Lab/createUpdateSpecimenMaster",
   GET_SPECIMEN_MASTER: "Lab/getSpecimenMaster",
+  CREATE_UPDATE_HISTO_PENDING_REASON_MASTER:"Lab/createUpdateHistoPendingReasonMaster",
+  GET_HISTO_PENDING_REASON_MASTER:"Lab/getHistoPendingReasonMaster",
 };
 
 export { ENDPOINTS };
