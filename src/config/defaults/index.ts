@@ -281,6 +281,9 @@ const ENDPOINTS = {
   // histo report master
   GET_HISTO_TEMPLATE_MASTER: "Lab/getHistoTemplateMaster",
   CREATE_UPDATE_HISTO_TEMPLATE_MASTER: "Lab/createUpdateHistoTemplateMaster",
+  CREATE_UPDATE_SPECIMEN_MASTER: "Lab/createUpdateSpecimenMaster",
+  GET_SPECIMEN_MASTER: "Lab/getSpecimenMaster",
 };
 
 export { ENDPOINTS };
+

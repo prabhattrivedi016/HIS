@@ -381,3 +381,5 @@ export const HistoTemplateMasterTableHeader = [
   "Status",
   "Edit",
 ];
+
+export const SpecimenMasterTableHeader = ["#", "Specimen Name", "Status", "Edit"];
