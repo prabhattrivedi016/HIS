@@ -13,8 +13,8 @@ import { SpecimenMasterItem } from "../types";
 
 const SpecimenMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
-  const queryClient=useQueryClient();
-const [searchValue, setSearchValue] = useState<string>("");
+  const queryClient = useQueryClient();
+  const [searchValue, setSearchValue] = useState<string>("");
   const {
     register,
     watch,
@@ -30,101 +30,95 @@ const [searchValue, setSearchValue] = useState<string>("");
     },
   });
 
-
   const isEdit = Boolean(watch("id"));
   const buttonTitle = isEdit ? "Update" : "Create";
 
   // get all specimen master list
-const getSpecimenMasterList = async () => {
-  const resp = await fetchApi(
-    "GET",
-    ENDPOINTS.GET_SPECIMEN_MASTER,
-    {},
-    {},
-    { component: "SpecimenMaster" }
-  );
-  return resp?.data ?? [];
-};
+  const getSpecimenMasterList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SPECIMEN_MASTER,
+      {},
+      {},
+      { component: "SpecimenMaster" }
+    );
+    return resp?.data ?? [];
+  };
 
-const {
-  data: specimenMasterList = [],
-} = useQuery<SpecimenMasterItem[]>({
-  queryKey: ["specimenMaster"],
-  queryFn: getSpecimenMasterList,
-  staleTime: 10000,
-});
+  const { data: specimenMasterList = [] } = useQuery<SpecimenMasterItem[]>({
+    queryKey: ["specimenMaster"],
+    queryFn: () => getSpecimenMasterList(),
+    staleTime: 10000,
+  });
 
+  // filter handler
+  const filteredSpecimenMaster = useMemo(() => {
+    if (!searchValue.trim()) return specimenMasterList;
 
-// filter handler
-const filteredSpecimenMaster = useMemo(() => {
-  if (!searchValue.trim()) return specimenMasterList;
+    return specimenMasterList.filter(item =>
+      item.specimenName.toLowerCase().includes(searchValue.trim().toLowerCase())
+    );
+  }, [searchValue, specimenMasterList]);
 
-  return specimenMasterList.filter((item) =>
-    item.specimenName
-      .toLowerCase()
-      .includes(searchValue.trim().toLowerCase())
-  );
-}, [searchValue, specimenMasterList]);
+  const createUpadateSpecimenMaster = async (data: SpecimenMasterFormItem) => {
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_SPECIMEN_MASTER,
+      data,
+      {},
+      { component: "SpecimenMaster" }
+    );
+    return resp;
+  };
 
+  // create mutation
+  const submitHandler = useMutation({
+    mutationKey: ["createUpdateSpecimenMaster"],
+    mutationFn: createUpadateSpecimenMaster,
 
+    onSuccess: resp => {
+      showSuccess(resp?.message ?? "Data saved successfully");
 
-const createUpadateSpecimenMaster=async(data:SpecimenMasterFormItem)=>{
-  const resp=await fetchApi("POST",ENDPOINTS.CREATE_UPDATE_SPECIMEN_MASTER,data,{},{component:"SpecimenMaster"})
- return resp;
-}
+      queryClient.invalidateQueries({
+        queryKey: ["specimenMaster"],
+      });
 
-// create mutation
-const submitHandler=useMutation({
-   mutationKey: ["createUpdateSpecimenMaster"],
-  mutationFn:createUpadateSpecimenMaster,
+      // reset form
+      reset({
+        id: 0,
+        specimenName: "",
+        isActive: 1,
+      });
+    },
 
-  onSuccess:(resp)=>{
-    showSuccess(resp?.message ?? "Data saved successfully");
+    onError: (resp: any) => {
+      showWarning(resp?.message ?? "Something went wrong");
+    },
+  });
 
-     queryClient.invalidateQueries({
-      queryKey: ["specimenMaster"],
+  // submit handler
+  const onSubmit = (data: SpecimenMasterFormItem) => {
+    submitHandler.mutate(data);
+  };
+
+  // edit handler
+  const editHandler = (item: SpecimenMasterItem) => {
+    reset({
+      id: item.id ?? 0,
+      specimenName: item.specimenName ?? "",
+      isActive: item.isActive ?? 1,
     });
+  };
 
-    // reset form
-  reset({
+  // cancel handler
+  const cancelHandler = () => {
+    reset({
       id: 0,
       specimenName: "",
       isActive: 1,
     });
-  },
-
-   onError: (resp:any) => {
-    showWarning(resp?.message ?? "Something went wrong");
-  },
-})
-
-  // submit handler
-  const onSubmit = (data: SpecimenMasterFormItem) => {
-    submitHandler.mutate(data)
+    setSearchValue("");
   };
-
-
-  // edit handler
-  const editHandler=(item:SpecimenMasterItem)=>{
-    reset({
-      id:item.id ?? 0,
-      specimenName:item.specimenName ?? "",
-      isActive:item.isActive  ?? 1
-    })
-  }
-
-  // cancel handler
-  const cancelHandler=()=>{
-    reset({
-      id:0,
-      specimenName:"",
-      isActive:1
-    })
-    setSearchValue("")
-  }
-
-
-  
 
   return (
     <div className="mt-1">
@@ -183,7 +177,7 @@ const submitHandler=useMutation({
                             <input
                               type="text"
                               className="input-field lg:max-w-35 lg:max-h-7 mt-1 "
-                            onChange={(e) => setSearchValue(e.target.value)}
+                              onChange={e => setSearchValue(e.target.value)}
                             />
                           </div>
                         ) : (
