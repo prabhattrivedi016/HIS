@@ -8,4 +8,11 @@ type HistoTemplateMasterItem = {
   ipAddress: string;
 };
 
-export type { HistoTemplateMasterItem };
+type SpecimenMasterItem={
+    "id": number,
+    "specimenName":string,
+    "isActive": number
+}
+
+export type { HistoTemplateMasterItem, SpecimenMasterItem };
+

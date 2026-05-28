@@ -10,3 +10,13 @@ export const histoTemplateMasterSchema = yup.object().shape({
 });
 
 export type HistoTemplateMasterFormItem = yup.InferType<typeof histoTemplateMasterSchema>;
+
+export const specimenMasterSchema = yup.object().shape({
+  id: yup.number().nullable(),
+  specimenName: yup.string().required("Specimen Name is required"),
+  isActive: yup.number().required("Status is required"),
+});
+
+export type SpecimenMasterFormItem = yup.InferType<typeof specimenMasterSchema>;
+
+
