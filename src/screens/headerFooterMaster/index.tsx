@@ -5,6 +5,9 @@ import { HeaderFooterTabName } from "../../constants/constants";
 import DoctorSignature from "./components/DoctorSignature";
 import HeaderFooter from "./components/HeaderFooter";
 import LetterHead from "./components/LetterHead";
+import NablLogo from "./components/NablLogo";
+import OtherPrintSettings from "./components/OtherPrintSettings";
+import QrCodeBarCode from "./components/QrCodeBarCode";
 import ReportFooterRemark from "./components/ReportFooterRemark";
 import SequenceMapping from "./components/SequenceMapping";
 
@@ -27,6 +30,15 @@ const HeaderFooterMaster = () => {
       }
       case HeaderFooterTabName?.FOOTER_REMARK: {
         return <ReportFooterRemark />;
+      }
+      case HeaderFooterTabName?.NABL_LOGO: {
+        return <NablLogo />;
+      }
+      case HeaderFooterTabName?.QR_CODE_BARCODE: {
+        return <QrCodeBarCode />;
+      }
+      case HeaderFooterTabName?.OTHER_PRINT_SETTINGS: {
+        return <OtherPrintSettings />;
       }
       default:
         return <></>;
@@ -112,6 +124,48 @@ const HeaderFooterMaster = () => {
                       `}
         >
           {HeaderFooterTabName?.FOOTER_REMARK}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.NABL_LOGO)}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.NABL_LOGO
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
+        >
+          {HeaderFooterTabName?.NABL_LOGO}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.QR_CODE_BARCODE)}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.QR_CODE_BARCODE
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
+        >
+          {HeaderFooterTabName?.QR_CODE_BARCODE}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(HeaderFooterTabName?.OTHER_PRINT_SETTINGS)}
+          className={`px-4 py-2 text-md font-semibold transition
+                        ${
+                          activeTab === HeaderFooterTabName?.OTHER_PRINT_SETTINGS
+                            ? "tab-btn-active"
+                            : "tab-btn-inactive"
+                        }
+                      `}
+        >
+          {HeaderFooterTabName?.OTHER_PRINT_SETTINGS}
         </button>
       </div>
 

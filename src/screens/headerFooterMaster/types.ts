@@ -140,11 +140,45 @@ type DoctorItem = {
   name: string;
 };
 
+type SubSubCategoryItem = {
+  subCategoryId: number;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+};
+
+type InvestigationItem = {
+  serviceItemId: number;
+  hospId: number;
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number;
+  name: string;
+  code: string;
+  reportTypeId: number;
+  labTypeId: number;
+  reportType: string;
+  isSampleRequired: number;
+  sampleTypeId: number;
+  sampleTypeIdList: string;
+  labMethodId: number;
+  forGenderId: number;
+  forGender: string;
+  isOutSource: number;
+  isPrintAlone: number;
+  isDepartmentReceivingRequired: number;
+  shortName: string;
+  sampleVolume: string;
+  investigationComment: string;
+  tatInMin: number;
+  isActive: number;
+};
+
 export type {
   BranchItem,
   DoctorItem,
   DoctorTableItem,
   HeaderFooterFormData,
+  InvestigationItem,
   LetterHeadItem,
   PickMasterList,
   ReportItem,
@@ -155,5 +189,6 @@ export type {
   SequenceEditItem,
   SequenceMappingItem,
   SequenceTypeItem,
+  SubSubCategoryItem,
   VariableNameItem,
 };

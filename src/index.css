@@ -388,3 +388,7 @@ select:-webkit-autofill {
 .no-data-text {
   @apply text-center py-6 text-gray-500;
 }
+
+.default-logo-link {
+  @apply text-blue-500  cursor-pointer;
+}

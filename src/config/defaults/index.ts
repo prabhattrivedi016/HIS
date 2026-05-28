@@ -277,6 +277,10 @@ const ENDPOINTS = {
   // laboratory help desk
   SEARCH_PATIENT_INVESTIGATION_FOR_LABORATORY_HELP_DESK:
     "Lab/searchPatientInvestigationForLaboratoryHelpDesk",
+
+  // histo report master
+  GET_HISTO_TEMPLATE_MASTER: "Lab/getHistoTemplateMaster",
+  CREATE_UPDATE_HISTO_TEMPLATE_MASTER: "Lab/createUpdateHistoTemplateMaster",
 };
 
 export { ENDPOINTS };

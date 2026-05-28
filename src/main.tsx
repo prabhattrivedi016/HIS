@@ -1,4 +1,5 @@
 import "@fortawesome/fontawesome-free/css/all.min.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
@@ -13,20 +14,24 @@ import { store } from "./store/store";
 
 const rootElement = document.getElementById("root");
 
+const queryClient = new QueryClient();
+
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <Provider store={store}>
-        <AuthProvider>
-          <BillingAmountProvider>
-            <RoleProvider>
-              <PatientProvider>
-                <App />
-              </PatientProvider>
-            </RoleProvider>
-          </BillingAmountProvider>
-        </AuthProvider>
-      </Provider>
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <AuthProvider>
+            <BillingAmountProvider>
+              <RoleProvider>
+                <PatientProvider>
+                  <App />
+                </PatientProvider>
+              </RoleProvider>
+            </BillingAmountProvider>
+          </AuthProvider>
+        </Provider>
+      </QueryClientProvider>
     </React.StrictMode>
   );
 }
