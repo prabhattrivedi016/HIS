@@ -12,4 +12,18 @@ type OrganismMasterItem = {
   isActive: number;
 };
 
-export type { OrganismGroupItem, OrganismMasterItem };
+type AntibioticMasterItem = {
+  antibioticNameId: number;
+  antibioticName: string;
+  antibioticGroupId: number;
+  antibioticGroup: string;
+  isActive: number;
+};
+
+type AntibioticGroupItem = {
+  antibioticGroupId: number;
+  antibioticGroupName: string;
+  isActive: number;
+};
+
+export type { AntibioticGroupItem, AntibioticMasterItem, OrganismGroupItem, OrganismMasterItem };

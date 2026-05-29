@@ -295,6 +295,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_ORGANISM_GROUP: "Lab/createUpdateOrganismGroup",
   CREATE_UPDATE_ORGANISM_NAME: "Lab/createUpdateOrganismName",
   GET_ORGANISM_NAME_LIST: "Lab/getOrganismNameList",
+  CREATE_UPDATE_ANTIBIOTIC_GROUP: "Lab/createUpdateAntibioticGroup",
+  GET_ANTIBIOTIC_GROUP_LIST: "Lab/getAntibioticGroupList",
+  CREATE_UPDATE_ANTIBIOTIC_NAME: "Lab/createUpdateAntibioticName",
+  GET_ANTIBIOTIC_NAME_LIST: "Lab/getAntibioticNameList",
 };
 
 export { ENDPOINTS };

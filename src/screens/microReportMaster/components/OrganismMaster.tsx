@@ -102,7 +102,7 @@ const OrganismMaster = () => {
     return resp?.data ?? [];
   };
 
-  const { data: organismList = [] } = useQuery({
+  const { data: organismList = [], refetch: refetchOrganismMaster } = useQuery({
     queryKey: ["organismMasterList"],
     queryFn: () => getOrganismMaster(),
   });
@@ -127,13 +127,14 @@ const OrganismMaster = () => {
         return;
       }
       showSuccess(resp?.message ?? "Data saved successfully");
-      refetch();
+      refetchOrganismMaster();
       reset({
         organismNameId: 0,
         organismName: "",
         organismGroupId: 0,
         isActive: 1,
       });
+      setSelectedOGItem(null);
     },
     onError: errors => {
       showError(errors?.message ?? "Something went wrong");
