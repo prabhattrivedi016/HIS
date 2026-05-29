@@ -153,7 +153,7 @@ const HistoImmunoAntibioticMaster = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title ">Specimen Master List</h2>
+          <h2 className="card-title ">Histo Immuno Antibiotic Master List</h2>
         </div>
 
         <div className="table-container ">
