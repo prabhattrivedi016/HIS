@@ -38,10 +38,16 @@ export const antibioticGroupSchema = yup.object().shape({
 
 export type AntibioticGroupFormItem = yup.InferType<typeof antibioticGroupSchema>;
 
-/*
-{
-  "antibioticNameId": 0,
-  "antibioticName": "string",
-  "antibioticGroupId": 2147483647,
-  "isActive": 0
-} */
+export const cultureTemplateSchema = yup.object().shape({
+  id: yup.number().nullable(),
+  typeId: yup
+    .number()
+    .moreThan(0, "Template type is required")
+    .required("Template type is required"),
+  type: yup.string().required("Template type is required"),
+  name: yup.string().required("Template name is required"),
+  contentValue: yup.string().nullable(),
+  isActive: yup.number().required("Status is required"),
+});
+
+export type CultureTemplateFormItem = yup.InferType<typeof cultureTemplateSchema>;

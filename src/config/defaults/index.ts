@@ -299,6 +299,8 @@ const ENDPOINTS = {
   GET_ANTIBIOTIC_GROUP_LIST: "Lab/getAntibioticGroupList",
   CREATE_UPDATE_ANTIBIOTIC_NAME: "Lab/createUpdateAntibioticName",
   GET_ANTIBIOTIC_NAME_LIST: "Lab/getAntibioticNameList",
+  CREATE_UPDATE_MICRO_TEMPLATE: "Lab/createUpdateMicroTemplate",
+  GET_MICRO_TEMPLATE_LIST: "Lab/getMicroTemplateList",
 };
 
 export { ENDPOINTS };

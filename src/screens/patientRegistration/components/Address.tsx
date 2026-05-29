@@ -36,29 +36,13 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
 
   const [pincode, setPincode] = useState<string>("");
 
-  // address
-
-  // // address
-  // const getAddressByBranch = async () => {
-  //   const resp = await fetchApi(
-  //     "GET",
-  //     ENDPOINTS.GET_BRANCH_DETAILS,
-  //     {},
-  //     { params: { branchId: BranchId?.DEFAULT } },
-  //     { component: "AddressOfPatientRegistration" }
-  //   );
-
-  //   const branchAddress = resp?.data?.[0]?.address ?? "";
-  //   setValue("Address", branchAddress, { shouldDirty: false });
-  // };
-
   //   country
   const getCountry = async () => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_COUNTRY_MASTER,
       {},
-      { params: { isActive: Status.INACTIVE } },
+      { params: { isActive: Status.ACTIVE } },
       { component: "AddressOfPatientRegistration" }
     );
     if (resp?.result === false) {
@@ -447,7 +431,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       "GET",
       ENDPOINTS.GET_LOCATION_BY_PINCODE,
       {},
-      { params: { pincode } },
+      { params: { pincode, isAcitve: 1 } },
       {
         component: "AddressOfPatientRegistration",
       }
