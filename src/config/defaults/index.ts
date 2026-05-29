@@ -289,6 +289,12 @@ const ENDPOINTS = {
   GET_HISTO_IMMUNO_ANTIBIOTIC_MASTER: "Lab/getHistoImmunoAntibioticMaster",
   CREATE_UPDATE_SPECIMEN_MAPPING_MASTER: "Lab/createUpdateSpecimenMappingMaster",
   GET_SPECIMEN_MAPPING_MASTER: "Lab/getSpecimenMappingMaster",
+
+  // micro report master
+  GET_ORGANISM_GROUP_LIST: "Lab/getOrganismGroupList",
+  CREATE_UPDATE_ORGANISM_GROUP: "Lab/createUpdateOrganismGroup",
+  CREATE_UPDATE_ORGANISM_NAME: "Lab/createUpdateOrganismName",
+  GET_ORGANISM_NAME_LIST: "Lab/getOrganismNameList",
 };
 
 export { ENDPOINTS };

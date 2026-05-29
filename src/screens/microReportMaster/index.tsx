@@ -32,13 +32,13 @@ const MicroReportMaster = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">Histo Report Master</h1>
+      <h1 className="page-heading">Micro Report Master</h1>
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>Histo Report Master</span>
+        <span>Micro Report Master</span>
       </nav>
 
       <div className="tab-card rounded-lg">

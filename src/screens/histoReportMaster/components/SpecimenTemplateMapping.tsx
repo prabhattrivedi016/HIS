@@ -33,7 +33,10 @@ const SpecimenTemplateMapping = () => {
       {},
       { component: "SpecimenTemplateMapping" }
     );
-    return resp?.data ?? [];
+    const activeFilteredSpecimen = (resp?.data ?? []).filter(
+      (item: SpecimenMasterItem) => item.isActive === 1
+    );
+    return activeFilteredSpecimen;
   };
 
   // gross template
@@ -45,7 +48,10 @@ const SpecimenTemplateMapping = () => {
       { params: { typeId: 1 } },
       { component: "SpecimenTemplateMapping" }
     );
-    return resp?.data ?? [];
+    const activeFilteredGross = (resp?.data ?? []).filter(
+      (item: HistoTemplateMasterItem) => item.isActive === 1
+    );
+    return activeFilteredGross;
   };
 
   // microscopic template
@@ -57,7 +63,10 @@ const SpecimenTemplateMapping = () => {
       { params: { typeId: 2 } },
       { component: "SpecimenTemplateMapping" }
     );
-    return resp?.data ?? [];
+    const activeFilteredMicroscopic = (resp?.data ?? []).filter(
+      (item: HistoTemplateMasterItem) => item.isActive === 1
+    );
+    return activeFilteredMicroscopic;
   };
 
   // impression template
@@ -69,7 +78,10 @@ const SpecimenTemplateMapping = () => {
       { params: { typeId: 3 } },
       { component: "SpecimenTemplateMapping" }
     );
-    return resp?.data ?? [];
+    const activeFilteredImpression = (resp?.data ?? []).filter(
+      (item: HistoTemplateMasterItem) => item.isActive === 1
+    );
+    return activeFilteredImpression;
   };
 
   const results = useQueries({

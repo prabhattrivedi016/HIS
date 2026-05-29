@@ -1,6 +1,6 @@
 import TextEditor from "@/components/ckEditor";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { TabularTableDataItem } from "../types";
 
@@ -80,4 +80,4 @@ const ObservationCommentPopup = ({
   );
 };
 
-export default ObservationCommentPopup;
+export default React.memo(ObservationCommentPopup);
