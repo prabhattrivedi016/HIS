@@ -104,7 +104,6 @@ const HistoTemplateMaster = () => {
       contentValue,
     };
 
-    console.log("Submit Payload =>", payload);
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_HISTO_TEMPLATE_MASTER,
@@ -265,11 +264,12 @@ const HistoTemplateMaster = () => {
                     {HistoTemplateMasterTableHeader.map((h, index) => (
                       <th key={index} className="table-th align-top ">
                         {h === "Template Name" ? (
-                          <div className="flex flex-col  ">
+                          <div className="flex flex-row gap-2  ">
                             <h2>{h}</h2>
                             <input
                               type="text"
-                              className="input-field lg:max-w-35 lg:max-h-7 mt-1 "
+                              className="input-field lg:max-w-35 lg:max-h-7 "
+                              placeholder="Search name..."
                               onChange={searchTemplateHandler}
                             />
                           </div>

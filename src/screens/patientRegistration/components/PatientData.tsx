@@ -16,6 +16,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import {
   ChangeEvent,
   forwardRef,
+  KeyboardEvent,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -641,6 +642,29 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       }
     }, [selectedPatientIdFromProps]);
 
+    const getPatientDataByUHID = async (uhid: string) => {
+      const trimmedUHID = String(uhid ?? "").trim();
+      if (!trimmedUHID) return;
+
+      const searchResp = await fetchApi(
+        "GET",
+        ENDPOINTS.SEARCH_PATIENT_MASTER,
+        {},
+        { params: { uhid: trimmedUHID } },
+        { component: "PatientRegistrationByUHIDSearch" }
+      );
+
+      const matchedPatient = searchResp?.data?.[0];
+      const patientId = Number(matchedPatient?.patientId ?? 0);
+
+      if (!patientId) {
+        showError("No patient found for the entered UHID.");
+        return;
+      }
+
+      await getEditPatientData(patientId);
+    };
+
     useEffect(() => {
       const subscription = methods.watch(values => {
         onPayloadChange?.(values as Record<string, unknown>);
@@ -696,21 +720,33 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     // auto filling gender on the basis of title
     const titleValue = watch("Title");
+    const lockedGenderByTitle = useMemo(() => {
+      if (titleValue === "Mr." || titleValue === "Master") {
+        return "Male";
+      }
+      if (titleValue === "Mrs." || titleValue === "Miss.") {
+        return "Female";
+      }
+      return "";
+    }, [titleValue]);
 
     useEffect(() => {
-      if (
-        titleValue === "Mr." ||
-        titleValue === "Master" ||
-        titleValue === "B/O" ||
-        titleValue === "Dr."
-      ) {
-        // setDefaultGender("Male");
-        setValue("Gender", "Male");
-      } else if (titleValue === "Mrs." || titleValue === "Miss.") {
-        // setDefaultGender("Female");
-        setValue("Gender", "Female");
+      if (lockedGenderByTitle) {
+        setValue("Gender", lockedGenderByTitle, { shouldDirty: true, shouldValidate: true });
       }
-    }, [titleValue]);
+    }, [lockedGenderByTitle, setValue]);
+
+    // search by Uhid handler
+
+    const searchByUHIDHandler = (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const uhid = e.currentTarget.value;
+        if (uhid) {
+          getPatientDataByUHID(uhid);
+        }
+      }
+    };
 
     return (
       <FormProvider {...methods}>
@@ -723,10 +759,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <InputField label="UHID">
                       <input
                         type="text"
-                        className="disabled-input-field "
-                        placeholder="UHID number"
+                        className="input-field"
+                        placeholder="enter UHID & press Enter"
+                        onKeyDown={searchByUHIDHandler}
                         {...register("UhidOrBarcode")}
-                        readOnly
                       />
                     </InputField>
                     {/* <InputField label="IPD Number">
@@ -839,7 +875,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       {errors.Dob && <p className="input-field-error">{errors.Dob.message}</p>}
                     </InputField>
                     <InputField label="Gender" required>
-                      <select className="input-field" {...register("Gender")}>
+                      <select
+                        className={lockedGenderByTitle ? "disabled-input-field" : "input-field"}
+                        {...register("Gender")}
+                        disabled={Boolean(lockedGenderByTitle)}
+                      >
                         <option value="">Select Gender</option>
 
                         {patientGenderList.map(item => (

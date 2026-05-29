@@ -273,14 +273,14 @@ const OrganismMaster = () => {
                   <tr>
                     {OrganismMasterTableHeader.map((h, index) => (
                       <th key={index} className="table-th align-top">
-                        <div className="flex flex-col">
+                        <div className="flex flex-row gap-2">
                           <h2>{h}</h2>
 
                           {h === "Organism Name" && (
                             <input
                               type="text"
                               placeholder="Search name..."
-                              className="input-field lg:max-w-35 lg:max-h-7 mt-1"
+                              className="input-field lg:max-w-35 lg:max-h-7 "
                               value={searchFilters.organismName}
                               onChange={searchOrganismNameHandler}
                             />
@@ -290,7 +290,7 @@ const OrganismMaster = () => {
                             <input
                               type="text"
                               placeholder="Search group..."
-                              className="input-field lg:max-w-35 lg:max-h-7 mt-1"
+                              className="input-field lg:max-w-35 lg:max-h-7"
                               value={searchFilters.organismGroup}
                               onChange={searchOrganismGroupHandler}
                             />

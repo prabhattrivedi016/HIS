@@ -26,4 +26,20 @@ type AntibioticGroupItem = {
   isActive: number;
 };
 
-export type { AntibioticGroupItem, AntibioticMasterItem, OrganismGroupItem, OrganismMasterItem };
+type CultureItem = {
+  id: number;
+  typeId: number;
+  type: string;
+  name: string;
+  contentValue: string;
+  isActive: number;
+  ipAddress: string;
+};
+
+export type {
+  AntibioticGroupItem,
+  AntibioticMasterItem,
+  CultureItem,
+  OrganismGroupItem,
+  OrganismMasterItem,
+};

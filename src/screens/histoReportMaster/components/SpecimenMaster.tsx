@@ -172,11 +172,12 @@ const SpecimenMaster = () => {
                     {SpecimenMasterTableHeader.map((h, index) => (
                       <th key={index} className="table-th align-top ">
                         {h === "Specimen Name" ? (
-                          <div className="flex flex-col  ">
+                          <div className="flex flex-row gap-2  ">
                             <h2>{h}</h2>
                             <input
                               type="text"
-                              className="input-field lg:max-w-35 lg:max-h-7 mt-1 "
+                              className="input-field lg:max-w-35 lg:max-h-7 "
+                              placeholder="search name..."
                               onChange={e => setSearchValue(e.target.value)}
                             />
                           </div>

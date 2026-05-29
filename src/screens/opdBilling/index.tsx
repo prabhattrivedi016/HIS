@@ -14,7 +14,16 @@ import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
-import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  KeyboardEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NavLink, useParams } from "react-router-dom";
 import Select, { SingleValue, StylesConfig } from "react-select";
 import { InsuranceItem } from "../branchMaster/types";
@@ -83,6 +92,7 @@ const OpdBilling = () => {
   const [showTable, setShowTable] = useState<boolean>(false);
 
   const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [activeServiceIndex, setActiveServiceIndex] = useState<number>(0);
 
   const [showDuplicateError, setShowDuplicateError] = useState<string>("");
   const [serviceValidationError] = useState<string>("");
@@ -148,6 +158,7 @@ const OpdBilling = () => {
         setShowDuplicateError("");
         setPackagePayload([]);
         setIsPackageUrgent(0);
+        setSelectDoctorError("");
 
         calculateAndUpdateBillingDetails([]);
 
@@ -181,6 +192,34 @@ const OpdBilling = () => {
       fetchPatientData();
     }
   }, [patientRegistrationDetails?.PatientId]);
+
+  useEffect(() => {
+    if (selectedDoctor?.value && selectDoctorError) {
+      setSelectDoctorError("");
+    }
+  }, [selectedDoctor?.value, selectDoctorError]);
+
+  useEffect(() => {
+    if (selectDoctorError && patientRegistrationDetails?.PatientId) {
+      setSelectDoctorError("");
+    }
+  }, [patientRegistrationDetails?.PatientId, selectDoctorError]);
+
+  useEffect(() => {
+    if (
+      selectDoctorError &&
+      (patientRegistrationDetails?.FirstName ||
+        patientRegistrationDetails?.MiddleName ||
+        patientRegistrationDetails?.LastName)
+    ) {
+      setSelectDoctorError("");
+    }
+  }, [
+    patientRegistrationDetails?.FirstName,
+    patientRegistrationDetails?.MiddleName,
+    patientRegistrationDetails?.LastName,
+    selectDoctorError,
+  ]);
 
   const [isBillingDiscount, setIsBillingDiscount] = useState<number>(0);
 
@@ -497,9 +536,11 @@ const OpdBilling = () => {
     if (!value.trim()) {
       SetServiceItemList([]);
       setShowPopup(false);
+      setActiveServiceIndex(0);
       return;
     }
     setShowPopup(true);
+    setActiveServiceIndex(0);
   };
 
   // debounced api call
@@ -525,6 +566,7 @@ const OpdBilling = () => {
 
         SetServiceItemList(resp?.data ?? []);
         setShowPopup(true);
+        setActiveServiceIndex(0);
       } catch (err) {
         console.error(err);
         setShowPopup(false);
@@ -533,6 +575,37 @@ const OpdBilling = () => {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  const serviceInputKeyDownHandler = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!showPopup || serviceNameList.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveServiceIndex(prev => (prev + 1) % serviceNameList.length);
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveServiceIndex(prev => (prev - 1 + serviceNameList.length) % serviceNameList.length);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const selectedService = serviceNameList[activeServiceIndex];
+      if (selectedService) {
+        selectedServiceHandler(selectedService);
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowPopup(false);
+      setActiveServiceIndex(0);
+    }
+  };
 
   useEffect(() => {
     SetServiceDataTableItem(prev =>
@@ -605,7 +678,6 @@ const OpdBilling = () => {
     setShowPopup(false);
 
     if (!selectedDoctor?.value) {
-      setSelectDoctorError("");
       setSelectDoctorError("Please select any one doctor");
       showError("Please select any one doctor");
       doctorRef.current?.focus();
@@ -1507,13 +1579,17 @@ const OpdBilling = () => {
                     placeholder="Type to search services"
                     value={searchTerm}
                     onChange={serviceItemHandler}
+                    onKeyDown={serviceInputKeyDownHandler}
                   />
                   {showPopup && serviceNameList?.length > 0 && (
                     <div className="absolute top-full left-0  w-full bg-white border border-gray-300 rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
                       {serviceNameList.map((s, index) => (
                         <div
                           key={index}
-                          className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                          className={`px-3 py-2 cursor-pointer text-sm ${
+                            index === activeServiceIndex ? "bg-green-100" : "hover:bg-green-200"
+                          }`}
+                          onMouseEnter={() => setActiveServiceIndex(index)}
                           onClick={() => selectedServiceHandler(s)}
                         >
                           {s?.name}

@@ -9,5 +9,6 @@ export const allowOnlyNumbers = (e: React.FormEvent<HTMLInputElement>) => {
 
 export const allowOnlyText = (e: React.FormEvent<HTMLInputElement>) => {
   const target = e.target as HTMLInputElement;
-  target.value = target.value.replace(/[^a-zA-Z]/g, "");
+
+  target.value = target.value.replace(/[^a-zA-Z\s.]/g, "");
 };
