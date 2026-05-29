@@ -389,3 +389,5 @@ export const HistoPendingReasonMasterTableHeader = ["#", "Pending Reason", "Stat
 export const HistoImmunoAntibioticMasterTableHeader = ["#", "Antibiotic Name", "Status", "Edit"];
 
 export const OrganismMasterTableHeader = ["#", "Organism Name", "Organism Group", "Status", "Edit"];
+
+export const AntibioticMasterTableHeader = ["#", "Antibiotic Name", "Antibiotic Group", "Status", "Edit"];

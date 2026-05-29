@@ -18,3 +18,30 @@ export const organismGroupSchema = yup.object().shape({
 });
 
 export type OrganismGroupFormItem = yup.InferType<typeof organismGroupSchema>;
+
+export const antibioticMasterSchema = yup.object().shape({
+  antibioticNameId: yup.number().nullable(),
+  antibioticName: yup.string().required("Antibiotic name is required"),
+  antibioticGroupId: yup
+    .number()
+    .moreThan(0, "Antibiotic group is required")
+    .required("Antibiotic group is required"),
+  isActive: yup.number().required("Status is required"),
+});
+
+export type AntibioticMasterFormItem = yup.InferType<typeof antibioticMasterSchema>;
+
+export const antibioticGroupSchema = yup.object().shape({
+  antibioticGroupId: yup.number().nullable(),
+  antibioticGroupName: yup.string().required("Antibiotic group name is required"),
+});
+
+export type AntibioticGroupFormItem = yup.InferType<typeof antibioticGroupSchema>;
+
+/*
+{
+  "antibioticNameId": 0,
+  "antibioticName": "string",
+  "antibioticGroupId": 2147483647,
+  "isActive": 0
+} */
