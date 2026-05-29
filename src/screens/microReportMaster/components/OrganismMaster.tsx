@@ -127,7 +127,7 @@ const OrganismMaster = () => {
         return;
       }
       showSuccess(resp?.message ?? "Data saved successfully");
-      refetchOrganismMaster();
+      refetchOrganismMaster?.();
       reset({
         organismNameId: 0,
         organismName: "",

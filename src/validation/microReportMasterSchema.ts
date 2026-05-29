@@ -37,11 +37,3 @@ export const antibioticGroupSchema = yup.object().shape({
 });
 
 export type AntibioticGroupFormItem = yup.InferType<typeof antibioticGroupSchema>;
-
-/*
-{
-  "antibioticNameId": 0,
-  "antibioticName": "string",
-  "antibioticGroupId": 2147483647,
-  "isActive": 0
-} */
