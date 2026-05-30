@@ -6,7 +6,7 @@ import { HistoTemplateMasterTableHeader } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { showSuccess, showWarning } from "@/utils/alert";
 import {
   CultureTemplateFormItem,
   cultureTemplateSchema,
@@ -84,28 +84,32 @@ const CultureTemplateMaster = () => {
   const mutations = useMutation({
     mutationKey: ["createUpdateCultureTemplate"],
     mutationFn: createUpdateCultureTemplate,
+
     onSuccess: resp => {
       if (!resp?.result) {
         showWarning(resp?.message ?? "Something went wrong");
         return;
       }
+
       showSuccess(resp?.message ?? "Data saved successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["CultureTemplate", selectedTypeId],
       });
+
+      const firstType = templateType?.[0];
+
       reset({
         id: 0,
-        typeId: 0,
-        type: "",
+        typeId: Number(firstType?.key ?? 1),
+        type: firstType?.value ?? "Culture",
         name: "",
         contentValue: "",
         isActive: 1,
       });
+
+      setSelectedTypeId(Number(firstType?.key ?? 1));
       setTextValue("");
-    },
-    onError: errors => {
-      showError(errors?.message ?? "Something went wrong");
     },
   });
 
