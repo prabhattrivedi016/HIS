@@ -116,6 +116,15 @@ const HistoTemplateMaster = () => {
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
+    reset({
+      id: 0,
+      typeId: 0,
+      type: "",
+      name: "",
+      contentValue: "",
+      isActive: 1,
+    });
+    setContentValue("");
 
     await getAllHistoTemplateMaster(data.typeId);
   };
