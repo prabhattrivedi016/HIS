@@ -533,3 +533,17 @@ export const LaboratoryHelpDeskAddReportTableHeader = [
   "View",
   "Delete",
 ];
+
+export const MicroOrganismMappingTableHeader = [
+  "#",
+  "Organism Name",
+  "Antibiotic Name",
+  "Antibiotic Class",
+  "Break Point",
+  "SDD",
+  "Break Point Ref.Range (I)",
+  "Break Point Ref.Range (S)",
+  "Break Point Ref.Range (R)",
+  "Resistant",
+  "Remove",
+];
