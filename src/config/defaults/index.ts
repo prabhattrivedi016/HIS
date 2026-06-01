@@ -219,6 +219,7 @@ const ENDPOINTS = {
   GET_OPD_CARD_DETAILS: "Patient/getOPDCardDetails",
   GET_OPD_RECEIPT_LIST: "Patient/getOPDReceiptList",
   GET_RECEIPT_DETAILS_BY_FTID: "Patient/getReceiptDetailsByFTID",
+  FIND_DUPLICATE_SERVICE: "Patient/findDuplicateService",
 
   // formula master
   GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",
