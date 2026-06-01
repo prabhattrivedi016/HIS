@@ -117,6 +117,8 @@ const OpdBilling = () => {
   const [openPackagePopup, setOpenPackagePopup] = useState<boolean>(false);
   const [selectedPackage, setSelectedPackage] = useState<number>(0);
 
+  const [selectedServiceId, setSelectedServiceId] = useState<number>(0);
+
   const [collectOnDeviceAmount, setCollectOnDeviceAmount] = useState<number>(0);
   const [patientRegistrationDetails, setPatientRegistrationDetails] = useState<
     Record<string, unknown>
@@ -760,7 +762,6 @@ const OpdBilling = () => {
       return;
     }
     setSelectDoctorError("");
-    // console.log("Selected service item:", item); // Debug log to check the selected item
 
     // check duplicate service
     const dupResp = await fetchApi(
@@ -775,7 +776,6 @@ const OpdBilling = () => {
       },
       { component: "OpdBilling" }
     );
-    console.log("Duplicate check response:", dupResp?.result); // Debug log to check duplicate response
 
     if (dupResp?.result) {
       setPendingService(item);
@@ -784,7 +784,7 @@ const OpdBilling = () => {
       setOpenDuplicateServicePopup(true);
       setRenderDuplicateServicePopup(true);
 
-      return; // VERY IMPORTANT
+      return;
     }
 
     const resp = await fetchApi(
@@ -1449,6 +1449,16 @@ const OpdBilling = () => {
     setSelectedPackage(packageId);
     setOpenPackagePopup(true);
     setRenderPackagePopup(true);
+    setSelectedServiceId(0);
+  };
+
+  // service popup handler
+  const servicePopupHandler = (service: any) => {
+    console.log("Service details:", service);
+    setSelectedServiceId(service?.serviceItemId || 0);
+    setOpenPackagePopup(true);
+    setRenderPackagePopup(true);
+    setSelectedPackage(0);
   };
 
   const closePackageHandler = useCallback(() => {
@@ -1777,16 +1787,25 @@ const OpdBilling = () => {
                                 </button>
                               </td>
                               <td className="table-td">{idx + 1}</td>
-                              <td className="table-td wrap-break-word max-w-30">
-                                <div className="flex items-center justify-between gap-2">
+                              <td className="table-td ">
+                                <div className="flex items-center justify-between ">
                                   <span>{item?.serviceName || "-"}</span>
-                                  {isPackageService(item?.serviceName) && (
-                                    <i
-                                      className="fa-solid fa-magnifying-glass text-blue-700"
-                                      title="Package service"
-                                      onClick={() => packagePopupHandler(item?.serviceItemId)}
-                                    ></i>
-                                  )}
+
+                                  <i
+                                    className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
+                                    title={
+                                      isPackageService(item?.serviceName)
+                                        ? "Package Service"
+                                        : "Service"
+                                    }
+                                    onClick={() => {
+                                      if (isPackageService(item?.serviceName)) {
+                                        packagePopupHandler(item?.serviceItemId);
+                                      } else {
+                                        servicePopupHandler(item); // your other handler
+                                      }
+                                    }}
+                                  />
                                 </div>
                               </td>
                               <td className="table-td">{item?.code || "-"}</td>
@@ -1838,9 +1857,9 @@ const OpdBilling = () => {
                                   onChange={e => urgentChangeHandler(e, idx)}
                                 />
                               </td>
-                              <td className="table-td">
+                              {/* <td className="table-td">
                                 <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
-                              </td>
+                              </td> */}
                             </tr>
                           ))}
                         </tbody>
@@ -1911,6 +1930,7 @@ const OpdBilling = () => {
           isOpen={openPackagePopup}
           onClose={closePackageHandler}
           packageId={selectedPackage}
+          serviceId={selectedServiceId}
         />
       )}
 
