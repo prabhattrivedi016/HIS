@@ -220,6 +220,8 @@ const ENDPOINTS = {
   GET_OPD_RECEIPT_LIST: "Patient/getOPDReceiptList",
   GET_RECEIPT_DETAILS_BY_FTID: "Patient/getReceiptDetailsByFTID",
   FIND_DUPLICATE_SERVICE: "Patient/findDuplicateService",
+  GET_INVESTIGATION_OBSERVATION_MAPPING_DETAILS:
+    "Patient/getInvestigationObservationMappingDetails",
 
   // formula master
   GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",

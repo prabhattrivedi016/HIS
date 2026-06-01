@@ -1454,7 +1454,6 @@ const OpdBilling = () => {
 
   // service popup handler
   const servicePopupHandler = (service: any) => {
-    console.log("Service details:", service);
     setSelectedServiceId(service?.serviceItemId || 0);
     setOpenPackagePopup(true);
     setRenderPackagePopup(true);
@@ -1462,7 +1461,7 @@ const OpdBilling = () => {
   };
 
   const closePackageHandler = useCallback(() => {
-    setRenderPackagePopup(false);
+    setOpenPackagePopup(false);
   }, []);
 
   const closeDuplicateServiceHandler = useCallback(() => {
@@ -1931,6 +1930,7 @@ const OpdBilling = () => {
           onClose={closePackageHandler}
           packageId={selectedPackage}
           serviceId={selectedServiceId}
+          patientDetails={patientRegistrationDetails}
         />
       )}
 

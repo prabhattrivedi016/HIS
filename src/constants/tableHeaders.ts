@@ -439,7 +439,14 @@ export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref
 
 export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];
 
-export const serviceListTableHeader = ["#", "Service Name", "Observation Name", "QTY"];
+export const serviceListTableHeader = [
+  "#",
+  "Observation Name",
+  "Min Value",
+  "Max Value",
+  "Display Range",
+  "Unit",
+];
 
 export const FormulaMasterObservationTableHeader = ["#", "ID", "Test Name"];
 
