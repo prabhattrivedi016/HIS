@@ -3,7 +3,8 @@ import { ENDPOINTS } from "@/config/defaults";
 import { serviceListTableHeader, TestPackageTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { useEffect, useState } from "react";
+import { PatientDataItem } from "@/screens/patientRegistration/types";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { PackageItems, ServiceBindingDataItem } from "../types";
 
@@ -12,17 +13,35 @@ const PackagePopup = ({
   onClose,
   packageId,
   serviceId,
+  patientDetails,
 }: {
   isOpen: boolean;
   onClose: () => void;
   packageId?: number;
   serviceId?: number;
+  patientDetails?: PatientDataItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
 
   const [packageList, setPackageList] = useState<PackageItems[]>([]);
 
   const [serviceList, setServiceList] = useState<ServiceBindingDataItem[]>([]);
+
+  // age calculation
+  const calculateAge = useMemo(() => {
+    if (!patientDetails?.patientId) return 0;
+
+    return (
+      Number(patientDetails?.AgeYears) * 365 +
+      Number(patientDetails?.AgeMonths) * 30 +
+      Number(patientDetails?.AgeDays)
+    );
+  }, [
+    patientDetails?.patientId,
+    patientDetails?.AgeYears,
+    patientDetails?.AgeMonths,
+    patientDetails?.AgeDays,
+  ]);
 
   // package details
 
@@ -41,12 +60,22 @@ const PackagePopup = ({
   const getServiceList = async (investigationId: number) => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_LAB_INVESTIGATION_OBSERVATION_MAPPING,
+      ENDPOINTS.GET_INVESTIGATION_OBSERVATION_MAPPING_DETAILS,
       {},
-      { params: { investigationId } },
+      {
+        params: {
+          investigationId,
+          ageInDays: calculateAge,
+          gender:
+            patientDetails?.gender === "Male"
+              ? "M"
+              : patientDetails?.gender === "Female"
+                ? "F"
+                : "B",
+        },
+      },
       { component: "PackagePopupOfOpdBilling" }
     );
-    console.log("service details response", resp);
     setServiceList(resp?.data ?? []);
   };
   useEffect(() => {
@@ -65,20 +94,25 @@ const PackagePopup = ({
       />
 
       <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-140 ${isOpen ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[95vw] lg:min-w-250 ${isOpen ? "opacity-full" : ""}`}
       >
         <div className="popup-header">
           <h2 className="popup-helper-text">
-            {packageId ? "Test Package Details" : "Service Observation Details"}
+            {packageId ? "Test Package Details" : "Investigation Observation Details"}
           </h2>
           <button type="button" onClick={onClose} className="close-drawer-btn">
             ×
           </button>
           {/* table */}
         </div>
+
+        <div className="flex flex-row gap-1 mb-2">
+          <h1 className="name-header">Investigation Name :</h1>
+          <span className="font-normal">{serviceList[0]?.InvestigationName ?? "-"}</span>
+        </div>
         <div className="table-container ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-60 lg:max-h-60">
+            <div className="table-size lg:min-h-60 lg:max-h-60 lg:min-w-2000">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>
@@ -96,7 +130,26 @@ const PackagePopup = ({
                   </tr>
                 </thead>
 
-                {serviceList.length > 0 && (
+                {packageId ? (
+                  <tbody>
+                    {packageList?.length === 0 && (
+                      <tr>
+                        <td colSpan={TestPackageTableHeader.length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {packageList.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">{item?.packageServiceCategory ?? "-"}</td>
+                        <td className="table-td">{item?.packageServiceName ?? "-"}</td>
+                        <td className="table-td">{item?.qty ?? 1}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ) : (
                   <tbody>
                     {serviceList.length === 0 && (
                       <tr>
@@ -108,32 +161,18 @@ const PackagePopup = ({
                     {serviceList.map((item, idx) => (
                       <tr key={idx} className="table-row">
                         <td className="table-td">{idx + 1}</td>
-                        <td className="table-td">{item?.serviceName ?? "-"}</td>
-                        <td className="table-td">{item?.observationName ?? "-"}</td>
-                        <td className="table-td">{item?.qty ?? 1}</td>
+                        <td className="table-td">{item?.ObservationName ?? "-"}</td>
+                        <td className="table-td">{item?.MinValue ?? "-"}</td>
+                        <td className="table-td">{item?.MaxValue ?? "-"}</td>
+                        <td className="table-td">{item?.DisplayRange ?? "-"}</td>
+
+                        <td className="table-td">{item?.Unit ?? "-"}</td>
+
+                        {/* <td className="table-td">{item?.qty ?? 1}</td> */}
                       </tr>
                     ))}
                   </tbody>
                 )}
-
-                <tbody>
-                  {packageList?.length === 0 && (
-                    <tr>
-                      <td colSpan={TestPackageTableHeader.length} className="table-empty">
-                        No records found
-                      </td>
-                    </tr>
-                  )}
-
-                  {packageList.map((item, idx) => (
-                    <tr key={idx} className="table-row">
-                      <td className="table-td">{idx + 1}</td>
-                      <td className="table-td">{item?.packageServiceCategory ?? "-"}</td>
-                      <td className="table-td">{item?.packageServiceName ?? "-"}</td>
-                      <td className="table-td">{item?.qty ?? 1}</td>
-                    </tr>
-                  ))}
-                </tbody>
               </table>
             </div>
           </div>

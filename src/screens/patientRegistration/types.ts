@@ -54,10 +54,13 @@ type PatientDataItem = {
   middleName: string;
   lastName: string;
   patientName: string;
-  ageYears: number;
-  ageMonths: number;
-  ageDays: number;
+  AgeYears?: number;
+  AgeMonths?: number;
+  AgeDays?: number;
   age: string;
+  ageYears?: number;
+  ageMonths?: number;
+  ageDays?: number;
   dob: string;
   gender: string;
   maritalStatus: string;

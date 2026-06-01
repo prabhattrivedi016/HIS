@@ -340,19 +340,17 @@ type DuplicateServiceDataItem = {
 };
 
 type ServiceBindingDataItem = {
-  mappingId: number;
-  invastigationId: number;
-  observationId: number;
-  observationName: string;
-  method: string;
-  methodId: number;
-  isHeader: boolean;
-  isBold: boolean;
-  isUnderLine: boolean;
-  isMandatory: number;
-  roundUp: string;
-  serviceName?: string;
-  qty?: number;
+  InvestigationName: string;
+  ObservationName: string;
+  ObservationId: number;
+  Prefix: string;
+  Suffix: string;
+  MinValue: string;
+  MaxValue: string;
+  DisplayRange: string;
+  Unit: string;
+  MethodName: string;
+  FieldTypeId: number;
 };
 
 export type {
