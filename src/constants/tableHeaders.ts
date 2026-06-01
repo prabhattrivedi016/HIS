@@ -433,12 +433,13 @@ export const OpdBillingServiceTableHeader = [
   "Disc",
   "Net Amt",
   "U",
-  "View",
 ];
 
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No."];
 
 export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];
+
+export const serviceListTableHeader = ["#", "Service Name", "Observation Name", "QTY"];
 
 export const FormulaMasterObservationTableHeader = ["#", "ID", "Test Name"];
 

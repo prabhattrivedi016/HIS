@@ -339,6 +339,22 @@ type DuplicateServiceDataItem = {
   UserName: string;
 };
 
+type ServiceBindingDataItem = {
+  mappingId: number;
+  invastigationId: number;
+  observationId: number;
+  observationName: string;
+  method: string;
+  methodId: number;
+  isHeader: boolean;
+  isBold: boolean;
+  isUnderLine: boolean;
+  isMandatory: number;
+  roundUp: string;
+  serviceName?: string;
+  qty?: number;
+};
+
 export type {
   CategoryItem,
   CollectOnDeviceProps,
@@ -354,6 +370,7 @@ export type {
   PaymentModeItem,
   ReferDoctorItem,
   ReferDoctorPopupProps,
+  ServiceBindingDataItem,
   ServiceBindingItem,
   ServiceItemList,
   SubCategoryItem,
