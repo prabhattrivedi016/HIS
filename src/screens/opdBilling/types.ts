@@ -332,10 +332,18 @@ type PackageItemsValue = {
   packageServiceCode: string;
   packageServiceCategoryId: number;
 };
+
+type DuplicateServiceDataItem = {
+  ServiceItemId: number;
+  CreatedDate: string;
+  UserName: string;
+};
+
 export type {
   CategoryItem,
   CollectOnDeviceProps,
   DoctorMasterItem,
+  DuplicateServiceDataItem,
   OpdCardDetailItem,
   OpdPatientDetails,
   OptionItem,

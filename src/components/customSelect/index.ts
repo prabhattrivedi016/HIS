@@ -31,6 +31,8 @@ export const SelectStyles: StylesConfig<OptionItem, boolean> = {
     margin: 0,
     padding: 0,
     fontSize: "14px",
+    // fontFamily: "Inter, sans-serif",
+    fontFamily: "Poppins, sans-serif",
   }),
 
   multiValue: base => ({

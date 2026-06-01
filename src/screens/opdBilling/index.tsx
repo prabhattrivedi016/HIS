@@ -12,7 +12,7 @@ import { OPD_CATEGORY_IDs, Status } from "@/constants/constants";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
 import {
   ChangeEvent,
@@ -32,6 +32,7 @@ import SearchPatientPopup from "../patientRegistration/components/SearchPatientP
 import { CorporateItem, PatientDataHandle } from "../patientRegistration/types";
 import Buttons from "./components/Buttons";
 import CollectOnDevice from "./components/CollectOnDevice";
+import DuplicateServicePopup from "./components/DuplicateServicePopup";
 import {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
@@ -43,6 +44,7 @@ import ReferDoctorPopup from "./components/ReferDoctorPopup";
 import {
   CategoryItem,
   DoctorMasterItem,
+  DuplicateServiceDataItem,
   OpdCardDetailItem,
   OptionItem,
   PatientReceiptItem,
@@ -116,7 +118,6 @@ const OpdBilling = () => {
   const [selectedPackage, setSelectedPackage] = useState<number>(0);
 
   const [collectOnDeviceAmount, setCollectOnDeviceAmount] = useState<number>(0);
-  const [finalPayloadPreview] = useState<string>("");
   const [patientRegistrationDetails, setPatientRegistrationDetails] = useState<
     Record<string, unknown>
   >({});
@@ -144,6 +145,13 @@ const OpdBilling = () => {
   const doctorRef = useRef<any>(null);
 
   const serviceInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [openDuplicateServicePopup, setOpenDuplicateServicePopup] = useState<boolean>(false);
+  const [renderDuplicateServicePopup, setRenderDuplicateServicePopup] = useState<boolean>(false);
+
+  const [duplicateData, setDuplicateData] = useState<DuplicateServiceDataItem | null>(null);
+
+  const [pendingService, setPendingService] = useState<ServiceItemList | null>(null);
 
   // autoFill patient data
 
@@ -529,6 +537,42 @@ const OpdBilling = () => {
     getCategory();
   }, []);
 
+  const prescribeButtonHandler = async (value: string) => {
+    if (value === "prescribe" && pendingService) {
+      await addServiceToTable(pendingService);
+
+      setPendingService(null);
+      setDuplicateData(null);
+
+      setSearchTerm("");
+      SetServiceItemList([]);
+      setShowPopup(false);
+
+      setOpenDuplicateServicePopup(false);
+      setRenderDuplicateServicePopup(false);
+
+      serviceInputRef.current?.focus();
+
+      return;
+    }
+
+    if (value === "cancel") {
+      setPendingService(null);
+      setDuplicateData(null);
+
+      setSearchTerm("");
+      SetServiceItemList([]);
+      setShowPopup(false);
+
+      setOpenDuplicateServicePopup(false);
+      setRenderDuplicateServicePopup(false);
+
+      serviceInputRef.current?.focus();
+
+      return;
+    }
+  };
+
   // service item select handler
   const serviceItemHandler = async (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -545,7 +589,7 @@ const OpdBilling = () => {
 
   // debounced api call
   useEffect(() => {
-    if (!searchTerm) return;
+    if (!searchTerm || searchTerm.length < 3) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -673,17 +717,76 @@ const OpdBilling = () => {
     );
   }, [isPackageUrgent]);
 
+  // add duplicate service to table
+  const addServiceToTable = async (item: ServiceItemList) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
+      {},
+      {
+        params: {
+          corporateId: selectedCorporate?.value,
+          doctorId: selectedDoctor?.value,
+          serviceItemId: item?.serviceItemId,
+          categoryId: item?.categoryId,
+          subCategoryId: item?.subCategoryId,
+          subSubCategoryId: item?.subSubCategoryId,
+          bedTypeId: 0,
+        },
+      }
+    );
+
+    const serviceRow = {
+      ...resp?.data,
+      doctorId: selectedDoctor?.value ?? 0,
+      doctorName: selectedDoctor?.label ?? "",
+    };
+
+    const updatedServices = [...serviceDataTableItem, serviceRow];
+
+    SetServiceDataTableItem(updatedServices);
+
+    calculateAndUpdateBillingDetails(updatedServices);
+  };
+
   // service handler
   const selectedServiceHandler = async (item: ServiceItemList) => {
     setShowPopup(false);
 
     if (!selectedDoctor?.value) {
       setSelectDoctorError("Please select any one doctor");
-      showError("Please select any one doctor");
+      showWarning("Please select any one doctor");
       doctorRef.current?.focus();
       return;
     }
     setSelectDoctorError("");
+    // console.log("Selected service item:", item); // Debug log to check the selected item
+
+    // check duplicate service
+    const dupResp = await fetchApi(
+      "GET",
+      ENDPOINTS.FIND_DUPLICATE_SERVICE,
+      {},
+      {
+        params: {
+          patientId: patientRegistrationDetails?.PatientId,
+          serviceItemId: item?.serviceItemId,
+        },
+      },
+      { component: "OpdBilling" }
+    );
+    console.log("Duplicate check response:", dupResp?.result); // Debug log to check duplicate response
+
+    if (dupResp?.result) {
+      setPendingService(item);
+      setDuplicateData(dupResp?.data?.[0]);
+
+      setOpenDuplicateServicePopup(true);
+      setRenderDuplicateServicePopup(true);
+
+      return; // VERY IMPORTANT
+    }
+
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
@@ -1352,6 +1455,11 @@ const OpdBilling = () => {
     setRenderPackagePopup(false);
   }, []);
 
+  const closeDuplicateServiceHandler = useCallback(() => {
+    setOpenDuplicateServicePopup(false);
+    setDuplicateData(null);
+  }, []);
+
   return (
     <div className="page-container">
       <div className="flex flex-col lg:flex-row md:flex-row   gap-4 items-center justify-between w-full">
@@ -1820,6 +1928,16 @@ const OpdBilling = () => {
           <OpdCard patient={opdCardDetails ?? undefined} />
         </div>
       </div>
+
+      {/* duplicate service popup */}
+      {!!renderDuplicateServicePopup && (
+        <DuplicateServicePopup
+          isOpen={openDuplicateServicePopup}
+          onClose={closeDuplicateServiceHandler}
+          data={duplicateData}
+          onButtonClick={prescribeButtonHandler}
+        />
+      )}
     </div>
   );
 };
