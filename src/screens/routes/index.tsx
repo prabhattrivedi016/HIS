@@ -43,6 +43,7 @@ import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
 import UserGroupMaster from "../userGroupMaster";
 import UserMaster from "../userMaster";
+import UserWiseDiscountMaster from "../userWiseDiscountMaster";
 import VendorMaster from "../vendorMaster";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
@@ -91,4 +92,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "template-investigation-interpretation": <InvestigationInterpretationTemplate />,
   "histo-report-master": <HistoReportMaster />,
   "micro-report-master": <MicroReportMaster />,
+  "user-wise-discount-master": <UserWiseDiscountMaster />,
 };

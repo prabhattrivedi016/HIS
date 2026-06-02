@@ -1,5 +1,5 @@
 import { useAuthorizedPages } from "@/store/useAuthorizedPages";
-import { showError, showSuccess } from "@/utils/alert";
+import { showSuccess, showWarning } from "@/utils/alert";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import CustomLoader from "../../../components/customLoader";
 import ToggleButton from "../../../components/toggleButton";
@@ -135,11 +135,11 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
 
       const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_MENU_MASTER, payload);
       if (!resp?.result) {
-        showError(error?.message);
+        showWarning(error?.message);
         return;
       }
-      showSuccess(resp?.message);
     }
+    showSuccess("Page access updated successfully");
     refetchAuthorizedPages(roleId!, branchId!, fetchApi);
   };
 

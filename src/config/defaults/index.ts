@@ -306,6 +306,10 @@ const ENDPOINTS = {
   GET_MICRO_TEMPLATE_LIST: "Lab/getMicroTemplateList",
   CREATE_UPDATE_MICRO_MAPPING: "Lab/createUpdateMicroMapping",
   GET_MICRO_MAPPING_BY_ORGANISM_ID: "Lab/getMicroMappingByOrganismId",
+
+  // user wise discount master
+  GET_USER_WISE_DISCOUNT_MASTER: "Admin/getUserwiseDiscountMaster",
+  SAVE_USER_WISE_DISCOUNT_MASTER: "Admin/saveUserwiseDiscountMaster",
 };
 
 export { ENDPOINTS };
