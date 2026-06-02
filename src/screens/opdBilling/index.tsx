@@ -10,10 +10,12 @@ import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
 import { ENDPOINTS } from "@/config/defaults";
 import { OPD_CATEGORY_IDs, Status } from "@/constants/constants";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
+import { AuthContext } from "@/context/AuthContext";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChangeEvent,
   KeyboardEvent,
@@ -32,6 +34,7 @@ import SearchPatientPopup from "../patientRegistration/components/SearchPatientP
 import { CorporateItem, PatientDataHandle } from "../patientRegistration/types";
 import Buttons from "./components/Buttons";
 import CollectOnDevice from "./components/CollectOnDevice";
+import DuesAmountPopup from "./components/DuesAmountPopup";
 import DuplicateServicePopup from "./components/DuplicateServicePopup";
 import {
   applyDiscountAmountChange,
@@ -57,11 +60,12 @@ import {
 } from "./types";
 
 const OpdBilling = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
+  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+  const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const patientDataRef = useRef<PatientDataHandle>(null);
-  const receiptPrintWindowRef = useRef<Window | null>(null);
   const patientID = useParams();
   const pId = Number(patientID?.patientId);
   const defaultCorporate: OptionItem = { label: "CASH", value: 1 };
@@ -154,6 +158,29 @@ const OpdBilling = () => {
   const [duplicateData, setDuplicateData] = useState<DuplicateServiceDataItem | null>(null);
 
   const [pendingService, setPendingService] = useState<ServiceItemList | null>(null);
+
+  const [renderDueAmountPopup, setRenderDueAmountPopup] = useState<boolean>(false);
+  const [openDueAmountPopup, setOpenDueAmountPopup] = useState<boolean>(false);
+  const [dueAmount, setDueAmount] = useState<number>(0);
+
+  const [canProceedBilling, setCanProceedBilling] = useState<boolean>(false);
+
+  // get discount % userwise
+  const getDiscountPerc = async (userId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_USER_DISCOUNT_RIGHTS,
+      {},
+      { params: { userId } },
+      { component: "OpdBilling" }
+    );
+    return Number(resp?.data?.[0]?.DiscPerOPD) ?? 100;
+  };
+
+  const { data } = useQuery({
+    queryKey: ["opdDiscount"],
+    queryFn: () => getDiscountPerc(userId),
+  });
 
   // autoFill patient data
 
@@ -1000,6 +1027,13 @@ const OpdBilling = () => {
 
   // discount change handler
   const discountChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
+    const value = Number(e.target.value);
+
+    // max discount validation
+    if (value > Number(data ?? 0)) {
+      showWarning(`You cannot give more than ${data}% discount`);
+      return;
+    }
     SetServiceDataTableItem(prev => {
       const updated = applyDiscountAmountChange(prev, rowIndex, e.target.value);
       // Recalculate billing after discount change
@@ -1010,6 +1044,19 @@ const OpdBilling = () => {
 
   // discount % change handler
   const discountPercentageChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
+    // max discount validation
+    const discountAmt = Number(e.target.value);
+
+    const row = serviceDataTableItem[rowIndex];
+
+    const grossAmount = (Number(row?.rate) || 0) * (Number(row?.qty) || 1);
+
+    const discountPer = grossAmount > 0 ? (discountAmt / grossAmount) * 100 : 0;
+
+    if (discountPer > Number(data ?? 0)) {
+      showWarning(`You cannot give more than ${data}% discount`);
+      return;
+    }
     SetServiceDataTableItem(prev => {
       const updated = applyDiscountPercentageChange(prev, rowIndex, e.target.value);
       // Recalculate billing after discount percentage change
@@ -1158,6 +1205,56 @@ const OpdBilling = () => {
     setFormResetKey(prev => prev + 1);
   };
 
+  // due button click handler
+  const dueAmountButtonClickHandler = (value: string) => {
+    switch (value) {
+      case "continue": {
+        setCanProceedBilling(true);
+        setOpenDueAmountPopup(false);
+        break;
+      }
+
+      case "cancel": {
+        setCanProceedBilling(false);
+        setOpenDueAmountPopup(false);
+        break;
+      }
+
+      default:
+        break;
+    }
+  };
+
+  // get patient previous dues
+  const getPatientPreviousDues = async () => {
+    setRenderDueAmountPopup(true);
+    setOpenDueAmountPopup(true);
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_PREVIOUS_DUES,
+      {},
+      { params: { branchId, patientId: patientRegistrationDetails?.PatientId } },
+      { component: "OpdBilling" }
+    );
+    setDueAmount(resp?.data?.[0]?.TotalBalanceAmount ?? 0);
+  };
+
+  const closeDueAmountHandler = useCallback(() => {
+    setOpenDueAmountPopup(false);
+  }, []);
+
+  useEffect(() => {
+    if (!canProceedBilling) return;
+
+    const proceedBilling = async () => {
+      setCanProceedBilling(false);
+
+      await getUserRegistrationResponse();
+    };
+
+    proceedBilling();
+  }, [canProceedBilling]);
+
   // button click handler
   const buttonClickHandler = async (value: string) => {
     if (value === "collectOnDevice") {
@@ -1173,7 +1270,10 @@ const OpdBilling = () => {
     }
 
     if (value === "save") {
+      await getPatientPreviousDues();
+      return;
       // Validate patient registration form using PatientData validation
+
       const isValid = await patientDataRef.current?.validateForm();
 
       if (!isValid) {
@@ -1883,6 +1983,7 @@ const OpdBilling = () => {
             setBillingValues={setBillingValues}
             billingValues={billingValues!}
             paymentBilling={billingPaymentDetails}
+            maxDiscountPercentage={data}
           />
         </div>
 
@@ -1956,6 +2057,16 @@ const OpdBilling = () => {
           onClose={closeDuplicateServiceHandler}
           data={duplicateData}
           onButtonClick={prescribeButtonHandler}
+        />
+      )}
+
+      {/* due amount popup */}
+      {!!renderDueAmountPopup && (
+        <DuesAmountPopup
+          isOpen={openDueAmountPopup}
+          onClose={closeDueAmountHandler}
+          amount={dueAmount}
+          onButtonClick={dueAmountButtonClickHandler}
         />
       )}
     </div>

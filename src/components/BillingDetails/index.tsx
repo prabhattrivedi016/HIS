@@ -3,7 +3,7 @@ import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError } from "@/utils/alert";
+import { showError, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   ChangeEvent,
@@ -27,7 +27,13 @@ import {
 
 const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
   (
-    { setOpdBilling, setBillingValues, billingValues: initialBillingValues, paymentBilling },
+    {
+      setOpdBilling,
+      setBillingValues,
+      billingValues: initialBillingValues,
+      paymentBilling,
+      maxDiscountPercentage,
+    },
     ref
   ) => {
     const { fetchApi } = useGlobalApi();
@@ -403,11 +409,21 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       getBankList();
     }, [getBankList, getPaymentMethod]);
 
+    // discount % validation
+
     const discountPercentageChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+      const value = Number(e.target.value);
+
+      if (value > Number(maxDiscountPercentage ?? 0)) {
+        showWarning(`Maximum allowed discount is ${maxDiscountPercentage}%`);
+        return;
+      }
+
       const gross = toNumber(billingValues?.grossBillAmount);
+
       const { discountPer, discountAmt, netAmount, roundOff } = calculateFromPercentage(
         gross,
-        e.target.value
+        value
       );
 
       setBillingState({
@@ -418,21 +434,28 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       });
     };
 
+    // discount amount validation
     const discountAmountChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+      const discountAmount = Number(e.target.value);
+
       const gross = toNumber(billingValues?.grossBillAmount);
-      const { discountPer, discountAmt, netAmount, roundOff } = calculateFromAmount(
-        gross,
-        e.target.value
-      );
+
+      const discountPer = gross > 0 ? (discountAmount / gross) * 100 : 0;
+
+      if (discountPer > Number(maxDiscountPercentage ?? 0)) {
+        showWarning(`Maximum allowed discount is ${maxDiscountPercentage}%`);
+        return;
+      }
+
+      const { discountAmt, netAmount, roundOff } = calculateFromAmount(gross, discountAmount);
 
       setBillingState({
-        totalDiscPerOnBill: discountPer,
+        totalDiscPerOnBill: Number(discountPer.toFixed(2)),
         totalDiscAmtOnBill: discountAmt,
         netAmount,
         roundOff,
       });
     };
-
     const discountApprovedHandler = (e: ChangeEvent<HTMLSelectElement>) => {
       const value = Number(e.target.value) || 0;
       setBillingState({ discApprovedById: value });
