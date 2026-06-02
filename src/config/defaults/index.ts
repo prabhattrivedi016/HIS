@@ -222,6 +222,8 @@ const ENDPOINTS = {
   FIND_DUPLICATE_SERVICE: "Patient/findDuplicateService",
   GET_INVESTIGATION_OBSERVATION_MAPPING_DETAILS:
     "Patient/getInvestigationObservationMappingDetails",
+  GET_USER_DISCOUNT_RIGHTS: "Patient/getUserDiscountRights",
+  GET_PATIENT_PREVIOUS_DUES: "Patient/getPatientPreviousDues",
 
   // formula master
   GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",
