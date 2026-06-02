@@ -390,4 +390,21 @@ export const HistoImmunoAntibioticMasterTableHeader = ["#", "Antibiotic Name", "
 
 export const OrganismMasterTableHeader = ["#", "Organism Name", "Organism Group", "Status", "Edit"];
 
-export const AntibioticMasterTableHeader = ["#", "Antibiotic Name", "Antibiotic Group", "Status", "Edit"];
+export const AntibioticMasterTableHeader = [
+  "#",
+  "Antibiotic Name",
+  "Antibiotic Group",
+  "Status",
+  "Edit",
+];
+
+export const UserWiseDiscountTableHeader = [
+  "#",
+  "User Name",
+  "Disc(%)-OPD",
+  "Disc(%)-IPD",
+  "Disc(%)-Pharmacy",
+  "Disc(%)-Daycare",
+  "Disc(%)-Dialysis",
+  "Disc(%)-Emergency",
+];
