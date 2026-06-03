@@ -41,6 +41,7 @@ import {
   applyDiscountPercentageChange,
   applyRateChange,
 } from "./components/helperFunction";
+import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
 import { openOpdPrintInNewTab, openReceiptInNewTab } from "./components/OpdReceiptNewTab";
 import PackagePopup from "./components/PackagePopup";
 import ReferDoctorPopup from "./components/ReferDoctorPopup";
@@ -165,7 +166,16 @@ const OpdBilling = () => {
 
   const [canProceedBilling, setCanProceedBilling] = useState<boolean>(false);
 
-  // get discount % userwise
+  const [previousDues, setPreviousDues] = useState({
+    opd: null,
+    ipd: null,
+    pharmacy: null,
+  });
+
+  const [openIpdOpdPharmacyPopup, setOpenIpdOpdPharmacy] = useState<boolean>(false);
+  const [renderIpdOpdPharmacyPopup, setRenderIpdOpdPharmacy] = useState<boolean>(false);
+
+  // get discount % user wise
   const getDiscountPerc = async (userId: number) => {
     const resp = await fetchApi(
       "GET",
@@ -181,6 +191,41 @@ const OpdBilling = () => {
     queryKey: ["opdDiscount"],
     queryFn: () => getDiscountPerc(userId),
   });
+
+  // previous dues
+
+  const getPatientBalanceOpd = async (uhid: string) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_BALANCE_AMOUNT_OPD,
+      {},
+      { params: { uhid } },
+      { component: "OpdBilling" }
+    );
+    return resp?.data?.[0]?.TotalBalanceAmountOPD;
+  };
+
+  const getPatientBalanceIpd = async (uhid: string) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_BALANCE_AMOUNT_IPD,
+      {},
+      { params: { uhid } },
+      { component: "OpdBilling" }
+    );
+    return resp?.data?.[0]?.TotalBalanceAmountIPD;
+  };
+
+  const getPatientBalancePharmacy = async (uhid: string) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_BALANCE_AMOUNT_IPD,
+      {},
+      { params: { uhid } },
+      { component: "OpdBilling" }
+    );
+    return resp?.data?.[0]?.TotalBalanceAmountPharmacy;
+  };
 
   // autoFill patient data
 
@@ -220,15 +265,51 @@ const OpdBilling = () => {
           }
         }
 
-        // focus service search input
+        // bind patient dues
+
+        const [opdResult, ipdResult, pharmacyResult] = await Promise.all([
+          getPatientBalanceOpd(resp?.uhid),
+          getPatientBalanceIpd(resp?.uhid),
+          getPatientBalancePharmacy(resp?.uhid),
+        ]);
+
+        setPreviousDues({
+          opd: opdResult,
+          ipd: ipdResult,
+          pharmacy: pharmacyResult,
+        });
+
         setTimeout(() => {
-          serviceInputRef.current?.focus();
+          if (opdResult !== null || ipdResult !== null || pharmacyResult !== null) {
+            setOpenIpdOpdPharmacy(true);
+            setRenderIpdOpdPharmacy(true);
+          } else {
+            // If no dues, focus service search input immediately
+            serviceInputRef.current?.focus();
+          }
         }, 300);
       };
 
       fetchPatientData();
     }
   }, [patientRegistrationDetails?.PatientId]);
+
+  // close ipd opd pharmacy popup
+  const closeIpdOpdPharmacyPopup = useCallback(() => {
+    setOpenIpdOpdPharmacy(false);
+  }, []);
+
+  // handle ipd opd pharmacy popup button click
+  const ipdOpdPharmacyPopupButtonHandler = useCallback((value: string) => {
+    if (value === "continue") {
+      setOpenIpdOpdPharmacy(false);
+      setTimeout(() => {
+        serviceInputRef.current?.focus();
+      }, 100);
+    } else if (value === "cancel") {
+      setOpenIpdOpdPharmacy(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedDoctor?.value && selectDoctorError) {
@@ -1209,8 +1290,12 @@ const OpdBilling = () => {
   const dueAmountButtonClickHandler = (value: string) => {
     switch (value) {
       case "continue": {
-        setCanProceedBilling(true);
+        if (dueAmount) {
+          setCanProceedBilling(true);
+          setOpenDueAmountPopup(false);
+        }
         setOpenDueAmountPopup(false);
+
         break;
       }
 
@@ -1227,8 +1312,6 @@ const OpdBilling = () => {
 
   // get patient previous dues
   const getPatientPreviousDues = async () => {
-    setRenderDueAmountPopup(true);
-    setOpenDueAmountPopup(true);
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_PREVIOUS_DUES,
@@ -1236,7 +1319,16 @@ const OpdBilling = () => {
       { params: { branchId, patientId: patientRegistrationDetails?.PatientId } },
       { component: "OpdBilling" }
     );
-    setDueAmount(resp?.data?.[0]?.TotalBalanceAmount ?? 0);
+    const dueAmountValue = resp?.data?.[0]?.TotalBalanceAmount ?? 0;
+    setDueAmount(dueAmountValue);
+
+    if (dueAmountValue > 0) {
+      setRenderDueAmountPopup(true);
+      setOpenDueAmountPopup(true);
+    } else {
+      // No due amount, proceed directly with billing
+      setCanProceedBilling(true);
+    }
   };
 
   const closeDueAmountHandler = useCallback(() => {
@@ -2067,6 +2159,16 @@ const OpdBilling = () => {
           onClose={closeDueAmountHandler}
           amount={dueAmount}
           onButtonClick={dueAmountButtonClickHandler}
+        />
+      )}
+
+      {/* ipd opd pharmacy due amount */}
+      {!!renderIpdOpdPharmacyPopup && (
+        <IpdOpdPharmacyDueAmount
+          isOpen={openIpdOpdPharmacyPopup}
+          onClose={closeIpdOpdPharmacyPopup}
+          amount={previousDues}
+          onButtonClick={ipdOpdPharmacyPopupButtonHandler}
         />
       )}
     </div>
