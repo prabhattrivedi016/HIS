@@ -5,6 +5,7 @@ import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
+import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
 import DiscountApprovalMaster from "../discountApprovalMaster";
@@ -93,4 +94,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "histo-report-master": <HistoReportMaster />,
   "micro-report-master": <MicroReportMaster />,
   "user-wise-discount-master": <UserWiseDiscountMaster />,
+  "consultation-header-master": <ConsultationHeaderMaster />,
 };

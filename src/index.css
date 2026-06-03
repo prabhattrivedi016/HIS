@@ -392,3 +392,8 @@ select:-webkit-autofill {
 .default-logo-link {
   @apply text-blue-500  cursor-pointer;
 }
+
+/* buttons and icons */
+.delete-icon {
+  @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
+}
