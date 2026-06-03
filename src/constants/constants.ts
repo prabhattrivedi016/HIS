@@ -93,6 +93,11 @@ export enum LabTypeName {
   RADIOLOGY = "radiology",
   CARDIOLOGY = "cardiology",
 }
+
+export enum ConsultationHeaderMasterTabName {
+  HEADER_MASTER = "Header Master",
+  DOCTOR_DEPARTMENT_HEADER_MAPPING = "Doctor Department Header Mapping",
+}
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",
@@ -407,4 +412,16 @@ export const UserWiseDiscountTableHeader = [
   "Disc(%)-Daycare",
   "Disc(%)-Dialysis",
   "Disc(%)-Emergency",
+];
+
+export const HeaderMasterTableHeader = [
+  "#",
+  "Header Name",
+  "Display Name",
+  "Control Type",
+  "Show on Print",
+  "Show in Temp. Room",
+  "Used For",
+  "Status",
+  "Edit",
 ];

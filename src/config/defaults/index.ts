@@ -315,6 +315,11 @@ const ENDPOINTS = {
   // user wise discount master
   GET_USER_WISE_DISCOUNT_MASTER: "Admin/getUserwiseDiscountMaster",
   SAVE_USER_WISE_DISCOUNT_MASTER: "Admin/saveUserwiseDiscountMaster",
+
+  // consultation header master
+  CREATE_UPDATE_DOCTOR_HEADER: "Admin/createUpdateDoctorHeader",
+  GET_ALL_DOCTOR_HEADER_MASTER: "Admin/getAllDoctorHeaderMaster",
+  GET_DOCTOR_HEARDER_LOVS: "Admin/getDoctorHeaderLOVs",
 };
 
 export { ENDPOINTS };
