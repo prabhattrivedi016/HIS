@@ -425,3 +425,10 @@ export const HeaderMasterTableHeader = [
   "Status",
   "Edit",
 ];
+
+export const DoctorDepartmentMappingTableHeader = [
+  "#",
+  "Header Name",
+  "Display Name",
+  "Control Type",
+];

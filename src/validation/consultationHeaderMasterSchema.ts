@@ -13,7 +13,7 @@ export const headerMasterSchema = yup.object({
 
   isPrint: yup.number().required("Show On Print is required"),
 
-  isShowInTempRoom: yup.number().required("Show In Temperature Room is required"),
+  isShowInTempRoom: yup.number().nullable(),
 
   usedForPatientType: yup.number().required("Used For is required"),
 

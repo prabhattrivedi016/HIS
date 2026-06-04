@@ -16,4 +16,59 @@ type HeaderMasterItem = {
   isActive: number;
 };
 
-export type { HeaderMasterItem, ListOfLovsItem };
+type DoctorItem = {
+  doctorId: number;
+  title: string;
+  name: string;
+  dob: string;
+  gender: string;
+  completeName: string;
+  contactNo: string;
+  emailId: string;
+  address: string;
+  specializationId: number;
+  specialization: string;
+  userName: string;
+  password: string;
+  departmentId: number;
+  department: string;
+  profileSummery: string;
+  registrationNo: string;
+  isActive: number;
+  userId: number;
+  hospId: number;
+  createdBy: string;
+  createdOn: string;
+  ipAddress: string;
+  branchId: string;
+  canApproveLabReport: number;
+  canApproveDischargeSummary: number;
+  doctorPhotoFilePath: string;
+  isDoctorUnit: number;
+  roomNo: string;
+};
+
+type DepartmentItem = {
+  departmentId: number;
+  department: string;
+  departmentTypeId: number;
+  departmentType: string;
+  isActive: number;
+};
+
+type DoctorDepartmentTableItem = {
+  headerId: number;
+  headerName: string;
+  displayName: string;
+  controlType: string;
+  mappingId: number;
+  sequenceNo: number;
+};
+
+export type {
+  DepartmentItem,
+  DoctorDepartmentTableItem,
+  DoctorItem,
+  HeaderMasterItem,
+  ListOfLovsItem,
+};

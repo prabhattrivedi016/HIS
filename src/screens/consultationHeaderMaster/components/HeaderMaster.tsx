@@ -22,7 +22,6 @@ const HeaderMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
   const queryClient = useQueryClient();
   const controlTypeList = usePickMaster("DoctorHeaderControlType")?.pickMasterValue ?? [];
-  console.log("usedForList", controlTypeList);
 
   const usedForList = usePickMaster("DoctorHeaderUsedForPatientType")?.pickMasterValue ?? [];
 
@@ -506,9 +505,9 @@ const HeaderMaster = () => {
                   {data.map((item: HeaderMasterItem, idx: number) => (
                     <tr key={idx} className="table-row">
                       <td className="table-td">{idx + 1}</td>
-                      <td className="table-td">{item?.headerName || "-"}</td>{" "}
-                      <td className="table-td">{item?.displayName || "-"}</td>{" "}
-                      <td className="table-td">{item?.controlType || "-"}</td>{" "}
+                      <td className="table-td">{item?.headerName || "-"}</td>
+                      <td className="table-td">{item?.displayName || "-"}</td>
+                      <td className="table-td">{item?.controlType || "-"}</td>
                       <td
                         className={`table-td ${
                           Number(item?.isPrint) === 1 ? "active-text" : "inactive-text"

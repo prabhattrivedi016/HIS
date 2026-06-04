@@ -320,6 +320,8 @@ const ENDPOINTS = {
   CREATE_UPDATE_DOCTOR_HEADER: "Admin/createUpdateDoctorHeader",
   GET_ALL_DOCTOR_HEADER_MASTER: "Admin/getAllDoctorHeaderMaster",
   GET_DOCTOR_HEARDER_LOVS: "Admin/getDoctorHeaderLOVs",
+  GET_DOCTOR_HEADER_MAPPING_FOR_MASTER: "Admin/getDoctorHeaderMappingForMaster",
+  SAVE_DOCTOR_HEADER_DEPARTMENT_MAPPING: "Admin/saveDoctorHeaderDepartmentMapping",
 };
 
 export { ENDPOINTS };
