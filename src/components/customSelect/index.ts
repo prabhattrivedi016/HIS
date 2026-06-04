@@ -1,3 +1,4 @@
+import { SelectItem } from "@/types";
 import { StylesConfig } from "react-select";
 
 export interface OptionItem {
@@ -116,4 +117,40 @@ export const SelectStyles: StylesConfig<OptionItem, boolean> = {
     backgroundColor: state.isFocused ? "#f3f4f6" : "transparent",
     color: "#1f2937",
   }),
+};
+
+// Disabled styles for react-select
+export const getDisabledStyles = (isDisabled: boolean): StylesConfig<SelectItem, false> => {
+  const baseStyles = SelectStyles as StylesConfig<SelectItem, false>;
+
+  if (!isDisabled) {
+    return baseStyles;
+  }
+
+  return {
+    ...baseStyles,
+    control: (provided, state: any) => ({
+      ...(typeof baseStyles.control === "function"
+        ? baseStyles.control(provided, state)
+        : baseStyles.control),
+      opacity: 0.5,
+      cursor: "not-allowed",
+      backgroundColor: "#dcdcdc",
+      borderColor: "#ccc",
+      pointerEvents: "none" as const,
+    }),
+    option: (provided, state: any) => ({
+      ...(typeof baseStyles.option === "function"
+        ? baseStyles.option(provided, state)
+        : baseStyles.option),
+      opacity: 0.5,
+      cursor: "not-allowed",
+    }),
+    singleValue: (provided, state: any) => ({
+      ...(typeof baseStyles.singleValue === "function"
+        ? baseStyles.singleValue(provided, state)
+        : baseStyles.singleValue),
+      opacity: 0.6,
+    }),
+  };
 };
