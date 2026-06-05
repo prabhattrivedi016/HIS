@@ -1,12 +1,17 @@
 import InputField from "@/components/customInputField";
 import { ArrowLeft, ArrowRight, CalendarClock, Edit, Stethoscope, User } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
+import { ENDPOINTS } from "@/config/defaults";
+import { AuthContext } from "@/context/AuthContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { useQuery } from "@tanstack/react-query";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import VitalDrawer from "./components/VitalDrawer";
+import { PatientItem } from "./types";
 
 /* ---------- format helper ---------- */
 const formatDate = (date: Date) =>
@@ -19,17 +24,45 @@ const formatDate = (date: Date) =>
     .replace(/ /g, "-");
 
 const DoctorConsultationNew = () => {
+  const { loading, fetchApi } = useGlobalApi();
+  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+
+  const [selectedType, setSelectedType] = useState<number>(1);
+
+  const [appliedRange, setAppliedRange] = useState({
+    startDate: new Date(),
+    endDate: new Date(),
+    key: "selection",
+  });
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showFullCalendar, setShowFullCalendar] = useState(false);
 
   const [renderVitalDrawer, setRenderVitalDrawer] = useState<boolean>(false);
   const [openVitalDrawer, setOpenVitalDrawer] = useState<boolean>(false);
 
-  /* 👉 final applied range */
-  const [appliedRange, setAppliedRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
-    key: "selection",
+  const getPatientLists = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.SEARCH_PATIENT_FOR_CONSULTATION,
+      {},
+      {
+        params: {
+          branchId,
+          typeId: selectedType,
+          fromDate: appliedRange.startDate,
+          toDate: appliedRange.endDate,
+        },
+      },
+      { component: "DoctorConsultationNew" }
+    );
+    console.log("resp", resp?.data);
+    return resp?.data ?? [];
+  };
+
+  const { data = [] } = useQuery({
+    queryKey: ["getPatientLists", selectedType, appliedRange.startDate, appliedRange.endDate],
+    queryFn: getPatientLists,
   });
 
   /* 👉 temp range while selecting */
@@ -143,7 +176,13 @@ const DoctorConsultationNew = () => {
             </InputField>
 
             <InputField label="Type">
-              <input className="input-field" />
+              <select
+                className="input-field"
+                onChange={e => setSelectedType(Number(e.target.value))}
+              >
+                <option value={1}>OPD</option>
+                <option value={2}>IPD</option>
+              </select>
             </InputField>
           </div>
 
@@ -201,19 +240,19 @@ const DoctorConsultationNew = () => {
             </button>
           </div>
           <div className="w-full">
-            {/* Scroll Area */}
+            {/* patient lists */}
             <div className="max-h-[380px] overflow-y-auto space-y-3 pr-1">
-              {[1, 2, 3, 4, 5, 6].map(item => (
+              {data.map((item: PatientItem) => (
                 <div
                   key={item}
                   className="w-full rounded-lg border border-blue-400 bg-slate-200 shadow-sm p-1.5"
                 >
                   {/* Top Row */}
                   <div className="flex items-start justify-between">
-                    <h2 className="text-lg font-semibold text-gray-800">MR. SHREYANSH</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">{item?.PatientName}</h2>
 
                     <span className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 rounded">
-                      IPD
+                      {item?.TypeName}
                     </span>
                   </div>
 
@@ -221,21 +260,23 @@ const DoctorConsultationNew = () => {
                   <div className="mt-2 space-y-1 text-sm text-gray-700">
                     <div className="flex items-center gap-2">
                       <User size={16} className="text-gray-500" />
-                      <span>202512020010 | 50Y 0M 0D / MALE</span>
+                      <span>
+                        {item?.UHID} | {item?.Age} / {item?.Gender}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Stethoscope size={16} className="text-gray-500" />
-                      <span>Dr. ANAMIKA KUMARI</span>
+                      <span>{item?.DoctorName}</span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CalendarClock size={16} className="text-gray-500" />
-                        <span>04-Dec-2025 9:55:00 AM</span>
+                        <span>{item?.AppDateTime}</span>
                       </div>
 
-                      <span className="text-gray-500">#251204001</span>
+                      <span className="text-gray-500"># {item?.AppointmentNo}</span>
                     </div>
                   </div>
                 </div>

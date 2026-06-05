@@ -111,9 +111,38 @@ type EditRangePopupProps = {
   data?: observationTableDataItem;
 };
 
+type InvestigationTableItem = {
+  serviceItemId: number;
+  hospId: number;
+  categoryId: number;
+  subCategoryId: number;
+  subCategoryName?: string;
+  subSubCategoryId: number;
+  subSubCategoryName?: string;
+  name: string;
+  code: string;
+  reportTypeId: number;
+  reportType: string;
+  isSampleRequired: number;
+  sampleTypeId: number;
+  sampleTypeIdList: "";
+  labMethodId: number;
+  forGenderId: number;
+  forGender: string;
+  isOutSource: number;
+  isPrintAlone: number;
+  isDepartmentReceivingRequired: number;
+  shortName: string;
+  sampleVolume: string;
+  investigationComment: string;
+  tatInMin: number;
+  isActive: number;
+};
+
 export type {
   EditRangePopupProps,
   InvestigationObservationMappingItem,
+  InvestigationTableItem,
   LabMethodListIem,
   ObservationMappingItem,
   ObservationPopupFormData,

@@ -8,6 +8,7 @@ import { Radiology, Status, labTypes } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { showWarning } from "@/utils/alert";
 import { handleMultiSelectWithAll } from "@/utils/multiSelectAllHandler";
 import {
   AddLabInvestigationFormData,
@@ -17,6 +18,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import Select, { MultiValue, SingleValue } from "react-select";
 import {
   AddLabInvestigationProps,
@@ -66,6 +68,7 @@ const AddLabInvestigation = ({
   const { loading, error, fetchApi } = useGlobalApi();
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const navigate = useNavigate();
   const [testMethod, setTestMethod] = useState<TestMethodItem[]>([]);
   const [selectedTest, setSelectedTest] = useState<SelectItem | null>(null);
   const [sampleType, setSampleType] = useState<SampleTypeItem[]>([]);
@@ -87,8 +90,6 @@ const AddLabInvestigation = ({
   const [successMessage, setSuccessMessage] = useState<string>("");
 
   const disabled = selectSubCategory?.label?.toLowerCase?.() === Radiology?.RADIOLOGY;
-
-  console.log("disabled", disabled);
 
   const {
     reset,
@@ -158,12 +159,9 @@ const AddLabInvestigation = ({
   const labReport = usePickMaster("labReportType");
   const labReportType = (labReport?.pickMasterValue ?? []) as PickMasterOption[];
 
-  // console.log("labReportType", labReportTy);
-
   const defaultReportType = labReport?.pickMasterValue?.find(
     l => l?.key === Radiology?.DEFAULT_REPORT_TYPE
   );
-  console.log("defaultReportTyp", defaultReportType);
 
   useEffect(() => {
     if (disabled && defaultReportType?.key) {
@@ -581,6 +579,7 @@ const AddLabInvestigation = ({
       { component: "AddLabInvestigation" }
     );
     if (!resp?.result) {
+      showWarning(resp?.message ?? "Failed while saving data");
       return;
     }
     setSuccessMessage(resp?.message || "Data saved successfully");
@@ -612,6 +611,15 @@ const AddLabInvestigation = ({
   };
 
   useScrollLock(isOpen);
+
+  // observation mapping handler
+  const observationMappingHandler = () => {
+    navigate("/investigation-observation-mapping", {
+      state: {
+        investigationData: data,
+      },
+    });
+  };
 
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
@@ -893,6 +901,17 @@ const AddLabInvestigation = ({
                     {...register("investigationComment")}
                   />
                 </InputField>
+
+                {!!data && (
+                  <div className="flex flex-row gap-3 justify-center items-center">
+                    <button type="button" className="save-btn">
+                      Interpretation
+                    </button>
+                    <button type="button" className="save-btn" onClick={observationMappingHandler}>
+                      Observation Mapping
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="form-actions-responsive mt-5">
