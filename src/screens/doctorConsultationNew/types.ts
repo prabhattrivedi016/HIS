@@ -1,0 +1,33 @@
+type PatientItem = {
+  AppointmentNo: number;
+  AppDateTime: string;
+  UHID: string;
+  PatientName: string;
+  ContactNumber: string;
+  Age: string;
+  Gender: string;
+  DoctorName: string;
+  ValidUpToDate: string;
+  IsExpired: number;
+  VisitId: number;
+  Id: number;
+  IsConsultationDone: number;
+  IsOut: number;
+  DoctorId: number;
+  PatientId: number;
+  IsEMRRequest: number;
+  IsEMRRequestPending: number;
+  TypeId: number;
+  TypeName: string;
+  BedNo: string;
+  Address: string;
+  CorporateName: string;
+  isInvestigation: number;
+  isInvestigationApproved: number;
+  isStoreBill: number;
+  isOPDBill: number;
+  isIPDBill: number;
+  dsId: number;
+};
+
+export type { PatientItem };

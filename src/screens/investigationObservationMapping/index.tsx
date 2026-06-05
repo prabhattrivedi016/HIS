@@ -6,13 +6,15 @@ import { CATEGORY_ID, Status } from "@/constants/constants";
 import { ObservationMappingTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
-import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { debounce } from "lodash";
+import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import Select, { SingleValue } from "react-select";
 import EditRangePopup from "./components/EditRangePopup";
 import ObservationPopup from "./components/ObservationPopup";
 import {
   InvestigationObservationMappingItem,
+  InvestigationTableItem,
   ObservationMappingItem,
   observationTableDataItem,
   SelectItem,
@@ -20,6 +22,15 @@ import {
 
 const InvestigationObservationMapping = () => {
   const { error, loading, fetchApi } = useGlobalApi();
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const investigationDetails = location?.state?.investigationData;
+
+  useEffect(() => {
+    getInvestigationName(investigationDetails?.name);
+  }, [investigationDetails]);
 
   const [investigationName, setInvestigationName] = useState("");
   const [investigationList, setInvestigationList] = useState<InvestigationObservationMappingItem[]>(
@@ -51,6 +62,7 @@ const InvestigationObservationMapping = () => {
 
   // investigation name
   const getInvestigationName = async (iName: string) => {
+    if (iName === undefined) return;
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
@@ -58,6 +70,15 @@ const InvestigationObservationMapping = () => {
       { params: { categoryId: CATEGORY_ID.categoryId, serviceName: iName } },
       { component: "InvestigationObservationMapping", silent: true }
     );
+
+    if (investigationDetails) {
+      const filteredData = resp?.data?.filter(
+        (i: InvestigationTableItem) =>
+          Number(i?.serviceItemId) === Number(investigationDetails?.serviceItemId)
+      );
+      selectHandler(filteredData?.[0]);
+      return;
+    }
 
     setInvestigationList(resp?.data ?? []);
   };
@@ -67,6 +88,25 @@ const InvestigationObservationMapping = () => {
       e.preventDefault();
       getInvestigationName(investigationName);
     }
+  };
+
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        getInvestigationName(investigationName);
+      }, 500),
+    [investigationName]
+  );
+
+  // investigation search handler
+  const investigationChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    setInvestigationName(value);
+
+    if (value.trim().length < 3) return;
+
+    debouncedSearch(value);
   };
 
   // selecting investigation name
@@ -251,15 +291,37 @@ const InvestigationObservationMapping = () => {
 
     setDraggedObservationId(null);
   };
+
+  // back page handler
+  const backPageHandler = () => {
+    navigate("/lab-investigation-master", {
+      state: {
+        investigationDetails: investigationDetails,
+      },
+    });
+  };
+
   return (
     <div className="page-container">
-      <h1 className="page-heading">Investigation Observation Mapping</h1>
+      <div className="flex flex-col lg:flex-row md:flex-row   gap-4 items-center justify-between w-full">
+        <div>
+          <h1 className="page-heading">Investigation Observation Mapping</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard">Home</NavLink>
-        <span>››</span>
-        <span>Investigation Observation Mapping</span>
-      </nav>
+          <nav className="helper-text">
+            <NavLink to="/dashboard">Home</NavLink>
+            <span>››</span>
+            <span>Investigation Observation Mapping</span>
+          </nav>
+        </div>
+
+        {!!investigationDetails && (
+          <div className="flex flex-col gap-3 lg:flex-row md:flex-row">
+            <button className="save-btn" onClick={backPageHandler}>
+              Back Page
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="card mb-1">
         <div className="form-grid-4 flex flex-col lg:flex-row">
@@ -270,13 +332,13 @@ const InvestigationObservationMapping = () => {
                 className="input-field"
                 value={investigationName}
                 placeholder="Enter investigation name"
-                onChange={e => setInvestigationName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoComplete="off"
+                onChange={investigationChangeHandler}
+                // onKeyDown={handleKeyDown
+                // autoComplete="off"
               />
 
               {/*modal*/}
-              {investigationList.length > 0 && (
+              {!investigationDetails && investigationList.length > 0 && (
                 <div className="absolute z-50  w-full rounded-md  bg-white shadow-lg max-h-60 overflow-auto">
                   {investigationList.map(item => (
                     <div

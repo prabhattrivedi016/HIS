@@ -7,8 +7,9 @@ import { CATEGORY_ID } from "@/constants/constants";
 import { LabInvestigationTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess } from "@/utils/alert";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import debounce from "lodash/debounce";
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import Select, { SingleValue } from "react-select";
 import AddLabInvestigation from "./components/AddLabInvestigation";
 import {
@@ -19,7 +20,24 @@ import {
 } from "./types";
 
 const LabInvestigationMaster = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const investigation = location?.state?.investigationDetails;
+
+  useEffect(() => {
+    if (!investigation) return;
+
+    searchHandler(investigation.categoryId, 0, 0, investigation.name);
+
+    navigate(location.pathname, {
+      replace: true,
+      state: null,
+    });
+  }, [investigation]);
+
   const [categoryName, setCategoryName] = useState<string>("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
@@ -168,6 +186,14 @@ const LabInvestigationMaster = () => {
         },
         { component: "LabInvestigationMaster" }
       );
+
+      if (investigation) {
+        setEditRow(investigation);
+        setOpenNewInvestigation(true);
+        setRenderNewInvestigation(true);
+        setShowTable(false);
+        return;
+      }
       setShowTable(true);
 
       setInvestigationTableData(resp?.data ?? []);
@@ -202,11 +228,23 @@ const LabInvestigationMaster = () => {
     showSuccess(resp?.message ?? "Data saved successfully");
   };
 
-  const searchKeyDownHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      searchHandler(categoryId!, 0, 0, investigationName);
-    }
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        searchHandler(categoryId!, 0, 0, value);
+      }, 500),
+    [categoryId, searchHandler]
+  );
+
+  // investigation search handler
+  const investigationChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    setInvestigationName(value);
+
+    if (value.trim().length < 3) return;
+
+    debouncedSearch(value);
   };
   return (
     <div className="page-container">
@@ -233,7 +271,7 @@ const LabInvestigationMaster = () => {
       <div className="card mb-1">
         <h2 className="card-title">Investigation Details</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="form-grid-4">
           <InputField label="Category" required>
             <input value={categoryName!} readOnly className="input-field" />
           </InputField>
@@ -270,10 +308,9 @@ const LabInvestigationMaster = () => {
             <input
               type="text"
               className="input-field"
-              placeholder="Enter investigation name & press ENTER"
+              placeholder="Enter investigation name to search"
               value={investigationName}
-              onChange={e => setInvestigationName(e.target.value)}
-              onKeyDown={searchKeyDownHandler}
+              onChange={investigationChangeHandler}
             />
           </InputField>
         </div>
@@ -326,17 +363,13 @@ const LabInvestigationMaster = () => {
                           {Number(item.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
                         <td className="table-td">
-                          <button type="button" className="icon-color-button cursor-pointer">
-                            <i className="fa-solid fa-search text-xl" />
+                          <button type="button">
+                            <i className="fa-solid fa-search icon-color-button" />
                           </button>
                         </td>
                         <td className="table-td">
-                          <button
-                            type="button"
-                            className="icon-color-button cursor-pointer"
-                            onClick={() => editHandler(item)}
-                          >
-                            <i className="fa-solid fa-edit text-xl" />
+                          <button type="button" onClick={() => editHandler(item)}>
+                            <i className="fa-solid fa-edit icon-color-button" />
                           </button>
                         </td>
                         <td className="table-td">

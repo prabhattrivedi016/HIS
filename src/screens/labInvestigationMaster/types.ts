@@ -102,7 +102,12 @@ type AddLabInvestigationProps = {
   categoryName?: string;
   categoryId?: number | null;
   data?: InvestigationTableItem | null;
-  refreshTableData?: () => Promise<void>;
+  refreshTableData?: (
+    categoryId: number,
+    subCategoryId?: number,
+    subSubCategoryId?: number,
+    investigationName?: string
+  ) => Promise<void>;
 };
 
 export type {

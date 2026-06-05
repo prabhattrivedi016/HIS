@@ -322,6 +322,9 @@ const ENDPOINTS = {
   GET_DOCTOR_HEARDER_LOVS: "Admin/getDoctorHeaderLOVs",
   GET_DOCTOR_HEADER_MAPPING_FOR_MASTER: "Admin/getDoctorHeaderMappingForMaster",
   SAVE_DOCTOR_HEADER_DEPARTMENT_MAPPING: "Admin/saveDoctorHeaderDepartmentMapping",
+
+  // doctor consultation new
+  SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
 };
 
 export { ENDPOINTS };

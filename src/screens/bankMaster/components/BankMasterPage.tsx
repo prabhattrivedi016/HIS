@@ -19,7 +19,6 @@ const BankMasterPage = () => {
 
   const [bankLists, setBankLists] = useState<BankItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const {
     handleSubmit,
@@ -216,7 +215,7 @@ const BankMasterPage = () => {
           </div>
         </Animation>
 
-        {loading && <CustomLoader isLoading={loading} />}
+        {!!loading && <CustomLoader isLoading={loading} />}
       </div>
     </div>
   );
