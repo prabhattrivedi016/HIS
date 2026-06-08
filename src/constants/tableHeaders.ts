@@ -555,3 +555,15 @@ export const MicroOrganismMappingTableHeader = [
   "Resistant",
   "Remove",
 ];
+
+export const ServiceMasterTableHeader = [
+  "#",
+  "Category Name",
+  "Sub category Name",
+  "Sub Sub category Name",
+  "Name",
+  "Code",
+  "Status",
+  "Edit",
+  "Status",
+];
