@@ -243,7 +243,7 @@ const BankDetails = () => {
             <button type="submit" className="save-btn">
               {buttonTitle}
             </button>
-            <button type="button" className="cancel-button " onClick={cancelHandler}>
+            <button type="button" className="cancel-button" onClick={cancelHandler}>
               Cancel
             </button>
           </div>

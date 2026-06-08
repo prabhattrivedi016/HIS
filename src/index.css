@@ -173,9 +173,6 @@ input::placeholder {
 .verify-otp-modal {
   @apply bg-white border border-gray-300 p-6 rounded-xl w-[500px] shadow-lg;
 }
-.cancel-button {
-  @apply mt-4 text-gray-500 cursor-pointer;
-}
 
 /* Remove Chrome autofill blue background */
 input:-webkit-autofill,
@@ -249,10 +246,6 @@ select:-webkit-autofill {
 
 .reset-btn {
   @apply bg-[#08b065] hover:bg-[#08b65b] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
-}
-/*  */
-.cancel-button {
-  @apply bg-[#9CA3AF] mt-0 hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
 }
 
 .disabled-btn {
@@ -396,4 +389,68 @@ select:-webkit-autofill {
 /* buttons and icons */
 .delete-icon {
   @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
+}
+
+/* css styles  from scratch */
+
+/* font awesome icons */
+.add-popup-icon {
+  @apply text-xl active:scale-95 cursor-pointer;
+}
+
+.delete-icon {
+  @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
+}
+
+.icon-color-button {
+  @apply text-sm text-blue-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
+}
+
+.accept-color-button {
+  @apply text-sm text-green-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
+}
+
+/* buttons */
+
+.form-actions-responsive {
+  @apply flex flex-col sm:flex-row gap-3 sm:justify-end mt-5;
+}
+
+/* Mobile behavior */
+@media (max-width: 640px) {
+  .form-actions-responsive {
+    @apply justify-center;
+  }
+}
+
+.save-btn {
+  @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
+
+.delete-btn {
+  @apply bg-[#c30010] hover:bg-[#ed0b26] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
+
+.reset-btn {
+  @apply bg-[#08b065] hover:bg-[#08b65b] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
+
+.disable-btn {
+  @apply bg-gray-400 text-white rounded-lg px-3 py-2 text-base font-medium cursor-not-allowed opacity-60;
+}
+
+.cancel-button {
+  @apply bg-[#9CA3AF]  hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
+}
+
+/* normal pages */
+
+.page-container {
+  @apply bg-gray-50 flex-1 px-3 py-4 -mt-6;
+}
+.page-heading {
+  @apply text-2xl font-bold text-gray-900;
+}
+.helper-text {
+  @apply text-sm text-gray-500 flex gap-2 mt-1;
 }

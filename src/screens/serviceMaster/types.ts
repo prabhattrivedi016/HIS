@@ -1,0 +1,51 @@
+type CategoryItem = {
+  categoryId: number;
+  categoryName: string;
+  categoryTypeId: number;
+  categoryTypeName: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
+
+type ServiceTableItem = {
+  serviceItemId: number;
+  hospId: number;
+  categoryId: number;
+  categoryName: string;
+  subCategoryId: number;
+  subCategoryName: string;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+  name: string;
+  code: string;
+  reportTypeId: null;
+  labTypeId: number;
+  reportType: string;
+  isSampleRequired: null;
+  sampleTypeId: null;
+  sampleTypeIdList: string;
+  labMethodId: null;
+  forGenderId: null;
+  forGender: string;
+  isOutSource: number;
+  isPrintAlone: null;
+  isDepartmentReceivingRequired: null;
+  shortName: string;
+  sampleVolume: string;
+  investigationComment: string;
+  tatInMin: number;
+  isActive: number;
+  gstPer: number;
+  roomTypeId: number;
+  roomType: string;
+  isICU: number;
+  snomedCode: string;
+  opdConsultationTypeId: number;
+  opdConsultationType: string;
+  isOnlineConsultationAllow: number;
+  isTeleConsultationService: number;
+};
+
+export type { CategoryItem, ServiceTableItem };

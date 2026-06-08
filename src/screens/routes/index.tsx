@@ -38,6 +38,7 @@ import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
+import ServiceMaster from "../serviceMaster";
 import TariffManager from "../tariffManager";
 import NoPage from "../unauthorized";
 import UserAuthorization from "../userAuthorization";
@@ -95,4 +96,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "micro-report-master": <MicroReportMaster />,
   "user-wise-discount-master": <UserWiseDiscountMaster />,
   "consultation-header-master": <ConsultationHeaderMaster />,
+  "service-master": <ServiceMaster />,
 };
