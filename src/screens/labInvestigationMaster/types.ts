@@ -110,6 +110,20 @@ type AddLabInvestigationProps = {
   ) => Promise<void>;
 };
 
+type TemplateItem = {
+  TypeId: number;
+  Type: string;
+  ItemId: number;
+  Name: string;
+  InvestigationId: number;
+};
+
+type SaveTemplateItem = {
+  typeId: Number;
+  type: string;
+  investigationId: number;
+  itemid: number;
+};
 export type {
   AddLabInvestigationProps,
   CategoryListItem,
@@ -117,8 +131,10 @@ export type {
   InvestigationTableItem,
   PickMasterOption,
   SampleTypeItem,
+  SaveTemplateItem,
   SelectItem,
   SubCategoryListItem,
   SubSubCategoryItem,
+  TemplateItem,
   TestMethodItem,
 };
