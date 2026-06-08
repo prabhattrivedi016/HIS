@@ -328,7 +328,7 @@ export const LabInvestigationTableHeader = [
   "Sample Volume",
   "Gender",
   "Status",
-  "View",
+  // "View",
   "Edit",
   "Status",
 ];

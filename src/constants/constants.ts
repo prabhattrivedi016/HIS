@@ -432,3 +432,5 @@ export const DoctorDepartmentMappingTableHeader = [
   "Display Name",
   "Control Type",
 ];
+
+export const TemplatePopupHeaderMaster = ["#", "Investigation Name", "Template Name", "Remove"];

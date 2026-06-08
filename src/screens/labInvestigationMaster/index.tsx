@@ -362,11 +362,11 @@ const LabInvestigationMaster = () => {
                         >
                           {Number(item.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
-                        <td className="table-td">
+                        {/* <td className="table-td">
                           <button type="button">
                             <i className="fa-solid fa-search icon-color-button" />
                           </button>
-                        </td>
+                        </td> */}
                         <td className="table-td">
                           <button type="button" onClick={() => editHandler(item)}>
                             <i className="fa-solid fa-edit icon-color-button" />

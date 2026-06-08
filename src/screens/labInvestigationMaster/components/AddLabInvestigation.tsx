@@ -31,6 +31,7 @@ import {
   TestMethodItem,
 } from "../types";
 import LabInvestigationPopup from "./LabInvestigationPopup";
+import TemplatePopup from "./TemplatePopup";
 
 const DEFAULT_FORM_VALUES: AddLabInvestigationFormData = {
   serviceItemId: 0,
@@ -90,6 +91,12 @@ const AddLabInvestigation = ({
   const [successMessage, setSuccessMessage] = useState<string>("");
 
   const disabled = selectSubCategory?.label?.toLowerCase?.() === Radiology?.RADIOLOGY;
+
+  const [renderInterpretation, setRenderInterpretation] = useState<boolean>(false);
+  const [openInterpretation, setOpenInterpretation] = useState<boolean>(false);
+
+  const [renderTemplate, setRenderTemplate] = useState<boolean>(false);
+  const [openTemplate, setOpenTemplate] = useState<boolean>(false);
 
   const {
     reset,
@@ -621,6 +628,33 @@ const AddLabInvestigation = ({
     });
   };
 
+  // interpretation popup handler
+  const interpretationPopupHandler = (buttonName: "Template" | "Interpretation") => {
+    switch (buttonName) {
+      case "Interpretation": {
+        setRenderInterpretation(true);
+        setOpenInterpretation(true);
+        return;
+      }
+      case "Template": {
+        setRenderTemplate(true);
+        setOpenTemplate(true);
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
+  // close interpretation popup
+  const closeInterpretationPopup = useCallback(() => {
+    setOpenInterpretation(false);
+  }, []);
+
+  const closeTemplatePopup = useCallback(() => {
+    setOpenTemplate(false);
+  }, []);
+
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
@@ -904,12 +938,27 @@ const AddLabInvestigation = ({
 
                 {!!data && (
                   <div className="flex flex-row gap-3 justify-center items-center">
-                    <button type="button" className="save-btn">
-                      Interpretation
+                    <button
+                      type="button"
+                      className="save-btn"
+                      onClick={() =>
+                        interpretationPopupHandler(
+                          Number(data?.reportTypeId) === 1 ? "Interpretation" : "Template"
+                        )
+                      }
+                    >
+                      {Number(data?.reportTypeId) === 1 ? "Interpretation" : "Template"}
                     </button>
-                    <button type="button" className="save-btn" onClick={observationMappingHandler}>
-                      Observation Mapping
-                    </button>
+
+                    {Number(data?.reportTypeId) === 1 && (
+                      <button
+                        type="button"
+                        className="save-btn"
+                        onClick={observationMappingHandler}
+                      >
+                        Observation Mapping
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -937,6 +986,20 @@ const AddLabInvestigation = ({
           refreshSubCategory={refreshSubCategory}
           refreshSubSubCategory={refreshSubSubCategory}
         />
+      )}
+
+      {/* interpretation popup */}
+      {!!renderInterpretation && (
+        <InterpretationPopup
+          isOpen={openInterpretation}
+          onClose={closeInterpretationPopup}
+          data={data}
+        />
+      )}
+
+      {/* template popup */}
+      {!!renderTemplate && (
+        <TemplatePopup isOpen={openTemplate} onClose={closeTemplatePopup} data={data} />
       )}
 
       {/* loader */}
