@@ -325,6 +325,10 @@ const ENDPOINTS = {
 
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
+
+  // service master
+  GET_CATEGORY_TYPE_LIST: "Home/getCategoryTypeList",
+  CREATE_UPDATE_CATEGORY: "Home/createUpdateCategory",
 };
 
 export { ENDPOINTS };
