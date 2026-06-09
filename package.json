@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest run --coverage"
   },
   "author": "GWT",
   "license": "ISC",
@@ -62,6 +65,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/dompurify": "^3.0.5",
     "@types/lodash": "^4.17.24",
     "@types/react": "^19.2.14",
@@ -76,9 +82,11 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^29.1.1",
     "lint-staged": "^16.2.6",
     "prettier": "^3.3.3",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "vitest": "^4.1.8"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [

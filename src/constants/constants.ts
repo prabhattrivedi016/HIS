@@ -434,3 +434,10 @@ export const DoctorDepartmentMappingTableHeader = [
 ];
 
 export const TemplatePopupHeaderMaster = ["#", "Investigation Name", "Template Name", "Remove"];
+
+export enum ServiceMasterPopupName {
+  CATEGORY = "category",
+  SUB_CATEGORY = "subCategory",
+  SUB_SUB_CATEGORY = "subSubcategory",
+  PRINT_GROUP = "printGroup",
+}

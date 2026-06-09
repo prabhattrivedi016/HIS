@@ -9,10 +9,11 @@ import { SelectItem, SubSubCategoryItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import debounce from "lodash/debounce";
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useMemo, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select from "react-select";
 import { SubCategoryListItem } from "../labInvestigationMaster/types";
+import AddServiceMaster from "./components/AddServiceMaster";
 import { CategoryItem, ServiceTableItem } from "./types";
 
 const ServiceMaster = () => {
@@ -26,6 +27,11 @@ const ServiceMaster = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategory, setSelectedSubcategory] = useState<SelectItem | null>(null);
   const [selectedSubSubCategory, setSelectedSubSubCategory] = useState<SelectItem | null>(null);
+  const [selectedItemToEdit, setSelectedItemToEdit] = useState<ServiceTableItem | null>(null);
+
+  const [renderAddService, setRenderAddService] = useState<boolean>(false);
+  const [openAddService, setOpenAddService] = useState<boolean>(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // get categoryLists
   const getCategories = async () => {
@@ -213,6 +219,26 @@ const ServiceMaster = () => {
     showSuccess(resp?.message ?? "Data saved successfully");
   };
 
+  // edit handler
+  const editHandler = (item: ServiceTableItem | null) => {
+    setOpenAddService(true);
+    setRenderAddService(true);
+    setSelectedItemToEdit(item);
+  };
+
+  // close add service drawer
+  const closeServiceDrawer = useCallback(() => {
+    setOpenAddService(false);
+    setSelectedItemToEdit(null);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      setRenderAddService(false);
+    }, 100);
+  }, []);
+
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -229,9 +255,9 @@ const ServiceMaster = () => {
           </nav>
         </div>
 
-        {/* <button className="save-btn whitespace-nowrap" onClick={addNewInvestigation}>
-          Add New Lab Investigation
-        </button> */}
+        <button className="save-btn whitespace-nowrap" onClick={() => editHandler(null)}>
+          Add New Service
+        </button>
       </div>
 
       {/* Investigation Form */}
@@ -252,51 +278,31 @@ const ServiceMaster = () => {
           </InputField>
 
           <InputField label="Sub Category" required>
-            <div className="flex gap-2 items-center">
-              <Select
-                value={selectedSubcategory}
-                options={subCategorySelectOption}
-                placeholder="Select sub category"
-                isSearchable
-                isClearable
-                onChange={(option: any) => subCategorySelectHandler(option)}
-                styles={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-
-              <button
-                type="button"
-                className="-mt-1"
-                // onClick={() => openPopupHandler("subCategory")}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl active:scale-95 "></i>
-              </button>
-            </div>
+            <Select
+              value={selectedSubcategory}
+              options={subCategorySelectOption}
+              placeholder="Select sub category"
+              isSearchable
+              isClearable
+              onChange={(option: any) => subCategorySelectHandler(option)}
+              styles={SelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
           </InputField>
 
           <InputField label="Sub Sub Category" required>
-            <div className="flex gap-2 items-center">
-              <Select
-                value={selectedSubSubCategory}
-                options={subSubCategorySelectOption}
-                placeholder="Select sub sub category"
-                isSearchable
-                isClearable
-                onChange={(option: any) => subSubCategorySelectHandler(option)}
-                styles={SelectStyles}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-
-              <button
-                type="button"
-                className="-mt-1"
-                // onClick={() => openPopupHandler("subCategory")}
-              >
-                <i className="fa-solid fa-circle-plus fa-xl active:scale-95 "></i>
-              </button>
-            </div>
+            <Select
+              value={selectedSubSubCategory}
+              options={subSubCategorySelectOption}
+              placeholder="Select sub sub category"
+              isSearchable
+              isClearable
+              onChange={(option: any) => subSubCategorySelectHandler(option)}
+              styles={SelectStyles}
+              menuPortalTarget={document.body}
+              menuPosition="fixed"
+            />
           </InputField>
 
           <InputField label="Service Name" required>
@@ -310,7 +316,7 @@ const ServiceMaster = () => {
         </div>
       </div>
 
-      {/*  */}
+      {/* table */}
       {!!serviceTableList && showTable ? (
         <div className="table-container ">
           <div className="table-scroll-wrapper ">
@@ -352,9 +358,9 @@ const ServiceMaster = () => {
                         </td>
 
                         <td className="table-td">
-                          {/* <button type="button" onClick={() => editHandler(item)}> */}
-                          <i className="fa-solid fa-edit icon-color-button" />
-                          {/* </button> */}
+                          <button type="button" onClick={() => editHandler(item)}>
+                            <i className="fa-solid fa-edit icon-color-button" />
+                          </button>
                         </td>
                         <td className="table-td">
                           <div onClick={e => e.stopPropagation()}>
@@ -374,6 +380,15 @@ const ServiceMaster = () => {
         </div>
       ) : (
         <></>
+      )}
+
+      {/* drawer add service */}
+      {!!renderAddService && (
+        <AddServiceMaster
+          isOpen={openAddService}
+          onClose={closeServiceDrawer}
+          data={selectedItemToEdit}
+        />
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}

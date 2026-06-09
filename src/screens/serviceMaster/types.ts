@@ -48,4 +48,6 @@ type ServiceTableItem = {
   isTeleConsultationService: number;
 };
 
-export type { CategoryItem, ServiceTableItem };
+type CategoryTypeItem = { categoryTypeId: number; categoryTypeName: string };
+
+export type { CategoryItem, CategoryTypeItem, ServiceTableItem };
