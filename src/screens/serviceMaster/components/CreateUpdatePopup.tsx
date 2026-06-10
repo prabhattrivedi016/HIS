@@ -5,6 +5,8 @@ import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName, Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { SelectItem } from "@/types";
+import { allowOnlyText } from "@/utils/inputValidationHandler";
 import {
   CreateUpdateCategoryFormItem,
   createUpdateCategorySchema,
@@ -15,7 +17,15 @@ import {
 } from "@/validation/serviceMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { QueryObserverResult, useQuery } from "@tanstack/react-query";
-import React, { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import {
@@ -33,19 +43,34 @@ const CreateUpdatePopup = ({
   onClose,
   popupName,
   categoryData,
+  resetCategoryId,
+  resetCategory,
   onCategoryUpdate,
   subCategoryData,
+  resetSubCategoryOption,
+  resetSubCategoryValue,
+  onSubCategoryUpdate,
   subSubCategoryData,
-  refreshSubCategory,
+  resetSubSubCategoryOption,
+  resetSubSubCategory,
+  onSubSubCategoryUpdate,
 }: {
   isOpen: boolean;
   onClose: () => void;
   popupName: string;
   categoryData?: CategoryItem | null;
+  resetCategoryId: Dispatch<SetStateAction<number>>;
+  resetCategory: Dispatch<SetStateAction<CategoryItem | null>>;
   onCategoryUpdate: () => Promise<QueryObserverResult<any, Error>>;
   subCategoryData?: SubCategoryItem;
-  subSubCategoryData?: SubSubCategoryItem;
   refreshSubCategory?: () => Promise<void>;
+  resetSubCategoryOption?: Dispatch<SetStateAction<SelectItem | null>>;
+  resetSubCategoryValue?: Dispatch<SetStateAction<SubCategoryItem | null>>;
+  onSubCategoryUpdate?: () => Promise<QueryObserverResult<any, Error>>;
+  subSubCategoryData?: SubSubCategoryItem | null;
+  resetSubSubCategoryOption?: Dispatch<SetStateAction<SelectItem | null>>;
+  resetSubSubCategory?: Dispatch<SetStateAction<SubSubCategoryItem | null>>;
+  onSubSubCategoryUpdate?: () => Promise<QueryObserverResult<any, Error>>;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const categoryButtonTitle = categoryData === null ? "Create" : "Update";
@@ -62,13 +87,58 @@ const CreateUpdatePopup = ({
   const [selectPrintGroupId, setSelectedPrintGroupId] = useState<number>(0);
   const [selectedPrintGroup, setSelectedPrintGroup] = useState<PrintGroupItem | null>(null);
 
-  // popup handler
-  const openPopupHandler = (popupName: string) => {
-    console.log("popup name", popupName);
-    setOpenPrintPopup(true);
-    setRenderPrintPopup(true);
-    setPrintName(popupName);
+  // category type list
+  const getCategoryTypeList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CATEGORY_TYPE_LIST,
+      {},
+      { params: { categoryTypeIds: "8,2,1,4,5,10,9" } },
+      { component: "CreateUpdatePopup" }
+    );
+    return resp?.data ?? [];
   };
+
+  const { data: categoryType = [] } = useQuery({
+    queryKey: ["getCategoryTypeList"],
+    queryFn: getCategoryTypeList,
+  });
+
+  // print group list
+  const getPrintGroup = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PRINT_GROUP_MASTER,
+      {},
+      {},
+      { component: "CreateUpdatePopup" }
+    );
+    return resp?.data ?? [];
+  };
+
+  const { data: printGroupList = [], refetch } = useQuery({
+    queryKey: ["getPrintGroup"],
+    queryFn: getPrintGroup,
+  });
+
+  // doctor department list
+  const getDoctorDepartmentList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_DEPARTMENT_LIST,
+      {},
+      {
+        params: { isActive: Status?.ACTIVE },
+      },
+      { component: "CreateUpdatePopup" }
+    );
+    return resp?.data ?? [];
+  };
+
+  const { data: doctorDepartmentList = [] } = useQuery({
+    queryKey: ["getDoctorDepartmentList"],
+    queryFn: getDoctorDepartmentList,
+  });
 
   // form schema
   const categoryForm = useForm({
@@ -86,7 +156,7 @@ const CreateUpdatePopup = ({
     defaultValues: {
       subCategoryId: 0,
       subCategoryName: "",
-      categoryId: 0,
+      categoryId: categoryData?.categoryId,
       labTypeId: 0,
       labType: "",
     },
@@ -97,7 +167,7 @@ const CreateUpdatePopup = ({
     defaultValues: {
       subSubCategoryId: 0,
       subSubCategoryName: "",
-      subCategoryId: 0,
+      subCategoryId: subCategoryData?.subCategoryId,
       printGroupId: 0,
       departmentId: 0,
     },
@@ -115,9 +185,9 @@ const CreateUpdatePopup = ({
     const category = categoryType.find(
       (c: CategoryTypeItem) => c?.categoryTypeId === categoryData?.categoryTypeId
     );
-    categoryForm.setValue("categoryTypeId", category?.categoryTypeId!);
-    categoryForm.setValue("categoryTypeName", category?.categoryTypeName!);
-  }, [popupName, categoryData, categoryForm?.reset]);
+    categoryForm.setValue("categoryTypeId", category?.categoryTypeId);
+    categoryForm.setValue("categoryTypeName", category?.categoryTypeName);
+  }, [popupName, categoryData, categoryType, categoryForm?.reset]);
 
   // sub category
   useEffect(() => {
@@ -133,50 +203,22 @@ const CreateUpdatePopup = ({
 
   // sub sub category
   useEffect(() => {
-    if (popupName !== ServiceMasterPopupName?.SUB_SUB_CATEGORY) return;
-    subSubCategoryForm?.reset({
+    if (popupName !== ServiceMasterPopupName.SUB_SUB_CATEGORY) return;
+
+    subSubCategoryForm.reset({
       subSubCategoryId: subSubCategoryData?.subSubCategoryId ?? 0,
       subSubCategoryName: subSubCategoryData?.subSubCategoryName ?? "",
-      subCategoryId: subSubCategoryData?.subCategoryId ?? 0,
+      subCategoryId: subSubCategoryData?.subCategoryId ?? subCategoryData?.subCategoryId ?? 0,
       printGroupId: subSubCategoryData?.printGroupId ?? 0,
       departmentId: subSubCategoryData?.departmentId ?? 0,
     });
-  }, [popupName, subSubCategoryData, subSubCategoryForm?.reset]);
-
-  // category type list
-  const getCategoryTypeList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_CATEGORY_TYPE_LIST,
-      {},
-      {},
-      { component: "CreateUpdatePopup" }
+    subSubCategoryForm?.setValue("printGroupId", Number(subSubCategoryData?.printGroupId));
+    const selected = printGroupList?.find(
+      (p: PrintGroupItem) => p?.PrintGroupId === subSubCategoryData?.printGroupId
     );
-    return resp?.data ?? [];
-  };
-
-  const { data: categoryType = [] } = useQuery({
-    queryKey: ["getCategoryTypeList"],
-    queryFn: getCategoryTypeList,
-  });
-
-  // print group li
-  const getPrintGroup = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_PRINT_GROUP_MASTER,
-      {},
-      {},
-      { component: "CreateUpdatePopup" }
-    );
-    console.log("resp of print group", resp?.data);
-    return resp?.data ?? [];
-  };
-
-  const { data: printGroupList = [], refetch } = useQuery({
-    queryKey: ["getPrintGroup"],
-    queryFn: getPrintGroup,
-  });
+    setSelectedPrintGroup(selected);
+    setSelectedPrintGroupId(selected?.PrintGroupId ?? 0);
+  }, [popupName, subSubCategoryData, subCategoryData]);
 
   // category type select handler
   const categoryTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -200,7 +242,9 @@ const CreateUpdatePopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
-    onCategoryUpdate?.();
+    resetCategoryId?.(0);
+    resetCategory?.(null);
+    await onCategoryUpdate?.();
     setTimeout(() => {
       categoryForm.reset({
         categoryId: 0,
@@ -226,11 +270,14 @@ const CreateUpdatePopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
+    resetSubCategoryOption?.(null);
+    resetSubCategoryValue?.(null);
+    await onSubCategoryUpdate?.();
     setTimeout(() => {
       subCategoryForm.reset({
         subCategoryId: 0,
         subCategoryName: "",
-        categoryId: 0,
+        categoryId: categoryData?.categoryId,
         labTypeId: 0,
         labType: "",
       });
@@ -238,42 +285,93 @@ const CreateUpdatePopup = ({
     }, 500);
   };
 
-  // doctor department list
-  const getDoctorDepartmentList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_DOCTOR_DEPARTMENT_LIST,
-      {},
-      {
-        params: { isActive: Status?.ACTIVE },
-      },
-      { component: "CreateUpdatePopup" }
-    );
-    console.log("resp of doctor department", resp?.data);
-    return resp?.data ?? [];
-  };
-
-  const { data: doctorDepartmentList = [] } = useQuery({
-    queryKey: ["getDoctorDepartmentList"],
-    queryFn: getDoctorDepartmentList,
-  });
-
   // print group select handler
   const printGroupSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
     if (!value) {
       setSelectedPrintGroupId(0);
       setSelectedPrintGroup(null);
+      subSubCategoryForm?.setValue("printGroupId", 0);
       return;
     }
     setSelectedPrintGroupId(value);
+    subSubCategoryForm?.setValue("printGroupId", value);
+
     const print = printGroupList?.find((p: PrintGroupItem) => p?.PrintGroupId === value);
     setSelectedPrintGroup(print);
   };
 
-  // sub category submit handler
-  const subSubcategorySubmitHandler = (formData: CreateUpdateSubSubCategoryFormItem) => {
-    console.log("form", formData);
+  // sub sub category submit handler
+  const subSubcategorySubmitHandler = async (formData: CreateUpdateSubSubCategoryFormItem) => {
+    const payload = {
+      ...formData,
+      subCategoryId: subCategoryData?.subCategoryId ?? 0,
+    };
+
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_SUB_SUB_CATEGORY,
+      payload,
+      {},
+      { component: "CreateUpdatePopup" }
+    );
+    if (!resp?.result) {
+      setErrorMessage(resp?.message ?? "Failed to update category");
+      return;
+    }
+    setSuccessMessage(resp?.message ?? "Data saved successfully");
+    resetSubSubCategoryOption?.(null);
+    resetSubSubCategory?.(null);
+    await onSubSubCategoryUpdate?.();
+    setTimeout(() => {
+      subSubCategoryForm.reset({
+        subSubCategoryId: 0,
+        subSubCategoryName: "",
+        subCategoryId: subCategoryData?.subCategoryId,
+        printGroupId: 0,
+        departmentId: 0,
+      });
+      onClose();
+    }, 500);
+  };
+
+  // category cancel handler
+  const categoryCancelHandler = () => {
+    categoryForm?.reset({
+      categoryId: 0,
+      categoryName: "",
+      categoryTypeId: 0,
+      categoryTypeName: "",
+    });
+  };
+
+  // sub category cancel handler
+  const subCategoryCancelHandler = () => {
+    subCategoryForm?.reset({
+      subCategoryId: 0,
+      subCategoryName: "",
+      categoryId: categoryData?.categoryId,
+      labTypeId: 0,
+      labType: "",
+    });
+  };
+
+  // sub sub category cancel handler
+  const subSubCategoryCancelHandler = () => {
+    subSubCategoryForm?.reset({
+      subSubCategoryId: 0,
+      subSubCategoryName: "",
+      subCategoryId: subCategoryData?.subCategoryId,
+      printGroupId: 0,
+      departmentId: 0,
+    });
+  };
+
+  // popup handler
+  const openPopupHandler = (popupName: string) => {
+    setOpenPrintPopup(true);
+    setRenderPrintPopup(true);
+    setPrintName(popupName);
   };
 
   // render component
@@ -291,7 +389,13 @@ const CreateUpdatePopup = ({
         return (
           <form onSubmit={handleSubmit(categorySubmitHandler)}>
             <InputField label="Category Name" required>
-              <input type="text" className="input-field" {...register("categoryName")} />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter category name"
+                {...register("categoryName")}
+                onInput={allowOnlyText}
+              />
               {errors.categoryName && (
                 <p className="input-field-error">{errors.categoryName.message}</p>
               )}
@@ -320,7 +424,7 @@ const CreateUpdatePopup = ({
                 {categoryButtonTitle}
               </button>
 
-              <button type="button" className="cancel-button">
+              <button type="button" className="cancel-button" onClick={categoryCancelHandler}>
                 Cancel
               </button>
             </div>
@@ -339,7 +443,13 @@ const CreateUpdatePopup = ({
         return (
           <form onSubmit={handleSubmit(subcategorySubmitHandler)}>
             <InputField label="Sub Category Name" required>
-              <input type="text" className="input-field" {...register("subCategoryName")} />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter sub category name"
+                {...register("subCategoryName")}
+                onInput={allowOnlyText}
+              />
               {errors.subCategoryName && (
                 <p className="input-field-error">{errors.subCategoryName.message}</p>
               )}
@@ -350,7 +460,7 @@ const CreateUpdatePopup = ({
                 {subCategoryButtonTitle}
               </button>
 
-              <button type="button" className="cancel-button">
+              <button type="button" className="cancel-button" onClick={subCategoryCancelHandler}>
                 Cancel
               </button>
             </div>
@@ -369,14 +479,20 @@ const CreateUpdatePopup = ({
         return (
           <form onSubmit={handleSubmit(subSubcategorySubmitHandler)}>
             <InputField label="Sub Sub Category Name" required>
-              <input type="text" className="input-field" />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Enter sub sub category name"
+                {...register("subSubCategoryName")}
+                onInput={allowOnlyText}
+              />
               {errors.subSubCategoryName && (
                 <p className="input-field-error">{errors.subSubCategoryName.message}</p>
               )}
             </InputField>
 
             <InputField label="Revenue Department" required>
-              <select className="input-field">
+              <select className="input-field" {...register("departmentId")}>
                 <option value={0}>Select Revenue Department</option>
                 {doctorDepartmentList?.map((d: DoctorDepartmentList) => (
                   <option key={d?.departmentId} value={d?.departmentId}>
@@ -421,7 +537,7 @@ const CreateUpdatePopup = ({
                 {subSubCategoryButtonTitle}
               </button>
 
-              <button type="button" className="cancel-button">
+              <button type="button" className="cancel-button" onClick={subSubCategoryCancelHandler}>
                 Cancel
               </button>
             </div>

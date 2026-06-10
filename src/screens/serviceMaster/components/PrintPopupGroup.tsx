@@ -33,7 +33,7 @@ const PrintPopup = React.memo(
     data: PrintGroupItem | null;
     refreshData: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<any, Error>>;
     resetPrintGroupId: Dispatch<SetStateAction<number>>;
-    resetData: Dispatch<SetStateAction<null>>;
+    resetData: Dispatch<SetStateAction<PrintGroupItem | null>>;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
     const buttonTitle = data ? "Update" : "Create";
@@ -133,6 +133,7 @@ const PrintPopup = React.memo(
               <input
                 type="text"
                 className="input-field"
+                placeholder="Enter print group name"
                 {...register("printGroupName")}
                 onInput={allowOnlyText}
               />
@@ -145,6 +146,7 @@ const PrintPopup = React.memo(
               <input
                 className="input-field"
                 type="text"
+                placeholder="Enter print order"
                 onInput={allowOnlyNumbers}
                 {...register("printOrder")}
               />

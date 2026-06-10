@@ -7,6 +7,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { SubCategoryListItem } from "@/screens/labInvestigationMaster/types";
 import { SelectItem } from "@/types";
+import { showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import React, { ChangeEvent, useCallback, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -21,7 +22,7 @@ const AddServiceMaster = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  data: ServiceTableItem;
+  data: ServiceTableItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const buttonTitle = data ? "Update" : "Create";
@@ -68,6 +69,10 @@ const AddServiceMaster = ({
         return;
       }
       case ServiceMasterPopupName?.SUB_CATEGORY: {
+        if (!selectedCategory?.categoryId || !categoryId) {
+          showWarning("Please select category first!");
+          return;
+        }
         setPopupName(ServiceMasterPopupName?.SUB_CATEGORY);
         setOpenPopup(true);
         setRenderPopup(true);
@@ -75,6 +80,10 @@ const AddServiceMaster = ({
       }
 
       case ServiceMasterPopupName?.SUB_SUB_CATEGORY: {
+        if (!selectSubCategory?.subCategoryId || !selectSubCategoryValue?.value) {
+          showWarning("Please select category & sub category first!");
+          return;
+        }
         setPopupName(ServiceMasterPopupName?.SUB_SUB_CATEGORY);
         setOpenPopup(true);
         setRenderPopup(true);
@@ -130,7 +139,7 @@ const AddServiceMaster = ({
     return resp?.data ?? [];
   };
 
-  const { data: subCategoryList = [] } = useQuery({
+  const { data: subCategoryList = [], refetch: refetchSubCategory } = useQuery({
     queryKey: ["fetchSubCategory", categoryId],
     queryFn: () => getSubCategory(categoryId),
     enabled: categoryId > 0,
@@ -168,11 +177,10 @@ const AddServiceMaster = ({
         component: "LabInvestigationMaster",
       }
     );
-    console.log("resp of sub sub category", resp?.data);
     return resp?.data ?? [];
   };
 
-  const { data: subSubCategoryList = [] } = useQuery({
+  const { data: subSubCategoryList = [], refetch: refetchSubSubCategory } = useQuery({
     queryKey: ["getSubSubCategory", selectSubCategoryValue?.value],
     queryFn: () => getSubSubCategory(Number(selectSubCategoryValue?.value)),
     enabled: selectSubCategoryValue?.value! > 0,
@@ -325,9 +333,17 @@ const AddServiceMaster = ({
           onClose={closePopupHandler}
           popupName={popupName}
           categoryData={selectedCategory}
+          resetCategoryId={setCategoryId}
+          resetCategory={setSelectedCategory}
           onCategoryUpdate={refetch}
           subCategoryData={selectSubCategory!}
+          resetSubCategoryOption={setSelectSubCategoryValue}
+          resetSubCategoryValue={setSelectSubCategory}
+          onSubCategoryUpdate={refetchSubCategory}
           subSubCategoryData={selectSubSubCategory}
+          resetSubSubCategoryOption={setSubSelectSubCategoryValue}
+          resetSubSubCategory={setSelectSubSubCategory}
+          onSubSubCategoryUpdate={refetchSubSubCategory}
         />
       )}
 
