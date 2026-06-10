@@ -50,4 +50,37 @@ type ServiceTableItem = {
 
 type CategoryTypeItem = { categoryTypeId: number; categoryTypeName: string };
 
-export type { CategoryItem, CategoryTypeItem, ServiceTableItem };
+type SubCategoryItem = {
+  categoryId: number;
+  subCategoryId: number;
+  subCategoryName: string;
+  labTypeId: number;
+};
+
+type SubSubCategoryItem = {
+  subCategoryId: number;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+  printGroupId: number;
+  departmentId: number;
+};
+
+type DoctorDepartmentList = {
+  departmentId: number;
+  department: string;
+  departmentTypeId: number;
+  departmentType: string;
+  isActive: number;
+};
+
+type PrintGroupItem = { PrintGroupId: number; PrintGroupName: string; PrintOrder: number };
+
+export type {
+  CategoryItem,
+  CategoryTypeItem,
+  DoctorDepartmentList,
+  PrintGroupItem,
+  ServiceTableItem,
+  SubCategoryItem,
+  SubSubCategoryItem,
+};

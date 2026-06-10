@@ -34,7 +34,10 @@ export type CreateUpdateSubSubCategoryFormItem = yup.InferType<
 export const createUpdatePrintGroupSchema = yup.object().shape({
   printGroupId: yup.number().nullable(),
   printGroupName: yup.string().required("Print group name is required"),
-  printOrder: yup.number().min(1, "Print order is required").required("Print order is required"),
+  printOrder: yup
+    .number()
+    .min(1, "Print order must be greater than 0")
+    .required("Print order must be greater than 0"),
 });
 
 export type CreateUpdatePrintGroupFormItem = yup.InferType<typeof createUpdatePrintGroupSchema>;

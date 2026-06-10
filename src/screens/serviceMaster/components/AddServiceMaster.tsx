@@ -1,13 +1,17 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import { SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { SubCategoryListItem } from "@/screens/labInvestigationMaster/types";
+import { SelectItem } from "@/types";
 import { useQuery } from "@tanstack/react-query";
-import React, { ChangeEvent, useCallback, useRef, useState } from "react";
+import React, { ChangeEvent, useCallback, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CategoryItem, ServiceTableItem } from "../types";
+import Select from "react-select";
+import { CategoryItem, ServiceTableItem, SubCategoryItem, SubSubCategoryItem } from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
 
 const AddServiceMaster = ({
@@ -26,8 +30,16 @@ const AddServiceMaster = ({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popupName, setPopupName] = useState<string>("");
 
-  const [categoryId, setCategoryId] = useState<Number>(0);
-  const [selectedData, setSelectedData] = useState<CategoryItem | null>(null);
+  const [categoryId, setCategoryId] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
+
+  const [selectSubCategory, setSelectSubCategory] = useState<SubCategoryItem | null>(null);
+  const [selectSubCategoryValue, setSelectSubCategoryValue] = useState<SelectItem | null>(null);
+
+  const [selectSubSubCategory, setSelectSubSubCategory] = useState<SubSubCategoryItem | null>(null);
+  const [selectSubSubCategoryValue, setSubSelectSubCategoryValue] = useState<SelectItem | null>(
+    null
+  );
 
   // get categoryLists
   const getCategories = async () => {
@@ -38,7 +50,7 @@ const AddServiceMaster = ({
       { params: { categoryTypeIds: "8,2,1,4,5,10,9" } },
       { component: "ServiceMaster" }
     );
-    return resp?.data;
+    return resp?.data ?? [];
   };
 
   const { data: categoryList = [], refetch } = useQuery({
@@ -88,16 +100,107 @@ const AddServiceMaster = ({
   // category select handler
   const categorySelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
-    if (!value) {
+    if (!value || value === 0) {
       setCategoryId(0);
-      setSelectedData(null);
+      setSelectedCategory(null);
+      setSelectSubCategory(null);
+      setSelectSubCategoryValue(null);
       return;
     }
     setCategoryId(value);
     const category = categoryList?.find((c: CategoryItem) => c?.categoryId === value);
-    setSelectedData(category);
+    setSelectedCategory(category);
+    setSelectSubCategoryValue(null);
   };
 
+  // sub category
+  const getSubCategory = async (id: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_CATEGORY_LIST,
+      {},
+      {
+        params: {
+          categoryIds: id,
+        },
+      },
+      { component: "LabInvestigationMaster" }
+    );
+
+    return resp?.data ?? [];
+  };
+
+  const { data: subCategoryList = [] } = useQuery({
+    queryKey: ["fetchSubCategory", categoryId],
+    queryFn: () => getSubCategory(categoryId),
+    enabled: categoryId > 0,
+  });
+
+  const subCategorySelectOption = useMemo(() => {
+    return (
+      subCategoryList?.map((d: SubCategoryListItem) => ({
+        label: d?.subCategoryName,
+        value: d?.subCategoryId,
+      })) || []
+    );
+  }, [subCategoryList]);
+
+  // sub category select handler
+  const subCategorySelectHandler = (option: SelectItem) => {
+    if (!option) return;
+    setSelectSubCategoryValue(option);
+    const selected = subCategoryList?.find(
+      (s: SubCategoryItem) => s?.subCategoryId === Number(option?.value)
+    );
+    setSelectSubCategory(selected);
+  };
+
+  // sub sub category
+
+  const getSubSubCategory = async (subCategoryIds: number) => {
+    if (!subCategoryIds) return;
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
+      {},
+      { params: { subCategoryIds } },
+      {
+        component: "LabInvestigationMaster",
+      }
+    );
+    console.log("resp of sub sub category", resp?.data);
+    return resp?.data ?? [];
+  };
+
+  const { data: subSubCategoryList = [] } = useQuery({
+    queryKey: ["getSubSubCategory", selectSubCategoryValue?.value],
+    queryFn: () => getSubSubCategory(Number(selectSubCategoryValue?.value)),
+    enabled: selectSubCategoryValue?.value! > 0,
+  });
+
+  const subSubCategorySelectOption = useMemo<SelectItem[]>(() => {
+    return (
+      subSubCategoryList?.map((d: SubSubCategoryItem) => ({
+        label: d?.subSubCategoryName,
+        value: d?.subSubCategoryId,
+      })) || []
+    );
+  }, [subSubCategoryList]);
+
+  // sub sub category select handler
+  const subSubCategorySelectHandler = (option: SelectItem) => {
+    if (!option) {
+      setSelectSubSubCategory(null);
+      setSubSelectSubCategoryValue(null);
+      return;
+    }
+
+    setSubSelectSubCategoryValue(option);
+    const selected = subSubCategoryList?.find(
+      (s: SubSubCategoryItem) => s?.subSubCategoryId === Number(option?.value)
+    );
+    setSelectSubSubCategory(selected);
+  };
   useScrollLock(isOpen);
 
   return createPortal(
@@ -146,7 +249,17 @@ const AddServiceMaster = ({
 
                 <InputField label="Sub Category">
                   <div className="flex gap-2 items-center">
-                    <input className="input-field" />
+                    <Select
+                      value={selectSubCategoryValue}
+                      options={subCategorySelectOption}
+                      placeholder="Select sub category"
+                      isSearchable
+                      isClearable
+                      onChange={(option: any) => subCategorySelectHandler(option)}
+                      styles={SelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
                     <button
                       type="button"
                       className="-mt-1"
@@ -159,7 +272,17 @@ const AddServiceMaster = ({
 
                 <InputField label="Sub Sub Category">
                   <div className="flex gap-2 items-center">
-                    <input className="input-field" />
+                    <Select
+                      value={selectSubSubCategoryValue}
+                      options={subSubCategorySelectOption}
+                      placeholder="Select sub category"
+                      isSearchable
+                      isClearable
+                      onChange={(option: any) => subSubCategorySelectHandler(option)}
+                      styles={SelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
                     <button
                       type="button"
                       className="-mt-1"
@@ -201,8 +324,10 @@ const AddServiceMaster = ({
           isOpen={openPopup}
           onClose={closePopupHandler}
           popupName={popupName}
-          data={selectedData}
+          categoryData={selectedCategory}
           onCategoryUpdate={refetch}
+          subCategoryData={selectSubCategory!}
+          subSubCategoryData={selectSubSubCategory}
         />
       )}
 

@@ -344,7 +344,6 @@ const AddLabInvestigation = ({
       { params: { subCategoryIds: id } },
       {
         component: "LabInvestigationMaster",
-        silent: true,
       }
     );
 
