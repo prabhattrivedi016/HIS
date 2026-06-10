@@ -329,6 +329,8 @@ const ENDPOINTS = {
   // service master
   GET_CATEGORY_TYPE_LIST: "Home/getCategoryTypeList",
   CREATE_UPDATE_CATEGORY: "Home/createUpdateCategory",
+  GET_PRINT_GROUP_MASTER: "Admin/getPrintGroupMaster",
+  CREATE_UPDATE_PRINT_GROUP_MASTER: "Admin/createUpdatePrintGroupMaster",
 };
 
 export { ENDPOINTS };
