@@ -440,4 +440,5 @@ export enum ServiceMasterPopupName {
   SUB_CATEGORY = "subCategory",
   SUB_SUB_CATEGORY = "subSubcategory",
   PRINT_GROUP = "printGroup",
+  REVENUE_DEPARTMENT = "revenueDepartment",
 }

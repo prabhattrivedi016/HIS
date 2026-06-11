@@ -41,3 +41,49 @@ export const createUpdatePrintGroupSchema = yup.object().shape({
 });
 
 export type CreateUpdatePrintGroupFormItem = yup.InferType<typeof createUpdatePrintGroupSchema>;
+
+export const createUpdateServiceMasterSchema = yup.object().shape({
+  serviceItemId: yup.number().nullable(),
+  categoryId: yup.number().min(1, "Category is required").required("Category is required"),
+  subCategoryId: yup
+    .number()
+    .min(1, "Sub category is required")
+    .required("Sub category is required"),
+  subSubCategoryId: yup
+    .number()
+    .min(1, "Sub sub category is required")
+    .required("Sub sub category is required"),
+  name: yup.string().required("Service name is required"),
+  code: yup.string().nullable(),
+  roomTypeId: yup.number().nullable(),
+  roomType: yup.string().nullable(),
+  isICU: yup.number().nullable(),
+  gstPer: yup.number().nullable(),
+  snomedCode: yup.string().nullable(),
+  opdConsultationTypeId: yup.number().nullable(),
+  opdConsultationType: yup.string().nullable(),
+  isOnlineConsultationAllow: yup.number().nullable(),
+  isTeleConsultationService: yup.number().nullable(),
+  isActive: yup.number().nullable(),
+});
+
+export type createUpdateServiceMasterFormItem = yup.InferType<
+  typeof createUpdateServiceMasterSchema
+>;
+
+export const doctorDepartmentSchema = yup.object().shape({
+  departmentId: yup.number().nullable(),
+
+  department: yup.string().required("Department is required"),
+
+  departmentTypeId: yup
+    .number()
+    .min(0, "Department type is required")
+    .required("Department type is required"),
+
+  departmentType: yup.string().required("Department type is required"),
+
+  isActive: yup.number().required("Status is required"),
+});
+
+export type createUpdateDoctorDepartmentFormItem = yup.InferType<typeof doctorDepartmentSchema>;
