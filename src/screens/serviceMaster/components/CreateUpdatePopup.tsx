@@ -36,6 +36,7 @@ import {
   SubCategoryItem,
   SubSubCategoryItem,
 } from "../types";
+import DoctorDepartmentPopup from "./DoctorDepartmentPopup";
 import PrintPopup from "./PrintPopupGroup";
 
 const CreateUpdatePopup = ({
@@ -87,6 +88,11 @@ const CreateUpdatePopup = ({
   const [selectPrintGroupId, setSelectedPrintGroupId] = useState<number>(0);
   const [selectedPrintGroup, setSelectedPrintGroup] = useState<PrintGroupItem | null>(null);
 
+  const [openDoctorDepartmentPopup, setOpenDoctorDepartmentPopup] = useState<boolean>(false);
+  const [renderDoctorDepartmentPopup, setRenderDoctorDepartmentPopup] = useState<boolean>(false);
+  const [selectedDoctorDepartment, setSelectedDoctorDepartment] =
+    useState<DoctorDepartmentList | null>(null);
+
   // category type list
   const getCategoryTypeList = async () => {
     const resp = await fetchApi(
@@ -135,7 +141,7 @@ const CreateUpdatePopup = ({
     return resp?.data ?? [];
   };
 
-  const { data: doctorDepartmentList = [] } = useQuery({
+  const { data: doctorDepartmentList = [], refetch: refetchDoctorDepartment } = useQuery({
     queryKey: ["getDoctorDepartmentList"],
     queryFn: getDoctorDepartmentList,
   });
@@ -218,7 +224,13 @@ const CreateUpdatePopup = ({
     );
     setSelectedPrintGroup(selected);
     setSelectedPrintGroupId(selected?.PrintGroupId ?? 0);
-  }, [popupName, subSubCategoryData, subCategoryData]);
+
+    const selectedDepartment = doctorDepartmentList?.find(
+      (d: DoctorDepartmentList) =>
+        Number(d?.departmentId) === Number(subSubCategoryData?.departmentId)
+    );
+    setSelectedDoctorDepartment(selectedDepartment);
+  }, [popupName, subSubCategoryData, subCategoryData, doctorDepartmentList]);
 
   // category type select handler
   const categoryTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -369,9 +381,35 @@ const CreateUpdatePopup = ({
 
   // popup handler
   const openPopupHandler = (popupName: string) => {
-    setOpenPrintPopup(true);
-    setRenderPrintPopup(true);
-    setPrintName(popupName);
+    switch (popupName) {
+      case ServiceMasterPopupName?.PRINT_GROUP: {
+        setOpenPrintPopup(true);
+        setRenderPrintPopup(true);
+        setPrintName(popupName);
+        return;
+      }
+      case ServiceMasterPopupName?.REVENUE_DEPARTMENT: {
+        setOpenDoctorDepartmentPopup(true);
+        setRenderDoctorDepartmentPopup(true);
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
+  // doctor department handler
+  const doctorDepartmentChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+
+    if (value === 0) {
+      setSelectedDoctorDepartment(null);
+      return;
+    }
+    const selected = doctorDepartmentList?.find(
+      (d: DoctorDepartmentList) => d?.departmentId === value
+    );
+    setSelectedDoctorDepartment(selected);
   };
 
   // render component
@@ -492,17 +530,30 @@ const CreateUpdatePopup = ({
             </InputField>
 
             <InputField label="Revenue Department" required>
-              <select className="input-field" {...register("departmentId")}>
-                <option value={0}>Select Revenue Department</option>
-                {doctorDepartmentList?.map((d: DoctorDepartmentList) => (
-                  <option key={d?.departmentId} value={d?.departmentId}>
-                    {d?.department}
-                  </option>
-                ))}
-              </select>
-              {errors.departmentId && (
-                <p className="input-field-error">{errors.departmentId.message}</p>
-              )}
+              <div className="flex gap-2 items-center">
+                <select
+                  className="input-field"
+                  {...register("departmentId")}
+                  onChange={doctorDepartmentChangeHandler}
+                >
+                  <option value={0}>Select Revenue Department</option>
+                  {doctorDepartmentList?.map((d: DoctorDepartmentList) => (
+                    <option key={d?.departmentId} value={d?.departmentId}>
+                      {d?.department}
+                    </option>
+                  ))}
+                </select>
+                {errors.departmentId && (
+                  <p className="input-field-error">{errors.departmentId.message}</p>
+                )}
+                <button
+                  type="button"
+                  className="-mt-1"
+                  onClick={() => openPopupHandler(ServiceMasterPopupName?.REVENUE_DEPARTMENT)}
+                >
+                  <i className="fa-solid fa-circle-plus add-popup-icon"></i>
+                </button>
+              </div>
             </InputField>
 
             <InputField label="Print Group" required>
@@ -562,6 +613,18 @@ const CreateUpdatePopup = ({
     }, 100);
   }, []);
 
+  // close doctor department handler
+  const closeDoctorDepartmentHandler = useCallback(() => {
+    setOpenDoctorDepartmentPopup(false);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      setRenderDoctorDepartmentPopup(false);
+    }, 100);
+  }, []);
+
   useScrollLock(isOpen);
 
   return createPortal(
@@ -605,6 +668,16 @@ const CreateUpdatePopup = ({
           refreshData={refetch}
           resetPrintGroupId={setSelectedPrintGroupId}
           resetData={setSelectedPrintGroup}
+        />
+      )}
+
+      {/* doctor department */}
+      {!!renderDoctorDepartmentPopup && (
+        <DoctorDepartmentPopup
+          isOpen={openDoctorDepartmentPopup}
+          onClose={closeDoctorDepartmentHandler}
+          data={selectedDoctorDepartment}
+          refreshDepartment={refetchDoctorDepartment}
         />
       )}
 

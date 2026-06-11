@@ -4,13 +4,20 @@ import { SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { SubCategoryListItem } from "@/screens/labInvestigationMaster/types";
-import { SelectItem } from "@/types";
+import { PickMasterItem, SelectItem } from "@/types";
 import { showWarning } from "@/utils/alert";
+import {
+  createUpdateServiceMasterFormItem,
+  createUpdateServiceMasterSchema,
+} from "@/validation/serviceMasterSchema";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useQuery } from "@tanstack/react-query";
-import React, { ChangeEvent, useCallback, useMemo, useRef, useState } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useForm } from "react-hook-form";
 import Select from "react-select";
 import { CategoryItem, ServiceTableItem, SubCategoryItem, SubSubCategoryItem } from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
@@ -25,7 +32,12 @@ const AddServiceMaster = ({
   data: ServiceTableItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const buttonTitle = data ? "Update" : "Create";
+
+  const serviceRoomTypeList = usePickMaster("ServiceRoomType")?.pickMasterValue ?? [];
+
+  const opdConsultationVisitType = usePickMaster("OPDConsultationVisitType")?.pickMasterValue ?? [];
+
+  const buttonTitle = data?.serviceItemId ? "Update" : "Create";
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,6 +45,7 @@ const AddServiceMaster = ({
 
   const [categoryId, setCategoryId] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
+  const [categoryTypeId, setCategoryTypeId] = useState<number>(0);
 
   const [selectSubCategory, setSelectSubCategory] = useState<SubCategoryItem | null>(null);
   const [selectSubCategoryValue, setSelectSubCategoryValue] = useState<SelectItem | null>(null);
@@ -58,6 +71,38 @@ const AddServiceMaster = ({
     queryKey: ["getCategoryList"],
     queryFn: getCategories,
   });
+
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(createUpdateServiceMasterSchema),
+    defaultValues: {
+      serviceItemId: 0,
+      categoryId: 0,
+      subCategoryId: 0,
+      subSubCategoryId: 0,
+      name: "",
+      code: "",
+      roomTypeId: 0,
+      roomType: "",
+      isICU: 0,
+      gstPer: 0,
+      snomedCode: "",
+      opdConsultationTypeId: 0,
+      opdConsultationType: "",
+      isOnlineConsultationAllow: 0,
+      isTeleConsultationService: 0,
+      isActive: 1,
+    },
+  });
+
+  const isICU = Number(watch("isICU")) === 1;
+
+  useEffect(() => {}, [data]);
 
   //   open popup handler
   const openPopupHandler = (popupName: string) => {
@@ -114,12 +159,17 @@ const AddServiceMaster = ({
       setSelectedCategory(null);
       setSelectSubCategory(null);
       setSelectSubCategoryValue(null);
+      setCategoryTypeId(0);
+      setValue("categoryId", 0);
       return;
     }
     setCategoryId(value);
+    setValue("categoryId", value, { shouldValidate: true });
+
     const category = categoryList?.find((c: CategoryItem) => c?.categoryId === value);
     setSelectedCategory(category);
     setSelectSubCategoryValue(null);
+    setCategoryTypeId(Number(category?.categoryTypeId) ?? 0);
   };
 
   // sub category
@@ -135,7 +185,6 @@ const AddServiceMaster = ({
       },
       { component: "LabInvestigationMaster" }
     );
-
     return resp?.data ?? [];
   };
 
@@ -156,12 +205,16 @@ const AddServiceMaster = ({
 
   // sub category select handler
   const subCategorySelectHandler = (option: SelectItem) => {
-    if (!option) return;
+    if (!option) {
+      setValue("subCategoryId", 0);
+      return;
+    }
     setSelectSubCategoryValue(option);
     const selected = subCategoryList?.find(
       (s: SubCategoryItem) => s?.subCategoryId === Number(option?.value)
     );
     setSelectSubCategory(selected);
+    setValue("subCategoryId", Number(option.value), { shouldValidate: true });
   };
 
   // sub sub category
@@ -200,14 +253,106 @@ const AddServiceMaster = ({
     if (!option) {
       setSelectSubSubCategory(null);
       setSubSelectSubCategoryValue(null);
+      setValue("subSubCategoryId", 0);
       return;
     }
 
     setSubSelectSubCategoryValue(option);
+    setValue("subSubCategoryId", Number(option.value), { shouldValidate: true });
+
     const selected = subSubCategoryList?.find(
       (s: SubSubCategoryItem) => s?.subSubCategoryId === Number(option?.value)
     );
     setSelectSubSubCategory(selected);
+  };
+
+  // room type select handler
+  const roomTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    if (!value) {
+      setValue("roomType", "");
+      setValue("roomTypeId", 0);
+      return;
+    }
+    const selectedRoom = serviceRoomTypeList.find((r: PickMasterItem) => Number(r?.key) === value);
+    setValue("roomType", selectedRoom?.value);
+    setValue("roomTypeId", Number(selectedRoom?.key));
+  };
+
+  // opd consultation type select handler
+  const opdConsultationVisitTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    if (!value) {
+      setValue("opdConsultationType", "");
+      setValue("opdConsultationTypeId", value);
+      return;
+    }
+    const selectedVisit = opdConsultationVisitType.find(
+      (r: PickMasterItem) => Number(r?.key) === value
+    );
+    setValue("opdConsultationType", selectedVisit?.value);
+    setValue("opdConsultationTypeId", Number(selectedVisit?.key));
+  };
+
+  // snomed code lists
+  // const getSnomedCode = async () => {
+  //   try {
+  //     const resp = await axios.get(
+  //       "https://snomedbrowser.org/snowstorm/snomed-ct/browser/MAIN/2026-06-01/descriptions?&limit=25&term=allergy&active=true&conceptActive=true&lang=english&groupByConcept=true",
+  //       {
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Accept: "application/json",
+  //         },
+  //       }
+  //     );
+
+  //     console.log("resp of snomed code", resp?.data);
+  //     return resp?.data;
+  //   } catch (error) {
+  //     console.error(error, "failed to fetch snomed code");
+  //   }
+  // };
+
+  const getSnomedCode = async () => {
+    try {
+      const params = new URLSearchParams({
+        limit: "25",
+        term: "allergy",
+        active: "true",
+        conceptActive: "true",
+        lang: "english",
+        groupByConcept: "true",
+      });
+
+      const response = await fetch(
+        `https://snomedbrowser.org/snowstorm/snomed-ct/browser/MAIN/2026-06-01/descriptions?${params}`,
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+      console.log("snomed code", response.json());
+      return await response.json();
+    } catch (error) {
+      console.error("failed to fetch snomed code", error);
+      return [];
+    }
+  };
+
+  const { data: snomedCode } = useQuery({
+    queryKey: ["getSnomedCode"],
+    queryFn: getSnomedCode,
+  });
+
+  // submit handler
+  const onsubmit = async (formData: createUpdateServiceMasterFormItem) => {
+    console.log("formData", formData);
   };
   useScrollLock(isOpen);
 
@@ -229,7 +374,7 @@ const AddServiceMaster = ({
             </button>
           </div>
           <div className="card m-1">
-            <form>
+            <form onSubmit={handleSubmit(onsubmit)}>
               <div className="form-grid-2">
                 <InputField label="Category">
                   <div className="flex gap-2 items-center">
@@ -253,8 +398,10 @@ const AddServiceMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.categoryId && (
+                    <p className="input-field-error">{errors.categoryId.message}</p>
+                  )}
                 </InputField>
-
                 <InputField label="Sub Category">
                   <div className="flex gap-2 items-center">
                     <Select
@@ -276,8 +423,10 @@ const AddServiceMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.subCategoryId && (
+                    <p className="input-field-error">{errors.subCategoryId.message}</p>
+                  )}
                 </InputField>
-
                 <InputField label="Sub Sub Category">
                   <div className="flex gap-2 items-center">
                     <Select
@@ -299,18 +448,106 @@ const AddServiceMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.subSubCategoryId && (
+                    <p className="input-field-error">{errors.subSubCategoryId.message}</p>
+                  )}
+                </InputField>
+                <InputField label="Service Name">
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Enter service name"
+                    {...register("name")}
+                  />
+                </InputField>
+                <InputField label="Service Code">
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Enter service code"
+                    {...register("code")}
+                  />
+                </InputField>
+                <InputField label="Snomed Code">
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Enter snomed code"
+                    {...register("snomedCode")}
+                  />
                 </InputField>
 
-                <InputField label="Name">
-                  <input type="text" className="input-field" />
-                </InputField>
+                {!!categoryTypeId && categoryTypeId === 1 && (
+                  <>
+                    <InputField label="OPD Consultation Type">
+                      <select
+                        className="input-field"
+                        onChange={opdConsultationVisitTypeSelectHandler}
+                      >
+                        <option value={0}>select</option>
+                        {opdConsultationVisitType?.map((o: PickMasterItem) => (
+                          <option key={o?.key} value={o?.key}>
+                            {o?.value}
+                          </option>
+                        ))}
+                      </select>
+                    </InputField>
 
-                <InputField label="Code">
-                  <input type="text" className="input-field" />
-                </InputField>
+                    <InputField label="Allow Online Consultation">
+                      <select className="input-field" {...register("isOnlineConsultationAllow")}>
+                        <option value={1}>Yes</option>
+                        <option value={0}>No</option>
+                      </select>
+                    </InputField>
+
+                    <InputField label="Tele Consultation Service">
+                      <select className="input-field" {...register("isTeleConsultationService")}>
+                        <option value={1}>Yes</option>
+                        <option value={0}>No</option>
+                      </select>
+                    </InputField>
+                  </>
+                )}
+
+                {!!categoryTypeId && categoryTypeId === 10 && (
+                  <>
+                    <InputField label="ICU Type">
+                      <select className="input-field" {...register("isICU")}>
+                        <option value={0}>Non ICU</option>
+                        <option value={1}> ICU</option>
+                      </select>
+                    </InputField>
+
+                    <InputField label="Room Type">
+                      <select className="input-field" onChange={roomTypeSelectHandler}>
+                        <option value={0}>Select room type</option>
+                        {serviceRoomTypeList?.map((s: PickMasterItem) => (
+                          <option key={s?.key} value={s?.key}>
+                            {s?.value}
+                          </option>
+                        ))}
+                      </select>
+                    </InputField>
+
+                    {}
+
+                    <InputField label="GST %">
+                      <input
+                        type="text"
+                        className={`${isICU === true ? "disabled-input-field" : "input-field"}`}
+                        placeholder="Enter gst %"
+                        {...register("gstPer")}
+                        disabled={isICU === true}
+                      />
+                    </InputField>
+                  </>
+                )}
 
                 <InputField label="Status">
-                  <input type="text" className="input-field" />
+                  <select className="input-field" {...register("isActive")}>
+                    <option value={1}>Active</option>
+                    <option value={0}>Inactive</option>
+                  </select>
                 </InputField>
               </div>
               <div className="form-actions-responsive mt-5">
