@@ -331,6 +331,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_CATEGORY: "Home/createUpdateCategory",
   GET_PRINT_GROUP_MASTER: "Admin/getPrintGroupMaster",
   CREATE_UPDATE_PRINT_GROUP_MASTER: "Admin/createUpdatePrintGroupMaster",
+  CREATE_UPDATE_SERVICE_ITEM_MASTER: "Admin/createUpdateServiceItemMaster",
 };
 
 export { ENDPOINTS };

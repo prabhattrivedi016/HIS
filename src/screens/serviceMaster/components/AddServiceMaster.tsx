@@ -1,6 +1,7 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
+import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -19,8 +20,15 @@ import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState }
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import Select from "react-select";
-import { CategoryItem, ServiceTableItem, SubCategoryItem, SubSubCategoryItem } from "../types";
+import {
+  CategoryItem,
+  ServiceTableItem,
+  SnomedItem,
+  SubCategoryItem,
+  SubSubCategoryItem,
+} from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
+import SnomedPopup from "./SnomedPopup";
 
 const AddServiceMaster = ({
   isOpen,
@@ -37,7 +45,6 @@ const AddServiceMaster = ({
 
   const opdConsultationVisitType = usePickMaster("OPDConsultationVisitType")?.pickMasterValue ?? [];
 
-  const buttonTitle = data?.serviceItemId ? "Update" : "Create";
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +61,15 @@ const AddServiceMaster = ({
   const [selectSubSubCategoryValue, setSubSelectSubCategoryValue] = useState<SelectItem | null>(
     null
   );
+
+  const [renderSnomedPopup, setRenderSnomedPopup] = useState<boolean>(false);
+  const [openSnomedPopup, setOpenSnomedPopup] = useState<boolean>(false);
+
+  const [selectedRoomType, setSelectedRoomType] = useState<PickMasterItem | null>(null);
+  const [snomedData, setSnomedData] = useState<SnomedItem | null>(null);
+
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // get categoryLists
   const getCategories = async () => {
@@ -76,6 +92,7 @@ const AddServiceMaster = ({
     register,
     setValue,
     handleSubmit,
+    reset,
     watch,
     formState: { errors },
   } = useForm({
@@ -101,8 +118,10 @@ const AddServiceMaster = ({
   });
 
   const isICU = Number(watch("isICU")) === 1;
+  const isEdit = Boolean(watch("serviceItemId"));
+  const selectedOpdTypeId = watch("opdConsultationTypeId");
 
-  useEffect(() => {}, [data]);
+  const buttonTitle = isEdit ? "Update" : "Create";
 
   //   open popup handler
   const openPopupHandler = (popupName: string) => {
@@ -132,6 +151,11 @@ const AddServiceMaster = ({
         setPopupName(ServiceMasterPopupName?.SUB_SUB_CATEGORY);
         setOpenPopup(true);
         setRenderPopup(true);
+        return;
+      }
+      case ServiceMasterPopupName?.SNOMED: {
+        setOpenSnomedPopup(true);
+        setRenderSnomedPopup(true);
         return;
       }
       default:
@@ -272,11 +296,13 @@ const AddServiceMaster = ({
     if (!value) {
       setValue("roomType", "");
       setValue("roomTypeId", 0);
+      setSelectedRoomType(null);
       return;
     }
     const selectedRoom = serviceRoomTypeList.find((r: PickMasterItem) => Number(r?.key) === value);
     setValue("roomType", selectedRoom?.value);
     setValue("roomTypeId", Number(selectedRoom?.key));
+    setSelectedRoomType(selectedRoom);
   };
 
   // opd consultation type select handler
@@ -294,66 +320,188 @@ const AddServiceMaster = ({
     setValue("opdConsultationTypeId", Number(selectedVisit?.key));
   };
 
-  // snomed code lists
-  // const getSnomedCode = async () => {
-  //   try {
-  //     const resp = await axios.get(
-  //       "https://snomedbrowser.org/snowstorm/snomed-ct/browser/MAIN/2026-06-01/descriptions?&limit=25&term=allergy&active=true&conceptActive=true&lang=english&groupByConcept=true",
-  //       {
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Accept: "application/json",
-  //         },
-  //       }
-  //     );
+  // close snomed handler
 
-  //     console.log("resp of snomed code", resp?.data);
-  //     return resp?.data;
-  //   } catch (error) {
-  //     console.error(error, "failed to fetch snomed code");
-  //   }
-  // };
-
-  const getSnomedCode = async () => {
-    try {
-      const params = new URLSearchParams({
-        limit: "25",
-        term: "allergy",
-        active: "true",
-        conceptActive: "true",
-        lang: "english",
-        groupByConcept: "true",
-      });
-
-      const response = await fetch(
-        `https://snomedbrowser.org/snowstorm/snomed-ct/browser/MAIN/2026-06-01/descriptions?${params}`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-      console.log("snomed code", response.json());
-      return await response.json();
-    } catch (error) {
-      console.error("failed to fetch snomed code", error);
-      return [];
+  const closeSnomedHandler = useCallback(() => {
+    setOpenSnomedPopup(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  };
 
-  const { data: snomedCode } = useQuery({
-    queryKey: ["getSnomedCode"],
-    queryFn: getSnomedCode,
-  });
+    timeoutRef.current = setTimeout(() => {
+      setRenderSnomedPopup(false);
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    if (!data?.serviceItemId) return;
+    if (!categoryList.length) return;
+
+    reset({
+      serviceItemId: data.serviceItemId,
+      categoryId: data.categoryId,
+      subCategoryId: data.subCategoryId ?? 0,
+      subSubCategoryId: data.subSubCategoryId ?? 0,
+      name: data.name ?? "",
+      code: data.code ?? "",
+      roomTypeId: data.roomTypeId ?? 0,
+      roomType: data.roomType ?? "",
+      isICU: data.isICU ?? 0,
+      gstPer: data.gstPer ?? 0,
+      snomedCode: data.snomedCode ?? "",
+      opdConsultationTypeId: data.opdConsultationTypeId ?? 0,
+      opdConsultationType: data.opdConsultationType ?? "",
+      isOnlineConsultationAllow: data.isOnlineConsultationAllow ?? 0,
+      isTeleConsultationService: data.isTeleConsultationService ?? 0,
+      isActive: data.isActive ?? 1,
+    });
+
+    setCategoryId(data.categoryId);
+
+    const cat = categoryList.find(
+      (c: CategoryItem) => Number(c.categoryId) === Number(data.categoryId)
+    );
+
+    if (cat) {
+      setSelectedCategory(cat);
+      setCategoryTypeId(Number(cat.categoryTypeId));
+    }
+  }, [data, categoryList]);
+
+  // sub category
+
+  useEffect(() => {
+    if (!data?.subCategoryId) return;
+    if (!subCategoryList.length) return;
+
+    const selectedSubCategory = subCategoryList.find(
+      (s: SubCategoryItem) => Number(s.subCategoryId) === Number(data.subCategoryId)
+    );
+
+    if (!selectedSubCategory) return;
+
+    setSelectSubCategory(selectedSubCategory);
+
+    setSelectSubCategoryValue({
+      label: selectedSubCategory.subCategoryName,
+      value: selectedSubCategory.subCategoryId,
+    });
+
+    setValue("subCategoryId", selectedSubCategory.subCategoryId);
+  }, [subCategoryList, data?.subCategoryId]);
+
+  // sub sub category
+  useEffect(() => {
+    if (!data?.subSubCategoryId) return;
+    if (!subSubCategoryList.length) return;
+
+    const selectedSubSubCategory = subSubCategoryList.find(
+      (s: SubSubCategoryItem) => Number(s.subSubCategoryId) === Number(data.subSubCategoryId)
+    );
+
+    if (!selectedSubSubCategory) return;
+
+    setSelectSubSubCategory(selectedSubSubCategory);
+
+    setSubSelectSubCategoryValue({
+      label: selectedSubSubCategory.subSubCategoryName,
+      value: selectedSubSubCategory.subSubCategoryId,
+    });
+
+    setValue("subSubCategoryId", selectedSubSubCategory.subSubCategoryId);
+  }, [subSubCategoryList, data?.subSubCategoryId]);
+
+  // room type
+  useEffect(() => {
+    if (!data?.roomTypeId) return;
+    if (!serviceRoomTypeList.length) return;
+
+    const roomType = serviceRoomTypeList.find(
+      (r: PickMasterItem) => Number(r.key) === Number(data.roomTypeId)
+    );
+
+    if (!roomType) return;
+
+    setSelectedRoomType(roomType);
+
+    setValue("roomTypeId", Number(roomType.key));
+    setValue("roomType", roomType.value);
+  }, [data?.roomTypeId, serviceRoomTypeList]);
+
+  //opd consultation type
+  useEffect(() => {
+    if (!data?.opdConsultationTypeId) return;
+    if (!opdConsultationVisitType.length) return;
+
+    const visitType = opdConsultationVisitType.find(
+      (o: PickMasterItem) => Number(o.key) === Number(data.opdConsultationTypeId)
+    );
+
+    if (!visitType) return;
+
+    setValue("opdConsultationTypeId", Number(visitType.key));
+
+    setValue("opdConsultationType", visitType.value);
+  }, [data?.opdConsultationTypeId, opdConsultationVisitType]);
+
+  const icuValue = watch("isICU");
+
+  useEffect(() => {
+    if (Number(icuValue) === 1) {
+      setValue("gstPer", null);
+    }
+  }, [icuValue]);
+
+  // set snomed data value
+  useEffect(() => {
+    if (!snomedData) return;
+
+    setValue("name", snomedData.term, {
+      shouldDirty: true,
+    });
+
+    setValue("snomedCode", snomedData.conceptId, {
+      shouldDirty: true,
+    });
+  }, [snomedData, setValue]);
 
   // submit handler
   const onsubmit = async (formData: createUpdateServiceMasterFormItem) => {
-    console.log("formData", formData);
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_SERVICE_ITEM_MASTER,
+      formData,
+      {},
+      { component: "AddServiceMaster" }
+    );
+    if (!resp?.result) {
+      setErrorMessage(resp?.message ?? "Failed to update category");
+      return;
+    }
+    setSuccessMessage(resp?.message ?? "Data saved successfully");
+    setTimeout(() => {
+      reset({
+        serviceItemId: 0,
+        categoryId: 0,
+        subCategoryId: 0,
+        subSubCategoryId: 0,
+        name: "",
+        code: "",
+        roomTypeId: 0,
+        roomType: "",
+        isICU: 0,
+        gstPer: 0,
+        snomedCode: "",
+        opdConsultationTypeId: 0,
+        opdConsultationType: "",
+        isOnlineConsultationAllow: 0,
+        isTeleConsultationService: 0,
+        isActive: 1,
+      });
+      onClose?.();
+    }, 500);
   };
+
   useScrollLock(isOpen);
 
   return createPortal(
@@ -373,12 +521,17 @@ const AddServiceMaster = ({
               ×
             </button>
           </div>
+
+          {!!successMessage && <SuccessMessage text={successMessage} />}
+          {!!errorMessage && <ErrorMessage text={errorMessage} />}
+
           <div className="card m-1">
             <form onSubmit={handleSubmit(onsubmit)}>
               <div className="form-grid-2">
                 <InputField label="Category">
                   <div className="flex gap-2 items-center">
                     <select
+                      {...register("categoryId")}
                       className="input-field"
                       onChange={categorySelectHandler}
                       value={categoryId}
@@ -469,18 +622,27 @@ const AddServiceMaster = ({
                   />
                 </InputField>
                 <InputField label="Snomed Code">
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="Enter snomed code"
-                    {...register("snomedCode")}
-                  />
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Enter snomed code"
+                      {...register("snomedCode")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => openPopupHandler(ServiceMasterPopupName?.SNOMED)}
+                    >
+                      <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
+                    </button>
+                  </div>
                 </InputField>
 
                 {!!categoryTypeId && categoryTypeId === 1 && (
                   <>
                     <InputField label="OPD Consultation Type">
                       <select
+                        value={selectedOpdTypeId!}
                         className="input-field"
                         onChange={opdConsultationVisitTypeSelectHandler}
                       >
@@ -519,7 +681,11 @@ const AddServiceMaster = ({
                     </InputField>
 
                     <InputField label="Room Type">
-                      <select className="input-field" onChange={roomTypeSelectHandler}>
+                      <select
+                        {...register("roomTypeId")}
+                        className="input-field"
+                        onChange={roomTypeSelectHandler}
+                      >
                         <option value={0}>Select room type</option>
                         {serviceRoomTypeList?.map((s: PickMasterItem) => (
                           <option key={s?.key} value={s?.key}>
@@ -527,6 +693,9 @@ const AddServiceMaster = ({
                           </option>
                         ))}
                       </select>
+                      {categoryTypeId === 10 && !selectedRoomType && (
+                        <p className="input-field-error">Room type is required</p>
+                      )}
                     </InputField>
 
                     {}
@@ -552,7 +721,7 @@ const AddServiceMaster = ({
               </div>
               <div className="form-actions-responsive mt-5">
                 <button type="submit" className="save-btn">
-                  Save
+                  {buttonTitle}
                 </button>
                 <button type="button" className="cancel-button">
                   Cancel
@@ -581,6 +750,15 @@ const AddServiceMaster = ({
           resetSubSubCategoryOption={setSubSelectSubCategoryValue}
           resetSubSubCategory={setSelectSubSubCategory}
           onSubSubCategoryUpdate={refetchSubSubCategory}
+        />
+      )}
+
+      {/* snomed popup */}
+      {!!renderSnomedPopup && (
+        <SnomedPopup
+          isOpen={openSnomedPopup}
+          onClose={closeSnomedHandler}
+          setData={setSnomedData}
         />
       )}
 

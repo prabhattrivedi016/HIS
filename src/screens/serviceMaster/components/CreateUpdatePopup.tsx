@@ -218,19 +218,31 @@ const CreateUpdatePopup = ({
       printGroupId: subSubCategoryData?.printGroupId ?? 0,
       departmentId: subSubCategoryData?.departmentId ?? 0,
     });
-    subSubCategoryForm?.setValue("printGroupId", Number(subSubCategoryData?.printGroupId));
-    const selected = printGroupList?.find(
-      (p: PrintGroupItem) => p?.PrintGroupId === subSubCategoryData?.printGroupId
-    );
-    setSelectedPrintGroup(selected);
-    setSelectedPrintGroupId(selected?.PrintGroupId ?? 0);
 
-    const selectedDepartment = doctorDepartmentList?.find(
-      (d: DoctorDepartmentList) =>
-        Number(d?.departmentId) === Number(subSubCategoryData?.departmentId)
+    // print group
+    const printGroup = printGroupList.find(
+      (p: PrintGroupItem) => Number(p.PrintGroupId) === Number(subSubCategoryData?.printGroupId)
     );
-    setSelectedDoctorDepartment(selectedDepartment);
-  }, [popupName, subSubCategoryData, subCategoryData, doctorDepartmentList]);
+
+    if (printGroup) {
+      setSelectedPrintGroup(printGroup);
+      setSelectedPrintGroupId(printGroup.PrintGroupId);
+
+      subSubCategoryForm.setValue("printGroupId", printGroup.PrintGroupId);
+    }
+
+    // department
+    const department = doctorDepartmentList.find(
+      (d: DoctorDepartmentList) =>
+        Number(d.departmentId) === Number(subSubCategoryData?.departmentId)
+    );
+
+    if (department) {
+      setSelectedDoctorDepartment(department);
+
+      subSubCategoryForm.setValue("departmentId", department.departmentId);
+    }
+  }, [popupName, subSubCategoryData, subCategoryData, doctorDepartmentList, printGroupList]);
 
   // category type select handler
   const categoryTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -402,14 +414,16 @@ const CreateUpdatePopup = ({
   const doctorDepartmentChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
 
-    if (value === 0) {
-      setSelectedDoctorDepartment(null);
-      return;
-    }
-    const selected = doctorDepartmentList?.find(
-      (d: DoctorDepartmentList) => d?.departmentId === value
+    subSubCategoryForm.setValue("departmentId", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    const selected = doctorDepartmentList.find(
+      (d: DoctorDepartmentList) => Number(d.departmentId) === value
     );
-    setSelectedDoctorDepartment(selected);
+
+    setSelectedDoctorDepartment(selected ?? null);
   };
 
   // render component
@@ -511,6 +525,7 @@ const CreateUpdatePopup = ({
           register,
           handleSubmit,
           reset,
+          watch,
           setValue,
           formState: { errors },
         } = subSubCategoryForm;
@@ -532,6 +547,7 @@ const CreateUpdatePopup = ({
             <InputField label="Revenue Department" required>
               <div className="flex gap-2 items-center">
                 <select
+                  value={watch("departmentId")}
                   className="input-field"
                   {...register("departmentId")}
                   onChange={doctorDepartmentChangeHandler}
