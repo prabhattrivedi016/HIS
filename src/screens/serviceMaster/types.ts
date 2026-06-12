@@ -75,12 +75,30 @@ type DoctorDepartmentList = {
 
 type PrintGroupItem = { PrintGroupId: number; PrintGroupName: string; PrintOrder: number };
 
+type SnomedItem = {
+  hierarchy: string;
+  isPreferredTerm: string;
+  conceptState: string;
+  conceptFsn: string;
+  definitionStatus: string;
+  conceptId: string;
+  languageCode: string;
+  typeId: string;
+  term: string;
+  caseSignificanceId: string;
+  id: string;
+  effectiveTime: string;
+  activeStatus: number;
+  moduleId: string;
+};
+
 export type {
   CategoryItem,
   CategoryTypeItem,
   DoctorDepartmentList,
   PrintGroupItem,
   ServiceTableItem,
+  SnomedItem,
   SubCategoryItem,
   SubSubCategoryItem,
 };
