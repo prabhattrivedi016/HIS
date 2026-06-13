@@ -124,7 +124,7 @@ const BedMaster = () => {
     return resp?.data ?? [];
   };
 
-  const { data: bedMasterLists = [] } = useQuery({
+  const { data: bedMasterLists = [], refetch: refetchBedList } = useQuery({
     queryKey: ["getBedMasterList", queryValue],
     queryFn: () => getBedMasterList(queryValue),
   });
@@ -202,7 +202,7 @@ const BedMaster = () => {
               <select className="input-field" name="floorId" onChange={createQueryValue}>
                 <option value="">Select floor</option>
                 {FloorList?.map((f: FloorItem) => (
-                  <option key={f?.floorId} value={f?.floorName}>
+                  <option key={f?.floorId} value={f?.floorId}>
                     {f?.floorName}
                   </option>
                 ))}
@@ -252,7 +252,11 @@ const BedMaster = () => {
                       <td className="table-td">{idx + 1}</td>
                       <td className="table-td">{item?.BranchName ?? "-"}</td>
                       <td className="table-td">{item?.Type ?? "-"}</td>
+                      <td className="table-td">{item?.BlockName ?? "-"}</td>
+                      <td className="table-td">{item?.FloorName ?? "-"}</td>
+
                       <td className="table-td">{item?.WardName ?? "-"}</td>
+                      <td className="table-td">{item?.RoomName ?? "-"}</td>
 
                       <td className="table-td">{item?.BedNo ?? "-"}</td>
                       <td
@@ -279,7 +283,12 @@ const BedMaster = () => {
 
       {/* drawer */}
       {!!renderAddNewBed && (
-        <AddNewBedMaster isOpen={openAddNewBed} onClose={closeDrawerHandler} data={editableData} />
+        <AddNewBedMaster
+          isOpen={openAddNewBed}
+          onClose={closeDrawerHandler}
+          data={editableData}
+          refreshBedList={refetchBedList}
+        />
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}
