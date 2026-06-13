@@ -60,6 +60,8 @@ type BedMasterTableItem = {
   TypeId: number;
   FloorName: string;
   FloorId: number;
+  BlockName: string;
+  BlockId: number;
   WardName: string;
   WardNameId: number;
   RoomName: string;

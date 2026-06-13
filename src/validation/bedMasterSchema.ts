@@ -1,12 +1,24 @@
 import * as yup from "yup";
 
-// export const bedMasterInputSchema = yup.object().shape({
-//   branchId: yup.string().nullable(),
-//   typeId: yup.string().nullable(),
-//   floorId: yup.string().nullable(),
-//   wardNameId: yup.string().nullable(),
-//   bedId: yup.string().nullable(),
-// });
+export const bedMasterSchema = yup.object().shape({
+  bedId: yup.number().nullable(),
+  branchId: yup.number().min(1, "Branch is required"),
+  typeId: yup.number().min(1, "Type is required"),
+  blockId: yup.number().min(1, "Block is required"),
+  floorId: yup.number().min(1, "Floor is required"),
+  wardNameId: yup.number().min(1, "Ward name is required"),
+  roomName: yup.string().required("Room name is required"),
+  gender: yup.string().nullable(),
+  bedNo: yup
+    .string()
+    .required("Bed number is required")
+    .test("bed-range", "Bed number must be between 1 and 25", value => {
+      const num = Number(value);
+      return num >= 1 && num <= 25;
+    }),
+  isActive: yup.number().nullable(),
+});
+export type BranchMasterFormItem = yup.InferType<typeof bedMasterSchema>;
 
 export const createUpdateFloorSchema = yup.object().shape({
   floorId: yup.number().nullable(),

@@ -1,5 +1,6 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import { BedMasterPopupName, Status } from "@/constants/constants";
 import useGetBranchList from "@/hooks/useGetBranchList";
@@ -7,9 +8,12 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { BranchItem, PickMasterItem } from "@/types";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
-import { useQuery } from "@tanstack/react-query";
-import React, { ChangeEvent, useCallback, useRef, useState } from "react";
+import { bedMasterSchema, BranchMasterFormItem } from "@/validation/bedMasterSchema";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { QueryObserverResult, useQuery } from "@tanstack/react-query";
+import React, { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useForm } from "react-hook-form";
 import { BedMasterTableItem, BlockItem, FloorItem, TypeItem, WardItem } from "../types";
 import CreateUpdateFloorWard from "./CreateUpdateFloorWard";
 
@@ -17,13 +21,14 @@ const AddNewBedMaster = ({
   isOpen,
   onClose,
   data,
+  refreshBedList,
 }: {
   isOpen: boolean;
   onClose: () => void;
   data: BedMasterTableItem | null;
+  refreshBedList: () => Promise<QueryObserverResult<any, Error>>;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const buttonTitle = data !== null ? "Update" : "Create";
   const branchList = useGetBranchList()?.branchList?.data ?? [];
   const applicableList = usePickMaster("BedApplicableGender")?.pickMasterValue ?? [];
 
@@ -35,6 +40,35 @@ const AddNewBedMaster = ({
   const [selectedFloor, setSelectedFloor] = useState<FloorItem | null>(null);
   const [selectedWard, setSelectedWard] = useState<WardItem | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<BlockItem | null>(null);
+
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(bedMasterSchema),
+    defaultValues: {
+      bedId: 0,
+      branchId: 0,
+      typeId: 0,
+      floorId: 0,
+      blockId: 0,
+      wardNameId: 0,
+      roomName: "",
+      gender: "B",
+      bedNo: "",
+      isActive: 1,
+    },
+  });
+
+  const isEdit = Boolean(watch("bedId"));
+  const buttonTitle = isEdit ? "Update" : "Create";
 
   //   type list
   const getTypeList = async () => {
@@ -150,8 +184,13 @@ const AddNewBedMaster = ({
     const value = Number(e.target.value);
     if (!value) {
       setSelectedBlock(null);
+      setValue("blockId", 0);
       return;
     }
+    setValue("blockId", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
     const selected = blockList.find((f: BlockItem) => f?.blockId === value);
     setSelectedBlock(selected);
     setSelectedFloor(null);
@@ -163,26 +202,128 @@ const AddNewBedMaster = ({
     const value = Number(e.target.value);
     if (!value) {
       setSelectedFloor(null);
+      setValue("floorId", 0);
       return;
     }
+    setValue("floorId", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
     const selected = FloorList.find((f: FloorItem) => f?.floorId === value);
     setSelectedFloor(selected);
+
     setSelectedWard(null);
     setSelectedBlock(null);
   };
 
-  //   floor select handler
+  //   ward select handler
   const wardSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
     if (!value) {
       setSelectedWard(null);
+      setValue("wardNameId", 0);
       return;
     }
+    setValue("wardNameId", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
     const selected = wardList.find((f: WardItem) => f?.WardNameId === value);
     setSelectedWard(selected);
+
     setSelectedFloor(null);
     setSelectedBlock(null);
   };
+
+  // submit handler
+  const onSubmit = async (formData: BranchMasterFormItem) => {
+    console.log("formData", formData);
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_BED_MASTER,
+      formData,
+      {},
+      { component: "AddNewBedMaster" }
+    );
+    if (!resp?.result) {
+      setErrorMessage(resp?.message ?? "Failed to update bed");
+      setSuccessMessage("");
+      return;
+    }
+    setErrorMessage("");
+    setSuccessMessage(resp?.message ?? "Data saved successfully");
+    refreshBedList?.();
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      onClose?.();
+      setSuccessMessage("");
+      setErrorMessage("");
+      reset({
+        bedId: 0,
+        branchId: 0,
+        typeId: 0,
+        floorId: 0,
+        wardNameId: 0,
+        roomName: "",
+        gender: "B",
+        bedNo: "",
+        isActive: 0,
+      });
+    }, 500);
+  };
+
+  // edit mode
+  useEffect(() => {
+    if (!isOpen || !data) return;
+
+    reset({
+      bedId: data?.BedId ?? 0,
+      branchId: data?.BranchId ?? 0,
+      typeId: data?.TypeId ?? 0,
+      floorId: data?.FloorId ?? 0,
+      blockId: data?.BlockId ?? 0,
+      wardNameId: data?.WardNameId ?? 0,
+      roomName: data?.RoomName ?? "",
+      gender: data?.Gender ?? "B",
+      bedNo: String(data?.BedNo ?? ""),
+      isActive: data?.IsActive ?? 1,
+    });
+
+    // Optional: set selected objects for dropdown edit mode
+    const branch = branchList.find(
+      (b: BranchItem) => Number(b?.branchId) === Number(data?.BranchId)
+    );
+    const floor = FloorList.find((f: FloorItem) => Number(f.floorId) === Number(data?.FloorId));
+
+    const ward = wardList.find((w: WardItem) => Number(w.WardNameId) === Number(data?.WardNameId));
+
+    const block = blockList.find((b: BlockItem) => Number(b.blockId) === Number(data?.BlockId));
+
+    setValue("branchId", branch?.branchId, { shouldValidate: true, shouldDirty: true });
+    setSelectedFloor(floor ?? null);
+    setSelectedWard(ward ?? null);
+    setSelectedBlock(block ?? null);
+  }, [isOpen, data, reset, FloorList, wardList, blockList, branchList]);
+
+  // cancel handler
+  const cancelHandler = () => {
+    reset({
+      bedId: 0,
+      branchId: 0,
+      typeId: 0,
+      floorId: 0,
+      blockId: 0,
+      wardNameId: 0,
+      roomName: "",
+      gender: "B",
+      bedNo: "",
+      isActive: 1,
+    });
+  };
+
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
@@ -201,38 +342,46 @@ const AddNewBedMaster = ({
             </button>
           </div>
 
-          {/* {!!successMessage && <SuccessMessage text={successMessage} />} */}
-          {/* {!!errorMessage && <ErrorMessage text={errorMessage} />} */}
+          {!!successMessage && <SuccessMessage text={successMessage} />}
+          {!!errorMessage && <ErrorMessage text={errorMessage} />}
 
           <div className="card m-1 ">
-            <form>
+            <form onSubmit={handleSubmit(onSubmit)}>
               <div className="form-grid-2">
                 <InputField label="Branch Name" required>
-                  <select className="input-field">
-                    <option value="">Select branch</option>
+                  <select className="input-field" {...register("branchId")}>
+                    <option value={0}>Select branch</option>
                     {branchList?.map((b: BranchItem) => (
                       <option key={b?.branchId} value={b?.branchId}>
                         {b?.branchName}
                       </option>
                     ))}
                   </select>
+                  {errors.branchId && (
+                    <p className="input-field-error">{errors.branchId.message}</p>
+                  )}
                 </InputField>
 
                 <InputField label="Type" required>
-                  <select className="input-field">
-                    <option value="">Select type</option>
+                  <select className="input-field" {...register("typeId")}>
+                    <option value={0}>Select type</option>
                     {TypeList?.map((t: TypeItem) => (
                       <option key={t?.serviceItemId} value={t?.serviceItemId}>
                         {t?.name}
                       </option>
                     ))}
                   </select>
+                  {errors.typeId && <p className="input-field-error">{errors.typeId.message}</p>}
                 </InputField>
 
                 <InputField label="Block" required>
                   <div className="flex gap-2 items-center">
-                    <select className="input-field" onChange={blockSelectHandler}>
-                      <option value="">Select block</option>
+                    <select
+                      className="input-field"
+                      {...register("blockId")}
+                      onChange={blockSelectHandler}
+                    >
+                      <option value={0}>Select block</option>
                       {blockList?.map((f: BlockItem) => (
                         <option key={f?.blockId} value={f?.blockId}>
                           {f?.blockName}
@@ -247,12 +396,17 @@ const AddNewBedMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.blockId && <p className="input-field-error">{errors.blockId.message}</p>}
                 </InputField>
 
                 <InputField label="Floor" required>
                   <div className="flex gap-2 items-center">
-                    <select className="input-field" onChange={floorSelectHandler}>
-                      <option value="">Select floor</option>
+                    <select
+                      className="input-field"
+                      {...register("floorId")}
+                      onChange={floorSelectHandler}
+                    >
+                      <option value={0}>Select floor</option>
                       {FloorList?.map((f: FloorItem) => (
                         <option key={f?.floorId} value={f?.floorId}>
                           {f?.floorName}
@@ -267,12 +421,17 @@ const AddNewBedMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.floorId && <p className="input-field-error">{errors.floorId.message}</p>}
                 </InputField>
 
                 <InputField label="Ward Name / No" required>
                   <div className="flex gap-2 items-center">
-                    <select className="input-field" onChange={wardSelectHandler}>
-                      <option value="">Select ward</option>
+                    <select
+                      className="input-field"
+                      {...register("wardNameId")}
+                      onChange={wardSelectHandler}
+                    >
+                      <option value={0}>Select ward</option>
                       {wardList.map((w: WardItem) => (
                         <option key={w?.WardNameId} value={w?.WardNameId}>
                           {w?.WardName}
@@ -287,6 +446,9 @@ const AddNewBedMaster = ({
                       <i className="fa-solid fa-circle-plus add-popup-icon"></i>
                     </button>
                   </div>
+                  {errors.wardNameId && (
+                    <p className="input-field-error">{errors.wardNameId.message}</p>
+                  )}
                 </InputField>
 
                 <InputField label="Number of bed" required>
@@ -297,16 +459,26 @@ const AddNewBedMaster = ({
                     min={1}
                     onInput={allowOnlyNumbers}
                     placeholder="Enter bed number"
+                    {...register("bedNo")}
                   />
                   <p className="input-field-msg"> * Enter between 1 to 25 only</p>
+                  {errors.bedNo && <p className="input-field-error">{errors.bedNo.message}</p>}
                 </InputField>
 
                 <InputField label="Room Name" required>
-                  <input type="text" className="input-field" placeholder="Enter room name" />
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Enter room name"
+                    {...register("roomName")}
+                  />
+                  {errors.roomName && (
+                    <p className="input-field-error">{errors.roomName.message}</p>
+                  )}
                 </InputField>
 
                 <InputField label="Applicable for">
-                  <select className="input-field">
+                  <select className="input-field" {...register("gender")}>
                     {applicableList.map((a: PickMasterItem) => (
                       <option key={a?.key} value={a?.key}>
                         {a?.value}
@@ -316,7 +488,7 @@ const AddNewBedMaster = ({
                 </InputField>
 
                 <InputField label="Status">
-                  <select className="input-field">
+                  <select className="input-field" {...register("isActive")}>
                     <option value={0}>Inactive</option>
                     <option value={1}>Active</option>
                   </select>
@@ -327,7 +499,7 @@ const AddNewBedMaster = ({
                 <button type="submit" className="save-btn">
                   {buttonTitle}
                 </button>
-                <button type="button" className="cancel-button ">
+                <button type="button" className="cancel-button" onClick={cancelHandler}>
                   Cancel
                 </button>
               </div>
