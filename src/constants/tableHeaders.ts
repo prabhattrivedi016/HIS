@@ -567,3 +567,13 @@ export const ServiceMasterTableHeader = [
   "Edit",
   "Status",
 ];
+
+export const BedMasterTableHeader = [
+  "#",
+  "Branch",
+  "Type",
+  "Ward Name/No",
+  "Bed No",
+  "Status",
+  "Edit",
+];

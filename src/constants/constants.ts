@@ -443,3 +443,9 @@ export enum ServiceMasterPopupName {
   REVENUE_DEPARTMENT = "revenueDepartment",
   SNOMED = "snomed",
 }
+
+export enum BedMasterPopupName {
+  BLOCK = "block",
+  FLOOR = "floor",
+  WARD = "ward",
+}

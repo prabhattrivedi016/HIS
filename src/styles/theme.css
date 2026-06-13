@@ -63,9 +63,6 @@
 .login-input-field {
   @apply w-full px-3 py-2 sm:py-2 md:py-2 text-sm sm:text-base rounded-lg outline-none bg-transparent  text-gray-800  placeholder:text-gray-400 placeholder:opacity-70 focus:bg-transparent autofill:bg-transparent;
 }
-.input-field-error {
-  @apply text-sm text-red-500;
-}
 
 .welcome {
   @apply text-indigo-600 font-medium;
@@ -186,9 +183,7 @@
 .input-field {
   @apply w-full px-4 py-2 border border-gray-400 rounded-lg bg-white placeholder:text-gray-500 placeholder:opacity-60 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition mb-2;
 }
-.input-field-error {
-  @apply text-red-600 text-sm mt-1;
-}
+
 .input-dob {
   @apply [&::-webkit-datetime-edit]:uppercase
       [&::-webkit-datetime-edit]:tracking-wide

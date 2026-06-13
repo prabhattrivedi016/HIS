@@ -339,14 +339,14 @@ const InvestigationObservationMapping = () => {
 
               {/*modal*/}
               {!investigationDetails && investigationList.length > 0 && (
-                <div className="absolute z-50  w-full rounded-md  bg-white shadow-lg max-h-60 overflow-auto">
+                <div className="input-modal-bg">
                   {investigationList.map(item => (
                     <div
                       key={item.serviceItemId}
-                      className="px-2 py-2 cursor-pointer hover:bg-gray-200"
+                      className="row-border"
                       onClick={() => selectHandler(item)}
                     >
-                      <div className="font-sm text-sm">{item.name}</div>
+                      <div className="row-text">{item.name}</div>
                     </div>
                   ))}
                 </div>

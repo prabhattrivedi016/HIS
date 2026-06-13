@@ -116,4 +116,9 @@ type PickMasterItem = {
   key: string | number;
 };
 
-export type { InvestigationName, PickMasterItem, SelectItem, SubSubCategoryItem };
+type BranchItem = {
+  branchId: number;
+  branchName: string;
+};
+
+export type { BranchItem, InvestigationName, PickMasterItem, SelectItem, SubSubCategoryItem };
