@@ -145,7 +145,7 @@ const SnomedPopup = ({
             </InputField>
 
             {!selectedSnomed && searchKey.length >= 3 && (
-              <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-sm max-h-55 overflow-auto">
+              <div className="input-modal-bg">
                 {!isLoading && !isFetching && snomedCode.length === 0 && (
                   <div className="px-3 py-2 text-sm text-gray-500">No records found</div>
                 )}
@@ -153,14 +153,14 @@ const SnomedPopup = ({
                 {snomedCode.map((item: SnomedItem) => (
                   <div
                     key={item.conceptId}
-                    className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                    className="row-border"
                     onClick={() => snomedSelectHandler(item)}
                   >
-                    <div className="font-medium text-sm">{item.term}</div>
+                    <div className="row-text">{item.term}</div>
 
-                    <div className="text-xs text-gray-500">Concept Id: {item.conceptId}</div>
+                    <div className="row-text">Concept Id: {item.conceptId}</div>
 
-                    {item.fsn?.term && <div className="text-xs text-gray-400">{item.fsn.term}</div>}
+                    {item.fsn?.term && <div className="row-text">{item.fsn.term}</div>}
                   </div>
                 ))}
               </div>

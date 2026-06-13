@@ -332,6 +332,16 @@ const ENDPOINTS = {
   GET_PRINT_GROUP_MASTER: "Admin/getPrintGroupMaster",
   CREATE_UPDATE_PRINT_GROUP_MASTER: "Admin/createUpdatePrintGroupMaster",
   CREATE_UPDATE_SERVICE_ITEM_MASTER: "Admin/createUpdateServiceItemMaster",
+
+  // bed master
+  CREATE_UPDATE_FLOOR_MASTER: "Admin/createUpdateFloorMaster",
+  GET_FLOOR_LIST: "Admin/getFloorList",
+  CREATE_UPDATE_WARD_NAME_MASTER: "Admin/createUpdateWardNameMaster",
+  GET_WARD_NAME_MASTER: "Admin/getWardNameMaster",
+  GET_ALL_BED_LIST: "Admin/getAllBedList",
+  CREATE_UPDATE_BED_MASTER: "Admin/createUpdateBedMaster",
+  GET_BLOCK_LIST: "Admin/getBlockList",
+  CREATE_UPDATE_BLOCK_MASTER: "Admin/createUpdateBlockMaster",
 };
 
 export { ENDPOINTS };

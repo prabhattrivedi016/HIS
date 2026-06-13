@@ -3,6 +3,7 @@ import AllergyMaster from "../allergyMaster";
 import AllergyResultEntry from "../allergyResultEntry";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
+import BedMaster from "../bedMaster";
 import BranchMaster from "../branchMaster";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
@@ -97,4 +98,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "user-wise-discount-master": <UserWiseDiscountMaster />,
   "consultation-header-master": <ConsultationHeaderMaster />,
   "service-master": <ServiceMaster />,
+  "bed-master": <BedMaster />,
 };

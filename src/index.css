@@ -454,3 +454,23 @@ select:-webkit-autofill {
 .helper-text {
   @apply text-sm text-gray-500 flex gap-2 mt-1;
 }
+
+/* texts */
+.input-field-error {
+  @apply text-sm text-red-500;
+}
+
+.input-field-msg {
+  @apply text-sm text-gray-400;
+}
+
+/* input field modal */
+.input-modal-bg {
+  @apply absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-sm max-h-55 overflow-auto;
+}
+.row-border {
+  @apply px-3 py-2 cursor-pointer hover:bg-gray-100;
+}
+.row-text {
+  @apply font-medium text-sm text-gray-400;
+}
