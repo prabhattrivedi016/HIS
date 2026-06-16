@@ -198,11 +198,12 @@ const MrdPopUp = ({
               />
             </InputField>
           )}
-          <div className="flex gap-3 mt-6">
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? (data ? "Updating..." : "Saving...") : data ? "Update" : "Save"}
+          <div className="form-actions-responsive mt-5">
+            <button type="submit" className="save-btn">
+              {"Save"}
             </button>
-            <button type="button" className="cancel-btn" onClick={onCloseTab} disabled={loading}>
+
+            <button type="button" className="cancel-button" onClick={onCloseTab}>
               Cancel
             </button>
           </div>

@@ -349,6 +349,14 @@ const ENDPOINTS = {
   CHECK_PATIENT_ADMITTED: "Home/checkPatientAdmitted",
   CHECK_BED_STATUS: "Home/checkBedStatus",
   SAVE_IPD_ADMISSION: "Patient/saveIPDAdmission",
+
+  // tab master
+  CREATE_UPDATE_TAB_GROUP_TYPE_MASTER: "Admin/createUpdateTabGroupTypeMaster",
+  GET_TAB_GROUP_TYPE_MASTER: "Admin/getTabGroupTypeMaster",
+  GET_IPD_TAB_MASTER: "Admin/getIPDTabMaster",
+  CREATE_UPDATE_IPD_TAB_MASTER: "Admin/createUpdateIPDTabMaster",
+  GET_ROLE_WISE_IPD_TAB_LIST_MASTER: "Admin/getRoleWiseIPDTabListMaster",
+  SAVE_UPDATE_ROLE_WISE_IPD_TAB_MAPPING: "Admin/saveUpdateRoleWiseIPDTabMapping",
 };
 
 export { ENDPOINTS };

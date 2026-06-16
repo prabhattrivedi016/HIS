@@ -169,11 +169,12 @@ const AddNewTabPanel = ({
           )}
           {/* </InputField> */}
 
-          <div className="flex gap-3 mt-6">
-            <button type="submit" className="submit-btn">
+          <div className="flex justify-center gap-3 p-3">
+            <button type="submit" className="save-btn">
               Save
             </button>
-            <button type="button" className="cancel-btn" onClick={onCloseTab}>
+
+            <button type="button" className="cancel-button" onClick={onCloseTab}>
               Cancel
             </button>
           </div>

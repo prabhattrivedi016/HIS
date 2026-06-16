@@ -238,7 +238,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
               {/* single button to move all */}
               <div className="flex flex-col justify-center items-center gap-1 ">
                 <button
-                  className="submit-btn px-3 py-2"
+                  className="save-btn"
                   onClick={moveAll}
                   disabled={pendingUsers.length === 0 && mappedUsers.length === 0}
                 >
@@ -279,7 +279,7 @@ const MapToUserDrawer = ({ isOpen, onClose, groupId }: MapToUserDrawerProps) => 
             </div>
 
             <div className=" p-3">
-              <button className="w-full submit-btn" onClick={handleSave}>
+              <button className="w-full save-btn" onClick={handleSave}>
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <Spinner />
