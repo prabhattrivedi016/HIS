@@ -380,11 +380,12 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
                 <p className="input-field-error">Status is required</p>
               )}
             </InputField>
-            <div className="flex gap-3 mt-6">
-              <button type="submit" className="submit-btn">
-                Save
+            <div className="form-actions-responsive mt-5">
+              <button type="submit" className="save-btn">
+                {"Save"}
               </button>
-              <button type="button" className="cancel-btn" onClick={onCloseTab}>
+
+              <button type="button" className="cancel-button" onClick={onCloseTab}>
                 Cancel
               </button>
             </div>
@@ -422,11 +423,12 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
                 <p className="input-field-error">Status is required</p>
               )}
             </InputField>
-            <div className="flex gap-3 mt-6">
-              <button type="submit" className="submit-btn">
-                Save
+            <div className="form-actions-responsive mt-5">
+              <button type="submit" className="save-btn">
+                {"Save"}
               </button>
-              <button type="button" className="cancel-btn" onClick={onCloseTab}>
+
+              <button type="button" className="cancel-button" onClick={onCloseTab}>
                 Cancel
               </button>
             </div>
@@ -464,11 +466,12 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
                 <p className="input-field-error">Status is required</p>
               )}
             </InputField>
-            <div className="flex gap-3 mt-6">
-              <button type="submit" className="submit-btn">
-                Save
+            <div className="form-actions-responsive mt-5">
+              <button type="submit" className="save-btn">
+                {"Save"}
               </button>
-              <button type="button" className="cancel-btn" onClick={onCloseTab}>
+
+              <button type="button" className="cancel-button" onClick={onCloseTab}>
                 Cancel
               </button>
             </div>
@@ -507,11 +510,12 @@ const LocationMasterDrawer = ({ isOpenTab, onCloseTab, data }: LocationMasterDra
                 <p className="input-field-error">Status is required</p>
               )}
             </InputField>
-            <div className="flex gap-3 mt-6">
-              <button type="submit" className="submit-btn">
-                Save
+            <div className="form-actions-responsive mt-5">
+              <button type="submit" className="save-btn">
+                {"Save"}
               </button>
-              <button type="button" className="cancel-btn" onClick={onCloseTab}>
+
+              <button type="button" className="cancel-button" onClick={onCloseTab}>
                 Cancel
               </button>
             </div>

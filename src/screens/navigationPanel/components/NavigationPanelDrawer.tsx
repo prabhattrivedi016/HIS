@@ -165,7 +165,7 @@ const NavigationPanelDrawer = ({
                   {errors.tabId && <p className="input-field-error">{errors.tabId.message}</p>}
                 </div>
 
-                <button type="button" className="add-tabPan-btn" onClick={newTabHandler}>
+                <button type="button" className="save-btn mt-6" onClick={newTabHandler}>
                   <Plus size={20} />
                 </button>
               </div>
@@ -199,7 +199,7 @@ const NavigationPanelDrawer = ({
                 {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
               </InputField>
 
-              <button type="submit" className="submit-btn">
+              <button type="submit" className="save-btn w-full">
                 {loading ? (
                   <>
                     <Spinner />

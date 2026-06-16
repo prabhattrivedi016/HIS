@@ -15,6 +15,20 @@ export const NavigationPaneHeader = [
   // "Last Modified On",
 ];
 
+export const TabnameTableHeader = [
+  "Tab Type",
+  "Group Type",
+  "Room Type",
+  "Tab Name",
+  "URL",
+  "Sequence No",
+  "Status",
+  "Create By",
+  "Create On",
+  "Last Modified By",
+  "Last Modified On",
+];
+
 export enum HeaderFooterTabName {
   HEADER = "Header-Footer",
   SEQUENCE = "Sequence Mapping",

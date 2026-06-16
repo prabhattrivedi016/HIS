@@ -338,7 +338,7 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
               {/* single button to move all */}
               <div className="flex flex-col justify-center items-center gap-1 m-1">
                 <button
-                  className="submit-btn px-4 py-2"
+                  className="save-btn"
                   onClick={moveAll}
                   disabled={pendingRole.length === 0 && grantedRole.length === 0}
                 >
@@ -384,7 +384,7 @@ const PageMapping = ({ isOpen, onClose }: PageMappingProps) => {
             </div>
 
             <div className="p-3">
-              <button type="submit" className="submit-btn" onClick={handleSubmit}>
+              <button type="submit" className="save-btn w-full" onClick={handleSubmit}>
                 Save
               </button>
             </div>

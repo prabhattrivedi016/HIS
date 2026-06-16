@@ -41,6 +41,7 @@ import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
 import ServiceMaster from "../serviceMaster";
+import TabMaster from "../tabMaster";
 import TariffManager from "../tariffManager";
 import NoPage from "../unauthorized";
 import UserAuthorization from "../userAuthorization";
@@ -101,4 +102,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "service-master": <ServiceMaster />,
   "bed-master": <BedMaster />,
   "ipd-admission": <IPDAdmission />,
+  "tab-master": <TabMaster />,
 };
