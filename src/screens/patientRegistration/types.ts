@@ -124,6 +124,7 @@ type PatientDataProps = {
   selectedPatientId?: number | null;
   showRegistrationButton?: boolean;
   onPayloadChange?: (payload: Record<string, unknown>) => void;
+  onPatientLoaded?: (source: "uhid") => void;
 };
 
 type PatientDataHandle = {

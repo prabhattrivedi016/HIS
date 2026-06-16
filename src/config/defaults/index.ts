@@ -342,6 +342,13 @@ const ENDPOINTS = {
   CREATE_UPDATE_BED_MASTER: "Admin/createUpdateBedMaster",
   GET_BLOCK_LIST: "Admin/getBlockList",
   CREATE_UPDATE_BLOCK_MASTER: "Admin/createUpdateBlockMaster",
+
+  // ipd admission
+  GET_BED_TYPES: "Home/getBedTypes",
+  GET_AVAILABLE_BEDS: "Home/getAvailableBeds",
+  CHECK_PATIENT_ADMITTED: "Home/checkPatientAdmitted",
+  CHECK_BED_STATUS: "Home/checkBedStatus",
+  SAVE_IPD_ADMISSION: "Patient/saveIPDAdmission",
 };
 
 export { ENDPOINTS };

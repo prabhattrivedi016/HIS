@@ -76,7 +76,7 @@ const CreateUpdatePopup = ({
   const { loading, fetchApi } = useGlobalApi();
   const categoryButtonTitle = categoryData === null ? "Create" : "Update";
   const subCategoryButtonTitle = subCategoryData === null ? "Create" : "Update";
-  const subSubCategoryButtonTitle = subSubCategoryData === null ? "Create" : "Update";
+  const subSubCategoryButtonTitle = subSubCategoryData?.subSubCategoryId ? "Update" : "Create";
 
   const [openPrintPopup, setOpenPrintPopup] = useState<boolean>(false);
   const [renderPrintPopup, setRenderPrintPopup] = useState<boolean>(false);
@@ -209,7 +209,7 @@ const CreateUpdatePopup = ({
 
   // sub sub category
   useEffect(() => {
-    if (popupName !== ServiceMasterPopupName.SUB_SUB_CATEGORY) return;
+    if (!isOpen || popupName !== ServiceMasterPopupName.SUB_SUB_CATEGORY) return;
 
     subSubCategoryForm.reset({
       subSubCategoryId: subSubCategoryData?.subSubCategoryId ?? 0,
@@ -219,7 +219,13 @@ const CreateUpdatePopup = ({
       departmentId: subSubCategoryData?.departmentId ?? 0,
     });
 
-    // print group
+    if (!subSubCategoryData?.subSubCategoryId) {
+      setSelectedPrintGroupId(0);
+      setSelectedPrintGroup(null);
+      setSelectedDoctorDepartment(null);
+      return;
+    }
+
     const printGroup = printGroupList.find(
       (p: PrintGroupItem) => Number(p.PrintGroupId) === Number(subSubCategoryData?.printGroupId)
     );
@@ -227,11 +233,11 @@ const CreateUpdatePopup = ({
     if (printGroup) {
       setSelectedPrintGroup(printGroup);
       setSelectedPrintGroupId(printGroup.PrintGroupId);
-
       subSubCategoryForm.setValue("printGroupId", printGroup.PrintGroupId);
+    } else {
+      setSelectedPrintGroupId(Number(subSubCategoryData?.printGroupId ?? 0));
     }
 
-    // department
     const department = doctorDepartmentList.find(
       (d: DoctorDepartmentList) =>
         Number(d.departmentId) === Number(subSubCategoryData?.departmentId)
@@ -239,10 +245,17 @@ const CreateUpdatePopup = ({
 
     if (department) {
       setSelectedDoctorDepartment(department);
-
       subSubCategoryForm.setValue("departmentId", department.departmentId);
     }
-  }, [popupName, subSubCategoryData, subCategoryData, doctorDepartmentList, printGroupList]);
+  }, [
+    isOpen,
+    popupName,
+    subSubCategoryData,
+    subCategoryData,
+    doctorDepartmentList,
+    printGroupList,
+    subSubCategoryForm,
+  ]);
 
   // category type select handler
   const categoryTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
