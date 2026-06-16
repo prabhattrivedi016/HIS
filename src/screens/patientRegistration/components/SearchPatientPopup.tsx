@@ -17,7 +17,8 @@ type SearchPatientPopupProps = {
   onClose: () => void;
   showTable: boolean;
   setShowTable: Dispatch<SetStateAction<boolean>>;
-  onSelectPatientId: Dispatch<SetStateAction<number | null>>;
+  onSelectPatientId?: Dispatch<SetStateAction<number | null>>;
+  onSelectPatient?: (item: SearchedPatientItem) => Promise<boolean> | boolean;
 };
 
 const getInitialFormData = () => ({
@@ -40,6 +41,7 @@ const SearchPatientPopup = ({
   showTable,
   setShowTable,
   onSelectPatientId,
+  onSelectPatient,
 }: SearchPatientPopupProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
   const today = formatDate(new Date());
@@ -99,8 +101,14 @@ const SearchPatientPopup = ({
     setShowTable(false);
   };
   // select patient handler
-  const selectPatientHandler = (item: SearchedPatientItem) => {
-    onSelectPatientId(item?.patientId ?? null);
+  const selectPatientHandler = async (item: SearchedPatientItem) => {
+    if (onSelectPatient) {
+      const canProceed = await onSelectPatient(item);
+      if (!canProceed) return;
+    } else {
+      onSelectPatientId?.(item?.patientId ?? null);
+    }
+
     onClose();
     setShowTable(false);
   };

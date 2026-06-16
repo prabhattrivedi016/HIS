@@ -451,7 +451,11 @@ const AddNewBedMaster = ({
                   )}
                 </InputField>
 
-                <InputField label="Number of bed" required>
+                <InputField
+                  label={isEdit ? "Update number " : "Number of Beds"}
+                  hint="Enter between 1 to 25 only"
+                  required
+                >
                   <input
                     type="text"
                     className="input-field"
@@ -461,7 +465,7 @@ const AddNewBedMaster = ({
                     placeholder="Enter bed number"
                     {...register("bedNo")}
                   />
-                  <p className="input-field-msg"> * Enter between 1 to 25 only</p>
+
                   {errors.bedNo && <p className="input-field-error">{errors.bedNo.message}</p>}
                 </InputField>
 

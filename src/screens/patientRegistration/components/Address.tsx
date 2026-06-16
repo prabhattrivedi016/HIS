@@ -63,18 +63,19 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     setStateList([]);
     setDistrictList([]);
     setCityList([]);
-    setValue("StateId", "");
+    setValue("StateId", 0);
     setValue("State", "");
-    setValue("DistrictId", "");
+    setValue("DistrictId", 0);
     setValue("District", "");
-    setValue("CityId", "");
+
+    setValue("CityId", 0);
     setValue("City", "");
   }, [setValue]);
 
   const clearAllLocationFields = useCallback(() => {
     setSelectedCountry(null);
     clearStateDistrictCity();
-    setValue("CountryId", "");
+    setValue("CountryId", 0);
     setValue("Country", "");
   }, [clearStateDistrictCity, setValue]);
 
@@ -345,9 +346,9 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       setSelectedCity(null);
       setDistrictList([]);
       setCityList([]);
-      setValue("DistrictId", "");
+      setValue("DistrictId", 0);
       setValue("District", "");
-      setValue("CityId", "");
+      setValue("CityId", 0);
       setValue("City", "");
       return;
     }
@@ -357,9 +358,9 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     setSelectedDistrict(null);
     setSelectedCity(null);
     setCityList([]);
-    setValue("DistrictId", "");
+    setValue("DistrictId", 0);
     setValue("District", "");
-    setValue("CityId", "");
+    setValue("CityId", 0);
     setValue("City", "");
     fetchDistricts(Number(option.value)).finally(() => {
       skipCascadeDefaultsRef.current = false;
@@ -397,7 +398,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       applyLocationSelection("district", null);
       setSelectedCity(null);
       setCityList([]);
-      setValue("CityId", "");
+      setValue("CityId", 0);
       setValue("City", "");
       return;
     }
@@ -406,7 +407,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     applyLocationSelection("district", toLocationOption(option));
     setSelectedCity(null);
     setCityList([]);
-    setValue("CityId", "");
+    setValue("CityId", 0);
     setValue("City", "");
     fetchCities(Number(option.value)).finally(() => {
       skipCascadeDefaultsRef.current = false;
@@ -583,6 +584,9 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
+        {errors.CountryId && (
+          <p className="input-field-error">{String(errors.CountryId.message)}</p>
+        )}
       </InputField>
       <InputField label="State" required>
         <Select<OptionItem, false>
@@ -597,6 +601,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
+        {errors.StateId && <p className="input-field-error">{String(errors.StateId.message)}</p>}
       </InputField>
       <InputField label="District" required>
         <Select<OptionItem, false>
@@ -611,6 +616,9 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
+        {errors.DistrictId && (
+          <p className="input-field-error">{String(errors.DistrictId.message)}</p>
+        )}
       </InputField>
       <InputField label="City" required>
         <Select<OptionItem, false>
@@ -625,6 +633,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
           menuPortalTarget={document.body}
           menuPosition="fixed"
         />
+        {errors.CityId && <p className="input-field-error">{String(errors.CityId.message)}</p>}
       </InputField>
 
       {!!loading && <CustomLoader isLoading={loading} />}

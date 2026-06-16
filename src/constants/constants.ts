@@ -449,3 +449,8 @@ export enum BedMasterPopupName {
   FLOOR = "floor",
   WARD = "ward",
 }
+
+export enum IPDAdmissionTabName {
+  PATIENT_DETAILS = "Patient Details",
+  IPD_ADIMISSION = "IPD Admission",
+}

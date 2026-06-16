@@ -19,6 +19,7 @@ import HistoResultEntry from "../histoResultEntry";
 import ImportTariffs from "../importTariffs";
 import InvestigationInterpretationTemplate from "../investigationInterpretationTemplate";
 import InvestigationObservationMapping from "../investigationObservationMapping";
+import IPDAdmission from "../ipdAdmission";
 import IpdBilling from "../ipdBilling";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
@@ -99,4 +100,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "consultation-header-master": <ConsultationHeaderMaster />,
   "service-master": <ServiceMaster />,
   "bed-master": <BedMaster />,
+  "ipd-admission": <IPDAdmission />,
 };

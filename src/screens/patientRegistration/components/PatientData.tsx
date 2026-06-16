@@ -6,7 +6,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import {
   defaultPatientRegistrationValues,
@@ -56,6 +56,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       showRegistrationButton = true,
       selectedPatientId: selectedPatientIdFromProps = null,
       onPayloadChange,
+      onPatientLoaded,
     }: PatientDataProps,
     ref
   ) => {
@@ -389,7 +390,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       );
 
       if (!resp?.result) {
-        showError(error?.message ?? "Something went wrong");
+        showWarning(resp?.message ?? "Failed to register patient");
         return;
       }
 
@@ -427,7 +428,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         );
 
         if (!response?.result) {
-          showError(response?.message || "Upload failed");
+          showWarning(response?.message || "Failed to upload documents");
           return;
         }
 
@@ -518,7 +519,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         { component: "Patient Registration" }
       );
       if (!resp?.result) {
-        showError(resp?.message ?? "Something went wrong");
+        showWarning(resp?.message ?? "Failed to get patient data");
         return;
       }
 
@@ -658,11 +659,12 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       const patientId = Number(matchedPatient?.patientId ?? 0);
 
       if (!patientId) {
-        showError("No patient found for the entered UHID.");
+        showWarning("No patient found for the entered UHID.");
         return;
       }
 
       await getEditPatientData(patientId);
+      onPatientLoaded?.("uhid");
     };
 
     useEffect(() => {
@@ -689,7 +691,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
             typeof firstError?.message === "string"
               ? firstError.message
               : "Please fix validation errors before submitting";
-          showError(message);
+          showWarning(message);
         })();
         return;
       }
@@ -1088,7 +1090,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       className="save-btn w-full"
                       onClick={() => setShowWebcam(prev => !prev)}
                     >
-                      {showWebcam ? "Close Camera" : "Open Camera"}
+                      {showWebcam ? "Close Camera" : "capture"}
                     </button>
                   </div>
 
