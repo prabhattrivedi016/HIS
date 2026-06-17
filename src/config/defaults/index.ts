@@ -42,6 +42,8 @@ const ENDPOINTS = {
   GET_USER_WISE_BED_MAPPING: "Admin/getUserWiseBedMapping",
   SAVE_UPDATE_USER_CORPORATE_MAPPING: "Admin/saveUpdateUserCorporateMapping",
   SAVE_UPDATE_USER_BED_MAPPING: "Admin/saveUpdateUserBedMapping",
+  GET_USER_GRANTED_REMAINING_TAB_MASTER: "Admin/getUserGrantedRemainingTabMaster",
+  SAVE_UPDATE_USER_IPD_TAB_MAPPING: "Admin/saveUpdateUserIPDTabMapping",
 
   // navigation panel
   GET_NAVIGATION_SUB_MENU_MASTER: "Admin/getNavigationSubMenuMaster",
