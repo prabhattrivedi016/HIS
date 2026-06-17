@@ -14,6 +14,7 @@ import { usePickMaster } from "../../hooks/usePickMaster";
 import CorporateMapping from "./components/CorporateMapping";
 import PageAccess from "./components/PageAccess";
 import RoomMapping from "./components/RoomMapping";
+import TabAccess from "./components/TabAccess";
 import UserDashboard from "./components/UserDashboard";
 import UserRightData from "./components/UserRightData";
 import {
@@ -217,6 +218,14 @@ const UserAuthorization = () => {
     setRoleId(null);
 
     setSelectedButton("pageAccess");
+  };
+
+  const tabsAccessHandler = () => {
+    setShowRoleSelect(true);
+    setSelectedRole(null);
+    setRoleId(null);
+
+    setSelectedButton("tabsAccess");
   };
 
   const corporateMappingHandler = () => {
@@ -439,6 +448,9 @@ const UserAuthorization = () => {
       case "pageAccess": {
         return <PageAccess branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />;
       }
+      case "tabsAccess": {
+        return <TabAccess branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />;
+      }
       case "corporateMapping": {
         return <CorporateMapping branchId={branchId} typeId={typeId} userId={userId} />;
       }
@@ -557,6 +569,13 @@ const UserAuthorization = () => {
               onClick={pageAccessHandler}
             >
               Page Access
+            </button>
+
+            <button
+              className={`table-header-button ${selectedButton === "tabsAccess" ? "save-btn" : "cursor-pointer"}`}
+              onClick={tabsAccessHandler}
+            >
+              All Tabs
             </button>
 
             <button

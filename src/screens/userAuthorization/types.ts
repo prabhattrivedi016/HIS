@@ -67,6 +67,13 @@ export type PageAccessItem = {
   isActive: number;
 };
 
+export type TabAccessItem = {
+  isGranted: number;
+  TabId: number;
+  TabName: string;
+  TabTypeId: number;
+};
+
 export type CorporateMappingItem = {
   isGranted: number;
   corporateId: number;
