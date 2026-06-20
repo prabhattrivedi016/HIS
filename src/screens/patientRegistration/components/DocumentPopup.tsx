@@ -1,4 +1,5 @@
 import CustomLoader from "@/components/customLoader";
+import { ErrorMessage } from "@/components/infoText";
 import ImageDownload from "@/components/SingledrawerAndPopup/components/ImageDownload";
 import ImagePreview from "@/components/SingledrawerAndPopup/components/ImagePreview";
 import { ENDPOINTS } from "@/config/defaults";
@@ -6,13 +7,7 @@ import { PatientDocumentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { DOcumentListItem } from "../types";
-
-type PatientDocumentPayloadItem = {
-  DocumentId: number;
-  PatientId: number;
-  DocumentFile: File | null;
-};
+import { DOcumentListItem, PatientDocumentPayloadItem } from "../types";
 
 const DocumentPopup = ({
   isOpen,
@@ -22,14 +17,20 @@ const DocumentPopup = ({
   setFileStore,
   payload,
   setPayload,
+  validationErrors = {},
+  onClearDocumentError,
+  documentError,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  patientId: number;
+  patientId: number | null;
   fileStore: Record<number, File>;
   setFileStore: React.Dispatch<React.SetStateAction<Record<number, File>>>;
   payload: PatientDocumentPayloadItem[];
   setPayload: React.Dispatch<React.SetStateAction<PatientDocumentPayloadItem[]>>;
+  validationErrors?: Record<number, string>;
+  onClearDocumentError?: (documentId: number) => void;
+  documentError: string;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -44,7 +45,6 @@ const DocumentPopup = ({
       { params: { patientId } },
       { component: "DocumentPopupPatientRegistration" }
     );
-    console.log("resp", resp?.data);
 
     setDocumentList(resp?.data ?? []);
   };
@@ -65,6 +65,7 @@ const DocumentPopup = ({
     };
 
     setFileStore(updatedMap);
+    onClearDocumentError?.(item.documentId);
 
     setPayload(prev => {
       const exists = prev.find(d => d.DocumentId === item.documentId);
@@ -100,6 +101,8 @@ const DocumentPopup = ({
           </button>
         </div>
 
+        {!!documentError && <ErrorMessage text={documentError} />}
+
         <div className="table-container">
           <div className="table-scroll-wrapper">
             <div className="table-size">
@@ -127,7 +130,7 @@ const DocumentPopup = ({
                   )}
 
                   {documentList.map((item, idx) => {
-                    const selectedFile = fileStore[item.documentId];
+                    const fieldError = validationErrors[item.documentId];
 
                     return (
                       <tr key={idx} className="table-row">
@@ -151,9 +154,16 @@ const DocumentPopup = ({
                         <td className="table-td">
                           <input
                             type="file"
-                            className="file-upload max-w-50"
+                            className={`file-upload max-w-50 ${
+                              fieldError
+                                ? "input-field-error"
+                                : item?.isMandatory === 1
+                                  ? "input-field-warning"
+                                  : ""
+                            }`}
                             onChange={e => fileChangeHandler(e, item)}
                           />
+                          {!!fieldError && <p className="input-field-error">{fieldError}</p>}
                         </td>
                       </tr>
                     );

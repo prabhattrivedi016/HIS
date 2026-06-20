@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 
+import { usePickMaster } from "@/hooks/usePickMaster";
+import { PickMasterItem } from "@/types";
 import { showError, showSuccess } from "@/utils/alert";
 import { Minus, Plus } from "lucide-react";
 import { InferType } from "yup";
@@ -19,6 +21,9 @@ type PatientDocumentFormItem = InferType<typeof PatientDocumentSchema>;
 const PatientDocumentMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
+  const documentCategoryList = usePickMaster("DocumentCategoryType")?.pickMasterValue ?? [];
+  console.log("documentCategoryList", documentCategoryList);
+
   const [patientDocumentList, setPatientDocumentList] = useState<PatientDocumentItem[]>([]);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -27,6 +32,7 @@ const PatientDocumentMaster = () => {
     register,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(PatientDocumentSchema),
@@ -35,6 +41,9 @@ const PatientDocumentMaster = () => {
       documentName: "",
       documentCode: "",
       isActive: 1,
+      documentCategoryId: 0,
+      documentCategory: "",
+      isMandatory: 0,
     },
   });
 
@@ -84,6 +93,9 @@ const PatientDocumentMaster = () => {
       documentName: "",
       documentCode: "",
       isActive: 1,
+      documentCategoryId: 0,
+      documentCategory: "",
+      isMandatory: 0,
     });
     await getPatientDocument();
   };
@@ -96,6 +108,9 @@ const PatientDocumentMaster = () => {
         documentName: "",
         documentCode: "",
         isActive: 1,
+        documentCategoryId: 0,
+        documentCategory: "",
+        isMandatory: 0,
       });
       return;
     }
@@ -104,6 +119,9 @@ const PatientDocumentMaster = () => {
       documentName: item.documentName,
       documentCode: item.documentCode,
       isActive: item.isActive,
+      documentCategoryId: item?.documentCategoryId,
+      documentCategory: item?.documentCategory,
+      isMandatory: item?.isMandatory,
     });
   };
 
@@ -114,27 +132,57 @@ const PatientDocumentMaster = () => {
       documentName: "",
       documentCode: "",
       isActive: 1,
+      documentCategoryId: 0,
+      documentCategory: "",
+      isMandatory: 0,
     });
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">Patient Document Master</h1>
+      <h1 className="page-heading"> Document Master</h1>
 
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>Patient Document Master</span>
+        <span> Document Master</span>
       </nav>
 
       <div className="card mb-1">
-        <h2 className="card-title ">Document Details</h2>
         {/* form */}
 
         <form onSubmit={handleSubmit(submitHandler)}>
           <div className="form-grid-4">
+            <InputField label="Document Category" required>
+              <select
+                className="input-field"
+                {...register("documentCategoryId")}
+                onChange={e => {
+                  const selectedId = e.target.value;
+
+                  const selectedCategory = documentCategoryList?.find(
+                    d => String(d.key) === selectedId
+                  );
+
+                  setValue("documentCategory", selectedCategory?.type || "");
+
+                  setValue("documentCategoryId", Number(selectedId));
+                }}
+              >
+                <option value={0}>--Select--</option>
+                {documentCategoryList?.map((d: PickMasterItem) => (
+                  <option key={d?.key} value={d?.key}>
+                    {d?.value}
+                  </option>
+                ))}
+              </select>
+              {errors.documentCategoryId && (
+                <p className="input-field-error">{errors.documentCategoryId.message}</p>
+              )}
+            </InputField>
+
             <InputField label="Document Name" required>
               <input
                 type="text"
@@ -163,6 +211,14 @@ const PatientDocumentMaster = () => {
               <select className="input-field" {...register("isActive")}>
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
+              </select>
+              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
+            </InputField>
+
+            <InputField label="Is Mandatory" required>
+              <select className="input-field" {...register("isMandatory")}>
+                <option value={1}>Yes</option>
+                <option value={0}>No</option>
               </select>
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
@@ -214,8 +270,17 @@ const PatientDocumentMaster = () => {
                   {patientDocumentList.map((item, idx) => (
                     <tr key={idx} className="table-row">
                       <td className="table-td">{idx + 1}</td>
+                      <td className="table-td">{item?.documentCategory}</td>
+
                       <td className="table-td">{item.documentName}</td>
                       <td className="table-td">{item.documentCode}</td>
+                      <td
+                        className={`table-td ${
+                          Number(item?.isMandatory) === 1 ? "active-text" : "inactive-text"
+                        }`}
+                      >
+                        {Number(item?.isMandatory) === 1 ? "Yes" : "No"}
+                      </td>
                       <td
                         className={`table-td ${
                           Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
@@ -223,6 +288,7 @@ const PatientDocumentMaster = () => {
                       >
                         {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                       </td>
+
                       <td className="table-td">{item.createdBy}</td>
                       <td className="table-td">{item.createdOn}</td>
                       <td className="table-td">{item.lastModifiedBy}</td>

@@ -129,6 +129,7 @@ type PatientDataProps = {
 
 type PatientDataHandle = {
   validateForm: () => Promise<boolean>;
+  loadPatientById: (patientId: number) => Promise<void>;
 };
 type ButtonProps = {
   onButtonClick?: (name: string) => void;
@@ -140,6 +141,7 @@ type DOcumentListItem = {
   documentName: string;
   documentCode: string;
   documentPath: string;
+  isMandatory: number;
 };
 
 type PatientDataEditItem = {

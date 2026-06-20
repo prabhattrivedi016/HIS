@@ -119,6 +119,10 @@ type AddIpdOpdPopupProps = {
   opdValue?: string;
   setIpdValue?: (value: string) => void;
   setOpdValue?: (value: string) => void;
+  opdTableError?: string;
+  ipdTableError?: string;
+  onClearOpdTableError?: () => void;
+  onClearIpdTableError?: () => void;
 };
 export type {
   AddIpdOpdPopupProps,

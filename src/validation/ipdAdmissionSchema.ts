@@ -55,7 +55,7 @@ export const ipdAdmissionSchema = yup.object().shape({
     ),
   handleWithCare: yup.number().default(0),
   nameMasking: yup.number().default(0),
-  admissionType: yup.string().trim().required("Admission type is required"),
+  admissionType: yup.string().nullable(),
   mlcNo: yup.string().when("admissionType", {
     is: isMlcAdmission,
     then: schema => schema.trim().required("MLC number is required"),

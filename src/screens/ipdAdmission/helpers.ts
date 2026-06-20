@@ -27,6 +27,43 @@ export const formatRoomTypeLabel = (item: AvailableBedItem): string => {
 
 export const getRoomTypeOptionValue = (item: AvailableBedItem): number => getRoomTypeId(item);
 
+export type IpdPatientSummary = {
+  uhid: string;
+  patientName: string;
+  ageSex: string;
+  contactNumber: string;
+};
+
+export const buildIpdPatientSummary = (
+  details: Record<string, unknown>
+): IpdPatientSummary | null => {
+  const patientId = Number(details.PatientId ?? 0);
+
+  // Only show summary after an existing patient is bound/loaded, not while typing UHID.
+  if (patientId <= 0) {
+    return null;
+  }
+
+  const uhid = String(details.UhidOrBarcode ?? "").trim();
+  const title = String(details.Title ?? "").trim();
+  const firstName = String(details.FirstName ?? "").trim();
+  const middleName = String(details.MiddleName ?? "").trim();
+  const lastName = String(details.LastName ?? "").trim();
+  const patientName = [title, firstName, middleName, lastName].filter(Boolean).join(" ") || "-";
+
+  const ageYears = Number(details.AgeYears ?? 0);
+  const ageMonths = Number(details.AgeMonths ?? 0);
+  const ageDays = Number(details.AgeDays ?? 0);
+  const gender = String(details.Gender ?? "-").trim() || "-";
+
+  return {
+    uhid: uhid || "-",
+    patientName,
+    ageSex: `${ageYears}Y ${ageMonths}M ${ageDays}D / ${gender}`,
+    contactNumber: String(details.SelfContactNumber ?? "-").trim() || "-",
+  };
+};
+
 const toIsoDateString = (value?: string): string => {
   if (!value) return "";
   const parsed = new Date(value);

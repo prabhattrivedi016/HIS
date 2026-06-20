@@ -1,20 +1,20 @@
 import { getDoctorMaster, getPatientDataByPatientId } from "@/api/globalApiCall";
-import BillingDetails, { BillingDetailsHandle } from "@/components/BillingDetails";
+import { BillingDetailsHandle } from "@/components/BillingDetails";
 import { BillingFormValues } from "@/components/BillingDetails/types";
-import CustomDateInput from "@/components/customDateInput";
-import InputField from "@/components/customInputField";
+import { OpdBillingSection } from "@/components/BillingSection";
 import CustomLoader from "@/components/customLoader";
-import { SelectStyles } from "@/components/customSelect";
 import OpdCard from "@/components/reportTemplates/OpdCard";
 import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
+import IpdOpdDocument from "@/components/SingledrawerAndPopup/components/IpdOpdDocument";
+import { resolveVisitIdFromResponse } from "@/components/SingledrawerAndPopup/uploadVisitWiseDocuments";
+import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
+import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
 import { ENDPOINTS } from "@/config/defaults";
-import { OPD_CATEGORY_IDs, Status } from "@/constants/constants";
-import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
+import { IpdOpdTypeName, OPDBillingTabName, OPD_CATEGORY_IDs, Status } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
-import { allowOnlyText } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChangeEvent,
@@ -27,11 +27,16 @@ import {
   useState,
 } from "react";
 import { NavLink, useParams } from "react-router-dom";
-import Select, { SingleValue, StylesConfig } from "react-select";
+import { SingleValue } from "react-select";
 import { InsuranceItem } from "../branchMaster/types";
+import { buildIpdPatientSummary } from "../ipdAdmission/helpers";
 import PatientData from "../patientRegistration/components/PatientData";
 import SearchPatientPopup from "../patientRegistration/components/SearchPatientPopup";
-import { CorporateItem, PatientDataHandle } from "../patientRegistration/types";
+import {
+  CorporateItem,
+  PatientDataHandle,
+  SearchedPatientItem,
+} from "../patientRegistration/types";
 import Buttons from "./components/Buttons";
 import CollectOnDevice from "./components/CollectOnDevice";
 import DuesAmountPopup from "./components/DuesAmountPopup";
@@ -67,6 +72,7 @@ const OpdBilling = () => {
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const patientDataRef = useRef<PatientDataHandle>(null);
+  const ipdOpdDocumentRef = useRef<IpdOpdDocumentHandle>(null);
   const patientID = useParams();
   const pId = Number(patientID?.patientId);
   const defaultCorporate: OptionItem = { label: "CASH", value: 1 };
@@ -81,7 +87,11 @@ const OpdBilling = () => {
   const [selectedCorporate, setSelectedCorporate] = useState<OptionItem | null>(defaultCorporate);
   const [selectedCorporateError, setSelectedCorporateError] = useState<string>("");
 
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [activePatientId, setActivePatientId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<string>(OPDBillingTabName.PATIENT_DETAILS);
+  const [patientTabError, setPatientTabError] = useState<boolean>(false);
+  const [documentTabError, setDocumentTabError] = useState<boolean>(false);
+  const [searchPatientError, setSearchPatientError] = useState<string>("");
 
   const [referDoctorList, setReferDoctorList] = useState<ReferDoctorItem[]>([]);
   const [selectedReferDoctor, setSelectedReferDoctor] = useState<OptionItem | null>(null);
@@ -476,16 +486,68 @@ const OpdBilling = () => {
   const showRegistrationButton = false;
 
   const routePatientId = Number.isFinite(pId) && pId > 0 ? pId : null;
-  const activePatientId = selectedPatientId ?? routePatientId;
+  const resolvedPatientId = activePatientId ?? routePatientId;
+
+  useEffect(() => {
+    if (routePatientId && activePatientId === null) {
+      setActivePatientId(routePatientId);
+    }
+  }, [routePatientId, activePatientId]);
+
+  const bindPatientToRegistration = useCallback(async (patientId: number) => {
+    setActivePatientId(patientId);
+    setPatientTabError(false);
+    await patientDataRef.current?.loadPatientById(patientId);
+  }, []);
+
+  const handleSelectPatient = useCallback(
+    async (item: SearchedPatientItem) => {
+      const patientId = Number(item?.patientId ?? 0);
+
+      if (!patientId) {
+        setSearchPatientError("Invalid patient selected.");
+        return false;
+      }
+
+      setSearchPatientError("");
+      await bindPatientToRegistration(patientId);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      return true;
+    },
+    [bindPatientToRegistration]
+  );
+
+  const handleUhidPatientSelect = useCallback(
+    async (patientId: number) => {
+      if (!patientId) {
+        showWarning("Invalid patient selected.");
+        return false;
+      }
+
+      await bindPatientToRegistration(patientId);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      return true;
+    },
+    [bindPatientToRegistration]
+  );
+
+  const handlePatientLoadedFromUhid = useCallback(() => {
+    setActiveTab(OPDBillingTabName.OPD_BILLING);
+  }, []);
 
   const SearchOldPatientHandler = () => {
+    setSearchPatientError("");
     setOpenSearchPatientPopup(true);
     setRenderSearchPatientPopup(true);
   };
 
-  // close handler
-  const closeHandler = useCallback(() => {
+  const closeSearchPatientHandler = useCallback(() => {
+    setSearchPatientError("");
     setOpenSearchPatientPopup(false);
+
+    setTimeout(() => {
+      setRenderSearchPatientPopup(false);
+    }, 300);
   }, []);
 
   // insurance company list
@@ -1263,7 +1325,12 @@ const OpdBilling = () => {
 
     // Reset other states
     setIsBillingDiscount(0);
-    setSelectedPatientId(null);
+    setActivePatientId(null);
+    setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
+    setPatientTabError(false);
+    setDocumentTabError(false);
+    setSearchPatientError("");
+    ipdOpdDocumentRef.current?.resetForm();
     setPaymentDetails([]);
     setTotalBillingAmount(0);
     setPatientReceiptDetails([]);
@@ -1362,23 +1429,16 @@ const OpdBilling = () => {
     }
 
     if (value === "save") {
-      await getPatientPreviousDues();
-      return;
-      // Validate patient registration form using PatientData validation
-
       const isValid = await patientDataRef.current?.validateForm();
 
       if (!isValid) {
+        setPatientTabError(true);
+        setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
         return;
       }
 
-      // If userRegistration fails or errors internal function will show errors
-      const registrationResult = await getUserRegistrationResponse();
-
-      // If result is somehow explicitly null (handled error)
-      if (registrationResult === null) {
-        return;
-      }
+      setPatientTabError(false);
+      await getPatientPreviousDues();
     }
   };
 
@@ -1391,6 +1451,25 @@ const OpdBilling = () => {
         showError("Please set rate of the service");
         return;
       }
+
+      const billingItems = createBillingItemsPayload();
+
+      if (!billingItems || billingItems.length === 0) {
+        showError("Please add some services to continue");
+        setActiveTab(OPDBillingTabName.OPD_BILLING);
+        return;
+      }
+
+      const areDocumentsValid = await ipdOpdDocumentRef.current?.validateMandatoryDocuments();
+
+      if (!areDocumentsValid) {
+        setDocumentTabError(true);
+        setActiveTab(OPDBillingTabName.OPD_DOCUMENT);
+        return null;
+      }
+
+      setDocumentTabError(false);
+
       // Step 2: Register patient
       const formData = new FormData();
       for (const key in patientRegistrationDetails) {
@@ -1465,15 +1544,7 @@ const OpdBilling = () => {
         isSendMRD: opdBillingFormData.isSendMRD,
       };
 
-      // Step 5: Build billing items payload
-      const billingItems = createBillingItemsPayload();
-
-      if (!billingItems || billingItems.length === 0) {
-        showError("Please add some services to continue");
-        return;
-      }
-
-      // Step 6: Construct complete billing payload with all 4 parts including payment summary
+      // Step 5: Build billing items payload (already validated above)
       const billingPayload = billingDetailsRef.current?.getPayload?.();
       const allPaymentDetails = billingPayload?.payments || [];
 
@@ -1508,9 +1579,24 @@ const OpdBilling = () => {
         return null;
       }
 
+      const savedPatientId = Number(registrationResp?.data?.patientId ?? 0);
+      const visitId = resolveVisitIdFromResponse(responseData);
+
+      if (savedPatientId > 0 && visitId > 0) {
+        const documentsUploaded = await ipdOpdDocumentRef.current?.uploadDocuments(
+          savedPatientId,
+          visitId
+        );
+
+        if (documentsUploaded === false) {
+          showWarning("OPD billing saved, but document upload failed");
+          return saveBillingResp;
+        }
+      }
+
       //  extract response
       const ftid = Number(responseData.ftid || 0);
-      const visitId = Number(responseData.visitId || 0);
+      const resolvedVisitId = visitId || Number(responseData.visitId || 0);
       const receiptId = Number(responseData.receiptId || 0);
       const isDoctorAppointment = responseData?.isDoctorAppointment === true;
       const isReceipt = responseData?.isReceipt === true ? 1 : 0;
@@ -1543,7 +1629,7 @@ const OpdBilling = () => {
           "GET",
           ENDPOINTS.GET_OPD_RECEIPT_LIST,
           {},
-          { params: { visitNo: visitId } },
+          { params: { visitNo: resolvedVisitId } },
           { component: "OpdBilling" }
         ),
       ];
@@ -1661,438 +1747,200 @@ const OpdBilling = () => {
     setDuplicateData(null);
   }, []);
 
+  const patientSummary = useMemo(
+    () => buildIpdPatientSummary(patientRegistrationDetails),
+    [patientRegistrationDetails]
+  );
+
+  const saveButtonLabel = useMemo(() => {
+    const patientId = Number(patientRegistrationDetails?.PatientId ?? 0);
+    return patientId > 0 ? "Update" : "Create";
+  }, [patientRegistrationDetails?.PatientId]);
+
+  const billingSectionProps = {
+    formResetKey,
+    billingDetailsRef,
+    insuranceList,
+    hasSelectedService,
+    insuranceSelectHandler,
+    selectedInsurance,
+    selectedCorporate,
+    corporateSelectOption,
+    corporateSelectHandler,
+    selectedCorporateError,
+    doctorRef,
+    selectedDoctor,
+    doctorSelectOption,
+    doctorSelectHandler,
+    selectDoctorError,
+    inputFieldHandler,
+    expiryDateChangeHandler,
+    referralDateChangeHandler,
+    selectedReferDoctor,
+    referDoctorSelectOption,
+    referDoctorSelectHandler,
+    referDoctorPopUpHandler,
+    categoryList,
+    categorySelectHandler,
+    selectedSubCategory,
+    subCategorySelectOption,
+    subCategorySelectHandler,
+    selectedSubSubCategory,
+    subSubCategorySelectOption,
+    subSubCategorySelectHandler,
+    serviceInputRef,
+    searchTerm,
+    serviceItemHandler,
+    serviceInputKeyDownHandler,
+    showPopup,
+    serviceNameList,
+    activeServiceIndex,
+    setActiveServiceIndex,
+    selectedServiceHandler,
+    serviceDataTableItem,
+    showDuplicateError,
+    serviceValidationError,
+    deleteHandler,
+    rateChangeHandler,
+    discountPercentageChangeHandler,
+    discountChangeHandler,
+    urgentChangeHandler,
+    isPackageService,
+    packagePopupHandler,
+    servicePopupHandler,
+    setOpdBillingFormData,
+    setBillingValues,
+    billingValues,
+    billingPaymentDetails,
+    maxDiscountPercentage: data,
+  };
+
   return (
     <div className="page-container">
-      <div className="flex flex-col lg:flex-row md:flex-row   gap-4 items-center justify-between w-full">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 w-full">
         <div>
           <h1 className="page-heading">Patient OPD Billing</h1>
 
-          <nav className="helper-text">
-            <NavLink to="/dashboard" className="hover:underline">
-              Home
-            </NavLink>
-            <span>››</span>
+          <nav className="helper-text flex items-center gap-1">
+            <NavLink to="/dashboard">Home</NavLink>
+            <span>»</span>
             <span>Patient OPD Billing</span>
           </nav>
         </div>
 
-        <div className="flex flex-col gap-3 lg:flex-row md:flex-row">
-          <button className="save-btn">Map PRO Patient</button>
+        <div className="flex flex-col lg:flex-row md:flex-row items-center gap-2">
+          <div className="mr-20">
+            <UhidGlobalSearch
+              onPatientSelect={handleUhidPatientSelect}
+              resetKey={formResetKey}
+              className="mt-1"
+            />
+          </div>
 
+          <button className="save-btn">Map PRO Patient</button>
           <button className="save-btn">Order Set</button>
           <button className="save-btn">Billing Details</button>
-          <button className="save-btn">Back Page</button>
           <button className="save-btn" onClick={SearchOldPatientHandler}>
-            search Old Patient
+            Search Old Patient
           </button>
         </div>
       </div>
 
-      <PatientData
-        key={`patient-data-${formResetKey}`}
-        ref={patientDataRef}
-        selectedPatientId={activePatientId}
-        showRegistrationButton={showRegistrationButton}
-        onPayloadChange={setPatientRegistrationDetails}
-      />
-
-      <div className="card mt-1">
-        {/* corporate details */}
-        <div className="form-grid-4">
-          {/* insurance */}
-          <InputField label="Insurance Company">
-            <select
-              name="insuranceCompanyId"
-              onChange={insuranceSelectHandler}
-              className={hasSelectedService ? "disabled-input-field" : "input-field"}
-              disabled={hasSelectedService}
-            >
-              <option value={0}>Self</option>
-              {insuranceList.map(item => (
-                <option key={item?.insuranceCompanyId} value={item?.insuranceCompanyId}>
-                  {item?.insuranceCompanyName}
-                </option>
-              ))}
-            </select>
-          </InputField>
-          {/* corporate */}
-          <InputField label="Corporate">
-            <Select<OptionItem, false>
-              value={selectedCorporate}
-              options={corporateSelectOption}
-              placeholder="Select corporate"
-              isSearchable={!hasSelectedService}
-              isClearable={!hasSelectedService}
-              isDisabled={hasSelectedService}
-              onChange={option => corporateSelectHandler(option)}
-              styles={
-                hasSelectedService ? undefined : (SelectStyles as StylesConfig<OptionItem, false>)
-              }
-              menuPortalTarget={document.body}
-              menuPosition="fixed"
-            />
-            {!!selectedCorporateError && (
-              <p className="input-field-error">{selectedCorporateError}</p>
-            )}
-          </InputField>
-          {/* doctor */}
-          <InputField label="Doctor">
-            <Select<OptionItem, false>
-              ref={doctorRef}
-              value={selectedDoctor}
-              options={doctorSelectOption}
-              placeholder="Select doctor"
-              isSearchable
-              isClearable
-              onChange={option => doctorSelectHandler(option)}
-              styles={SelectStyles as StylesConfig<OptionItem, false>}
-              menuPortalTarget={document.body}
-              menuPosition="fixed"
-            />
-            {!!selectDoctorError && <p className="input-field-error">{selectDoctorError}</p>}
-          </InputField>
-
-          {!!selectedInsurance && (
-            <>
-              {/* policy number */}
-              <InputField label="Policy Number">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Enter policy number"
-                  name="policyNo"
-                  onChange={inputFieldHandler}
-                  maxLength={20}
-                />
-              </InputField>
-              {/* policy card number */}
-              <InputField label="Policy Card Number">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Enter policy card number"
-                  name="policyCardNo"
-                  onChange={inputFieldHandler}
-                  maxLength={20}
-                />
-              </InputField>
-              {/* expiry date */}
-              <InputField label="Expiry Date">
-                <CustomDateInput
-                  name="expiryDate"
-                  onChange={(value: string) => expiryDateChangeHandler(value)}
-                />
-              </InputField>
-              {/* card holder name */}
-              <InputField label="Card Holder Name">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Enter card holder name"
-                  name="cardHolder"
-                  onChange={inputFieldHandler}
-                  maxLength={100}
-                  onInput={allowOnlyText}
-                />
-              </InputField>
-              {/* referral number */}
-              <InputField label="Referral Number">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Enter referral number"
-                  name="referalNo"
-                  onChange={inputFieldHandler}
-                  maxLength={100}
-                />
-              </InputField>
-              {/* referral date */}
-              <InputField label="Referal Date">
-                <CustomDateInput
-                  name="referalDate"
-                  onChange={(value: string) => referralDateChangeHandler(value)}
-                />
-              </InputField>
-            </>
-          )}
-        </div>
-
-        {/* category & details */}
-        <div className="flex flex-col md:flex-row gap-4 w-full">
-          {/* left  side */}
-          <div className="w-full md:w-1/3 flex flex-col gap-2">
-            <InputField label="Referred By">
-              <div className="flex gap-2 items-center">
-                <Select<OptionItem, false>
-                  value={selectedReferDoctor}
-                  options={referDoctorSelectOption}
-                  placeholder="Select referred doctor"
-                  isSearchable
-                  isClearable
-                  onChange={option => referDoctorSelectHandler(option)}
-                  styles={SelectStyles as StylesConfig<OptionItem, false>}
-                  menuPortalTarget={document.body}
-                  menuPosition="fixed"
-                />
-                <button onClick={referDoctorPopUpHandler}>
-                  <i className="fa-solid fa-circle-plus fa-xl active:scale-95"></i>
-                </button>
-              </div>
-            </InputField>
-
-            <InputField>
-              <select className="input-field" onChange={categorySelectHandler}>
-                <option value={"1,3,4,5,8,11"}>All category</option>
-                {categoryList.map(c => (
-                  <option key={c?.categoryId} value={c?.categoryId}>
-                    {c?.categoryName}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-
-            <InputField>
-              <Select<OptionItem, false>
-                value={selectedSubCategory}
-                options={subCategorySelectOption}
-                placeholder="Select sub category"
-                isSearchable
-                isClearable
-                onChange={option => subCategorySelectHandler(option)}
-                styles={SelectStyles as StylesConfig<OptionItem, false>}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-            </InputField>
-
-            <InputField>
-              <Select<OptionItem, false>
-                value={selectedSubSubCategory}
-                options={subSubCategorySelectOption}
-                placeholder="Select sub sub category"
-                isSearchable
-                isClearable
-                onChange={option => subSubCategorySelectHandler(option)}
-                styles={SelectStyles as StylesConfig<OptionItem, false>}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-            </InputField>
-
-            <div>
-              <InputField>
-                <div className="relative w-full">
-                  <input
-                    ref={serviceInputRef}
-                    className="input-field"
-                    placeholder="Type to search services"
-                    value={searchTerm}
-                    onChange={serviceItemHandler}
-                    onKeyDown={serviceInputKeyDownHandler}
-                  />
-                  {showPopup && serviceNameList?.length > 0 && (
-                    <div className="absolute top-full left-0  w-full bg-white border border-gray-300 rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
-                      {serviceNameList.map((s, index) => (
-                        <div
-                          key={index}
-                          className={`px-3 py-2 cursor-pointer text-sm ${
-                            index === activeServiceIndex ? "bg-green-100" : "hover:bg-green-200"
-                          }`}
-                          onMouseEnter={() => setActiveServiceIndex(index)}
-                          onClick={() => selectedServiceHandler(s)}
-                        >
-                          {s?.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </InputField>
-              <div className="flex flex-row gap-2 justify-center items-center">
-                <button className="save-btn text-sm">Investigation</button>
-                <button className="save-btn text-sm">Consultation</button>
-              </div>
-            </div>
+      {patientSummary && (
+        <div className="flex flex-col md:flex-row lg:flex-row gap-10 card w-full mb-1">
+          <div className="flex flex-row">
+            <h1 className="name-header ml-2">UHID :</h1>
+            <span>{patientSummary.uhid}</span>
           </div>
 
-          {/* table */}
-          <div className="flex flex-col md:flex-row gap-4 w-full">
-            {/* RIGHT PANEL */}
-            <div className=" w-full ">
-              {/* TOP STATUS LABELS */}
-              <div className="flex flex-wrap items-center gap-6 px-3 py-2 text-md justify-between">
-                <div className="flex items-center gap-1 text-orange-500">
-                  <span className="w-3 h-3 rounded-full bg-orange-400"></span>
-                  Rate Not Set
-                </div>
+          <div className="flex flex-row">
+            <h1 className="name-header ml-2">Patient Name :</h1>
+            <span>{patientSummary.patientName}</span>
+          </div>
 
-                <div className="flex items-center gap-1 text-blue-500">
-                  <span className="w-3 h-3 rounded-full bg-blue-400"></span>
-                  Corporate Non-Payable
-                </div>
+          <div className="flex flex-row">
+            <h1 className="name-header ml-2">Age / Sex :</h1>
+            <span>{patientSummary.ageSex}</span>
+          </div>
 
-                <div className="flex items-center gap-1 text-gray-500">
-                  <span className="w-3 h-3 rounded-full bg-gray-400"></span>
-                  Corporate Wise Discount
-                </div>
-
-                <div className="flex items-center gap-1 text-pink-400">
-                  <span className="w-3 h-3 rounded-full bg-pink-300"></span>
-                  Privileged Card Discount
-                  <span className="text-red-500 ml-1">ⓘ</span>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <div className="table-container ">
-                  <div className="table-scroll-wrapper ">
-                    <div className="table-size lg:min-h-80 lg:max-h-80 lg:max-w-260">
-                      <table className="base-table ">
-                        <thead className="table-head">
-                          <tr>
-                            {OpdBillingServiceTableHeader.map((h, index) => (
-                              <th key={index} className="table-th ">
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {serviceDataTableItem?.length === 0 && (
-                            <tr>
-                              <td
-                                colSpan={OpdBillingServiceTableHeader.length}
-                                className="table-empty"
-                              >
-                                No records found
-                              </td>
-                            </tr>
-                          )}
-
-                          {serviceDataTableItem.map((item, idx) => (
-                            <tr key={idx} className="table-row">
-                              <td className="table-td ">
-                                <button type="button" onClick={() => deleteHandler(idx)}>
-                                  <i className="fa-solid fa-trash icon-color-delete cursor-pointer"></i>
-                                </button>
-                              </td>
-                              <td className="table-td">{idx + 1}</td>
-                              <td className="table-td ">
-                                <div className="flex items-center justify-between ">
-                                  <span>{item?.serviceName || "-"}</span>
-
-                                  <i
-                                    className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
-                                    title={
-                                      isPackageService(item?.serviceName)
-                                        ? "Package Service"
-                                        : "Service"
-                                    }
-                                    onClick={() => {
-                                      if (isPackageService(item?.serviceName)) {
-                                        packagePopupHandler(item?.serviceItemId);
-                                      } else {
-                                        servicePopupHandler(item); // your other handler
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              </td>
-                              <td className="table-td">{item?.code || "-"}</td>
-                              <td className="table-td wrap-break-word max-w-30">
-                                {item?.doctorName || "-"}
-                              </td>
-                              <td className="table-td">{item?.qty ?? 1}</td>
-                              <td className="table-td">
-                                <input
-                                  value={item?.rate ?? 0}
-                                  onChange={e => rateChangeHandler(e, idx)}
-                                  className={`max-w-20 max-h-8 ${
-                                    item?.isRateEditable === 1
-                                      ? "input-field"
-                                      : "disabled-input-field"
-                                  }`}
-                                  disabled={item?.isRateEditable !== 1}
-                                />
-                              </td>
-                              <td className="table-td">
-                                <input
-                                  className={`${
-                                    item?.discountPer === 1
-                                      ? "disabled-input-field max-w-20 max-h-8"
-                                      : "input-field max-w-20 max-h-8"
-                                  }`}
-                                  value={item?.discountPer ?? 0}
-                                  onChange={e => discountPercentageChangeHandler(e, idx)}
-                                />
-                              </td>
-                              <td className="table-td">
-                                <input
-                                  className="input-field max-w-20 max-h-8"
-                                  value={item?.dis ?? 0}
-                                  onChange={e => discountChangeHandler(e, idx)}
-                                />
-                              </td>
-                              <td className="table-td text-red-500">
-                                {item?.netAmount ?? item?.rate}
-                              </td>
-
-                              <td className="table-td">
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4"
-                                  checked={Boolean(
-                                    (item as { isUrgent?: number | string | null })?.isUrgent
-                                  )}
-                                  onChange={e => urgentChangeHandler(e, idx)}
-                                />
-                              </td>
-                              {/* <td className="table-td">
-                                <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
-                              </td> */}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                {!!showDuplicateError && <p className="input-field-error">{showDuplicateError}</p>}
-                {!!serviceValidationError && (
-                  <p className="input-field-error">{serviceValidationError}</p>
-                )}
-              </div>
-            </div>
+          <div className="flex flex-row">
+            <h1 className="name-header ml-2">Contact No :</h1>
+            <span>{patientSummary.contactNumber}</span>
           </div>
         </div>
-        {/* billing details */}
-        <div className="payment details">
-          <BillingDetails
-            key={`billing-details-${formResetKey}`}
-            ref={billingDetailsRef}
-            setOpdBilling={setOpdBillingFormData}
-            setBillingValues={setBillingValues}
-            billingValues={billingValues!}
-            paymentBilling={billingPaymentDetails}
-            maxDiscountPercentage={data}
-          />
-        </div>
+      )}
 
-        {/* buttons */}
-        <Buttons onButtonClick={buttonClickHandler} />
+      <div className="tab-card rounded-lg mb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab(OPDBillingTabName.PATIENT_DETAILS)}
+          className={`tab-btn transition rounded ${
+            patientTabError
+              ? "border-2 input-field-error"
+              : activeTab === OPDBillingTabName.PATIENT_DETAILS
+                ? "tab-btn-active"
+                : "tab-btn-inactive"
+          }`}
+        >
+          {OPDBillingTabName.PATIENT_DETAILS}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(OPDBillingTabName.OPD_BILLING)}
+          className={`tab-btn transition ${
+            activeTab === OPDBillingTabName.OPD_BILLING ? "tab-btn-active" : "tab-btn-inactive"
+          }`}
+        >
+          {OPDBillingTabName.OPD_BILLING}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(OPDBillingTabName.OPD_DOCUMENT)}
+          className={`tab-btn transition ${
+            documentTabError
+              ? "border-2 input-field-error"
+              : activeTab === OPDBillingTabName.OPD_DOCUMENT
+                ? "tab-btn-active"
+                : "tab-btn-inactive"
+          }`}
+        >
+          {OPDBillingTabName.OPD_DOCUMENT}
+        </button>
       </div>
+
+      <div className={activeTab === OPDBillingTabName.PATIENT_DETAILS ? "" : "hidden"}>
+        <PatientData
+          key={`patient-data-${formResetKey}`}
+          ref={patientDataRef}
+          selectedPatientId={resolvedPatientId}
+          showRegistrationButton={showRegistrationButton}
+          onPayloadChange={setPatientRegistrationDetails}
+          onPatientLoaded={handlePatientLoadedFromUhid}
+        />
+      </div>
+
+      <div className={activeTab === OPDBillingTabName.OPD_BILLING ? "" : "hidden"}>
+        <OpdBillingSection {...billingSectionProps} />
+      </div>
+
+      <div className={activeTab === OPDBillingTabName.OPD_DOCUMENT ? "" : "hidden"}>
+        <IpdOpdDocument ref={ipdOpdDocumentRef} type={IpdOpdTypeName.OPD} />
+      </div>
+
+      <Buttons onButtonClick={buttonClickHandler} saveLabel={saveButtonLabel} />
 
       {!!loading && <CustomLoader isLoading={loading} />}
 
-      {/* search patient popup */}
       {renderSearchPatientPopup && (
         <SearchPatientPopup
           isOpen={openSearchPatientPopup}
-          onClose={closeHandler}
+          onClose={closeSearchPatientHandler}
           showTable={showTable}
           setShowTable={setShowTable}
-          onSelectPatientId={setSelectedPatientId}
+          onSelectPatient={handleSelectPatient}
+          selectionErrorMessage={searchPatientError}
         />
       )}
 

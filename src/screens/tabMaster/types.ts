@@ -32,6 +32,7 @@ type RoleTabItem = {
   TabId: number;
   TabName: string;
   TabTypeId: number;
+  TabType: string;
 };
 
 type ActiveRoleItem = {

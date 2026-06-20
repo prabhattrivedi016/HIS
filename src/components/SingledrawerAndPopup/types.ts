@@ -73,10 +73,51 @@ type SampleManagementDocumentTableItem = {
   UploadedBy: string;
 };
 
+type UhidGlobalSearchProps = {
+  onPatientSelect?: (patientId: number) => Promise<boolean> | boolean;
+  minSearchLength?: number;
+  placeholder?: string;
+  className?: string;
+  resetKey?: number | string;
+};
+
+type DocumentItem = {
+  DocumentId: number;
+  DocumentName: string;
+  DocumentCode: string;
+  DocumentPath: string;
+  IsMandatory: number;
+  DocumentCategory: string;
+  DocumentCategoryId: number;
+};
+
+type VisitWiseDocumentPayloadItem = {
+  DocumentId: number;
+  PatientId: number;
+  VisitId: number;
+  DocumentCategoryId: number;
+  DocumentFile: File;
+};
+
+type IpdOpdDocumentHandle = {
+  validateMandatoryDocuments: () => Promise<boolean>;
+  uploadDocuments: (patientId: number, visitId: number) => Promise<boolean>;
+  resetForm: () => void;
+};
+
+type IpdOpdDocumentProps = {
+  type: string;
+};
+
 export type {
+  DocumentItem,
   DocumentNameItem,
+  IpdOpdDocumentHandle,
+  IpdOpdDocumentProps,
   PatientInfo,
   SampleManagementDocumentTableItem,
   SampleRemarksItem,
   SampleRemarkTableDataItem,
+  UhidGlobalSearchProps,
+  VisitWiseDocumentPayloadItem,
 };

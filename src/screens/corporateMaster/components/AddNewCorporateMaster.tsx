@@ -107,6 +107,8 @@ const AddNewCorporateMaster = ({
 
   const [ipdRateListValue, setIpdRateListValue] = useState<string>("");
   const [opdRateListValue, setOpdRateListValue] = useState<string>("");
+  const [opdTableError, setOpdTableError] = useState<string>("");
+  const [ipdTableError, setIpdTableError] = useState<string>("");
   const rateListSummary = `OPD & IPD Follow Rate`;
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -373,11 +375,21 @@ const AddNewCorporateMaster = ({
     setIsBranchDefaultApplied(false);
     setIpdRateListValue("");
     setOpdRateListValue("");
+    setOpdTableError("");
+    setIpdTableError("");
   }, [corporateId, isOpen]);
 
   useEffect(() => {
     setValue("rateListIdIPD", ipdRateListValue);
     setValue("rateListIdOPD", opdRateListValue);
+
+    if (parseCsvIds(opdRateListValue).length > 0) {
+      setOpdTableError("");
+    }
+
+    if (parseCsvIds(ipdRateListValue).length > 0) {
+      setIpdTableError("");
+    }
   }, [ipdRateListValue, opdRateListValue, setValue]);
 
   useEffect(() => {
@@ -470,7 +482,31 @@ const AddNewCorporateMaster = ({
     setIsBranchDefaultApplied(false);
     setIpdRateListValue("");
     setOpdRateListValue("");
+    setOpdTableError("");
+    setIpdTableError("");
     await refreshData?.();
+  };
+
+  const handleInvalidSubmit = (invalidErrors: typeof errors) => {
+    const hasOpdRows = parseCsvIds(opdRateListValue).length > 0;
+    const hasIpdRows = parseCsvIds(ipdRateListValue).length > 0;
+
+    if (!hasOpdRows) {
+      setOpdTableError(
+        invalidErrors.rateListIdOPD?.message ?? "At least one OPD rate list row is required"
+      );
+    }
+
+    if (!hasIpdRows) {
+      setIpdTableError(
+        invalidErrors.rateListIdIPD?.message ?? "At least one IPD rate list row is required"
+      );
+    }
+
+    if (!hasOpdRows || !hasIpdRows) {
+      setOpenAddIpdOpd(true);
+      setRenderAddIpdOpd(true);
+    }
   };
   // clear timer
   useEffect(() => {
@@ -502,7 +538,7 @@ const AddNewCorporateMaster = ({
           {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
           {error ? <ErrorMessage text={error?.message} /> : <></>}
 
-          <form onSubmit={handleSubmit(onsubmit)}>
+          <form onSubmit={handleSubmit(onsubmit, handleInvalidSubmit)}>
             <div className="card m-1">
               <h2 className="card-title ">Corporate Details</h2>
 
@@ -553,7 +589,7 @@ const AddNewCorporateMaster = ({
                       onChange={insuranceCompanySelectHandler}
                       value={selectedInsuranceCompanyId}
                     >
-                      <option value="">Select</option>
+                      <option value={0}>Self</option>
                       {insuranceCompanyList.map(i => (
                         <option value={i?.insuranceCompanyId} key={i?.insuranceCompanyId}>
                           {i?.insuranceCompanyName}
@@ -749,6 +785,14 @@ const AddNewCorporateMaster = ({
                       + Add to IPD/OPD
                     </button>
                   </div>
+                  {(errors.rateListIdOPD || errors.rateListIdIPD || opdTableError || ipdTableError) && (
+                    <p className="input-field-error">
+                      {errors.rateListIdOPD?.message ||
+                        errors.rateListIdIPD?.message ||
+                        opdTableError ||
+                        ipdTableError}
+                    </p>
+                  )}
                 </InputField>
 
                 <InputField label="Allowed Payment Modes" required>
@@ -829,6 +873,10 @@ const AddNewCorporateMaster = ({
               opdValue={opdRateListValue}
               setIpdValue={setIpdRateListValue!}
               setOpdValue={setOpdRateListValue!}
+              opdTableError={opdTableError}
+              ipdTableError={ipdTableError}
+              onClearOpdTableError={() => setOpdTableError("")}
+              onClearIpdTableError={() => setIpdTableError("")}
             />
           )}
         </div>

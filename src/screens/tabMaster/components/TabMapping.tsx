@@ -29,8 +29,6 @@ const TabMapping = ({ isOpen, onClose }: TabMappingProps) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
-  useScrollLock(isOpen);
-
   const getRoleMasterList = async () => {
     const response = await fetchApi(
       "GET",
@@ -259,6 +257,8 @@ const TabMapping = ({ isOpen, onClose }: TabMappingProps) => {
       selectedItems.includes(item.TabId) ? "text-blue-600 font-medium" : ""
     }`;
 
+  useScrollLock(isOpen);
+
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div
@@ -322,7 +322,7 @@ const TabMapping = ({ isOpen, onClose }: TabMappingProps) => {
                     onTouchEnd={() => onDoubleTap(() => moveToGranted(item))}
                     onClick={e => onItemClick(e, item)}
                   >
-                    {item.TabName}
+                    {item?.TabType}- {item.TabName}
                   </div>
                 ))}
               </div>
@@ -368,7 +368,7 @@ const TabMapping = ({ isOpen, onClose }: TabMappingProps) => {
                     onTouchEnd={() => onDoubleTap(() => moveToPending(item))}
                     onClick={e => onItemClick(e, item)}
                   >
-                    {item.TabName}
+                    {item?.TabType}- {item.TabName}
                   </div>
                 ))}
               </div>

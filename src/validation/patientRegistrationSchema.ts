@@ -209,7 +209,7 @@ export const patientRegistrationSchema = yup.object({
 export type PatientRegistrationFormItem = InferType<typeof patientRegistrationSchema>;
 
 export const defaultPatientRegistrationValues: PatientRegistrationFormItem = {
-  PatientId: null,
+  PatientId: 0,
   BranchId: 1,
 
   Title: "",
@@ -258,7 +258,7 @@ export const defaultPatientRegistrationValues: PatientRegistrationFormItem = {
 
   PatientImageFile: null,
 
-  IsVaccination: null,
+  IsVaccination: 0,
 
   VipPatient: "",
 
@@ -271,7 +271,7 @@ export const defaultPatientRegistrationValues: PatientRegistrationFormItem = {
   ReferalNo: "",
   ReferalDate: "",
 
-  OnlinePtId: null,
+  OnlinePtId: 0,
 
   HealthId: "",
   HealthIdNumber: "",
@@ -291,7 +291,7 @@ export const defaultPatientRegistrationValues: PatientRegistrationFormItem = {
   EMG_ResidentNo: "",
   EMG_Address: "",
 
-  IsInternational: null,
+  IsInternational: 0,
 
   Locality: "",
 

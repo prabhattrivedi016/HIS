@@ -202,8 +202,10 @@ export const VendorMasterTableHeader = [
 
 export const PatientDocumentTableHeader = [
   "#",
+  "Document Category",
   "Document Name",
   "Document Code",
+  "Mandatory",
   "Status",
   "Created By",
   "Created On",
@@ -466,5 +468,17 @@ export enum BedMasterPopupName {
 
 export enum IPDAdmissionTabName {
   PATIENT_DETAILS = "Patient Details",
-  IPD_ADIMISSION = "IPD Admission",
+  IPD_ADIMISSION = "Admission Details",
+  IPD_DOCUMENT = "Documents",
+}
+
+export enum OPDBillingTabName {
+  PATIENT_DETAILS = "Patient Details",
+  OPD_BILLING = "OPD Billing",
+  OPD_DOCUMENT = "Documents",
+}
+
+export enum IpdOpdTypeName {
+  OPD = "opd",
+  IPD = "ipd",
 }
