@@ -3,10 +3,9 @@ import { ENDPOINTS } from "@/config/defaults";
 import { serviceListTableHeader, TestPackageTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { PatientDataItem } from "@/screens/patientRegistration/types";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { PackageItems, ServiceBindingDataItem } from "../types";
+import { PackageItems, PackagePopupProps, ServiceBindingDataItem } from "../types";
 
 const PackagePopup = ({
   isOpen,
@@ -14,13 +13,7 @@ const PackagePopup = ({
   packageId,
   serviceId,
   patientDetails,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  packageId?: number;
-  serviceId?: number;
-  patientDetails?: PatientDataItem | null;
-}) => {
+}: PackagePopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
   const [packageList, setPackageList] = useState<PackageItems[]>([]);

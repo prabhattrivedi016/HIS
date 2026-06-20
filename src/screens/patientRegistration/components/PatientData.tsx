@@ -4,6 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
+import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -13,11 +14,13 @@ import {
   patientRegistrationSchema,
 } from "@/validation/patientRegistrationSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChangeEvent,
   forwardRef,
   KeyboardEvent,
   useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -28,6 +31,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import Select, { StylesConfig } from "react-select";
 import Webcam from "react-webcam";
 import {
+  BranchDetailsItem,
   CorporateItem,
   DOcumentListItem,
   InsuranceItem,
@@ -52,6 +56,28 @@ import { SaveButtons } from "./patientButtons";
 const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png"];
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 
+const getCorporateIdFromItem = (item: CorporateItem | Record<string, unknown>) =>
+  Number(item.corporateId ?? item.CorporateId ?? 0);
+
+const getCorporateNameFromItem = (item: CorporateItem | Record<string, unknown>) =>
+  String(item.corporateName ?? item.CorporateName ?? "");
+
+const normalizeCorporateList = (data: unknown): CorporateItem[] => {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map(item => {
+      const record = item as Record<string, unknown>;
+      return {
+        corporateId: getCorporateIdFromItem(record),
+        corporateName: getCorporateNameFromItem(record),
+        insuranceCompanyId: Number(record.insuranceCompanyId ?? record.InsuranceCompanyId ?? 0),
+        isActive: Number(record.isActive ?? record.IsActive ?? 1),
+      };
+    })
+    .filter(item => item.corporateId > 0);
+};
+
 const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
   (
     {
@@ -63,6 +89,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     ref
   ) => {
     const { loading, error, fetchApi } = useGlobalApi();
+    const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+    const lastAppliedBranchInsuranceKeyRef = useRef("");
 
     const [insuranceList, setInsuranceList] = useState<InsuranceItem[]>([]);
     const [insuranceId, setInsuranceId] = useState<number>(0);
@@ -132,6 +160,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     const isEdit = Boolean(watch("PatientId"));
     const watchedPatientId = watch("PatientId");
+    const watchedCorporateId = watch("CorporateId");
+    const isExistingPatient = Number(watchedPatientId) > 0;
 
     const watchedTitle = watch("Title");
 
@@ -228,6 +258,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       };
     }, []);
 
+    const defaultCorporate = { value: 0, label: "CASH" };
+
     // insurance handler
 
     const insuranceSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -255,15 +287,99 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setSelectedCorporate(option);
       setValue("CorporateId", Number(option.value ?? 0));
     };
-    // default corporate value
-    const defaultCorporate = { value: 0, label: "CASH" };
 
-    useEffect(() => {
-      if (!insuranceId) {
+    // corporate list
+    const getCorporateList = useCallback(
+      async (insuranceCompanyId: number) => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID,
+          {},
+          { params: { insuranceCompanyId, isActive: Status?.ACTIVE } },
+          { component: "Patient Registration" }
+        );
+        const list = normalizeCorporateList(resp?.data);
+        setCorporateList(list);
+        return list;
+      },
+      [fetchApi]
+    );
+
+    const applyCorporateSelection = useCallback(
+      (corporate: CorporateItem) => {
+        setSelectedCorporate({
+          value: corporate.corporateId,
+          label: corporate.corporateName,
+        });
+        setValue("CorporateId", corporate.corporateId, { shouldDirty: false });
+      },
+      [setValue]
+    );
+
+    const findCorporateInList = useCallback((list: CorporateItem[], corporateId: number) => {
+      return list.find(item => Number(item.corporateId) === corporateId);
+    }, []);
+
+    const getBranchDetails = async () => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_BRANCH_DETAILS,
+        {},
+        { params: { branchId } },
+        { component: "PatientRegistration" }
+      );
+      return (resp?.data?.[0] ?? {}) as BranchDetailsItem;
+    };
+
+    const { data: branchDetails } = useQuery({
+      queryKey: ["getBranchDetails", branchId],
+      queryFn: getBranchDetails,
+    });
+
+    const applyBranchInsuranceDefaults = useCallback(async () => {
+      if (!branchDetails || prefillPatientData || isExistingPatient) return;
+
+      const defaultInsuranceId = Number(branchDetails.defaultInsuranceCompanyId ?? 0);
+      const defaultCorporateId = Number(branchDetails.defaultCorporateId ?? 0);
+
+      if (!defaultInsuranceId) {
+        setInsuranceId(0);
+        setValue("InsuranceCompanyId", 0, { shouldDirty: false });
+        setCorporateList([]);
         setSelectedCorporate(defaultCorporate);
-        setValue("CorporateId", defaultCorporate?.value);
+        setValue("CorporateId", 0, { shouldDirty: false });
+        return;
       }
-    }, [insuranceId]);
+
+      setInsuranceId(defaultInsuranceId);
+      setValue("InsuranceCompanyId", defaultInsuranceId, { shouldDirty: false });
+
+      const list = await getCorporateList(defaultInsuranceId);
+
+      if (!defaultCorporateId) {
+        setSelectedCorporate(defaultCorporate);
+        setValue("CorporateId", 0, { shouldDirty: false });
+        return;
+      }
+
+      const matchedCorporate = findCorporateInList(list, defaultCorporateId);
+
+      if (matchedCorporate) {
+        applyCorporateSelection(matchedCorporate);
+        return;
+      }
+
+      setSelectedCorporate({ value: defaultCorporateId, label: "Selected Corporate" });
+      setValue("CorporateId", defaultCorporateId, { shouldDirty: false });
+    }, [
+      branchDetails,
+      prefillPatientData,
+      isExistingPatient,
+      setValue,
+      getCorporateList,
+      findCorporateInList,
+      applyCorporateSelection,
+    ]);
 
     // apis
     const idProofType = usePickMaster("IDProofType");
@@ -296,33 +412,84 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setInsuranceList(resp?.data ?? []);
     };
 
-    // corporate list
-    const getCorporateList = async (corporateId: number) => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_CORPORATE_MASTER_LIST,
-        {},
-        { params: { insuranceCompanyId: corporateId, isActive: Status?.ACTIVE } },
-        { component: "Patient Registration" }
-      );
-      const list = resp?.data ?? [];
-      setCorporateList(list);
-      return list as CorporateItem[];
-    };
-
     const corporateSelectOption = useMemo(() => {
       if (!insuranceId) {
         return [defaultCorporate];
       }
-      return corporateList.map(item => ({
+
+      const options = corporateList.map(item => ({
         value: item.corporateId,
         label: item.corporateName,
       }));
-    }, [corporateList, insuranceId]);
+
+      const selectedId = Number(watchedCorporateId ?? selectedCorporate?.value ?? 0);
+      const selectedLabel = selectedCorporate?.label ?? "";
+
+      if (
+        selectedId > 0 &&
+        selectedLabel &&
+        !options.some(option => Number(option.value) === selectedId)
+      ) {
+        options.unshift({
+          value: selectedId,
+          label: selectedLabel,
+        });
+      }
+
+      return options;
+    }, [corporateList, insuranceId, watchedCorporateId, selectedCorporate]);
 
     useEffect(() => {
       getInsuranceList();
     }, []);
+
+    useEffect(() => {
+      if (!insuranceList.length || !branchDetails) return;
+      if (prefillPatientData || isExistingPatient) return;
+
+      const defaultsKey = [
+        addressResetSignal,
+        branchId,
+        branchDetails.defaultInsuranceCompanyId,
+        branchDetails.defaultCorporateId,
+      ].join("-");
+
+      if (lastAppliedBranchInsuranceKeyRef.current === defaultsKey) return;
+      lastAppliedBranchInsuranceKeyRef.current = defaultsKey;
+
+      applyBranchInsuranceDefaults();
+    }, [
+      insuranceList,
+      branchDetails,
+      prefillPatientData,
+      isExistingPatient,
+      addressResetSignal,
+      branchId,
+      applyBranchInsuranceDefaults,
+    ]);
+
+    useEffect(() => {
+      if (!insuranceId || !corporateList.length) return;
+      if (prefillPatientData || isExistingPatient) return;
+
+      const corporateId = Number(watchedCorporateId ?? 0);
+      if (!corporateId) return;
+      if (Number(selectedCorporate?.value) === corporateId) return;
+
+      const matchedCorporate = findCorporateInList(corporateList, corporateId);
+      if (matchedCorporate) {
+        applyCorporateSelection(matchedCorporate);
+      }
+    }, [
+      insuranceId,
+      corporateList,
+      watchedCorporateId,
+      selectedCorporate?.value,
+      prefillPatientData,
+      isExistingPatient,
+      findCorporateInList,
+      applyCorporateSelection,
+    ]);
 
     useEffect(() => {
       if (!watch("PatientId")) return;
@@ -468,11 +635,13 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setValue("CityId", 0);
       setValue("City", "");
       setAddressResetSignal(prev => prev + 1);
-      setSelectedCorporate(defaultCorporate);
       setPrefillPatientData(null);
       setInsuranceId(0);
       setCorporateList([]);
+      setSelectedCorporate(defaultCorporate);
+      setValue("InsuranceCompanyId", 0);
       setValue("CorporateId", 0);
+      lastAppliedBranchInsuranceKeyRef.current = "";
       setIdProofTypeValue("");
       setCapturedImageFile(null);
       setCapturedImagePreview(null);
@@ -649,7 +818,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
       if (data?.insuranceCompanyId) {
         const list = await getCorporateList(Number(data.insuranceCompanyId));
-        const matchedCorporate = list.find(item => item?.corporateId === Number(data?.corporateId));
+        const matchedCorporate = findCorporateInList(list, Number(data?.corporateId ?? 0));
         setSelectedCorporate(
           matchedCorporate
             ? {

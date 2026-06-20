@@ -2,14 +2,17 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
-import { DefaultAddress, Status } from "@/constants/constants";
+import { Status } from "@/constants/constants";
+import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChangeEvent,
   KeyboardEvent,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -17,7 +20,14 @@ import {
 } from "react";
 import { useFormContext } from "react-hook-form";
 import Select, { SingleValue, StylesConfig } from "react-select";
-import { CityItem, CountryItem, DistrictItem, PatientDataItem, StateItem } from "../types";
+import {
+  BranchDetailsItem,
+  CityItem,
+  CountryItem,
+  DistrictItem,
+  PatientDataItem,
+  StateItem,
+} from "../types";
 
 type AddressProps = {
   resetSignal?: number;
@@ -32,9 +42,10 @@ const toOption = (id: number | undefined, name: string | undefined): LocationOpt
 };
 
 const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
+  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const { loading, fetchApi } = useGlobalApi();
-  const isInitialLoad = useRef(true);
   const skipCascadeDefaultsRef = useRef(false);
+  const lastAppliedBranchDefaultsKeyRef = useRef("");
   const activePincodeLookupRef = useRef(0);
   const {
     register,
@@ -55,6 +66,22 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
   const [selectedCity, setSelectedCity] = useState<SingleValue<OptionItem> | null>(null);
 
   const [pincode, setPincode] = useState<string>("");
+
+  const getBranchDetails = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_BRANCH_DETAILS,
+      {},
+      { params: { branchId } },
+      { component: "AddressOfPatientRegistartion" }
+    );
+    return (resp?.data?.[0] ?? {}) as BranchDetailsItem;
+  };
+
+  const { data: branchDetails } = useQuery({
+    queryKey: ["getBranchDetails", branchId],
+    queryFn: getBranchDetails,
+  });
 
   const clearStateDistrictCity = useCallback(() => {
     setSelectedState(null);
@@ -174,6 +201,77 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     [fetchStates, fetchDistricts, fetchCities]
   );
 
+  const applyBranchDefaultLocation = useCallback(async () => {
+    if (!branchDetails || prefillData) return;
+
+    const countryId = Number(branchDetails.defaultCountryId ?? 0);
+    const stateId = Number(branchDetails.defaultStateId ?? 0);
+    const districtId = Number(branchDetails.defaultDistrictId ?? 0);
+    const cityId = Number(branchDetails.defaultCityId ?? 0);
+
+    if (!countryId || !countryList.length) return;
+
+    skipCascadeDefaultsRef.current = true;
+
+    const country = countryList.find(c => Number(c.countryId) === countryId);
+    if (country) {
+      const countryOption = {
+        label: country.countryName,
+        value: Number(country.countryId),
+      };
+      setSelectedCountry(countryOption);
+      setValue("CountryId", countryOption.value);
+      setValue("Country", countryOption.label);
+    }
+
+    const states = await fetchStates(countryId);
+
+    if (stateId) {
+      const state = states.find(s => Number(s.stateId) === stateId);
+      if (state) {
+        applyLocationSelection("state", {
+          value: Number(state.stateId),
+          label: state.stateName,
+        });
+
+        const districts = await fetchDistricts(stateId);
+
+        if (districtId) {
+          const district = districts.find(d => Number(d.districtId) === districtId);
+          if (district) {
+            applyLocationSelection("district", {
+              value: Number(district.districtId),
+              label: district.districtName,
+            });
+
+            const cities = await fetchCities(districtId);
+
+            if (cityId) {
+              const city = cities.find(c => Number(c.cityId) === cityId);
+              if (city) {
+                applyLocationSelection("city", {
+                  value: Number(city.cityId),
+                  label: city.cityName,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    skipCascadeDefaultsRef.current = false;
+  }, [
+    branchDetails,
+    prefillData,
+    countryList,
+    fetchStates,
+    fetchDistricts,
+    fetchCities,
+    applyLocationSelection,
+    setValue,
+  ]);
+
   const getCountry = async () => {
     const resp = await fetchApi(
       "GET",
@@ -203,25 +301,29 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
   }, []);
 
   useEffect(() => {
-    if (!countryList.length || !isInitialLoad.current) return;
+    if (!countryList.length || !branchDetails || prefillData) return;
 
-    const defaultCountry = countryList.find(
-      c => c.countryName?.toLowerCase() === DefaultAddress.COUNTRY.toLowerCase()
-    );
-    if (!defaultCountry) return;
+    const defaultsKey = [
+      resetSignal,
+      branchId,
+      branchDetails.defaultCountryId,
+      branchDetails.defaultStateId,
+      branchDetails.defaultDistrictId,
+      branchDetails.defaultCityId,
+    ].join("-");
 
-    const option = {
-      label: defaultCountry.countryName,
-      value: Number(defaultCountry.countryId),
-    };
+    if (lastAppliedBranchDefaultsKeyRef.current === defaultsKey) return;
+    lastAppliedBranchDefaultsKeyRef.current = defaultsKey;
 
-    setSelectedCountry(option);
-    setValue("CountryId", option.value);
-    setValue("Country", option.label);
-    fetchStates(option.value);
-
-    isInitialLoad.current = false;
-  }, [countryList, setValue, fetchStates]);
+    applyBranchDefaultLocation();
+  }, [
+    countryList,
+    branchDetails,
+    prefillData,
+    resetSignal,
+    branchId,
+    applyBranchDefaultLocation,
+  ]);
 
   useEffect(() => {
     if (resetSignal === 0) return;
@@ -232,29 +334,10 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     setPincode("");
     setValue("Address", "");
     setValue("Pincode", "");
+    lastAppliedBranchDefaultsKeyRef.current = "";
 
-    const defaultCountry = countryList.find(
-      c => c.countryName?.toLowerCase() === DefaultAddress.COUNTRY.toLowerCase()
-    );
-
-    if (defaultCountry) {
-      const option = {
-        label: defaultCountry.countryName,
-        value: Number(defaultCountry.countryId),
-      };
-      setSelectedCountry(option);
-      setValue("CountryId", option.value);
-      setValue("Country", option.label);
-      fetchStates(option.value).finally(() => {
-        skipCascadeDefaultsRef.current = false;
-      });
-    } else {
-      setSelectedCountry(null);
-      setValue("CountryId", "");
-      setValue("Country", "");
-      skipCascadeDefaultsRef.current = false;
-    }
-  }, [resetSignal, setValue, clearStateDistrictCity, countryList, fetchStates]);
+    skipCascadeDefaultsRef.current = false;
+  }, [resetSignal, setValue, clearStateDistrictCity]);
 
   useEffect(() => {
     const loadPrefillData = async () => {
@@ -322,23 +405,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     [stateList]
   );
 
-  useEffect(() => {
-    if (!stateList.length || !selectedCountry || skipCascadeDefaultsRef.current) return;
-
-    const defaultState = stateList.find(
-      s => s.stateName?.toLowerCase() === DefaultAddress.STATE.toLowerCase()
-    );
-    if (!defaultState) return;
-
-    const option = {
-      label: defaultState.stateName,
-      value: Number(defaultState.stateId),
-    };
-
-    applyLocationSelection("state", option);
-    fetchDistricts(option.value);
-  }, [stateList, selectedCountry, setValue, applyLocationSelection, fetchDistricts]);
-
   const stateSelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) {
       applyLocationSelection("state", null);
@@ -376,23 +442,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     [districtList]
   );
 
-  useEffect(() => {
-    if (!districtList.length || skipCascadeDefaultsRef.current) return;
-
-    const defaultDistrict = districtList.find(
-      d => d.districtName?.toLowerCase() === DefaultAddress.DISTRICT.toLowerCase()
-    );
-    if (!defaultDistrict) return;
-
-    const option = {
-      label: defaultDistrict.districtName,
-      value: Number(defaultDistrict.districtId),
-    };
-
-    applyLocationSelection("district", option);
-    fetchCities(option.value);
-  }, [districtList, applyLocationSelection, fetchCities]);
-
   const districtSelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) {
       applyLocationSelection("district", null);
@@ -422,22 +471,6 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       })),
     [cityList]
   );
-
-  useEffect(() => {
-    if (!cityList.length || skipCascadeDefaultsRef.current) return;
-
-    const defaultCity = cityList.find(
-      c => c.cityName?.toLowerCase() === DefaultAddress.City.toLowerCase()
-    );
-    if (!defaultCity) return;
-
-    const option = {
-      label: defaultCity.cityName,
-      value: Number(defaultCity.cityId),
-    };
-
-    applyLocationSelection("city", option);
-  }, [cityList, applyLocationSelection]);
 
   const citySelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) {

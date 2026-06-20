@@ -159,7 +159,6 @@ const IpdOpdDocument = forwardRef<IpdOpdDocumentHandle, IpdOpdDocumentProps>(({ 
 
               {documentLists.map((item: DocumentItem, idx: number) => {
                 const fieldError = validationErrors[item.DocumentId];
-                console.log("item", item);
 
                 return (
                   <tr key={idx} className="table-row">
