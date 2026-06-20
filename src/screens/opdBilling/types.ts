@@ -1,3 +1,9 @@
+import { BillingDetailsHandle } from "@/components/BillingDetails";
+import { BillingFormValues } from "@/components/BillingDetails/types";
+import { ChangeEvent, Dispatch, KeyboardEvent, RefObject, SetStateAction } from "react";
+import { SingleValue } from "react-select";
+import { InsuranceItem } from "../branchMaster/types";
+
 type OpdPatientDetails = {
   patientId: number;
   branchId: number;
@@ -174,9 +180,11 @@ type ServiceBindingItem = {
   gstPer: number;
   sampleTypeId: number;
   isUrgent?: number;
+  isUnderPackage?: number;
   netAmount?: number;
   dis?: number;
   qty?: number;
+  ReportTypeId?: number;
 };
 
 type CategoryItem = {
@@ -206,7 +214,7 @@ type SubSubCategoryItem = {
 type ReferDoctorPopupProps = {
   isOpen: boolean;
   onClose: () => void;
-  data: OptionItem;
+  data: OptionItem | null;
   refreshDoctor: () => Promise<void>;
 };
 
@@ -223,6 +231,7 @@ type PackageItems = {
   packageServiceNameCode: string;
   packageServiceName: string;
   packageServiceId: number;
+  packageServiceSubCategoryId?: number;
   qty: number;
   packageServiceCategory: string;
   packageServiceSubSubCategoryId: number;
@@ -233,7 +242,108 @@ type PackageItems = {
 type PackagePopupProps = {
   isOpen: boolean;
   onClose: () => void;
-  packageId: number;
+  packageId?: number;
+  serviceId?: number;
+  patientDetails?: Record<string, unknown> | null;
+};
+
+type PackagePayloadItem = {
+  serviceItemId: number;
+  serviceName: string;
+  code: string;
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number;
+  corporateAlias: string;
+  corporateCode: string;
+  qty: number;
+  rate: number;
+  grossAmt: number;
+  discPer: number;
+  discAmt: number;
+  discountReason: string;
+  netAmt: number;
+  doctorId: number | string;
+  rateListId: number;
+  validityDays: number;
+  sampleTypeId: number;
+  isNonPayable: number;
+  isUnderPackage: number;
+  packageId?: number;
+  isUrgent: number;
+};
+
+type OpdBillingItemPayload = {
+  serviceItemId: number;
+  subSubCategoryId: number;
+  serviceName: string;
+  code: string;
+  rateListId: number;
+  doctorId: number;
+  qty: number;
+  rate: number;
+  discPer: number;
+  discAmt: number;
+  grossAmt: number;
+  netAmt: number;
+  isUrgent: number;
+};
+
+type OpdBillingVisitDetailsPayload = {
+  patientId: number;
+  branchId: number;
+  insuranceCompanyId: number;
+  corporateId: number;
+  referDoctorId: number;
+  isDiscountApprovalRequired: number;
+  grossBillAmount: number;
+  totalDiscPerOnBill: number;
+  totalDiscAmtOnBill: number;
+  roundOff: number;
+  netAmount: number;
+  policyNo: string;
+  policyCardNo: string;
+  expiryDate: string;
+  cardHolder: string;
+  referalNo: string;
+  referalDate: string;
+};
+
+type OpdBillingSavePayload = {
+  visitDetails: OpdBillingVisitDetailsPayload;
+  billingItems: OpdBillingItemPayload[];
+};
+
+type OpdBillingFormData = {
+  patientId: number;
+  uhid: string;
+  branchId: number;
+  currentAge: string;
+  insuranceCompanyId: number;
+  corporateId: number;
+  referDoctorId: number;
+  grossBillAmount: number;
+  totalDiscPerOnBill: number;
+  totalDiscAmtOnBill: number;
+  roundOff: number;
+  netAmount: number;
+  discApprovedById: number;
+  discountReason: string;
+  remarks: string;
+  uniqueId: string;
+  mlc: string;
+  pi: string;
+  remark: string;
+  policyNo: string;
+  policyCardNo: string;
+  expiryDate: string;
+  cardHolder: string;
+  referalNo: string;
+  referalDate: string;
+  diagnosisId: number;
+  proId: number;
+  proName: string;
+  isSendMRD: number;
 };
 
 type CollectOnDeviceProps = {
@@ -352,17 +462,79 @@ type ServiceBindingDataItem = {
   MethodName: string;
   FieldTypeId: number;
 };
-
+type OpdBillingSectionProps = {
+  formResetKey: number;
+  billingDetailsRef: RefObject<BillingDetailsHandle | null>;
+  insuranceList: InsuranceItem[];
+  hasSelectedService: boolean;
+  insuranceSelectHandler: (e: ChangeEvent<HTMLSelectElement>) => void;
+  selectedInsurance: number | null;
+  selectedCorporate: OptionItem | null;
+  corporateSelectOption: OptionItem[];
+  corporateSelectHandler: (option: SingleValue<OptionItem>) => void;
+  selectedCorporateError: string;
+  doctorRef: RefObject<unknown>;
+  selectedDoctor: OptionItem | null;
+  doctorSelectOption: OptionItem[];
+  doctorSelectHandler: (option: SingleValue<OptionItem>) => void;
+  selectDoctorError: string;
+  inputFieldHandler: (e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLSelectElement>) => void;
+  expiryDateChangeHandler: (value: string) => void;
+  referralDateChangeHandler: (value: string) => void;
+  selectedReferDoctor: OptionItem | null;
+  referDoctorSelectOption: OptionItem[];
+  referDoctorSelectHandler: (option: SingleValue<OptionItem>) => void;
+  referDoctorPopUpHandler: () => void;
+  categoryList: CategoryItem[];
+  categorySelectHandler: (e: ChangeEvent<HTMLSelectElement>) => void;
+  selectedSubCategory: OptionItem | null;
+  subCategorySelectOption: OptionItem[];
+  subCategorySelectHandler: (option: SingleValue<OptionItem>) => void;
+  selectedSubSubCategory: OptionItem | null;
+  subSubCategorySelectOption: OptionItem[];
+  subSubCategorySelectHandler: (option: SingleValue<OptionItem>) => void;
+  serviceInputRef: RefObject<HTMLInputElement | null>;
+  searchTerm: string;
+  serviceItemHandler: (e: ChangeEvent<HTMLInputElement>) => void;
+  serviceInputKeyDownHandler: (e: KeyboardEvent<HTMLInputElement>) => void;
+  showPopup: boolean;
+  serviceNameList: ServiceItemList[];
+  activeServiceIndex: number;
+  setActiveServiceIndex: Dispatch<SetStateAction<number>>;
+  selectedServiceHandler: (service: ServiceItemList) => void;
+  serviceDataTableItem: ServiceBindingItem[];
+  showDuplicateError: string;
+  serviceValidationError: string;
+  deleteHandler: (rowIndex: number) => void;
+  rateChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  discountPercentageChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  discountChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  urgentChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  isPackageService: (serviceName: unknown) => boolean;
+  packagePopupHandler: (packageId: number) => void;
+  servicePopupHandler: (service: ServiceBindingItem) => void;
+  setOpdBillingFormData: Dispatch<SetStateAction<OpdBillingFormData>>;
+  setBillingValues: Dispatch<SetStateAction<BillingFormValues>>;
+  billingValues: BillingFormValues;
+  billingPaymentDetails: Record<string, unknown>;
+  maxDiscountPercentage: number | undefined;
+};
 export type {
   CategoryItem,
   CollectOnDeviceProps,
   DoctorMasterItem,
   DuplicateServiceDataItem,
+  OpdBillingFormData,
+  OpdBillingItemPayload,
+  OpdBillingSavePayload,
+  OpdBillingSectionProps,
+  OpdBillingVisitDetailsPayload,
   OpdCardDetailItem,
   OpdPatientDetails,
   OptionItem,
   PackageItems,
   PackageItemsValue,
+  PackagePayloadItem,
   PackagePopupProps,
   PatientReceiptItem,
   PaymentModeItem,

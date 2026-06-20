@@ -1,14 +1,13 @@
 import { getDoctorMaster, getPatientDataByPatientId } from "@/api/globalApiCall";
 import { BillingDetailsHandle } from "@/components/BillingDetails";
 import { BillingFormValues } from "@/components/BillingDetails/types";
-import { OpdBillingSection } from "@/components/BillingSection";
 import CustomLoader from "@/components/customLoader";
 import OpdCard from "@/components/reportTemplates/OpdCard";
 import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
 import IpdOpdDocument from "@/components/SingledrawerAndPopup/components/IpdOpdDocument";
-import { resolveVisitIdFromResponse } from "@/components/SingledrawerAndPopup/uploadVisitWiseDocuments";
-import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
+import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
+import { resolveVisitIdFromResponse } from "@/components/SingledrawerAndPopup/uploadVisitWiseDocuments";
 import { ENDPOINTS } from "@/config/defaults";
 import { IpdOpdTypeName, OPDBillingTabName, OPD_CATEGORY_IDs, Status } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
@@ -47,6 +46,7 @@ import {
   applyRateChange,
 } from "./components/helperFunction";
 import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
+import OpdBillingSection from "./components/OpdBillingSection";
 import { openOpdPrintInNewTab, openReceiptInNewTab } from "./components/OpdReceiptNewTab";
 import PackagePopup from "./components/PackagePopup";
 import ReferDoctorPopup from "./components/ReferDoctorPopup";
@@ -54,8 +54,14 @@ import {
   CategoryItem,
   DoctorMasterItem,
   DuplicateServiceDataItem,
+  OpdBillingFormData,
+  OpdBillingItemPayload,
+  OpdBillingSavePayload,
+  OpdBillingVisitDetailsPayload,
   OpdCardDetailItem,
   OptionItem,
+  PackageItems,
+  PackagePayloadItem,
   PatientReceiptItem,
   PaymentModeItem,
   ReferDoctorItem,
@@ -157,7 +163,7 @@ const OpdBilling = () => {
 
   const [isPackageUrgent, setIsPackageUrgent] = useState<number>(0);
 
-  const [packagePayload, setPackagePayload] = useState([]);
+  const [packagePayload, setPackagePayload] = useState<PackagePayloadItem[]>([]);
 
   const doctorRef = useRef<any>(null);
 
@@ -352,7 +358,7 @@ const OpdBilling = () => {
   const [isBillingDiscount, setIsBillingDiscount] = useState<number>(0);
 
   //visit details payload
-  const [opdBillingFormData, setOpdBillingFormData] = useState({
+  const [opdBillingFormData, setOpdBillingFormData] = useState<OpdBillingFormData>({
     patientId: 0,
     uhid: "",
     branchId: 0,
@@ -385,51 +391,132 @@ const OpdBilling = () => {
   });
 
   //billing details payload
-  const createBillingItemsPayload = () => {
-    return serviceDataTableItem.map(s => {
-      const qty = Number(s?.qty) || 1;
-      const rate = Number(s?.rate) || 0;
-      const grossAmt = qty * rate;
+  const mapServiceToBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
+    const qty = Number(s?.qty) || 1;
+    const rate = Number(s?.rate) || 0;
+    const grossAmt = qty * rate;
+    const discPer = Number(s?.discountPer) || 0;
+    const discAmt = Number(s?.dis) || (grossAmt * discPer) / 100;
+    const netAmt = Number(s?.netAmount) || Number((grossAmt - discAmt).toFixed(2));
 
-      const discPer = Number(s?.discountPer) || 0;
-      const discAmt = Number(s?.dis) || (grossAmt * discPer) / 100;
+    return {
+      serviceItemId: s?.serviceItemId || 0,
+      subSubCategoryId: s?.subSubCategoryId || 0,
+      serviceName: s?.serviceName || "",
+      code: s?.code || "",
+      rateListId: s?.rateListId || 0,
+      doctorId: Number(s?.doctorId) || 0,
+      qty,
+      rate,
+      discPer,
+      discAmt,
+      grossAmt,
+      netAmt,
+      isUrgent: Number(s?.isUrgent) || 0,
+    };
+  };
 
-      const netAmt = Number(s?.netAmount) || Number((grossAmt - discAmt).toFixed(2));
+  const mapPackageToBillingItem = (item: PackagePayloadItem): OpdBillingItemPayload => ({
+    serviceItemId: item?.serviceItemId || 0,
+    subSubCategoryId: item?.subSubCategoryId || 0,
+    serviceName: item?.serviceName || "",
+    code: item?.code || "",
+    rateListId: item?.rateListId || 0,
+    doctorId: Number(item?.doctorId) || 0,
+    qty: Number(item?.qty) || 1,
+    rate: Number(item?.rate) || 0,
+    discPer: Number(item?.discPer) || 0,
+    discAmt: Number(item?.discAmt) || 0,
+    grossAmt: Number(item?.grossAmt) || 0,
+    netAmt: Number(item?.netAmt) || 0,
+    isUrgent: Number(item?.isUrgent) || 0,
+  });
 
-      return {
-        serviceItemId: s?.serviceItemId || 0,
-        serviceName: s?.serviceName || "",
-        code: s?.code || "",
+  const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
+    const tableItems = serviceDataTableItem.map(mapServiceToBillingItem);
+    const packageItems = (packagePayload ?? []).map(mapPackageToBillingItem);
+    return [...tableItems, ...packageItems];
+  };
 
-        categoryId: s?.categoryId || 0,
-        subCategoryId: s?.subCategoryId || 0,
-        subSubCategoryId: s?.subSubCategoryId || 0,
+  const buildVisitDetailsPayload = (
+    patientId: number,
+    branchId: number
+  ): OpdBillingVisitDetailsPayload => ({
+    patientId,
+    branchId,
+    insuranceCompanyId: Number(opdBillingFormData.insuranceCompanyId) || 0,
+    corporateId: Number(opdBillingFormData.corporateId) || 0,
+    referDoctorId: Number(opdBillingFormData.referDoctorId) || 0,
+    isDiscountApprovalRequired: 0,
+    grossBillAmount:
+      Number(billingValues?.grossBillAmount ?? opdBillingFormData.grossBillAmount) || 0,
+    totalDiscPerOnBill:
+      Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill) || 0,
+    totalDiscAmtOnBill:
+      Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
+    roundOff: Number(billingValues?.roundOff ?? opdBillingFormData.roundOff) || 0,
+    netAmount: Number(billingValues?.netAmount ?? opdBillingFormData.netAmount) || 0,
+    policyNo: opdBillingFormData.policyNo || "",
+    policyCardNo: opdBillingFormData.policyCardNo || "",
+    expiryDate: opdBillingFormData.expiryDate || "",
+    cardHolder: opdBillingFormData.cardHolder || "",
+    referalNo: opdBillingFormData.referalNo || "",
+    referalDate: opdBillingFormData.referalDate || "",
+  });
 
-        corporateAlias: s?.corporateAlias || "",
-        corporateCode: s?.corporateCode || "",
+  const buildOpdBillingSavePayload = (
+    patientId: number,
+    branchId: number
+  ): OpdBillingSavePayload => ({
+    visitDetails: buildVisitDetailsPayload(patientId, branchId),
+    billingItems: createBillingItemsPayload(),
+  });
 
-        qty,
-        rate,
-        grossAmt,
+  const registerPatientForBilling = async () => {
+    const formData = new FormData();
+    for (const key in patientRegistrationDetails) {
+      const value = patientRegistrationDetails[key];
+      if (value === null || value === undefined || value === "") {
+        continue;
+      }
+      if (value instanceof File) {
+        formData.append(key, value);
+      } else {
+        formData.append(key, String(value));
+      }
+    }
 
-        discPer,
-        discAmt,
-        discountReason: s?.discountReason || "",
+    const registrationResp = await fetchApi(
+      "POST",
+      ENDPOINTS.CREATE_UPDATE_PATIENT_MASTER,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+      { component: "Opd Billing" }
+    );
 
-        netAmt,
+    if (!registrationResp?.data) {
+      showError("Failed to register patient");
+      return null;
+    }
 
-        doctorId: s?.doctorId || 0,
-        rateListId: s?.rateListId || 0,
-        validityDays: s?.validityDays || 0,
-        sampleTypeId: s?.sampleTypeId || 0,
+    const patientResponse = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_MASTER,
+      {},
+      { params: { patientId: registrationResp?.data?.patientId } },
+      { component: "opdBilling" }
+    );
 
-        isNonPayable: s?.isNonPayable || 0,
-        isUnderPackage: 0,
-        packageId: 0,
+    if (!patientResponse?.data) {
+      showError("Failed to fetch patient details");
+      return null;
+    }
 
-        isUrgent: Number(s?.isUrgent) || 0,
-      };
-    });
+    return {
+      patientId: Number(registrationResp?.data?.patientId ?? 0),
+      branchId: Number(patientResponse?.data?.[0]?.branchId ?? opdBillingFormData.branchId ?? 1),
+      registrationResp,
+    };
   };
 
   // billing discount details
@@ -450,7 +537,7 @@ const OpdBilling = () => {
     const paidAmountFromAPI = paymentModeList?.reduce((acc, cur) => acc + Number(cur?.Amount), 0);
 
     const finalPaidAmount =
-      paidAmountFromAPI > 0 ? paidAmountFromAPI : billingValues?.netAmount || 0;
+      paidAmountFromAPI > 0 ? paidAmountFromAPI : Number(billingValues?.netAmount ?? 0);
 
     setTotalPaidAmount(finalPaidAmount);
   }, [paymentModeList, billingValues?.netAmount]);
@@ -466,18 +553,16 @@ const OpdBilling = () => {
   // Can be negative if overpaid, positive if pending, zero if fully paid
   useEffect(() => {
     const billingPayload = billingDetailsRef.current?.getPayload?.();
-    const payments = billingPayload?.payments || [];
+    const payments = (billingPayload?.payments ?? []) as Array<{ amount?: unknown }>;
 
-    if (payments && payments.length >= 0) {
-      const totalPayment = payments.reduce((acc, curr) => acc + Number(curr?.amount || 0), 0);
-      const balanceAmount = billingValues?.netAmount - totalPayment;
+    const totalPayment = payments.reduce((acc: number, curr) => acc + Number(curr?.amount || 0), 0);
+    const balanceAmount = Number(billingValues?.netAmount ?? 0) - totalPayment;
 
-      setBillingValues(prev => ({
-        ...prev,
-        balanceAmount: Number(balanceAmount.toFixed(2)),
-      }));
-    }
-  }, [paymentDetails]);
+    setBillingValues(prev => ({
+      ...prev,
+      balanceAmount: Number(balanceAmount.toFixed(2)),
+    }));
+  }, [paymentDetails, billingValues?.netAmount]);
 
   // payment details payload
 
@@ -842,7 +927,7 @@ const OpdBilling = () => {
 
       if (!resp?.data || !Array.isArray(resp.data)) return;
 
-      const packPayload = resp.data.map((item: any) => ({
+      const packPayload: PackagePayloadItem[] = resp.data.map((item: PackageItems) => ({
         serviceItemId: item?.packageServiceId ?? 0,
         serviceName: item?.packageServiceName ?? "",
         code: item?.packageServiceCode ?? "",
@@ -1440,6 +1525,64 @@ const OpdBilling = () => {
       setPatientTabError(false);
       await getPatientPreviousDues();
     }
+
+    if (value === "saveAsDraft") {
+      const isValid = await patientDataRef.current?.validateForm();
+
+      if (!isValid) {
+        setPatientTabError(true);
+        setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
+        return;
+      }
+
+      setPatientTabError(false);
+      await saveOpdBillingAsDraft();
+    }
+  };
+
+  const saveOpdBillingAsDraft = async () => {
+    try {
+      const billingItems = createBillingItemsPayload();
+
+      if (!billingItems.length) {
+        showError("Please add some services to continue");
+        setActiveTab(OPDBillingTabName.OPD_BILLING);
+        return;
+      }
+
+      const patientData = await registerPatientForBilling();
+      if (!patientData) {
+        return;
+      }
+
+      const completePayload = buildOpdBillingSavePayload(
+        patientData.patientId,
+        patientData.branchId
+      );
+
+      const saveOpdDraft = await fetchApi(
+        "POST",
+        ENDPOINTS.SAVE_OPD_BOOKING,
+        completePayload,
+        {},
+        { component: "opdBilling" }
+      );
+
+      if (!saveOpdDraft?.result) {
+        showError(saveOpdDraft?.message || "Failed to save OPD billing draft");
+        return;
+      }
+
+      showSuccess(saveOpdDraft?.message ?? "OPD Billing saved as draft successfully");
+
+      setTimeout(() => {
+        resetForm();
+      }, 300);
+    } catch (error) {
+      console.error("Error saving OPD billing draft:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      showError(`Failed to save draft: ${errorMessage}`);
+    }
   };
 
   const getUserRegistrationResponse = async () => {
@@ -1470,92 +1613,20 @@ const OpdBilling = () => {
 
       setDocumentTabError(false);
 
-      // Step 2: Register patient
-      const formData = new FormData();
-      for (const key in patientRegistrationDetails) {
-        const value = patientRegistrationDetails[key];
-        if (value === null || value === undefined || value === "") {
-          continue;
-        }
-        if (value instanceof File) {
-          formData.append(key, value);
-        } else {
-          formData.append(key, String(value));
-        }
-      }
-
-      const registrationResp = await fetchApi(
-        "POST",
-        ENDPOINTS.CREATE_UPDATE_PATIENT_MASTER,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-        { component: "Opd Billing" }
-      );
-
-      if (!registrationResp?.data) {
-        showError("Failed to register patient");
+      const patientData = await registerPatientForBilling();
+      if (!patientData) {
         return;
       }
 
-      // Step 3: Fetch updated patient details
-      const patientResponse = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_PATIENT_MASTER,
-        {},
-        { params: { patientId: registrationResp?.data?.patientId } },
-        { component: "opdBilling" }
-      );
-
-      if (!patientResponse?.data) {
-        showError("Failed to fetch patient details");
-        return;
-      }
-
-      // Step 4: Build complete visitDetails with all required fields
-      const visitDetails = {
-        patientId: registrationResp?.data?.patientId || 0,
-        uhid: patientResponse?.data?.[0]?.uhid || "",
-        branchId: patientResponse?.data?.[0]?.branchId || opdBillingFormData.branchId || 0,
-        currentAge: String(patientResponse?.data?.[0]?.age || opdBillingFormData.currentAge || ""),
-        insuranceCompanyId: opdBillingFormData.insuranceCompanyId,
-        corporateId: opdBillingFormData.corporateId,
-        referDoctorId: opdBillingFormData.referDoctorId,
-        grossBillAmount: billingValues?.grossBillAmount,
-        totalDiscPerOnBill: billingValues?.totalDiscPerOnBill,
-        totalDiscAmtOnBill: billingValues?.totalDiscAmtOnBill,
-        roundOff: billingValues?.roundOff,
-        netAmount: billingValues?.netAmount,
-        discApprovedById: billingValues?.discApprovedById,
-        discountReason: billingValues?.discountReason,
-        remarks: billingValues?.remarks,
-        uniqueId: opdBillingFormData.uniqueId,
-        mlc: opdBillingFormData.mlc,
-        pi: opdBillingFormData.pi,
-        remark: opdBillingFormData.remark,
-        policyNo: opdBillingFormData.policyNo,
-        policyCardNo: opdBillingFormData.policyCardNo,
-        expiryDate: opdBillingFormData.expiryDate,
-        cardHolder: opdBillingFormData.cardHolder,
-        referalNo: opdBillingFormData.referalNo,
-        referalDate: opdBillingFormData.referalDate,
-        diagnosisId: opdBillingFormData.diagnosisId,
-        proId: opdBillingFormData.proId,
-        proName: opdBillingFormData.proName,
-        isSendMRD: opdBillingFormData.isSendMRD,
-      };
-
-      // Step 5: Build billing items payload (already validated above)
       const billingPayload = billingDetailsRef.current?.getPayload?.();
       const allPaymentDetails = billingPayload?.payments || [];
 
       const completePayload = {
-        visitDetails,
-        billingItems: [...billingItems, ...(packagePayload || [])],
+        ...buildOpdBillingSavePayload(patientData.patientId, patientData.branchId),
         paymentDetails: allPaymentDetails,
         isBillDiscount: isBillingDiscount,
       };
 
-      //step 7:  save opd billing
       const saveBillingResp = await fetchApi(
         "POST",
         ENDPOINTS.SAVE_OPD_BILLING,
@@ -1563,6 +1634,8 @@ const OpdBilling = () => {
         {},
         { component: "opdBilling" }
       );
+
+      const registrationResp = patientData.registrationResp;
 
       // handle failure
       if (!saveBillingResp?.result) {

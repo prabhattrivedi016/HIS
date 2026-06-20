@@ -224,7 +224,7 @@ const BranchMasterDrawer = React.memo(
       label: i.insuranceCompanyName,
     }));
     const defaultCorporateSelectOption = defaultCorporate.map(c => ({
-      value: c.insuranceCompanyId,
+      value: c.corporateId,
       label: c.corporateName,
     }));
 

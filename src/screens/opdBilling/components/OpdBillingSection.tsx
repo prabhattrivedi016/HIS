@@ -1,79 +1,18 @@
-import BillingDetails, { BillingDetailsHandle } from "@/components/BillingDetails";
-import { BillingFormValues } from "@/components/BillingDetails/types";
+import BillingDetails from "@/components/BillingDetails";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
-import { ChangeEvent, Dispatch, KeyboardEvent, RefObject, SetStateAction } from "react";
-import Select, { SingleValue, StylesConfig } from "react-select";
-import { InsuranceItem } from "@/screens/branchMaster/types";
+import Select, { StylesConfig } from "react-select";
+import { InsuranceItem } from "../../branchMaster/types";
 import {
   CategoryItem,
+  OpdBillingSectionProps,
   OptionItem,
   ServiceBindingItem,
   ServiceItemList,
-  SubCategoryItem,
-  SubSubCategoryItem,
-} from "@/screens/opdBilling/types";
-
-export type OpdBillingSectionProps = {
-  formResetKey: number;
-  billingDetailsRef: RefObject<BillingDetailsHandle | null>;
-  insuranceList: InsuranceItem[];
-  hasSelectedService: boolean;
-  insuranceSelectHandler: (e: ChangeEvent<HTMLSelectElement>) => void;
-  selectedInsurance: number | null;
-  selectedCorporate: OptionItem | null;
-  corporateSelectOption: OptionItem[];
-  corporateSelectHandler: (option: SingleValue<OptionItem>) => void;
-  selectedCorporateError: string;
-  doctorRef: RefObject<unknown>;
-  selectedDoctor: OptionItem | null;
-  doctorSelectOption: OptionItem[];
-  doctorSelectHandler: (option: SingleValue<OptionItem>) => void;
-  selectDoctorError: string;
-  inputFieldHandler: (e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLSelectElement>) => void;
-  expiryDateChangeHandler: (value: string) => void;
-  referralDateChangeHandler: (value: string) => void;
-  selectedReferDoctor: OptionItem | null;
-  referDoctorSelectOption: OptionItem[];
-  referDoctorSelectHandler: (option: SingleValue<OptionItem>) => void;
-  referDoctorPopUpHandler: () => void;
-  categoryList: CategoryItem[];
-  categorySelectHandler: (e: ChangeEvent<HTMLSelectElement>) => void;
-  selectedSubCategory: OptionItem | null;
-  subCategorySelectOption: OptionItem[];
-  subCategorySelectHandler: (option: SingleValue<OptionItem>) => void;
-  selectedSubSubCategory: OptionItem | null;
-  subSubCategorySelectOption: OptionItem[];
-  subSubCategorySelectHandler: (option: SingleValue<OptionItem>) => void;
-  serviceInputRef: RefObject<HTMLInputElement | null>;
-  searchTerm: string;
-  serviceItemHandler: (e: ChangeEvent<HTMLInputElement>) => void;
-  serviceInputKeyDownHandler: (e: KeyboardEvent<HTMLInputElement>) => void;
-  showPopup: boolean;
-  serviceNameList: ServiceItemList[];
-  activeServiceIndex: number;
-  setActiveServiceIndex: Dispatch<SetStateAction<number>>;
-  selectedServiceHandler: (service: ServiceItemList) => void;
-  serviceDataTableItem: ServiceBindingItem[];
-  showDuplicateError: string;
-  serviceValidationError: string;
-  deleteHandler: (rowIndex: number) => void;
-  rateChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
-  discountPercentageChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
-  discountChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
-  urgentChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
-  isPackageService: (serviceName: unknown) => boolean;
-  packagePopupHandler: (packageId: number) => void;
-  servicePopupHandler: (service: ServiceBindingItem) => void;
-  setOpdBillingFormData: Dispatch<SetStateAction<Record<string, unknown>>>;
-  setBillingValues: Dispatch<SetStateAction<BillingFormValues>>;
-  billingValues: BillingFormValues;
-  billingPaymentDetails: Record<string, unknown>;
-  maxDiscountPercentage: number | undefined;
-};
+} from "../types";
 
 const OpdBillingSection = ({
   formResetKey,
@@ -143,7 +82,7 @@ const OpdBillingSection = ({
             disabled={hasSelectedService}
           >
             <option value={0}>Self</option>
-            {insuranceList.map(item => (
+            {insuranceList.map((item: InsuranceItem) => (
               <option key={item?.insuranceCompanyId} value={item?.insuranceCompanyId}>
                 {item?.insuranceCompanyName}
               </option>
@@ -270,7 +209,7 @@ const OpdBillingSection = ({
           <InputField>
             <select className="input-field" onChange={categorySelectHandler}>
               <option value={"1,3,4,5,8,11"}>All category</option>
-              {categoryList.map(c => (
+              {categoryList.map((c: CategoryItem) => (
                 <option key={c?.categoryId} value={c?.categoryId}>
                   {c?.categoryName}
                 </option>
@@ -319,7 +258,7 @@ const OpdBillingSection = ({
                 />
                 {showPopup && serviceNameList?.length > 0 && (
                   <div className="absolute top-full left-0  w-full bg-white border border-gray-300 rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
-                    {serviceNameList.map((s, index) => (
+                    {serviceNameList.map((s: ServiceItemList, index: number) => (
                       <div
                         key={index}
                         className={`px-3 py-2 cursor-pointer text-sm ${
@@ -398,7 +337,7 @@ const OpdBillingSection = ({
                           </tr>
                         )}
 
-                        {serviceDataTableItem.map((item, idx) => (
+                        {serviceDataTableItem.map((item: ServiceBindingItem, idx: number) => (
                           <tr key={idx} className="table-row">
                             <td className="table-td ">
                               <button type="button" onClick={() => deleteHandler(idx)}>
@@ -410,21 +349,25 @@ const OpdBillingSection = ({
                               <div className="flex items-center justify-between ">
                                 <span>{item?.serviceName || "-"}</span>
 
-                                <i
-                                  className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
-                                  title={
-                                    isPackageService(item?.serviceName)
-                                      ? "Package Service"
-                                      : "Service"
-                                  }
-                                  onClick={() => {
-                                    if (isPackageService(item?.serviceName)) {
-                                      packagePopupHandler(item?.serviceItemId);
-                                    } else {
-                                      servicePopupHandler(item);
+                                {item?.ReportTypeId === 1 ? (
+                                  <i
+                                    className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
+                                    title={
+                                      isPackageService(item?.serviceName)
+                                        ? "Package Service"
+                                        : "Service"
                                     }
-                                  }}
-                                />
+                                    onClick={() => {
+                                      if (isPackageService(item?.serviceName)) {
+                                        packagePopupHandler(item?.serviceItemId);
+                                      } else {
+                                        servicePopupHandler(item);
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <></>
+                                )}
                               </div>
                             </td>
                             <td className="table-td">{item?.code || "-"}</td>

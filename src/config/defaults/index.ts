@@ -229,6 +229,7 @@ const ENDPOINTS = {
   GET_PATIENT_BALANCE_AMOUNT_OPD: "Patient/getPatientBalanceAmountOPD",
   GET_PATIENT_BALANCE_AMOUNT_IPD: "Patient/getPatientBalanceAmountIPD",
   GET_PATIENT_BALANCE_AMOUNT_PHARMACY: "Patient/getPatientBalanceAmountPharmacy",
+  SAVE_OPD_BOOKING: "Patient/saveOPDBooking",
 
   // formula master
   GET_FORMULA_BY_OBSERVATION_ID: "Lab/getFormulaMasterByObservationId",
