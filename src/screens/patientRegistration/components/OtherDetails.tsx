@@ -45,6 +45,7 @@ const OtherDetails = () => {
               <input
                 type="text"
                 className="input-field"
+                placeholder="Enter Emergency Contact No."
                 {...register("EmergencyContactNumber")}
                 maxLength={10}
                 minLength={10}
@@ -54,8 +55,8 @@ const OtherDetails = () => {
             <InputField label="Landline Number">
               <input
                 className="input-field"
-                {...register("LandlineNo")}
                 placeholder="Enter Landline Number"
+                {...register("LandlineNo")}
                 maxLength={15}
                 onInput={allowOnlyNumbers}
               />

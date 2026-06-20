@@ -15,15 +15,7 @@ export const corporateMasterSchema = yup.object().shape({
   corporateId: yup.number().nullable(),
   corporateName: yup.string().trim().required("Corporate Name is required"),
   insuranceCompanyName: yup.string().nullable(),
-  insuranceCompanyId: yup
-    .number()
-    .transform((value, originalValue) =>
-      originalValue === "" || originalValue === null || originalValue === undefined
-        ? 0
-        : Number(value)
-    )
-    .moreThan(0, "Insurance company is required")
-    .required("Insurance company is required"),
+  insuranceCompanyId: yup.number().nullable(),
   corporateTypeName: yup.string().nullable(),
   corporateTypeId: yup
     .number()
@@ -65,8 +57,30 @@ export const corporateMasterSchema = yup.object().shape({
       "Please select at least one branch",
       value => !!value && value.trim() !== ""
     ),
-  rateListIdOPD: yup.string().nullable(),
-  rateListIdIPD: yup.string().nullable(),
+  rateListIdOPD: yup
+    .string()
+    .required("At least one OPD rate list row is required")
+    .test(
+      "opd-rate-required",
+      "At least one OPD rate list row is required",
+      value =>
+        (value ?? "")
+          .split(",")
+          .map(v => Number(v.trim()))
+          .filter(v => Number.isFinite(v) && v > 0).length > 0
+    ),
+  rateListIdIPD: yup
+    .string()
+    .required("At least one IPD rate list row is required")
+    .test(
+      "ipd-rate-required",
+      "At least one IPD rate list row is required",
+      value =>
+        (value ?? "")
+          .split(",")
+          .map(v => Number(v.trim()))
+          .filter(v => Number.isFinite(v) && v > 0).length > 0
+    ),
 });
 
 export type CorporateMasterFormItem = InferType<typeof corporateMasterSchema>;

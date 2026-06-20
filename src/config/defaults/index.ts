@@ -359,6 +359,14 @@ const ENDPOINTS = {
   CREATE_UPDATE_IPD_TAB_MASTER: "Admin/createUpdateIPDTabMaster",
   GET_ROLE_WISE_IPD_TAB_LIST_MASTER: "Admin/getRoleWiseIPDTabListMaster",
   SAVE_UPDATE_ROLE_WISE_IPD_TAB_MAPPING: "Admin/saveUpdateRoleWiseIPDTabMapping",
+
+  // ipd & opd document
+  GET_VISIT_WISE_PATIENT_DOCUMENT_MAPPING: "Patient/getVisitWisePatientDocumentMapping",
+  UPLOAD_VISIT_WISE_PATIENT_DOCUMENT: "Patient/uploadVisitWisePatientDocument",
+
+  // ipd billing
+  SEARCH_IPD_PATIENT: "Patient/searchIPDPatient",
+  GET_BILLING_TABS: "Home/getBillingTabs",
 };
 
 export { ENDPOINTS };

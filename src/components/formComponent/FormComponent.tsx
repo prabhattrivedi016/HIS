@@ -38,8 +38,14 @@ const FormComponent = ({
     setUserDepartment(response?.data || []);
   };
 
+  const getUserMasterList = async () => {
+    const response = await fetchApi("GET", ENDPOINTS.USER_MASTER_LIST);
+    setUserMasterList(response?.data || []);
+  };
+
   useEffect(() => {
     userDepartmentList();
+    getUserMasterList();
   }, []);
 
   //  fetch only selected user

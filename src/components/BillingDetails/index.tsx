@@ -146,6 +146,13 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       setRows(prev => [...prev, { paymentModeId: null, amount: "", bankId: null, refNo: "" }]);
     };
 
+    const handleRemoveRow = (index: number) => {
+      if (index === 0 || rows.length <= 1) return;
+
+      setRows(prev => prev.filter((_, rowIndex) => rowIndex !== index));
+      setRowErrors({});
+    };
+
     const handlePaymentChange = (index: number, value: number) => {
       setRowErrors(prev => ({
         ...prev,
@@ -193,7 +200,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       if (totalPaid > netAmount) {
         showError("Total paid amount cannot exceed Net Amount");
 
-        // revert change
         return;
       }
 
@@ -379,8 +385,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     useEffect(() => {
       getDiscountApprovedBy();
     }, []);
-
-    // Removed totalBillingAmount based effect because paymentBilling syncs this data.
 
     // payment methods
     const getPaymentMethod = useCallback(async () => {
@@ -744,6 +748,20 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                             )}
                             {!!rowErrors[index]?.refNo && (
                               <p className="input-field-error">{rowErrors[index]?.refNo}</p>
+                            )}
+                          </td>
+
+                          <td className="table-td text-center">
+                            {index > 0 ? (
+                              <button
+                                type="button"
+                                title="Remove payment row"
+                                onClick={() => handleRemoveRow(index)}
+                              >
+                                <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
+                              </button>
+                            ) : (
+                              <span>-</span>
                             )}
                           </td>
                         </tr>

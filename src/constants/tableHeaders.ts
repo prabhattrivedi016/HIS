@@ -435,7 +435,7 @@ export const OpdBillingServiceTableHeader = [
   "U",
 ];
 
-export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No."];
+export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No.", "Action"];
 
 export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];
 
@@ -461,6 +461,16 @@ export const InvestigationFormulaListTableHeader = [
 
 export const PatientDocumentTableHeader = [
   "#",
+  "Document Name",
+  "Document Code",
+  "Uploaded",
+  "Download",
+  "Browse",
+];
+
+export const IpdOpdDocumentTableHeader = [
+  "#",
+  "Document Category",
   "Document Name",
   "Document Code",
   "Uploaded",

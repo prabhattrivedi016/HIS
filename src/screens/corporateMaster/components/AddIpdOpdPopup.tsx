@@ -55,6 +55,10 @@ const AddIpdOpdPopup = ({
   opdValue,
   setIpdValue,
   setOpdValue,
+  opdTableError = "",
+  ipdTableError = "",
+  onClearOpdTableError,
+  onClearIpdTableError,
 }: AddIpdOpdPopupProps) => {
   const { fetchApi } = useGlobalApi();
 
@@ -66,6 +70,8 @@ const AddIpdOpdPopup = ({
 
   const [isError, setIsError] = useState("");
   const [isDisabled, setIsDisabled] = useState(true);
+  const [localOpdTableError, setLocalOpdTableError] = useState("");
+  const [localIpdTableError, setLocalIpdTableError] = useState("");
 
   useEffect(() => {
     getRateList();
@@ -91,7 +97,12 @@ const AddIpdOpdPopup = ({
     setSelectedRate(null);
     setIsDisabled(true);
     setIsError("");
+    setLocalOpdTableError("");
+    setLocalIpdTableError("");
   }, [isOpen, ipdValue, opdValue, rateMasterList]);
+
+  const displayedOpdTableError = opdTableError || localOpdTableError;
+  const displayedIpdTableError = ipdTableError || localIpdTableError;
 
   const getRateList = async () => {
     const resp = await fetchApi("GET", ENDPOINTS.GET_RATE_LIST_MASTER);
@@ -114,7 +125,11 @@ const AddIpdOpdPopup = ({
     setIsError("");
   };
 
-  const addToList = (list: RateListItem[], setList: Dispatch<SetStateAction<RateListItem[]>>) => {
+  const addToList = (
+    list: RateListItem[],
+    setList: Dispatch<SetStateAction<RateListItem[]>>,
+    isOpd: boolean
+  ) => {
     if (!selectedRate) return;
 
     const exists = list.find(i => i.rateListId === selectedRate.rateListId);
@@ -125,6 +140,14 @@ const AddIpdOpdPopup = ({
 
     setList([...list, selectedRate]);
     setIsError("");
+
+    if (isOpd) {
+      setLocalOpdTableError("");
+      onClearOpdTableError?.();
+    } else {
+      setLocalIpdTableError("");
+      onClearIpdTableError?.();
+    }
   };
 
   const handleDrag =
@@ -138,11 +161,38 @@ const AddIpdOpdPopup = ({
       setList(arrayMove(list, oldIndex, newIndex));
     };
 
-  const removeItem = (setList: Dispatch<SetStateAction<RateListItem[]>>) => (id: number) => {
-    setList(prev => prev.filter(i => i.rateListId !== id));
-  };
+  const removeItem =
+    (setList: Dispatch<SetStateAction<RateListItem[]>>, isOpd: boolean) => (id: number) => {
+      setList(prev => prev.filter(i => i.rateListId !== id));
+
+      if (isOpd) {
+        onClearOpdTableError?.();
+      } else {
+        onClearIpdTableError?.();
+      }
+    };
 
   const handleSave = () => {
+    let hasError = false;
+
+    if (opdRateList.length === 0) {
+      setLocalOpdTableError("At least one OPD rate list row is required");
+      hasError = true;
+    } else {
+      setLocalOpdTableError("");
+    }
+
+    if (ipdRateList.length === 0) {
+      setLocalIpdTableError("At least one IPD rate list row is required");
+      hasError = true;
+    } else {
+      setLocalIpdTableError("");
+    }
+
+    if (hasError) {
+      return;
+    }
+
     const opdRate = opdRateList.map(i => i.rateListId).join(",");
     setOpdValue?.(opdRate ?? "");
     const ipdRate = ipdRateList.map(i => i.rateListId).join(",");
@@ -190,7 +240,7 @@ const AddIpdOpdPopup = ({
                 isDisabled ? "disabled-btn" : ""
               }`}
               disabled={isDisabled}
-              onClick={() => addToList(opdRateList, setOpdRateList)}
+              onClick={() => addToList(opdRateList, setOpdRateList, true)}
             >
               Add to OPD
             </button>
@@ -199,7 +249,7 @@ const AddIpdOpdPopup = ({
               className={`save-btn h-[42px] flex items-center justify-center mb-8 ${
                 isDisabled ? "disabled-btn" : ""
               }`}
-              onClick={() => addToList(ipdRateList, setIpdRateList)}
+              onClick={() => addToList(ipdRateList, setIpdRateList, false)}
               disabled={isDisabled}
             >
               Add to IPD
@@ -231,17 +281,28 @@ const AddIpdOpdPopup = ({
                       </thead>
 
                       <tbody>
+                        {opdRateList.length === 0 && (
+                          <tr>
+                            <td colSpan={OpdRateListTableHeader.length} className="table-empty">
+                              No records found
+                            </td>
+                          </tr>
+                        )}
+
                         {opdRateList.map(item => (
                           <SortableRow
                             key={item.rateListId}
                             item={item}
-                            onDelete={removeItem(setOpdRateList)}
+                            onDelete={removeItem(setOpdRateList, true)}
                           />
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
+                {!!displayedOpdTableError && (
+                  <p className="input-field-error mt-1">{displayedOpdTableError}</p>
+                )}
               </div>
             </SortableContext>
           </DndContext>
@@ -269,17 +330,28 @@ const AddIpdOpdPopup = ({
                       </thead>
 
                       <tbody>
+                        {ipdRateList.length === 0 && (
+                          <tr>
+                            <td colSpan={IpdRateListTableHeader.length} className="table-empty">
+                              No records found
+                            </td>
+                          </tr>
+                        )}
+
                         {ipdRateList.map(item => (
                           <SortableRow
                             key={item.rateListId}
                             item={item}
-                            onDelete={removeItem(setIpdRateList)}
+                            onDelete={removeItem(setIpdRateList, false)}
                           />
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
+                {!!displayedIpdTableError && (
+                  <p className="input-field-error mt-1">{displayedIpdTableError}</p>
+                )}
               </div>
             </SortableContext>
           </DndContext>

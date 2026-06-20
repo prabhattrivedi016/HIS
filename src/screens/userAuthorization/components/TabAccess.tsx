@@ -185,6 +185,8 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
             <tr>
               <th className="px-4 py-2 w-16 text-left font-semibold text-gray-700">#</th>
 
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">Tab Type</th>
+
               <th className="px-4 py-2 text-left font-semibold text-gray-700">Tab Name</th>
 
               {/* SEARCH */}
@@ -219,6 +221,8 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
                   onClick={() => toggleSingleHandler(item?.TabId)}
                 >
                   <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+
+                  <td className="px-4 py-3 text-gray-800 truncate">{item?.TabType}</td>
 
                   <td className="px-4 py-3 text-gray-800 truncate">{item?.TabName}</td>
 

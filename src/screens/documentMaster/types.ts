@@ -7,6 +7,9 @@ interface PatientDocumentItem {
   createdOn: string;
   lastModifiedBy: string;
   lastModifiedOn: string;
+  documentCategoryId: number;
+  documentCategory: string;
+  isMandatory: number;
 }
 
 export type { PatientDocumentItem };

@@ -29,6 +29,7 @@ import Select, { StylesConfig } from "react-select";
 import Webcam from "react-webcam";
 import {
   CorporateItem,
+  DOcumentListItem,
   InsuranceItem,
   PatientDataEditItem,
   PatientDataHandle,
@@ -44,6 +45,7 @@ import {
   resolvePickValue,
 } from "./dobHelper";
 import DocumentPopup from "./DocumentPopup";
+import { getMandatoryDocumentErrors } from "./documentValidation";
 import OtherDetails from "./OtherDetails";
 import { SaveButtons } from "./patientButtons";
 
@@ -92,11 +94,27 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
     const [existingImagePreview, setExistingImagePreview] = useState<string | null>(null);
 
+    const [documentUploadError, setDocumentUploadError] = useState("");
+
     // patient document
     const [documentFileStore, setDocumentFileStore] = useState<Record<number, File>>({});
     const [patientDocumentPayload, setPatientDocumentPayload] = useState<
       PatientDocumentPayloadItem[]
     >([]);
+    const [documentValidationErrors, setDocumentValidationErrors] = useState<
+      Record<number, string>
+    >({});
+
+    const documentFileStoreRef = useRef(documentFileStore);
+    const patientDocumentPayloadRef = useRef(patientDocumentPayload);
+
+    useEffect(() => {
+      documentFileStoreRef.current = documentFileStore;
+    }, [documentFileStore]);
+
+    useEffect(() => {
+      patientDocumentPayloadRef.current = patientDocumentPayload;
+    }, [patientDocumentPayload]);
 
     const methods = useForm({
       resolver: yupResolver(patientRegistrationSchema),
@@ -459,6 +477,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setCapturedImageFile(null);
       setCapturedImagePreview(null);
       clearExistingImagePreview();
+      setDocumentFileStore({});
+      setPatientDocumentPayload([]);
+      setDocumentValidationErrors({});
+      setOpenDocument(false);
+      setRenderDocument(false);
     };
 
     const getPatientImage = async (filePath: string) => {
@@ -526,6 +549,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       const data = resp?.data?.[0] as PatientDataEditItem;
 
       if (!data) return;
+
+      setDocumentFileStore({});
+      setPatientDocumentPayload([]);
+      setDocumentValidationErrors({});
 
       setCapturedImageFile(null);
       setCapturedImagePreview(null);
@@ -667,13 +694,19 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       onPatientLoaded?.("uhid");
     };
 
+    const onPayloadChangeRef = useRef(onPayloadChange);
+    onPayloadChangeRef.current = onPayloadChange;
+
     useEffect(() => {
+      onPayloadChangeRef.current?.(methods.getValues() as Record<string, unknown>);
+
       const subscription = methods.watch(values => {
-        onPayloadChange?.(values as Record<string, unknown>);
+        onPayloadChangeRef.current?.(values as Record<string, unknown>);
       });
-      onPayloadChange?.(methods.getValues() as Record<string, unknown>);
+
       return () => subscription.unsubscribe();
-    }, [methods, onPayloadChange]);
+      // Subscribe once; parent remounts PatientData via key when form resets.
+    }, []);
 
     // id proof type handler
     const idProofTypeChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -683,16 +716,79 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     };
 
     // button click handler
+    const fetchDocumentMapping = useCallback(
+      async (patientId: number) => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_PATIENT_DOCUMENT_MAPPING,
+          {},
+          { params: { patientId: patientId || 0 } },
+          { component: "PatientDataDocumentValidation" }
+        );
+
+        return (resp?.data ?? []) as DOcumentListItem[];
+      },
+      [fetchApi]
+    );
+
+    const openDocumentPopupWithErrors = useCallback((errors: Record<number, string>) => {
+      setDocumentValidationErrors(errors);
+      setRenderDocument(true);
+      setOpenDocument(true);
+    }, []);
+
+    const validateMandatoryDocuments = useCallback(async (): Promise<boolean> => {
+      const patientId = Number(watchedPatientId) || 0;
+      const documentList = await fetchDocumentMapping(patientId);
+      const errors = getMandatoryDocumentErrors(
+        documentList,
+        documentFileStoreRef.current,
+        patientDocumentPayloadRef.current
+      );
+
+      if (Object.keys(errors).length > 0) {
+        openDocumentPopupWithErrors(errors);
+        setDocumentUploadError("Please upload all mandatory documents");
+
+        return false;
+      }
+
+      setDocumentValidationErrors({});
+      return true;
+    }, [fetchDocumentMapping, openDocumentPopupWithErrors, watchedPatientId]);
+
+    const clearDocumentValidationError = useCallback((documentId: number) => {
+      setDocumentValidationErrors(prev => {
+        if (!prev[documentId]) {
+          return prev;
+        }
+
+        const next = { ...prev };
+        delete next[documentId];
+        return next;
+      });
+    }, []);
+
     const buttonClickHandler = (name: string) => {
       if (name === "save") {
-        methods.handleSubmit(onSubmit, formErrors => {
-          const firstError = Object.values(formErrors)[0];
-          const message =
-            typeof firstError?.message === "string"
-              ? firstError.message
-              : "Please fix validation errors before submitting";
-          showWarning(message);
-        })();
+        methods.handleSubmit(
+          async data => {
+            const areDocumentsValid = await validateMandatoryDocuments();
+            if (!areDocumentsValid) {
+              return;
+            }
+
+            await onSubmit(data);
+          },
+          formErrors => {
+            const firstError = Object.values(formErrors)[0];
+            const message =
+              typeof firstError?.message === "string"
+                ? firstError.message
+                : "Please fix validation errors before submitting";
+            showWarning(message);
+          }
+        )();
         return;
       }
 
@@ -705,9 +801,22 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     useImperativeHandle(
       ref,
       () => ({
-        validateForm: async () => methods.trigger(undefined, { shouldFocus: true }),
+        validateForm: async () => {
+          const isFormValid = await methods.trigger(undefined, { shouldFocus: true });
+          if (!isFormValid) {
+            return false;
+          }
+
+          return validateMandatoryDocuments();
+        },
+        loadPatientById: async (patientId: number) => {
+          if (patientId > 0) {
+            await getEditPatientData(patientId);
+            onPayloadChangeRef.current?.(methods.getValues() as Record<string, unknown>);
+          }
+        },
       }),
-      [methods]
+      [methods, validateMandatoryDocuments]
     );
 
     // open document handler
@@ -717,7 +826,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     };
 
     const closeDocument = useCallback(() => {
-      setRenderDocument(false);
+      setOpenDocument(false);
+
+      setTimeout(() => {
+        setRenderDocument(false);
+      }, 300);
     }, []);
 
     // auto filling gender on the basis of title
@@ -762,7 +875,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       <input
                         type="text"
                         className="input-field"
-                        placeholder="enter UHID & press Enter"
+                        placeholder="Enter UHID & press Enter"
                         onKeyDown={searchByUHIDHandler}
                         {...register("UhidOrBarcode")}
                       />
@@ -798,6 +911,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           <input
                             type="text"
                             className="input-field"
+                            placeholder="Enter First Name"
                             {...register("FirstName")}
                             onInput={allowOnlyText}
                             maxLength={120}
@@ -812,6 +926,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       <input
                         type="text"
                         className="input-field"
+                        placeholder="Enter Middle Name"
                         {...register("MiddleName")}
                         onInput={allowOnlyText}
                         maxLength={120}
@@ -821,6 +936,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       <input
                         type="text"
                         className="input-field"
+                        placeholder="Enter Last Name"
                         {...register("LastName")}
                         onInput={allowOnlyText}
                         maxLength={120}
@@ -831,6 +947,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <input
                           type="text"
                           className="input-field"
+                          placeholder="Enter Age (yrs)"
                           {...register("AgeYears")}
                           onInput={allowOnlyNumbers}
                           maxLength={3}
@@ -844,6 +961,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <input
                           type="text"
                           className="input-field"
+                          placeholder="Enter Age (months)"
                           {...register("AgeMonths")}
                           onInput={allowOnlyNumbers}
                           maxLength={3}
@@ -857,6 +975,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <input
                           type="text"
                           className="input-field"
+                          placeholder="Enter Age (days)"
                           {...register("AgeDays")}
                           onInput={allowOnlyNumbers}
                           maxLength={3}
@@ -867,7 +986,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       </InputField>
                     </div>
                     <InputField label="Dob" required>
-                      <input type="hidden" {...register("Dob")} />
+                      <input type="hidden" {...register("Dob")} placeholder="Enter Date of Birth" />
                       <CustomDateInput
                         name="Dob"
                         value={watch("Dob") || ""}
@@ -879,6 +998,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <InputField label="Gender" required>
                       <select
                         className={lockedGenderByTitle ? "disabled-input-field" : "input-field"}
+                        placeholder="Select Gender"
                         {...register("Gender")}
                         disabled={Boolean(lockedGenderByTitle)}
                       >
@@ -896,7 +1016,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     </InputField>
                     <InputField label="Marital Status">
                       <select className="input-field" {...register("MaritalStatus")}>
-                        <option value="">Select</option>
+                        <option value="">Select Marital Status</option>
                         <option value={"UN-MARRIED"}>Un-Married</option>
                         <option value={"MARRIED"}>Married</option>
                       </select>
@@ -915,6 +1035,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       <input
                         type="text"
                         className="input-field"
+                        placeholder="Enter Relative Name"
                         {...register("RelativeName")}
                         onInput={allowOnlyText}
                         maxLength={120}
@@ -939,6 +1060,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <input
                           type="text"
                           className="input-field"
+                          placeholder="Enter ID Proof Number"
                           {...register("IdProofNumber")}
                           maxLength={18}
                         />
@@ -951,6 +1073,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       <input
                         type="text"
                         className="input-field"
+                        placeholder="Enter Contact No.(Self)"
                         {...register("SelfContactNumber")}
                         maxLength={10}
                         minLength={10}
@@ -961,7 +1084,12 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       )}
                     </InputField>
                     <InputField label="Email">
-                      <input type="email" className="input-field" {...register("Email")} />
+                      <input
+                        type="email"
+                        className="input-field"
+                        {...register("Email")}
+                        placeholder="Enter Email"
+                      />
                       {errors.Email && <p className="input-field-error">{errors.Email.message}</p>}
                     </InputField>
                     {/* address */}
@@ -1001,6 +1129,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Card No./Policy No.">
                           <input
                             type="text"
+                            placeholder="Enter Card No./Policy No."
                             className="input-field"
                             {...register("CardNo")}
                             minLength={8}
@@ -1010,6 +1139,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Policy NO.">
                           <input
                             type="text"
+                            placeholder="Enter Policy No."
                             className="input-field"
                             {...register("PolicyNo")}
                             minLength={8}
@@ -1019,6 +1149,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Policy Card No.">
                           <input
                             type="text"
+                            placeholder="Enter Policy Card No."
                             className="input-field"
                             {...register("PolicyCardNo")}
                             minLength={8}
@@ -1034,6 +1165,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Card Holder Name">
                           <input
                             type="text"
+                            placeholder="Enter Card Holder Name"
                             className="input-field"
                             {...register("CardHolder")}
                             onInput={allowOnlyText}
@@ -1042,6 +1174,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Referal NO.">
                           <input
                             type="text"
+                            placeholder="Enter Referal No."
                             className="input-field"
                             {...register("ReferalNo")}
                             maxLength={20}
@@ -1050,6 +1183,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         <InputField label="Referal Date">
                           <CustomDateInput
                             name="referralDate"
+                            placeholder="Enter Referal Date"
                             value={watch("ReferalDate")}
                             onChange={(value: string) => methods.setValue("ReferalDate", value)}
                           />
@@ -1087,10 +1221,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                   <div className="flex flex-col gap-2 w-full lg:w-auto">
                     <button
                       type="button"
-                      className="save-btn w-full"
+                      className="save-btn w-32"
                       onClick={() => setShowWebcam(prev => !prev)}
                     >
-                      {showWebcam ? "Close Camera" : "capture"}
+                      {showWebcam ? "Close" : "Capture"}
                     </button>
                   </div>
 
@@ -1142,11 +1276,14 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
           <DocumentPopup
             isOpen={openDocument}
             onClose={closeDocument}
-            patientId={watchedPatientId}
+            patientId={Number(watchedPatientId) || 0}
             fileStore={documentFileStore}
             setFileStore={setDocumentFileStore}
             payload={patientDocumentPayload}
             setPayload={setPatientDocumentPayload}
+            validationErrors={documentValidationErrors}
+            onClearDocumentError={clearDocumentValidationError}
+            documentError={documentUploadError}
           />
         )}
 

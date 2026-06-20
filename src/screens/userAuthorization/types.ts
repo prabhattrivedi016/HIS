@@ -72,6 +72,7 @@ export type TabAccessItem = {
   TabId: number;
   TabName: string;
   TabTypeId: number;
+  TabType: string;
 };
 
 export type CorporateMappingItem = {

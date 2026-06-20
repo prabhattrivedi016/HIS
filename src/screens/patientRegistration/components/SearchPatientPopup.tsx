@@ -2,10 +2,13 @@ import Animation from "@/components/animation";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import { ErrorMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import { PatientSearchResultTableHeader } from "@/constants/tableHeaders";
+import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { BranchItem } from "@/types";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -18,7 +21,8 @@ type SearchPatientPopupProps = {
   showTable: boolean;
   setShowTable: Dispatch<SetStateAction<boolean>>;
   onSelectPatientId?: Dispatch<SetStateAction<number | null>>;
-  onSelectPatient?: (item: SearchedPatientItem) => Promise<boolean> | boolean;
+  onSelectPatient?: (item: SearchedPatientItem) => boolean | Promise<boolean>;
+  selectionErrorMessage?: string;
 };
 
 const getInitialFormData = () => ({
@@ -33,6 +37,7 @@ const getInitialFormData = () => ({
   dob: "",
   address: "",
   registrationDate: "",
+  branchId: 1,
 });
 
 const SearchPatientPopup = ({
@@ -42,8 +47,9 @@ const SearchPatientPopup = ({
   setShowTable,
   onSelectPatientId,
   onSelectPatient,
+  selectionErrorMessage = "",
 }: SearchPatientPopupProps) => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const today = formatDate(new Date());
   const [searchPatientDataList, setSearchPatientDataList] = useState<SearchedPatientItem[]>([]);
 
@@ -97,7 +103,7 @@ const SearchPatientPopup = ({
     setFormData(getInitialFormData());
     setSearchPatientDataList([]);
     setIsTableData(false);
-    onClose();
+    onClose?.();
     setShowTable(false);
   };
   // select patient handler
@@ -133,6 +139,9 @@ const SearchPatientPopup = ({
     }
   }, [isOpen]);
 
+  // branches
+  const branchLists = useGetBranchList()?.branchList?.data ?? [];
+
   useScrollLock(isOpen);
   return createPortal(
     <div className={`fixed inset-0 z-9999 ${isOpen ? "" : "pointer-events-none"}`}>
@@ -149,9 +158,26 @@ const SearchPatientPopup = ({
             ×
           </button>
         </div>
+
+        {!!selectionErrorMessage && <ErrorMessage text={selectionErrorMessage} />}
         <div className="flex flex-col mb-4  ">
           {/* form data */}
           <form id="searchPatientForm" className="form-grid-6" onSubmit={formSubmitHandler}>
+            <InputField label="Branches">
+              <select
+                className="input-field"
+                name="branch"
+                value={formData.branchId}
+                onChange={handleInputChange}
+              >
+                <option>--Select--</option>
+                {branchLists.map((b: BranchItem) => (
+                  <option key={b?.branchId} value={b?.branchId}>
+                    {b?.branchName}
+                  </option>
+                ))}
+              </select>
+            </InputField>
             <InputField label="UHID">
               <input
                 className="input-field"

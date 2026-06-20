@@ -40,7 +40,19 @@ import {
   SpecializationItem,
 } from "../types";
 
-const defaultFormValues = (currentDate: string): IpdAdmissionFormValues => ({
+const getToday = (): string => new Date().toISOString().split("T")[0];
+
+const getCurrentTimeLabel = (): string => {
+  const now = new Date();
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+
+  return `${hours}:${minutes} ${period}`;
+};
+
+const defaultFormValues = (currentDate: string, currentTime: string): IpdAdmissionFormValues => ({
   insuranceCompanyId: 0,
   corporateId: 0,
   specializationId: 0,
@@ -53,8 +65,8 @@ const defaultFormValues = (currentDate: string): IpdAdmissionFormValues => ({
   roomTypeId: 0,
   bedId: 0,
 
-  admissionDate: "",
-  admissionTime: "",
+  admissionDate: currentDate,
+  admissionTime: currentTime,
 
   attendantRelation: "",
   attendantName: "",
@@ -105,6 +117,8 @@ const DEFAULT_CASH_CORPORATE: CorporateItem = {
   isActive: 1,
 };
 
+const EMPTY_CORPORATE_LIST: CorporateItem[] = [];
+
 const isBedAvailable = (status?: {
   currentStatus?: number;
   isAvailable?: number;
@@ -123,7 +137,6 @@ const isBedAvailable = (status?: {
 const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
-  const today = new Date().toISOString().split("T")[0];
 
   const {
     register,
@@ -135,7 +148,7 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
     formState: { errors },
   } = useForm<IpdAdmissionFormValues>({
     resolver: yupResolver(ipdAdmissionSchema),
-    defaultValues: defaultFormValues(today),
+    defaultValues: defaultFormValues(getToday(), getCurrentTimeLabel()),
   });
 
   const [renderProPopup, setRenderProPopup] = useState(false);
@@ -193,7 +206,7 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
     return (resp?.data ?? []) as CorporateItem[];
   };
 
-  const { data: corporateList = [] } = useQuery({
+  const { data: corporateList = EMPTY_CORPORATE_LIST } = useQuery({
     queryKey: ["ipdAdmissionCorporateList", insuranceCompanyId],
     queryFn: () => getCorporateList(Number(insuranceCompanyId)),
     enabled: Number(insuranceCompanyId) > 0,
@@ -406,25 +419,33 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
     validateForm: () => trigger(),
     validateBedSelection: async () => validateBedStatus(Number(getValues("bedId") ?? 0)),
     getValues,
-    resetForm: () => reset(defaultFormValues(today)),
+    resetForm: () => reset(defaultFormValues(getToday(), getCurrentTimeLabel())),
   }));
 
   useEffect(() => {
-    if (!insuranceCompanyId) {
-      const cashCorporate =
-        corporateList.find(
-          item =>
-            item.corporateId === DEFAULT_CASH_CORPORATE.corporateId ||
-            item.corporateName?.toUpperCase().includes("CASH")
-        ) ?? DEFAULT_CASH_CORPORATE;
+    if (Number(insuranceCompanyId) > 0) return;
 
-      setValue("corporateId", cashCorporate.corporateId, { shouldValidate: true });
-    }
-  }, [insuranceCompanyId, corporateList, setValue]);
+    const cashCorporate =
+      corporateList.find(
+        item =>
+          item.corporateId === DEFAULT_CASH_CORPORATE.corporateId ||
+          item.corporateName?.toUpperCase().includes("CASH")
+      ) ?? DEFAULT_CASH_CORPORATE;
+
+    const currentCorporateId = Number(getValues("corporateId") ?? 0);
+    if (currentCorporateId === cashCorporate.corporateId) return;
+
+    setValue("corporateId", cashCorporate.corporateId, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [insuranceCompanyId, corporateList, getValues, setValue]);
 
   useEffect(() => {
-    setValue("bedId", 0, { shouldValidate: true });
-  }, [typeId, setValue]);
+    if (Number(getValues("bedId") ?? 0) === 0) return;
+
+    setValue("bedId", 0, { shouldDirty: false, shouldValidate: false });
+  }, [typeId, getValues, setValue]);
 
   useEffect(() => {
     if (!Number(primaryDoctorId)) return;
@@ -433,9 +454,12 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
       id => Number(id) > 0 && Number(id) !== Number(primaryDoctorId)
     );
 
-    if (filteredIds.length !== secondaryDoctorIds.length) {
-      setValue("secondaryDoctorIds", filteredIds, { shouldValidate: true });
-    }
+    if (filteredIds.length === secondaryDoctorIds.length) return;
+
+    setValue("secondaryDoctorIds", filteredIds, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
   }, [primaryDoctorId, secondaryDoctorIds, setValue]);
 
   useEffect(() => {
@@ -514,8 +538,6 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
   return (
     <div className="space-y-4 pb-24">
       <div className="card">
-        <div className="card-header">{/* <h2 className="card-title">Admission Details</h2> */}</div>
-
         <div className="form-grid-4">
           <InputField label="Insurance Company">
             <select
@@ -743,7 +765,7 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
             )}
           </InputField>
 
-          <InputField label="Admission Type" required>
+          <InputField label="Admission Type">
             <select
               className="input-field"
               value={admissionType ?? ""}
@@ -756,14 +778,11 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
                 </option>
               ))}
             </select>
-            {errors.admissionType && (
-              <p className="input-field-error">{errors.admissionType.message}</p>
-            )}
           </InputField>
 
           <InputField label="Admission Date" required>
             <CustomDateInput
-              value={watch("admissionDate") || ""}
+              value={watch("admissionDate")}
               onChange={(value: string) =>
                 setValue("admissionDate", value, { shouldValidate: true })
               }
@@ -775,7 +794,7 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
 
           <InputField label="Admission Time" required>
             <CustomTimePicker
-              value={watch("admissionTime") || ""}
+              value={watch("admissionTime")}
               onChange={(value: string) =>
                 setValue("admissionTime", value, { shouldValidate: true })
               }

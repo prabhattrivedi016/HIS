@@ -474,3 +474,8 @@ select:-webkit-autofill {
 .row-text {
   @apply font-medium text-sm text-gray-400;
 }
+
+/* input field style of all pages  */
+.input-field-warning {
+  @apply !border !border-red-500;
+}
