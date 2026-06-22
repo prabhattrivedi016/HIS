@@ -1,6 +1,7 @@
 import React from "react";
 import AllergyMaster from "../allergyMaster";
 import AllergyResultEntry from "../allergyResultEntry";
+import ApprovalAuthorityMaster from "../approvalAuthorityMaster/index,";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
@@ -103,4 +104,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "bed-master": <BedMaster />,
   "ipd-admission": <IPDAdmission />,
   "tab-master": <TabMaster />,
+  "approval-authority-master": <ApprovalAuthorityMaster />,
 };
