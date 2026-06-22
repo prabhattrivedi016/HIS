@@ -121,4 +121,48 @@ type BranchItem = {
   branchName: string;
 };
 
-export type { BranchItem, InvestigationName, PickMasterItem, SelectItem, SubSubCategoryItem };
+type UserItem = {
+  id: number;
+  firstName: string;
+  midelName: string;
+  lastName: string;
+  dob: string;
+  gender: string;
+  userName: string;
+  password: string;
+  address: string;
+  contact: string;
+  email: string;
+  isActive: number;
+  employeeID: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+  reportToUserId: number;
+  userDepartmentId: number;
+};
+
+type RoleItem = {
+  roleId: number;
+  roleName: string;
+  faIconId: number;
+  isActive: number;
+  iconClass: string;
+  iconName: string;
+  imagePath: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
+
+export type {
+  BranchItem,
+  InvestigationName,
+  PickMasterItem,
+  RoleItem,
+  SelectItem,
+  SubSubCategoryItem,
+  UserItem,
+};

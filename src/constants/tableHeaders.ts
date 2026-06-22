@@ -578,6 +578,20 @@ export const ServiceMasterTableHeader = [
   "Status",
 ];
 
+export const ApprovalAuthorityMasterTableHeader = [
+  "#",
+  "Approval Type",
+  "Department",
+  "Level-1 User",
+  "Level-2 User",
+  "Level-3 User",
+  "Level-4 User",
+  "Approval Flow",
+  "Approval Required",
+  "Amount up to",
+  "Edit",
+  "Status",
+];
 export const BedMasterTableHeader = [
   "#",
   "Branch",

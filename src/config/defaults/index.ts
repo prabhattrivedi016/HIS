@@ -368,6 +368,11 @@ const ENDPOINTS = {
   // ipd billing
   SEARCH_IPD_PATIENT: "Patient/searchIPDPatient",
   GET_BILLING_TABS: "Home/getBillingTabs",
+
+  // authority approval
+  GET_APPROVAL_AUTHORITY_MASTER_LIST: "Admin/getApprovalAuthorityMasterList",
+  CREATE_UPDATE_APPROVAL_AUTHORITY_MASTER: "Admin/createUpdateApprovalAuthorityMaster",
+  UPDATE_APPROVAL_AUTHORITY_MASTER_STATUS: "Admin/updateApprovalAuthorityMasterStatus",
 };
 
 export { ENDPOINTS };

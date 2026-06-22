@@ -316,14 +316,7 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     lastAppliedBranchDefaultsKeyRef.current = defaultsKey;
 
     applyBranchDefaultLocation();
-  }, [
-    countryList,
-    branchDetails,
-    prefillData,
-    resetSignal,
-    branchId,
-    applyBranchDefaultLocation,
-  ]);
+  }, [countryList, branchDetails, prefillData, resetSignal, branchId, applyBranchDefaultLocation]);
 
   useEffect(() => {
     if (resetSignal === 0) return;
