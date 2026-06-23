@@ -121,6 +121,7 @@ const CorporateMaster = () => {
   // close handler
   const closeHandler = useCallback(() => {
     setOpenCorporateMasterDrawer(false);
+    setCorporateIdToEdit(null);
   }, []);
 
   // search handler----------------
@@ -198,7 +199,7 @@ const CorporateMaster = () => {
   const renderComponent = (view: string) => {
     if (error) return <ErrorMessage text={error?.message} />;
     if (!corporateConfig || loading || !hasFetched)
-      return <div className="initial-message">Loading refer doctor master...</div>;
+      return <div className="initial-message">Loading corporate master...</div>;
 
     if (view === VIEWTYPE?.GRID) {
       if (!gridFilteredData.length || gridFilteredData?.length === 0)
