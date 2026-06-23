@@ -44,6 +44,7 @@ import SampleManagement from "../sampleManagement";
 import ServiceMaster from "../serviceMaster";
 import TabMaster from "../tabMaster";
 import TariffManager from "../tariffManager";
+import TemperatureRoom from "../temperatureRoom";
 import NoPage from "../unauthorized";
 import UserAuthorization from "../userAuthorization";
 import UserDepartment from "../userDepartment";
@@ -105,4 +106,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ipd-admission": <IPDAdmission />,
   "tab-master": <TabMaster />,
   "approval-authority-master": <ApprovalAuthorityMaster />,
+  "temperature-room": <TemperatureRoom />,
 };
