@@ -8,6 +8,8 @@ import { Radiology, Status, labTypes } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import SnomedPopup from "@/screens/serviceMaster/components/SnomedPopup";
+import { SnomedItem } from "@/screens/serviceMaster/types";
 import { showWarning } from "@/utils/alert";
 import { handleMultiSelectWithAll } from "@/utils/multiSelectAllHandler";
 import {
@@ -15,6 +17,7 @@ import {
   addLabInvestigationSchema,
 } from "@/validation/labInvestigationSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
@@ -22,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import Select, { MultiValue, SingleValue } from "react-select";
 import {
   AddLabInvestigationProps,
+  DoctorDepartmentItem,
   EditablePopupData,
   PickMasterOption,
   SampleTypeItem,
@@ -30,6 +34,7 @@ import {
   SubSubCategoryItem,
   TestMethodItem,
 } from "../types";
+import InterpretationPopup from "./InterpretationPopup";
 import LabInvestigationPopup from "./LabInvestigationPopup";
 import TemplatePopup from "./TemplatePopup";
 
@@ -56,7 +61,16 @@ const DEFAULT_FORM_VALUES: AddLabInvestigationFormData = {
   isPrintAlone: 1,
   isActive: 1,
   investigationComment: "",
+  snomedCode: "",
+  isRequiredSeparatePerformingDoctor: 0,
+  doctorDepartmentIds: "",
 };
+
+const parseCsvIds = (value?: string) =>
+  (value ?? "")
+    .split(",")
+    .map(v => Number(v.trim()))
+    .filter(v => Number.isFinite(v) && v > 0);
 
 const AddLabInvestigation = ({
   isOpen,
@@ -98,9 +112,16 @@ const AddLabInvestigation = ({
   const [renderTemplate, setRenderTemplate] = useState<boolean>(false);
   const [openTemplate, setOpenTemplate] = useState<boolean>(false);
 
+  const [renderSnomedPopup, setRenderSnomedPopup] = useState<boolean>(false);
+  const [openSnomedPopup, setOpenSnomedPopup] = useState<boolean>(false);
+  const [snomedData, setSnomedData] = useState<SnomedItem | null>(null);
+
+  const [selectedDoctorDepartments, setSelectedDoctorDepartments] = useState<SelectItem[]>([]);
+
   const {
     reset,
     setValue,
+    watch,
     formState: { errors },
     register,
     handleSubmit,
@@ -113,6 +134,7 @@ const AddLabInvestigation = ({
   });
   const buttonTitle = data ? "Update" : "Create";
   const editRowId = data?.serviceItemId ?? null;
+  const isRequiredPerformingDoctor = Number(watch("isRequiredSeparatePerformingDoctor")) === 1;
 
   const resetFormState = useCallback(() => {
     reset({
@@ -126,6 +148,10 @@ const AddLabInvestigation = ({
     setSelectedSubCategory(null);
     setSelectedSubSubCategory(null);
     setSubSubCategoryList([]);
+    setSelectedDoctorDepartments([]);
+    setSnomedData(null);
+    setOpenSnomedPopup(false);
+    setRenderSnomedPopup(false);
   }, [categoryId, reset]);
 
   // sample volume
@@ -210,6 +236,31 @@ const AddLabInvestigation = ({
       shouldValidate: false,
     });
   };
+
+  const getDoctorDepartmentList = useCallback(async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_DEPARTMENT_LIST,
+      {},
+      {},
+      { component: "AddLabInvestigation", silent: true }
+    );
+    return resp?.data ?? [];
+  }, [fetchApi]);
+
+  const { data: doctorDepartmentList = [] } = useQuery({
+    queryKey: ["getDoctorDepartmentList"],
+    queryFn: getDoctorDepartmentList,
+  });
+
+  const doctorDepartmentOptions = useMemo<readonly SelectItem[]>(
+    () =>
+      doctorDepartmentList.map((d: DoctorDepartmentItem) => ({
+        label: d?.department,
+        value: d?.departmentId,
+      })),
+    [doctorDepartmentList]
+  );
 
   // sample type
   const getAllSampleType = useCallback(async () => {
@@ -504,6 +555,9 @@ const AddLabInvestigation = ({
       isActive: data?.isActive ?? 1,
 
       investigationComment: data?.investigationComment ?? "",
+      snomedCode: data?.snomedCode ?? "",
+      isRequiredSeparatePerformingDoctor: data?.isRequiredSeparatePerformingDoctor ?? 0,
+      doctorDepartmentIds: data?.doctorDepartmentIds ?? "",
     });
 
     // Set sub-category
@@ -577,10 +631,23 @@ const AddLabInvestigation = ({
 
   // handle submit
   const onSubmit = async (formData: AddLabInvestigationFormData) => {
+    const doctorDepartmentIds =
+      Number(formData.isRequiredSeparatePerformingDoctor) === 1
+        ? formData.doctorDepartmentIds ||
+          selectedDoctorDepartments.map(option => option.value).join(",")
+        : "";
+
+    const payload = {
+      ...formData,
+      isRequiredSeparatePerformingDoctor: Number(formData.isRequiredSeparatePerformingDoctor ?? 0),
+      doctorDepartmentIds,
+      snomedCode: formData.snomedCode ?? "",
+    };
+
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_INVESTIGATION_SERVICE_ITEM_MASTER,
-      formData,
+      payload,
       {},
       { component: "AddLabInvestigation" }
     );
@@ -653,6 +720,89 @@ const AddLabInvestigation = ({
   const closeTemplatePopup = useCallback(() => {
     setOpenTemplate(false);
   }, []);
+
+  const openSnomedPopupHandler = () => {
+    setOpenSnomedPopup(true);
+    setRenderSnomedPopup(true);
+  };
+
+  const closeSnomedHandler = useCallback(() => {
+    setOpenSnomedPopup(false);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = setTimeout(() => {
+      setRenderSnomedPopup(false);
+      closeTimerRef.current = null;
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    if (!snomedData) return;
+
+    setValue("name", snomedData.term, {
+      shouldDirty: true,
+    });
+
+    setValue("snomedCode", snomedData.conceptId, {
+      shouldDirty: true,
+    });
+  }, [snomedData, setValue]);
+
+  const performingDoctorChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    setValue("isRequiredSeparatePerformingDoctor", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    if (value === 0) {
+      setSelectedDoctorDepartments([]);
+      setValue("doctorDepartmentIds", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const doctorDepartmentChangeHandler = (options: MultiValue<SelectItem>) => {
+    const selectedOptions = [...options];
+    setSelectedDoctorDepartments(selectedOptions);
+    setValue("doctorDepartmentIds", selectedOptions.map(option => option.value).join(","), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  useEffect(() => {
+    if (isRequiredPerformingDoctor) return;
+
+    setSelectedDoctorDepartments([]);
+    setValue("doctorDepartmentIds", "", {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+  }, [isRequiredPerformingDoctor, setValue]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !editRowId ||
+      !data?.doctorDepartmentIds ||
+      doctorDepartmentOptions.length === 0
+    ) {
+      return;
+    }
+
+    if (Number(data?.isRequiredSeparatePerformingDoctor ?? 0) !== 1) {
+      return;
+    }
+
+    const idSet = new Set(parseCsvIds(data.doctorDepartmentIds));
+    const selected = doctorDepartmentOptions.filter(option => idSet.has(Number(option.value)));
+    setSelectedDoctorDepartments([...selected]);
+    setValue("doctorDepartmentIds", data.doctorDepartmentIds, { shouldValidate: false });
+  }, [isOpen, editRowId, data?.doctorDepartmentIds, doctorDepartmentOptions, setValue]);
 
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
@@ -747,6 +897,20 @@ const AddLabInvestigation = ({
                   {errors.name && <p className="input-field-error">{errors.name.message}</p>}
                 </InputField>
 
+                <InputField label="Snomed Code">
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Enter snomed code"
+                      {...register("snomedCode")}
+                    />
+                    <button type="button" onClick={openSnomedPopupHandler}>
+                      <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
+                    </button>
+                  </div>
+                </InputField>
+
                 <InputField label="Investigation Code" {...register("code")}>
                   <input
                     type="text"
@@ -763,6 +927,43 @@ const AddLabInvestigation = ({
                     placeholder="Enter short name "
                     {...register("shortName")}
                   />
+                </InputField>
+
+                <InputField label="Required Performing Doctor">
+                  <input type="hidden" {...register("isRequiredSeparatePerformingDoctor")} />
+                  <select
+                    className="input-field"
+                    value={Number(watch("isRequiredSeparatePerformingDoctor") ?? 0)}
+                    onChange={performingDoctorChangeHandler}
+                  >
+                    <option value={0}>No</option>
+                    <option value={1}>Yes</option>
+                  </select>
+                </InputField>
+
+                <InputField label="Doctor Department" required={isRequiredPerformingDoctor}>
+                  <input type="hidden" {...register("doctorDepartmentIds")} />
+                  <div
+                    className={!isRequiredPerformingDoctor ? "disabled-input-field !mb-0 !p-0" : ""}
+                  >
+                    <Select
+                      isMulti
+                      value={selectedDoctorDepartments}
+                      options={doctorDepartmentOptions}
+                      placeholder="Select doctor departments"
+                      isSearchable
+                      isClearable
+                      onChange={doctorDepartmentChangeHandler}
+                      components={{ Option: MultiCheckboxOption }}
+                      styles={!isRequiredPerformingDoctor ? "" : SelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      isDisabled={!isRequiredPerformingDoctor}
+                    />
+                  </div>
+                  {errors.doctorDepartmentIds && (
+                    <p className="input-field-error">{errors.doctorDepartmentIds.message}</p>
+                  )}
                 </InputField>
 
                 <InputField label="Report Type" required {...register("reportTypeId")}>
@@ -999,6 +1200,14 @@ const AddLabInvestigation = ({
       {/* template popup */}
       {!!renderTemplate && (
         <TemplatePopup isOpen={openTemplate} onClose={closeTemplatePopup} data={data} />
+      )}
+
+      {!!renderSnomedPopup && (
+        <SnomedPopup
+          isOpen={openSnomedPopup}
+          onClose={closeSnomedHandler}
+          setData={setSnomedData}
+        />
       )}
 
       {/* loader */}
