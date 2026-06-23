@@ -51,9 +51,9 @@ const resetFormData = () => ({
   hikePerOut: 0,
   hikePerIn: 0,
   activePaymentModes: "",
-  activeBranches: "",
-  rateListIdOPD: "",
-  rateListIdIPD: "",
+  // activeBranches: "",
+  // rateListIdOPD: "",
+  // rateListIdIPD: "",
 });
 
 const parseCsvIds = (value?: string) =>
@@ -340,18 +340,18 @@ const AddNewCorporateMaster = ({
       hikePerOut: previous?.hikePerOut ?? 0,
       hikePerIn: previous?.hikePerIn ?? 0,
       activePaymentModes: previous?.activePaymentModes ?? "",
-      activeBranches: previous?.activeBranches ?? "",
-      rateListIdOPD: previous?.rateListIdOPD ?? "",
-      rateListIdIPD: previous?.rateListIdIPD ?? "",
+      // activeBranches: previous?.activeBranches ?? "",
+      // rateListIdOPD: previous?.rateListIdOPD ?? "",
+      // rateListIdIPD: previous?.rateListIdIPD ?? "",
     });
     setSelectedCorporateTypeId(corporateTypeIdFromApi);
     setEditCorporateTypeName(previous?.corporateTypeName ?? "");
     setSelectedInsuranceCompanyId(previous?.insuranceCompanyId ?? 0);
     setSelectedPaymentTypeId(previous?.paymentTypeId ?? 0);
     setSelectedPaymentIds(previous?.activePaymentModes ?? "");
-    setSelectedBranchIds(previous?.activeBranches ?? "");
-    setOpdRateListValue(previous?.rateListIdOPD ?? "");
-    setIpdRateListValue(previous?.rateListIdIPD ?? "");
+    // setSelectedBranchIds(previous?.activeBranches ?? "");
+    // setOpdRateListValue(previous?.rateListIdOPD ?? "");
+    // setIpdRateListValue(previous?.rateListIdIPD ?? "");
   };
 
   useEffect(() => {
@@ -379,23 +379,23 @@ const AddNewCorporateMaster = ({
     setIpdTableError("");
   }, [corporateId, isOpen]);
 
-  useEffect(() => {
-    setValue("rateListIdIPD", ipdRateListValue);
-    setValue("rateListIdOPD", opdRateListValue);
+  // useEffect(() => {
+  //   setValue("rateListIdIPD", ipdRateListValue);
+  //   setValue("rateListIdOPD", opdRateListValue);
 
-    if (parseCsvIds(opdRateListValue).length > 0) {
-      setOpdTableError("");
-    }
+  //   if (parseCsvIds(opdRateListValue).length > 0) {
+  //     setOpdTableError("");
+  //   }
 
-    if (parseCsvIds(ipdRateListValue).length > 0) {
-      setIpdTableError("");
-    }
-  }, [ipdRateListValue, opdRateListValue, setValue]);
+  //   if (parseCsvIds(ipdRateListValue).length > 0) {
+  //     setIpdTableError("");
+  //   }
+  // }, [ipdRateListValue, opdRateListValue, setValue]);
 
-  useEffect(() => {
-    setValue("activePaymentModes", selectedPaymentIds);
-    setValue("activeBranches", selectedBranchIds);
-  }, [selectedPaymentIds, selectedBranchIds, setValue]);
+  // useEffect(() => {
+  //   setValue("activePaymentModes", selectedPaymentIds);
+  //   setValue("activeBranches", selectedBranchIds);
+  // }, [selectedPaymentIds, selectedBranchIds, setValue]);
 
   useEffect(() => {
     if (!isOpen || !corporateId || paymentSelectOption.length === 0) return;
@@ -491,22 +491,22 @@ const AddNewCorporateMaster = ({
     const hasOpdRows = parseCsvIds(opdRateListValue).length > 0;
     const hasIpdRows = parseCsvIds(ipdRateListValue).length > 0;
 
-    if (!hasOpdRows) {
-      setOpdTableError(
-        invalidErrors.rateListIdOPD?.message ?? "At least one OPD rate list row is required"
-      );
-    }
+    // if (!hasOpdRows) {
+    //   setOpdTableError(
+    //     invalidErrors.rateListIdOPD?.message ?? "At least one OPD rate list row is required"
+    //   );
+    // }
 
-    if (!hasIpdRows) {
-      setIpdTableError(
-        invalidErrors.rateListIdIPD?.message ?? "At least one IPD rate list row is required"
-      );
-    }
+    // if (!hasIpdRows) {
+    //   setIpdTableError(
+    //     invalidErrors.rateListIdIPD?.message ?? "At least one IPD rate list row is required"
+    //   );
+    // }
 
-    if (!hasOpdRows || !hasIpdRows) {
-      setOpenAddIpdOpd(true);
-      setRenderAddIpdOpd(true);
-    }
+    //   if (!hasOpdRows || !hasIpdRows) {
+    //     setOpenAddIpdOpd(true);
+    //     setRenderAddIpdOpd(true);
+    //   }
   };
   // clear timer
   useEffect(() => {
@@ -768,7 +768,7 @@ const AddNewCorporateMaster = ({
                   />
                 </InputField>
 
-                <InputField label="Follow Rate List (OPD & IPD)">
+                {/* <InputField label="Follow Rate List (OPD & IPD)">
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -783,7 +783,7 @@ const AddNewCorporateMaster = ({
                       onClick={addIpdOpdHandler}
                     >
                       + Add to IPD/OPD
-                    </button>
+                    </button> 
                   </div>
                   {(errors.rateListIdOPD || errors.rateListIdIPD || opdTableError || ipdTableError) && (
                     <p className="input-field-error">
@@ -793,7 +793,7 @@ const AddNewCorporateMaster = ({
                         ipdTableError}
                     </p>
                   )}
-                </InputField>
+                </InputField> */}
 
                 <InputField label="Allowed Payment Modes" required>
                   <Select
@@ -813,7 +813,7 @@ const AddNewCorporateMaster = ({
                     <p className="input-field-error">{errors.activePaymentModes.message}</p>
                   )}
                 </InputField>
-                <InputField label="Active in Branches" required>
+                {/* <InputField label="Active in Branches" required>
                   <Select
                     value={selectedBranch}
                     isMulti
@@ -830,7 +830,7 @@ const AddNewCorporateMaster = ({
                   {errors.activeBranches && (
                     <p className="input-field-error">{errors.activeBranches.message}</p>
                   )}
-                </InputField>
+                </InputField> */}
               </div>
 
               <div className="form-actions-responsive mt-5">
