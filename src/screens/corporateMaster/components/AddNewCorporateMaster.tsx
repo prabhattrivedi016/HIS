@@ -4,7 +4,7 @@ import { SelectStyles } from "@/components/customSelect";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import MultiCheckboxOption from "@/components/multiSelectCheckBox";
 import { ENDPOINTS } from "@/config/defaults";
-import useGetBranchList from "@/hooks/useGetBranchList";
+// import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -24,7 +24,7 @@ import {
   PaymentTypeItem,
   SelectItem,
 } from "../types";
-import AddIpdOpdPopup from "./AddIpdOpdPopup";
+// import AddIpdOpdPopup from "./AddIpdOpdPopup";
 import AddNewCorporateType from "./AddNewCorporateType";
 import AddNewInsurance from "./AddNewInsurance";
 
@@ -51,9 +51,9 @@ const resetFormData = () => ({
   hikePerOut: 0,
   hikePerIn: 0,
   activePaymentModes: "",
-  // activeBranches: "",
-  // rateListIdOPD: "",
-  // rateListIdIPD: "",
+  activeBranches: "",
+  rateListIdOPD: "",
+  rateListIdIPD: "",
 });
 
 const parseCsvIds = (value?: string) =>
@@ -61,6 +61,25 @@ const parseCsvIds = (value?: string) =>
     .split(",")
     .map(v => Number(v.trim()))
     .filter(v => Number.isFinite(v) && v > 0);
+
+type CorporateTypeRecord = CorporateTypeItem & {
+  CorporateTypeId?: number;
+  CorporateTypeName?: string;
+};
+
+const getCorporateTypeId = (item?: CorporateTypeRecord | null) =>
+  Number(item?.corporateTypeId ?? item?.CorporateTypeId ?? 0);
+
+const getCorporateTypeName = (item?: CorporateTypeRecord | null) =>
+  String(item?.corporateTypeName ?? item?.CorporateTypeName ?? "").trim();
+
+const normalizeCorporateTypeItem = (item: CorporateTypeRecord): CorporateTypeItem => ({
+  corporateTypeId: getCorporateTypeId(item),
+  corporateTypeName: getCorporateTypeName(item),
+});
+
+const findCorporateTypeById = (list: CorporateTypeItem[], typeId: number) =>
+  list.find(item => getCorporateTypeId(item) === Number(typeId));
 
 const AddNewCorporateMaster = ({
   isOpen,
@@ -72,11 +91,11 @@ const AddNewCorporateMaster = ({
 
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const branches = useGetBranchList();
-  const branchList = branches?.branchList?.data ?? [];
-  const [selectedBranch, setSelectedBranch] = useState<SelectItem[]>([]);
-  const [selectedBranchIds, setSelectedBranchIds] = useState<string>("");
-  const [isBranchDefaultApplied, setIsBranchDefaultApplied] = useState<boolean>(false);
+  // const branches = useGetBranchList();
+  // const branchList = branches?.branchList?.data ?? [];
+  // const [selectedBranch, setSelectedBranch] = useState<SelectItem[]>([]);
+  // const [selectedBranchIds, setSelectedBranchIds] = useState<string>("");
+  // const [isBranchDefaultApplied, setIsBranchDefaultApplied] = useState<boolean>(false);
 
   const paymentType = usePickMaster("CorporatePaymentType");
   const paymentTypeList = paymentType?.pickMasterValue ?? ([] as PaymentTypeItem[]);
@@ -101,15 +120,21 @@ const AddNewCorporateMaster = ({
   const [selectedPaymentIds, setSelectedPaymentIds] = useState<string>("");
   const [selectedPaymentTypeId, setSelectedPaymentTypeId] = useState<number>(0);
 
-  const [openAddIpdOpd, setOpenAddIpdOpd] = useState<boolean>(false);
-  const [renderAddIpdOpd, setRenderAddIpdOpd] = useState<boolean>(false);
+  // const [openAddIpdOpd, setOpenAddIpdOpd] = useState<boolean>(false);
+  // const [renderAddIpdOpd, setRenderAddIpdOpd] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const [ipdRateListValue, setIpdRateListValue] = useState<string>("");
-  const [opdRateListValue, setOpdRateListValue] = useState<string>("");
-  const [opdTableError, setOpdTableError] = useState<string>("");
-  const [ipdTableError, setIpdTableError] = useState<string>("");
-  const rateListSummary = `OPD & IPD Follow Rate`;
+  // const [ipdRateListValue, setIpdRateListValue] = useState<string>("");
+  // const [opdRateListValue, setOpdRateListValue] = useState<string>("");
+  // const [opdTableError, setOpdTableError] = useState<string>("");
+  // const [ipdTableError, setIpdTableError] = useState<string>("");
+  const [saveError, setSaveError] = useState<string>("");
+  // const rateListSummary = useMemo(() => {
+  //   const opdCount = parseCsvIds(opdRateListValue).length;
+  //   const ipdCount = parseCsvIds(ipdRateListValue).length;
+  //   if (!opdCount && !ipdCount) return "";
+  //   return `OPD: ${opdCount} rate list(s) | IPD: ${ipdCount} rate list(s)`;
+  // }, [opdRateListValue, ipdRateListValue]);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -134,8 +159,8 @@ const AddNewCorporateMaster = ({
       {},
       { component: "CorporateMaster" }
     );
-    setCorporateList(resp?.data ?? []);
-  }, [corporateTypeList]);
+    setCorporateList((resp?.data ?? []).map(normalizeCorporateTypeItem));
+  }, []);
 
   const getInsuranceCompany = useCallback(async () => {
     const resp = await fetchApi(
@@ -170,20 +195,20 @@ const AddNewCorporateMaster = ({
   // handlers
 
   const corporateTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const corporateId = Number(e.target.value);
-    if (!corporateId) {
+    const typeId = Number(e.target.value);
+    if (!typeId) {
       setSelectedCorporateTypeId(0);
       setValue("corporateTypeId", 0, { shouldDirty: true });
       setValue("corporateTypeName", "", { shouldDirty: true });
       return;
     }
 
-    const editCorporateTypeValue = corporateTypeList?.find(c => c?.corporateTypeId === corporateId);
-    setCorporateTypeEdit(editCorporateTypeValue!);
-    setSelectedCorporateTypeId(corporateId);
+    const selectedType = findCorporateTypeById(corporateTypeList, typeId);
+    setCorporateTypeEdit(selectedType ?? null);
+    setSelectedCorporateTypeId(typeId);
 
-    setValue("corporateTypeId", corporateId, { shouldDirty: true });
-    setValue("corporateTypeName", editCorporateTypeValue?.corporateTypeName, {
+    setValue("corporateTypeId", typeId, { shouldDirty: true });
+    setValue("corporateTypeName", getCorporateTypeName(selectedType), {
       shouldDirty: true,
     });
   };
@@ -203,7 +228,7 @@ const AddNewCorporateMaster = ({
     if (!insuranceId) {
       setSelectedInsuranceCompanyId(0);
       setValue("insuranceCompanyId", 0, { shouldDirty: true });
-      setValue("insuranceCompanyName", "", { shouldDirty: true });
+      setValue("insuranceCompanyName", "Self", { shouldDirty: true });
       return;
     }
 
@@ -256,50 +281,59 @@ const AddNewCorporateMaster = ({
 
     setSelectedPayment(result.selectedOptions);
     const ids = result.selectedIds.join(",");
-
     setSelectedPaymentIds(ids);
+    setValue("activePaymentModes", ids, { shouldValidate: true, shouldDirty: true });
   };
   // branch method
 
-  const branchSelectOption = useMemo<SelectItem[]>(() => {
-    return [
-      ...branchList.map(b => ({
-        label: b?.branchName,
-        value: b?.branchId,
-      })),
-    ];
-  }, [branchList]);
+  // const branchSelectOption = useMemo<SelectItem[]>(() => {
+  //   return [
+  //     ...branchList.map(b => ({
+  //       label: b?.branchName,
+  //       value: b?.branchId,
+  //     })),
+  //   ];
+  // }, [branchList]);
 
-  const branchSelectHandler = (options: readonly SelectItem[] | null) => {
-    const result = handleMultiSelectWithAll(options ?? [], selectedBranch, branchSelectOption);
+  // const branchSelectHandler = (options: readonly SelectItem[] | null) => {
+  //   const result = handleMultiSelectWithAll(options ?? [], selectedBranch, branchSelectOption);
 
-    setSelectedBranch(result.selectedOptions);
-    const ids = result.selectedIds.join(",");
+  //   setSelectedBranch(result.selectedOptions);
+  //   const ids = result.selectedIds.join(",");
+  //   setSelectedBranchIds(ids);
+  //   setValue("activeBranches", ids, { shouldValidate: true, shouldDirty: true });
+  // };
 
-    setSelectedBranchIds(ids);
-  };
+  // useEffect(() => {
+  //   if (!isOpen || !!corporateId || isBranchDefaultApplied) return;
+  //   if (branchSelectOption.length > 0 && !selectedBranchIds) {
+  //     const allBranches = branchSelectOption.filter(opt => opt.value !== 0);
 
-  useEffect(() => {
-    if (!isOpen || !!corporateId || isBranchDefaultApplied) return;
-    if (branchSelectOption.length > 0 && !selectedBranchIds) {
-      const allBranches = branchSelectOption.filter(opt => opt.value !== 0);
+  //     setSelectedBranch(allBranches);
 
-      setSelectedBranch(allBranches);
-
-      const ids = allBranches.map(b => b.value).join(",");
-      setSelectedBranchIds(ids);
-      setIsBranchDefaultApplied(true);
-    }
-  }, [isOpen, corporateId, branchSelectOption, selectedBranchIds, isBranchDefaultApplied]);
+  //     const ids = allBranches.map(b => b.value).join(",");
+  //     setSelectedBranchIds(ids);
+  //     setValue("activeBranches", ids, { shouldDirty: false });
+  //     setIsBranchDefaultApplied(true);
+  //   }
+  // }, [
+  //   isOpen,
+  //   corporateId,
+  //   branchSelectOption,
+  //   selectedBranchIds,
+  //   isBranchDefaultApplied,
+  //   setValue,
+  // ]);
   //   ipd opd rate list handler
-  const addIpdOpdHandler = () => {
-    setOpenAddIpdOpd(true);
-    setRenderAddIpdOpd(true);
-  };
+  // const addIpdOpdHandler = () => {
+  //   setOpenAddIpdOpd(true);
+  //   setRenderAddIpdOpd(true);
+  // };
 
-  const closeIpdOpdAdd = useCallback(() => {
-    setRenderAddIpdOpd(false);
-  }, []);
+  // const closeIpdOpdAdd = useCallback(() => {
+  //   setOpenAddIpdOpd(false);
+  //   setRenderAddIpdOpd(false);
+  // }, []);
 
   useScrollLock(isOpen);
 
@@ -316,13 +350,17 @@ const AddNewCorporateMaster = ({
     const previous = resp?.data?.[0];
 
     if (!previous) return;
-    const corporateTypeIdFromApi = Number(previous?.corporateTypeId ?? 0);
+    const corporateTypeIdFromApi = Number(
+      previous?.corporateTypeId ?? previous?.CorporateTypeId ?? 0
+    );
+    const corporateTypeNameFromApi =
+      previous?.corporateTypeName ?? previous?.CorporateTypeName ?? "";
     reset({
       corporateId: previous?.corporateId ?? 0,
       corporateName: previous?.corporateName ?? "",
       insuranceCompanyName: previous?.insuranceCompanyName ?? "",
       insuranceCompanyId: previous?.insuranceCompanyId ?? 0,
-      corporateTypeName: previous?.corporateTypeName ?? "",
+      corporateTypeName: corporateTypeNameFromApi,
       corporateTypeId: corporateTypeIdFromApi,
       paymentTypeId: previous?.paymentTypeId ?? 0,
       corporateCode: previous?.corporateCode ?? "",
@@ -331,7 +369,7 @@ const AddNewCorporateMaster = ({
       corporateEmail: previous?.corporateEmail ?? "",
       corporateAddress1: previous?.corporateAddress1 ?? "",
       corporateAddress2: previous?.corporateAddress2 ?? "",
-      isActive: previous?.isActive ?? 0,
+      isActive: previous?.isActive ?? 1,
       contractStartFrom: toInputDate(previous?.contractStartFrom),
       contractExpiresOn: toInputDate(previous?.contractExpiresOn),
       copaymentPer: previous?.copaymentPer ?? 0,
@@ -340,12 +378,12 @@ const AddNewCorporateMaster = ({
       hikePerOut: previous?.hikePerOut ?? 0,
       hikePerIn: previous?.hikePerIn ?? 0,
       activePaymentModes: previous?.activePaymentModes ?? "",
-      // activeBranches: previous?.activeBranches ?? "",
-      // rateListIdOPD: previous?.rateListIdOPD ?? "",
-      // rateListIdIPD: previous?.rateListIdIPD ?? "",
+      activeBranches: previous?.activeBranches ?? "",
+      rateListIdOPD: previous?.rateListIdOPD ?? "",
+      rateListIdIPD: previous?.rateListIdIPD ?? "",
     });
     setSelectedCorporateTypeId(corporateTypeIdFromApi);
-    setEditCorporateTypeName(previous?.corporateTypeName ?? "");
+    setEditCorporateTypeName(corporateTypeNameFromApi);
     setSelectedInsuranceCompanyId(previous?.insuranceCompanyId ?? 0);
     setSelectedPaymentTypeId(previous?.paymentTypeId ?? 0);
     setSelectedPaymentIds(previous?.activePaymentModes ?? "");
@@ -354,15 +392,7 @@ const AddNewCorporateMaster = ({
     // setIpdRateListValue(previous?.rateListIdIPD ?? "");
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (corporateId) {
-      setIsBranchDefaultApplied(true);
-      getCorporateDetails(corporateId);
-      return;
-    }
-
+  const resetDrawerState = () => {
     reset(resetFormData());
     setSelectedCorporateTypeId(0);
     setEditCorporateTypeName("");
@@ -370,13 +400,34 @@ const AddNewCorporateMaster = ({
     setSelectedPaymentTypeId(0);
     setSelectedPayment([]);
     setSelectedPaymentIds("");
-    setSelectedBranch([]);
-    setSelectedBranchIds("");
-    setIsBranchDefaultApplied(false);
-    setIpdRateListValue("");
-    setOpdRateListValue("");
-    setOpdTableError("");
-    setIpdTableError("");
+    // setSelectedBranch([]);
+    // setSelectedBranchIds("");
+    // setIsBranchDefaultApplied(false);
+    // setIpdRateListValue("");
+    // setOpdRateListValue("");
+    // setOpdTableError("");
+    // setIpdTableError("");
+    setSaveError("");
+  };
+
+  const cancelHandler = () => {
+    resetDrawerState();
+    setSuccessMessage("");
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setSaveError("");
+    setSuccessMessage("");
+
+    if (corporateId) {
+      // setIsBranchDefaultApplied(true);
+      void getCorporateDetails(corporateId);
+      return;
+    }
+
+    resetDrawerState();
   }, [corporateId, isOpen]);
 
   // useEffect(() => {
@@ -392,10 +443,10 @@ const AddNewCorporateMaster = ({
   //   }
   // }, [ipdRateListValue, opdRateListValue, setValue]);
 
-  // useEffect(() => {
-  //   setValue("activePaymentModes", selectedPaymentIds);
-  //   setValue("activeBranches", selectedBranchIds);
-  // }, [selectedPaymentIds, selectedBranchIds, setValue]);
+  useEffect(() => {
+    setValue("activePaymentModes", selectedPaymentIds);
+    // setValue("activeBranches", selectedBranchIds);
+  }, [selectedPaymentIds, setValue]);
 
   useEffect(() => {
     if (!isOpen || !corporateId || paymentSelectOption.length === 0) return;
@@ -408,52 +459,61 @@ const AddNewCorporateMaster = ({
   }, [isOpen, corporateId, paymentSelectOption, selectedPaymentIds]);
 
   useEffect(() => {
-    if (!isOpen || !corporateId || corporateTypeList.length === 0) return;
+    if (!isOpen || corporateTypeList.length === 0) return;
 
     let resolvedTypeId = selectedCorporateTypeId;
 
     if (!resolvedTypeId && editCorporateTypeName) {
       const byName = corporateTypeList.find(
         type =>
-          type?.corporateTypeName?.trim().toLowerCase() ===
-          editCorporateTypeName.trim().toLowerCase()
+          getCorporateTypeName(type).toLowerCase() === editCorporateTypeName.trim().toLowerCase()
       );
-      resolvedTypeId = Number(byName?.corporateTypeId ?? 0);
+      resolvedTypeId = getCorporateTypeId(byName);
     }
 
     if (!resolvedTypeId) return;
 
-    const selectedType = corporateTypeList.find(
-      type => Number(type?.corporateTypeId) === Number(resolvedTypeId)
-    );
+    const selectedType = findCorporateTypeById(corporateTypeList, resolvedTypeId);
     if (!selectedType) return;
 
-    setSelectedCorporateTypeId(Number(selectedType.corporateTypeId));
-    setValue("corporateTypeId", Number(selectedType.corporateTypeId));
-    setValue("corporateTypeName", selectedType.corporateTypeName ?? "");
-  }, [
-    isOpen,
-    corporateId,
-    corporateTypeList,
-    selectedCorporateTypeId,
-    editCorporateTypeName,
-    setValue,
-  ]);
+    if (resolvedTypeId !== selectedCorporateTypeId) {
+      setSelectedCorporateTypeId(resolvedTypeId);
+    }
 
-  useEffect(() => {
-    if (!isOpen || !corporateId || branchSelectOption.length === 0) return;
+    setValue("corporateTypeId", resolvedTypeId, { shouldDirty: true });
+    setValue("corporateTypeName", getCorporateTypeName(selectedType), { shouldDirty: true });
+  }, [isOpen, corporateTypeList, selectedCorporateTypeId, editCorporateTypeName, setValue]);
 
-    const idSet = new Set(parseCsvIds(selectedBranchIds));
-    const selected = branchSelectOption.filter(opt => idSet.has(Number(opt.value)));
-    setSelectedBranch(selected);
-  }, [isOpen, corporateId, branchSelectOption, selectedBranchIds]);
+  // useEffect(() => {
+  //   if (!isOpen || !corporateId || branchSelectOption.length === 0) return;
+
+  //   const idSet = new Set(parseCsvIds(selectedBranchIds));
+  //   const selected = branchSelectOption.filter(opt => idSet.has(Number(opt.value)));
+  //   setSelectedBranch(selected);
+  // }, [isOpen, corporateId, branchSelectOption, selectedBranchIds]);
 
   // submit handler
   const onsubmit = async (formData: CorporateMasterFormItem) => {
+    const resolvedTypeId = Number(formData.corporateTypeId ?? selectedCorporateTypeId ?? 0);
+    const matchedType = findCorporateTypeById(corporateTypeList, resolvedTypeId);
+    const resolvedTypeName =
+      formData.corporateTypeName?.trim() ||
+      getCorporateTypeName(matchedType) ||
+      editCorporateTypeName.trim();
+
     const payload = {
       ...formData,
+      corporateId: Number(formData.corporateId ?? 0),
+      insuranceCompanyId: Number(formData.insuranceCompanyId ?? 0),
+      corporateTypeId: resolvedTypeId,
+      corporateTypeName: resolvedTypeName,
+      paymentTypeId: Number(formData.paymentTypeId ?? 0),
       contractStartFrom: formatToDDMMYYYY(formData?.contractStartFrom),
       contractExpiresOn: formatToDDMMYYYY(formData?.contractExpiresOn),
+      activePaymentModes: selectedPaymentIds || formData.activePaymentModes || "",
+      activeBranches: formData.activeBranches || "",
+      rateListIdOPD: formData.rateListIdOPD || "",
+      rateListIdIPD: formData.rateListIdIPD || "",
     };
     const resp = await fetchApi(
       "POST",
@@ -463,51 +523,36 @@ const AddNewCorporateMaster = ({
       { component: "AddNewCorporateMaster" }
     );
     if (!resp?.result) {
+      setSaveError(resp?.message ?? "Failed to save corporate master");
       return;
     }
+    setSaveError("");
     setSuccessMessage(resp?.message ?? "Data saved successfully");
+    await refreshData?.();
+    resetDrawerState();
     closeTimerRef.current = setTimeout(() => {
       onClose();
       setSuccessMessage("");
-    }, 1000);
-    reset(resetFormData());
-    setSelectedCorporateTypeId(0);
-    setEditCorporateTypeName("");
-    setSelectedInsuranceCompanyId(0);
-    setSelectedPaymentTypeId(0);
-    setSelectedPayment([]);
-    setSelectedPaymentIds("");
-    setSelectedBranch([]);
-    setSelectedBranchIds("");
-    setIsBranchDefaultApplied(false);
-    setIpdRateListValue("");
-    setOpdRateListValue("");
-    setOpdTableError("");
-    setIpdTableError("");
-    await refreshData?.();
+    }, 500);
   };
 
-  const handleInvalidSubmit = (invalidErrors: typeof errors) => {
-    const hasOpdRows = parseCsvIds(opdRateListValue).length > 0;
-    const hasIpdRows = parseCsvIds(ipdRateListValue).length > 0;
+  // const handleInvalidSubmit = () => {
+  //   const hasOpdRows = parseCsvIds(opdRateListValue).length > 0;
+  //   const hasIpdRows = parseCsvIds(ipdRateListValue).length > 0;
 
-    // if (!hasOpdRows) {
-    //   setOpdTableError(
-    //     invalidErrors.rateListIdOPD?.message ?? "At least one OPD rate list row is required"
-    //   );
-    // }
+  //   if (!hasOpdRows) {
+  //     setOpdTableError("At least one OPD rate list row is required");
+  //   }
 
-    // if (!hasIpdRows) {
-    //   setIpdTableError(
-    //     invalidErrors.rateListIdIPD?.message ?? "At least one IPD rate list row is required"
-    //   );
-    // }
+  //   if (!hasIpdRows) {
+  //     setIpdTableError("At least one IPD rate list row is required");
+  //   }
 
-    //   if (!hasOpdRows || !hasIpdRows) {
-    //     setOpenAddIpdOpd(true);
-    //     setRenderAddIpdOpd(true);
-    //   }
-  };
+  //   if (!hasOpdRows || !hasIpdRows) {
+  //     setOpenAddIpdOpd(true);
+  //     setRenderAddIpdOpd(true);
+  //   }
+  // };
   // clear timer
   useEffect(() => {
     return () => {
@@ -535,10 +580,10 @@ const AddNewCorporateMaster = ({
             </button>
           </div>
 
-          {successMessage ? <SuccessMessage text={successMessage} /> : <></>}
-          {error ? <ErrorMessage text={error?.message} /> : <></>}
+          {!!successMessage ? <SuccessMessage text={successMessage} /> : <></>}
+          {!!saveError ? <ErrorMessage text={saveError} /> : <></>}
 
-          <form onSubmit={handleSubmit(onsubmit, handleInvalidSubmit)}>
+          <form onSubmit={handleSubmit(onsubmit)}>
             <div className="card m-1">
               <h2 className="card-title ">Corporate Details</h2>
 
@@ -556,6 +601,8 @@ const AddNewCorporateMaster = ({
                 </InputField>
 
                 <InputField label="Corporate Type" required>
+                  <input type="hidden" {...register("corporateTypeId")} />
+                  <input type="hidden" {...register("corporateTypeName")} />
                   <div className="flex gap-2 items-center">
                     <select
                       className="input-field"
@@ -768,13 +815,14 @@ const AddNewCorporateMaster = ({
                   />
                 </InputField>
 
-                {/* <InputField label="Follow Rate List (OPD & IPD)">
+                {/* <InputField label="Follow Rate List (OPD & IPD)" required>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       className="input-field flex-1 min-w-0"
                       value={rateListSummary}
                       readOnly
+                      placeholder="Add OPD and IPD rate lists"
                     />
 
                     <button
@@ -783,9 +831,12 @@ const AddNewCorporateMaster = ({
                       onClick={addIpdOpdHandler}
                     >
                       + Add to IPD/OPD
-                    </button> 
+                    </button>
                   </div>
-                  {(errors.rateListIdOPD || errors.rateListIdIPD || opdTableError || ipdTableError) && (
+                  {(errors.rateListIdOPD ||
+                    errors.rateListIdIPD ||
+                    opdTableError ||
+                    ipdTableError) && (
                     <p className="input-field-error">
                       {errors.rateListIdOPD?.message ||
                         errors.rateListIdIPD?.message ||
@@ -837,7 +888,7 @@ const AddNewCorporateMaster = ({
                 <button type="submit" className="save-btn">
                   {drawerTitle}
                 </button>
-                <button type="button" className="cancel-button ">
+                <button type="button" className="cancel-button" onClick={cancelHandler}>
                   Cancel
                 </button>
               </div>
@@ -865,7 +916,7 @@ const AddNewCorporateMaster = ({
           )}
 
           {/* follow rate ipd opd  */}
-          {!!renderAddIpdOpd && (
+          {/* {!!renderAddIpdOpd && (
             <AddIpdOpdPopup
               isOpen={openAddIpdOpd}
               onClose={closeIpdOpdAdd}
@@ -878,7 +929,7 @@ const AddNewCorporateMaster = ({
               onClearOpdTableError={() => setOpdTableError("")}
               onClearIpdTableError={() => setIpdTableError("")}
             />
-          )}
+          )} */}
         </div>
         {!!loading && <CustomLoader isLoading={loading} />}
       </div>

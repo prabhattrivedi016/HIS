@@ -4,7 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { RateListMasterTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showSuccess } from "@/utils/alert";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { formatDisplayDate, formatToDDMMYYYY, formatToYYYYMMDD } from "@/utils/dateConvertHandler";
 import { RateListMasterFormData, rateListMasterSchema } from "@/validation/rateListMaster";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -21,10 +21,11 @@ const resetFormData = () => ({
   applicableDate: "",
   expiryDate: "",
   isActive: 1,
+  importFromRateListId: 0,
 });
 
 const RateListMaster = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const today = new Date().toISOString().split("T")[0];
 
   const [rateListData, setRateListData] = useState<RateListTableItem[]>([]);
@@ -49,9 +50,8 @@ const RateListMaster = () => {
       ENDPOINTS.GET_RATE_LIST_MASTER,
       {},
       {},
-      { component: "RateListMaster", silent: true }
+      { component: "RateListMaster" }
     );
-    console.log("resp", resp);
 
     setRateListData(resp?.data ?? []);
   };
@@ -69,7 +69,7 @@ const RateListMaster = () => {
   const onSubmit = async (data: RateListMasterFormData) => {
     const payload = {
       ...data,
-      expiryDate: formatToDDMMYYYY(data.expiryDate),
+      expiryDate: formatToDDMMYYYY(data.expiryDate!),
       applicableDate: formatToDDMMYYYY(data?.applicableDate!),
     };
     const resp = await fetchApi(
@@ -80,7 +80,7 @@ const RateListMaster = () => {
       { component: "RateListMaster" }
     );
     if (!resp?.result) {
-      showError(error?.message ?? "Something went wrong");
+      showWarning(resp?.message ?? "Failed to save rate list");
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
@@ -119,6 +119,28 @@ const RateListMaster = () => {
       <div className="card mb-1">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
+            {!isEdit && (
+              <InputField label="Import From Rate List" required>
+                <select
+                  className="input-field"
+                  {...register("importFromRateListId", {
+                    valueAsNumber: true,
+                  })}
+                >
+                  <option value={0}>--Select--</option>
+                  {rateListData.map(r => (
+                    <option key={r.rateListId} value={r.rateListId}>
+                      {r.rateListName}
+                    </option>
+                  ))}
+                </select>
+
+                {errors.importFromRateListId && (
+                  <p className="input-field-error">{errors.importFromRateListId.message}</p>
+                )}
+              </InputField>
+            )}
+
             <InputField label="Rate List Name" required>
               <input
                 type="text"
@@ -136,7 +158,7 @@ const RateListMaster = () => {
                 type="date"
                 className="input-field"
                 placeholder="DD-MM-YYYY"
-                min={today}
+                value={today}
                 {...register("applicableDate")}
                 onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
                   e.currentTarget.showPicker?.();
@@ -149,15 +171,12 @@ const RateListMaster = () => {
                 type="date"
                 className="input-field"
                 placeholder="DD-MM-YYYY"
-                min={today}
+                value={today}
                 {...register("expiryDate")}
                 onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
                   e.currentTarget.showPicker?.();
                 }}
               />
-              {errors.expiryDate && (
-                <p className="input-field-error">{errors.expiryDate.message}</p>
-              )}
             </InputField>
 
             <InputField label="Status" required>
