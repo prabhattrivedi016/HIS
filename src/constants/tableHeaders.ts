@@ -604,3 +604,4 @@ export const BedMasterTableHeader = [
   "Status",
   "Edit",
 ];
+export const BranchRightMappingTableHeader = ["#", "Branch Right Name", "Description", "Granted"];

@@ -115,9 +115,7 @@ const resolveRateListIdFromApiData = (
   data?: ServiceBindingItem | Record<string, unknown> | null
 ): number =>
   Number(
-    (data as ServiceBindingItem)?.rateListId ??
-      (data as Record<string, unknown>)?.RateListId ??
-      0
+    (data as ServiceBindingItem)?.rateListId ?? (data as Record<string, unknown>)?.RateListId ?? 0
   ) || 0;
 
 const OpdBilling = () => {
@@ -452,8 +450,7 @@ const OpdBilling = () => {
     const data = (apiData ?? {}) as ServiceBindingItem & Record<string, unknown>;
     const requiresPerformingDoctor = Number(data?.isRequiredSeparatePerformingDoctor) === 1;
     const doctorId =
-      overrides?.doctorId ??
-      (requiresPerformingDoctor ? 0 : Number(selectedDoctor?.value ?? 0));
+      overrides?.doctorId ?? (requiresPerformingDoctor ? 0 : Number(selectedDoctor?.value ?? 0));
     const doctorName =
       overrides?.doctorName ??
       (requiresPerformingDoctor ? "" : String(selectedDoctor?.label ?? ""));
@@ -514,41 +511,38 @@ const OpdBilling = () => {
     };
   };
 
-  const loadPerformingDoctorsForDepartments = useCallback(
-    async (doctorDepartmentIds?: string) => {
-      const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
-      if (!cacheKey || performingDoctorsLoadingRef.current.has(cacheKey)) {
-        return;
-      }
+  const loadPerformingDoctorsForDepartments = useCallback(async (doctorDepartmentIds?: string) => {
+    const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
+    if (!cacheKey || performingDoctorsLoadingRef.current.has(cacheKey)) {
+      return;
+    }
 
-      performingDoctorsLoadingRef.current.add(cacheKey);
+    performingDoctorsLoadingRef.current.add(cacheKey);
 
-      try {
-        const departmentIds = parseDepartmentIds(doctorDepartmentIds);
-        const responses = await Promise.all(
-          departmentIds.map(departmentId =>
-            fetchApi(
-              "GET",
-              ENDPOINTS.GET_DOCTOR_MASTER,
-              {},
-              { params: { doctorDepartmentId: departmentId, isActive: 1, isDoctorUnit: 0 } },
-              { component: "OpdBilling", silent: true }
-            )
+    try {
+      const departmentIds = parseDepartmentIds(doctorDepartmentIds);
+      const responses = await Promise.all(
+        departmentIds.map(departmentId =>
+          fetchApi(
+            "GET",
+            ENDPOINTS.GET_DOCTOR_MASTER,
+            {},
+            { params: { doctorDepartmentId: departmentId, isActive: 1, isDoctorUnit: 0 } },
+            { component: "OpdBilling", silent: true }
           )
-        );
+        )
+      );
 
-        const merged = responses.flatMap(resp => resp?.data ?? []);
-        const uniqueDoctors = Array.from(
-          new Map(merged.map((doctor: DoctorMasterItem) => [doctor.doctorId, doctor])).values()
-        );
+      const merged = responses.flatMap(resp => resp?.data ?? []);
+      const uniqueDoctors = Array.from(
+        new Map(merged.map((doctor: DoctorMasterItem) => [doctor.doctorId, doctor])).values()
+      );
 
-        setPerformingDoctorsCache(prev => ({ ...prev, [cacheKey]: uniqueDoctors }));
-      } finally {
-        performingDoctorsLoadingRef.current.delete(cacheKey);
-      }
-    },
-    [fetchApi]
-  );
+      setPerformingDoctorsCache(prev => ({ ...prev, [cacheKey]: uniqueDoctors }));
+    } finally {
+      performingDoctorsLoadingRef.current.delete(cacheKey);
+    }
+  }, []);
 
   const getPerformingDoctorOptions = useCallback(
     (doctorDepartmentIds?: string): OptionItem[] => {
@@ -639,9 +633,7 @@ const OpdBilling = () => {
   };
 
   const validateRateListIds = (): boolean => {
-    const missingRateList = serviceDataTableItem.some(
-      item => resolveRateListIdForRow(item) <= 0
-    );
+    const missingRateList = serviceDataTableItem.some(item => resolveRateListIdForRow(item) <= 0);
 
     if (missingRateList) {
       const message =
@@ -656,9 +648,7 @@ const OpdBilling = () => {
   };
 
   const validateServiceDoctors = (): boolean =>
-    validatePerformingDoctors() &&
-    validateBillingDoctorForServices() &&
-    validateRateListIds();
+    validatePerformingDoctors() && validateBillingDoctorForServices() && validateRateListIds();
 
   const isHeaderDoctorRequired = useMemo(
     () => serviceDataTableItem.some(item => Number(item.isRequiredSeparatePerformingDoctor) !== 1),
@@ -1049,33 +1039,30 @@ const OpdBilling = () => {
     void loadCorporateOpdRateListIds(Number(option.value));
   };
 
-  const loadCorporateOpdRateListIds = useCallback(
-    async (corporateId: number) => {
-      if (!corporateId) {
-        setCorporateOpdRateListIds([]);
-        return;
-      }
+  const loadCorporateOpdRateListIds = useCallback(async (corporateId: number) => {
+    if (!corporateId) {
+      setCorporateOpdRateListIds([]);
+      return;
+    }
 
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_CORPORATE_MASTER_LIST,
-        {},
-        { params: { corporateId } },
-        { component: "OpdBilling", silent: true }
-      );
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+      {},
+      { params: { corporateId } },
+      { component: "OpdBilling", silent: true }
+    );
 
-      const rateListIdOPD = String(
-        resp?.data?.[0]?.rateListIdOPD ?? resp?.data?.[0]?.RateListIdOPD ?? ""
-      );
-      const ids = rateListIdOPD
-        .split(",")
-        .map(value => Number(value.trim()))
-        .filter(value => Number.isFinite(value) && value > 0);
+    const rateListIdOPD = String(
+      resp?.data?.[0]?.rateListIdOPD ?? resp?.data?.[0]?.RateListIdOPD ?? ""
+    );
+    const ids = rateListIdOPD
+      .split(",")
+      .map(value => Number(value.trim()))
+      .filter(value => Number.isFinite(value) && value > 0);
 
-      setCorporateOpdRateListIds(ids);
-    },
-    [fetchApi]
-  );
+    setCorporateOpdRateListIds(ids);
+  }, []);
 
   useEffect(() => {
     void loadCorporateOpdRateListIds(Number(selectedCorporate?.value ?? defaultCorporate.value));

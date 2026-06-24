@@ -373,6 +373,10 @@ const ENDPOINTS = {
   GET_APPROVAL_AUTHORITY_MASTER_LIST: "Admin/getApprovalAuthorityMasterList",
   CREATE_UPDATE_APPROVAL_AUTHORITY_MASTER: "Admin/createUpdateApprovalAuthorityMaster",
   UPDATE_APPROVAL_AUTHORITY_MASTER_STATUS: "Admin/updateApprovalAuthorityMasterStatus",
+
+  // branch settings
+  GET_BRANCH_RIGHT_MAPPING: "Admin/getBranchRightMapping",
+  SAVE_BRANCH_RIGHT_MAPPING: "Admin/saveBranchRightMapping",
 };
 
 export { ENDPOINTS };

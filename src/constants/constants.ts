@@ -59,6 +59,12 @@ export enum BankMasterTabName {
   BANK_MASTER = "Bank Master",
   BANK_DETAILS = "Bank Details",
 }
+
+export enum BranchSettingsTabName {
+  BRANCH_CORPORATE_RATE_LIST_MAPPING = "Branch Corporate Rate list Mapping",
+  BRANCH_WISE_SERVICE_EXCLUDE = "Branch Wise Service Exclude",
+  BRANCH_RIGHT_MAPPING = "Branch Right Mapping",
+}
 export enum Radiology {
   RADIOLOGY = "radiology",
   DEFAULT_REPORT_TYPE = "2",
