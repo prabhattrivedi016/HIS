@@ -46,6 +46,8 @@ type ServiceTableItem = {
   opdConsultationType: string;
   isOnlineConsultationAllow: number;
   isTeleConsultationService: number;
+  isRequiredSeparatePerformingDoctor?: number;
+  doctorDepartmentIds?: string;
 };
 
 type CategoryTypeItem = { categoryTypeId: number; categoryTypeName: string };

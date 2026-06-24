@@ -44,6 +44,7 @@ import {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
   applyRateChange,
+  recalculateFromDiscountPercentage,
 } from "./components/helperFunction";
 import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
 import OpdBillingSection from "./components/OpdBillingSection";
@@ -71,6 +72,54 @@ import {
   SubSubCategoryItem,
 } from "./types";
 
+const parseDepartmentIds = (value?: string) =>
+  (value ?? "")
+    .split(",")
+    .map(v => Number(v.trim()))
+    .filter(v => Number.isFinite(v) && v > 0);
+
+const getPerformingDoctorsCacheKey = (doctorDepartmentIds?: string) =>
+  [...parseDepartmentIds(doctorDepartmentIds)].sort((a, b) => a - b).join(",");
+
+const buildCurrentAgeFromDetails = (details?: Record<string, unknown> | null): string => {
+  if (!details) return "";
+
+  const age = String(details.age ?? details.Age ?? "").trim();
+  if (age) return age;
+
+  const years = Number(details.ageYears ?? details.AgeYears ?? 0);
+  const months = Number(details.ageMonths ?? details.AgeMonths ?? 0);
+  const days = Number(details.ageDays ?? details.AgeDays ?? 0);
+
+  if (years || months || days) {
+    return `${years}Y ${months}M ${days}D`;
+  }
+
+  return "";
+};
+
+const resolvePatientUhid = (
+  patientRecord?: Record<string, unknown> | null,
+  patientRegistrationDetails?: Record<string, unknown>,
+  fallbackUhid = ""
+): string =>
+  String(
+    patientRecord?.uhid ??
+      patientRegistrationDetails?.UhidOrBarcode ??
+      patientRegistrationDetails?.uhid ??
+      fallbackUhid ??
+      ""
+  ).trim();
+
+const resolveRateListIdFromApiData = (
+  data?: ServiceBindingItem | Record<string, unknown> | null
+): number =>
+  Number(
+    (data as ServiceBindingItem)?.rateListId ??
+      (data as Record<string, unknown>)?.RateListId ??
+      0
+  ) || 0;
+
 const OpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
@@ -92,6 +141,7 @@ const OpdBilling = () => {
   const [corporateList, setCorporateList] = useState<CorporateItem[]>([]);
   const [selectedCorporate, setSelectedCorporate] = useState<OptionItem | null>(defaultCorporate);
   const [selectedCorporateError, setSelectedCorporateError] = useState<string>("");
+  const [corporateOpdRateListIds, setCorporateOpdRateListIds] = useState<number[]>([]);
 
   const [activePatientId, setActivePatientId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<string>(OPDBillingTabName.PATIENT_DETAILS);
@@ -118,7 +168,11 @@ const OpdBilling = () => {
   const [activeServiceIndex, setActiveServiceIndex] = useState<number>(0);
 
   const [showDuplicateError, setShowDuplicateError] = useState<string>("");
-  const [serviceValidationError] = useState<string>("");
+  const [serviceValidationError, setServiceValidationError] = useState<string>("");
+  const [performingDoctorsCache, setPerformingDoctorsCache] = useState<
+    Record<string, DoctorMasterItem[]>
+  >({});
+  const performingDoctorsLoadingRef = useRef<Set<string>>(new Set());
 
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("1, 3, 4, 5, 8, 11");
@@ -391,6 +445,241 @@ const OpdBilling = () => {
   });
 
   //billing details payload
+  const buildServiceRowFromApi = (
+    apiData: ServiceBindingItem | Record<string, unknown> | null | undefined,
+    overrides?: { doctorId?: number; doctorName?: string }
+  ): ServiceBindingItem => {
+    const data = (apiData ?? {}) as ServiceBindingItem & Record<string, unknown>;
+    const requiresPerformingDoctor = Number(data?.isRequiredSeparatePerformingDoctor) === 1;
+    const doctorId =
+      overrides?.doctorId ??
+      (requiresPerformingDoctor ? 0 : Number(selectedDoctor?.value ?? 0));
+    const doctorName =
+      overrides?.doctorName ??
+      (requiresPerformingDoctor ? "" : String(selectedDoctor?.label ?? ""));
+
+    return {
+      ...data,
+      rateListId: resolveRateListIdFromApiData(data),
+      qty: data?.qty ?? 1,
+      doctorId,
+      doctorName,
+    };
+  };
+
+  const fetchServiceDetailsForRow = useCallback(
+    async (row: ServiceBindingItem, doctorId: number) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
+        {},
+        {
+          params: {
+            corporateId: selectedCorporate?.value ?? row.corporateId,
+            doctorId,
+            serviceItemId: row.serviceItemId,
+            categoryId: row.categoryId,
+            subCategoryId: row.subCategoryId,
+            subSubCategoryId: row.subSubCategoryId,
+            bedTypeId: 0,
+          },
+        },
+        { component: "OpdBilling", silent: true }
+      );
+
+      return resp?.data;
+    },
+    [fetchApi, selectedCorporate?.value]
+  );
+
+  const resolveRateListIdForRow = useCallback(
+    (row: ServiceBindingItem): number => {
+      const rowRateListId = resolveRateListIdFromApiData(row);
+      if (rowRateListId > 0) {
+        return rowRateListId;
+      }
+
+      return corporateOpdRateListIds[0] ?? 0;
+    },
+    [corporateOpdRateListIds]
+  );
+
+  const finalizeServiceRow = (
+    apiData: ServiceBindingItem | Record<string, unknown> | null | undefined
+  ): ServiceBindingItem => {
+    const row = buildServiceRowFromApi(apiData);
+    return {
+      ...row,
+      rateListId: resolveRateListIdForRow(row),
+    };
+  };
+
+  const loadPerformingDoctorsForDepartments = useCallback(
+    async (doctorDepartmentIds?: string) => {
+      const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
+      if (!cacheKey || performingDoctorsLoadingRef.current.has(cacheKey)) {
+        return;
+      }
+
+      performingDoctorsLoadingRef.current.add(cacheKey);
+
+      try {
+        const departmentIds = parseDepartmentIds(doctorDepartmentIds);
+        const responses = await Promise.all(
+          departmentIds.map(departmentId =>
+            fetchApi(
+              "GET",
+              ENDPOINTS.GET_DOCTOR_MASTER,
+              {},
+              { params: { doctorDepartmentId: departmentId, isActive: 1, isDoctorUnit: 0 } },
+              { component: "OpdBilling", silent: true }
+            )
+          )
+        );
+
+        const merged = responses.flatMap(resp => resp?.data ?? []);
+        const uniqueDoctors = Array.from(
+          new Map(merged.map((doctor: DoctorMasterItem) => [doctor.doctorId, doctor])).values()
+        );
+
+        setPerformingDoctorsCache(prev => ({ ...prev, [cacheKey]: uniqueDoctors }));
+      } finally {
+        performingDoctorsLoadingRef.current.delete(cacheKey);
+      }
+    },
+    [fetchApi]
+  );
+
+  const getPerformingDoctorOptions = useCallback(
+    (doctorDepartmentIds?: string): OptionItem[] => {
+      const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
+      return (performingDoctorsCache[cacheKey] ?? []).map(doctor => ({
+        value: doctor.doctorId,
+        label: doctor.completeName || doctor.name,
+      }));
+    },
+    [performingDoctorsCache]
+  );
+
+  const performingDoctorChangeHandler = async (rowIndex: number, doctorId: number) => {
+    const row = serviceDataTableItem[rowIndex];
+    if (!row) {
+      return;
+    }
+
+    if (!doctorId) {
+      SetServiceDataTableItem(prev =>
+        prev.map((item, index) =>
+          index === rowIndex ? { ...item, doctorId: 0, doctorName: "", rateListId: 0 } : item
+        )
+      );
+      setServiceValidationError("");
+      return;
+    }
+
+    const options = getPerformingDoctorOptions(row?.doctorDepartmentIds);
+    const selected = options.find(option => Number(option.value) === doctorId);
+    const apiData = await fetchServiceDetailsForRow(row, doctorId);
+    const updatedRow = buildServiceRowFromApi(apiData, {
+      doctorId,
+      doctorName: selected?.label ?? "",
+    });
+    const mergedRow = recalculateFromDiscountPercentage(
+      {
+        ...row,
+        ...updatedRow,
+        qty: row.qty ?? updatedRow.qty ?? 1,
+      },
+      Number(row.discountPer ?? 0),
+      Number(updatedRow.rate ?? row.rate ?? 0)
+    );
+    mergedRow.rateListId = resolveRateListIdForRow(mergedRow);
+
+    SetServiceDataTableItem(prev => {
+      const updated = prev.map((item, index) => (index === rowIndex ? mergedRow : item));
+      setTimeout(() => calculateAndUpdateBillingDetails(updated), 0);
+      return updated;
+    });
+    setServiceValidationError("");
+  };
+
+  const validatePerformingDoctors = (): boolean => {
+    const missingPerformingDoctor = serviceDataTableItem.some(
+      item => Number(item.isRequiredSeparatePerformingDoctor) === 1 && !Number(item.doctorId)
+    );
+
+    if (missingPerformingDoctor) {
+      const message = "Please select performing doctor for all required services";
+      setServiceValidationError(message);
+      showWarning(message);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      return false;
+    }
+
+    setServiceValidationError("");
+    return true;
+  };
+
+  const validateBillingDoctorForServices = (): boolean => {
+    const missingBillingDoctor = serviceDataTableItem.some(
+      item => Number(item.isRequiredSeparatePerformingDoctor) !== 1 && !Number(item.doctorId)
+    );
+
+    if (missingBillingDoctor) {
+      const message = "Please select doctor for services that require billing doctor";
+      setSelectDoctorError(message);
+      showWarning(message);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      doctorRef.current?.focus();
+      return false;
+    }
+
+    setSelectDoctorError("");
+    return true;
+  };
+
+  const validateRateListIds = (): boolean => {
+    const missingRateList = serviceDataTableItem.some(
+      item => resolveRateListIdForRow(item) <= 0
+    );
+
+    if (missingRateList) {
+      const message =
+        "Rate list is not configured for one or more services. Please re-select performing doctor.";
+      setServiceValidationError(message);
+      showWarning(message);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateServiceDoctors = (): boolean =>
+    validatePerformingDoctors() &&
+    validateBillingDoctorForServices() &&
+    validateRateListIds();
+
+  const isHeaderDoctorRequired = useMemo(
+    () => serviceDataTableItem.some(item => Number(item.isRequiredSeparatePerformingDoctor) !== 1),
+    [serviceDataTableItem]
+  );
+
+  useEffect(() => {
+    serviceDataTableItem.forEach(item => {
+      if (Number(item.isRequiredSeparatePerformingDoctor) !== 1) {
+        return;
+      }
+
+      const cacheKey = getPerformingDoctorsCacheKey(item.doctorDepartmentIds);
+      if (!cacheKey || performingDoctorsCache[cacheKey]) {
+        return;
+      }
+
+      void loadPerformingDoctorsForDepartments(item.doctorDepartmentIds);
+    });
+  }, [serviceDataTableItem, performingDoctorsCache, loadPerformingDoctorsForDepartments]);
+
   const mapServiceToBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
     const qty = Number(s?.qty) || 1;
     const rate = Number(s?.rate) || 0;
@@ -402,9 +691,16 @@ const OpdBilling = () => {
     return {
       serviceItemId: s?.serviceItemId || 0,
       subSubCategoryId: s?.subSubCategoryId || 0,
+      subCategoryId: s?.subCategoryId || 0,
+      categoryId: s?.categoryId || 0,
       serviceName: s?.serviceName || "",
       code: s?.code || "",
-      rateListId: s?.rateListId || 0,
+      corporateAlias: s?.corporateAlias || "",
+      corporateCode: s?.corporateCode || "",
+      discountReason: s?.discountReason || "",
+      isNonPayable: Number(s?.isNonPayable) || 0,
+      rateListId: resolveRateListIdForRow(s),
+      validityDays: Number(s?.validityDays) || 0,
       doctorId: Number(s?.doctorId) || 0,
       qty,
       rate,
@@ -412,16 +708,26 @@ const OpdBilling = () => {
       discAmt,
       grossAmt,
       netAmt,
+      isUnderPackage: Number(s?.isUnderPackage) || 0,
+      packageId: 0,
       isUrgent: Number(s?.isUrgent) || 0,
+      sampleTypeId: Number(s?.sampleTypeId) || 0,
     };
   };
 
   const mapPackageToBillingItem = (item: PackagePayloadItem): OpdBillingItemPayload => ({
     serviceItemId: item?.serviceItemId || 0,
     subSubCategoryId: item?.subSubCategoryId || 0,
+    subCategoryId: item?.subCategoryId || 0,
+    categoryId: item?.categoryId || 0,
     serviceName: item?.serviceName || "",
     code: item?.code || "",
-    rateListId: item?.rateListId || 0,
+    corporateAlias: item?.corporateAlias || "",
+    corporateCode: item?.corporateCode || "",
+    discountReason: item?.discountReason || "",
+    isNonPayable: Number(item?.isNonPayable) || 0,
+    rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
+    validityDays: Number(item?.validityDays) || 0,
     doctorId: Number(item?.doctorId) || 0,
     qty: Number(item?.qty) || 1,
     rate: Number(item?.rate) || 0,
@@ -429,7 +735,10 @@ const OpdBilling = () => {
     discAmt: Number(item?.discAmt) || 0,
     grossAmt: Number(item?.grossAmt) || 0,
     netAmt: Number(item?.netAmt) || 0,
+    isUnderPackage: Number(item?.isUnderPackage) || 0,
+    packageId: Number(item?.packageId) || 0,
     isUrgent: Number(item?.isUrgent) || 0,
+    sampleTypeId: Number(item?.sampleTypeId) || 0,
   });
 
   const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
@@ -440,13 +749,21 @@ const OpdBilling = () => {
 
   const buildVisitDetailsPayload = (
     patientId: number,
-    branchId: number
+    branchId: number,
+    patientRecord?: Record<string, unknown> | null
   ): OpdBillingVisitDetailsPayload => ({
     patientId,
+    uhid: resolvePatientUhid(patientRecord, patientRegistrationDetails, opdBillingFormData.uhid),
     branchId,
-    insuranceCompanyId: Number(opdBillingFormData.insuranceCompanyId) || 0,
-    corporateId: Number(opdBillingFormData.corporateId) || 0,
-    referDoctorId: Number(opdBillingFormData.referDoctorId) || 0,
+    currentAge:
+      buildCurrentAgeFromDetails(patientRecord) ||
+      buildCurrentAgeFromDetails(patientRegistrationDetails) ||
+      opdBillingFormData.currentAge ||
+      "",
+    insuranceCompanyId:
+      Number(opdBillingFormData.insuranceCompanyId ?? selectedInsurance ?? 0) || 0,
+    corporateId: Number(opdBillingFormData.corporateId ?? selectedCorporate?.value ?? 0) || 0,
+    referDoctorId: Number(opdBillingFormData.referDoctorId ?? selectedReferDoctor?.value ?? 0) || 0,
     isDiscountApprovalRequired: 0,
     grossBillAmount:
       Number(billingValues?.grossBillAmount ?? opdBillingFormData.grossBillAmount) || 0,
@@ -456,19 +773,32 @@ const OpdBilling = () => {
       Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
     roundOff: Number(billingValues?.roundOff ?? opdBillingFormData.roundOff) || 0,
     netAmount: Number(billingValues?.netAmount ?? opdBillingFormData.netAmount) || 0,
-    policyNo: opdBillingFormData.policyNo || "",
-    policyCardNo: opdBillingFormData.policyCardNo || "",
-    expiryDate: opdBillingFormData.expiryDate || "",
-    cardHolder: opdBillingFormData.cardHolder || "",
-    referalNo: opdBillingFormData.referalNo || "",
-    referalDate: opdBillingFormData.referalDate || "",
+    discApprovedById:
+      Number(billingValues?.discApprovedById ?? opdBillingFormData.discApprovedById ?? 0) || 0,
+    discountReason: billingValues?.discountReason ?? opdBillingFormData.discountReason ?? "",
+    remarks: billingValues?.remarks ?? opdBillingFormData.remarks ?? "",
+    uniqueId: opdBillingFormData.uniqueId ?? "",
+    mlc: opdBillingFormData.mlc ?? "",
+    pi: opdBillingFormData.pi ?? "",
+    remark: opdBillingFormData.remark ?? "",
+    policyNo: opdBillingFormData.policyNo ?? "",
+    policyCardNo: opdBillingFormData.policyCardNo ?? "",
+    expiryDate: opdBillingFormData.expiryDate ?? "",
+    cardHolder: opdBillingFormData.cardHolder ?? "",
+    referalNo: opdBillingFormData.referalNo ?? "",
+    referalDate: opdBillingFormData.referalDate ?? "",
+    diagnosisId: Number(opdBillingFormData.diagnosisId ?? 0) || 0,
+    proId: Number(opdBillingFormData.proId ?? 0) || 0,
+    proName: opdBillingFormData.proName ?? "",
+    isSendMRD: Number(opdBillingFormData.isSendMRD ?? 0) || 0,
   });
 
   const buildOpdBillingSavePayload = (
     patientId: number,
-    branchId: number
+    branchId: number,
+    patientRecord?: Record<string, unknown> | null
   ): OpdBillingSavePayload => ({
-    visitDetails: buildVisitDetailsPayload(patientId, branchId),
+    visitDetails: buildVisitDetailsPayload(patientId, branchId, patientRecord),
     billingItems: createBillingItemsPayload(),
   });
 
@@ -516,6 +846,7 @@ const OpdBilling = () => {
       patientId: Number(registrationResp?.data?.patientId ?? 0),
       branchId: Number(patientResponse?.data?.[0]?.branchId ?? opdBillingFormData.branchId ?? 1),
       registrationResp,
+      patientRecord: (patientResponse?.data?.[0] ?? null) as Record<string, unknown> | null,
     };
   };
 
@@ -715,7 +1046,40 @@ const OpdBilling = () => {
       ...prev,
       corporateId: Number(option?.value || 1),
     }));
+    void loadCorporateOpdRateListIds(Number(option.value));
   };
+
+  const loadCorporateOpdRateListIds = useCallback(
+    async (corporateId: number) => {
+      if (!corporateId) {
+        setCorporateOpdRateListIds([]);
+        return;
+      }
+
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+        {},
+        { params: { corporateId } },
+        { component: "OpdBilling", silent: true }
+      );
+
+      const rateListIdOPD = String(
+        resp?.data?.[0]?.rateListIdOPD ?? resp?.data?.[0]?.RateListIdOPD ?? ""
+      );
+      const ids = rateListIdOPD
+        .split(",")
+        .map(value => Number(value.trim()))
+        .filter(value => Number.isFinite(value) && value > 0);
+
+      setCorporateOpdRateListIds(ids);
+    },
+    [fetchApi]
+  );
+
+  useEffect(() => {
+    void loadCorporateOpdRateListIds(Number(selectedCorporate?.value ?? defaultCorporate.value));
+  }, [loadCorporateOpdRateListIds, selectedCorporate?.value]);
 
   const defaultSubCategory = { label: "All Sub Category", value: 0 };
   const defaultSubSubCategory = { label: "All Sub Sub Category", value: 0 };
@@ -983,7 +1347,7 @@ const OpdBilling = () => {
       {
         params: {
           corporateId: selectedCorporate?.value,
-          doctorId: selectedDoctor?.value,
+          doctorId: selectedDoctor?.value ?? 0,
           serviceItemId: item?.serviceItemId,
           categoryId: item?.categoryId,
           subCategoryId: item?.subCategoryId,
@@ -993,32 +1357,27 @@ const OpdBilling = () => {
       }
     );
 
-    const serviceRow = {
-      ...resp?.data,
-      doctorId: selectedDoctor?.value ?? 0,
-      doctorName: selectedDoctor?.label ?? "",
-    };
+    const requiresPerformingDoctor = Number(resp?.data?.isRequiredSeparatePerformingDoctor) === 1;
 
+    if (!requiresPerformingDoctor && !selectedDoctor?.value) {
+      setSelectDoctorError("Please select any one doctor");
+      showWarning("Please select any one doctor");
+      doctorRef.current?.focus();
+      return;
+    }
+
+    const serviceRow = finalizeServiceRow(resp?.data);
     const updatedServices = [...serviceDataTableItem, serviceRow];
 
     SetServiceDataTableItem(updatedServices);
-
     calculateAndUpdateBillingDetails(updatedServices);
   };
 
   // service handler
   const selectedServiceHandler = async (item: ServiceItemList) => {
     setShowPopup(false);
-
-    if (!selectedDoctor?.value) {
-      setSelectDoctorError("Please select any one doctor");
-      showWarning("Please select any one doctor");
-      doctorRef.current?.focus();
-      return;
-    }
     setSelectDoctorError("");
 
-    // check duplicate service
     const dupResp = await fetchApi(
       "GET",
       ENDPOINTS.FIND_DUPLICATE_SERVICE,
@@ -1035,10 +1394,8 @@ const OpdBilling = () => {
     if (dupResp?.result) {
       setPendingService(item);
       setDuplicateData(dupResp?.data?.[0]);
-
       setOpenDuplicateServicePopup(true);
       setRenderDuplicateServicePopup(true);
-
       return;
     }
 
@@ -1049,7 +1406,7 @@ const OpdBilling = () => {
       {
         params: {
           corporateId: selectedCorporate?.value,
-          doctorId: selectedDoctor?.value,
+          doctorId: selectedDoctor?.value ?? 0,
           serviceItemId: item?.serviceItemId,
           categoryId: item?.categoryId,
           subCategoryId: item?.subCategoryId,
@@ -1059,6 +1416,15 @@ const OpdBilling = () => {
       },
       { component: "OpdBilling" }
     );
+
+    const requiresPerformingDoctor = Number(resp?.data?.isRequiredSeparatePerformingDoctor) === 1;
+
+    if (!requiresPerformingDoctor && !selectedDoctor?.value) {
+      setSelectDoctorError("Please select any one doctor");
+      showWarning("Please select any one doctor");
+      doctorRef.current?.focus();
+      return;
+    }
 
     setSearchTerm("");
     const filterItem = serviceDataTableItem.find(
@@ -1070,11 +1436,7 @@ const OpdBilling = () => {
     }
 
     setShowDuplicateError("");
-    const serviceRow = {
-      ...resp?.data,
-      doctorId: selectedDoctor?.value ?? 0,
-      doctorName: selectedDoctor?.label ?? "",
-    };
+    const serviceRow = finalizeServiceRow(resp?.data);
     const updatedServices = [...serviceDataTableItem, serviceRow];
 
     if (serviceRow?.categoryId === 11) {
@@ -1356,6 +1718,8 @@ const OpdBilling = () => {
     setSearchTerm("");
     setShowPopup(false);
     setShowDuplicateError("");
+    setServiceValidationError("");
+    setPerformingDoctorsCache({});
 
     // Reset category and subcategories
     setSelectedCategory("");
@@ -1542,6 +1906,10 @@ const OpdBilling = () => {
 
   const saveOpdBillingAsDraft = async () => {
     try {
+      if (!validateServiceDoctors()) {
+        return;
+      }
+
       const billingItems = createBillingItemsPayload();
 
       if (!billingItems.length) {
@@ -1557,7 +1925,8 @@ const OpdBilling = () => {
 
       const completePayload = buildOpdBillingSavePayload(
         patientData.patientId,
-        patientData.branchId
+        patientData.branchId,
+        patientData.patientRecord
       );
 
       const saveOpdDraft = await fetchApi(
@@ -1595,6 +1964,10 @@ const OpdBilling = () => {
         return;
       }
 
+      if (!validateServiceDoctors()) {
+        return;
+      }
+
       const billingItems = createBillingItemsPayload();
 
       if (!billingItems || billingItems.length === 0) {
@@ -1622,7 +1995,11 @@ const OpdBilling = () => {
       const allPaymentDetails = billingPayload?.payments || [];
 
       const completePayload = {
-        ...buildOpdBillingSavePayload(patientData.patientId, patientData.branchId),
+        ...buildOpdBillingSavePayload(
+          patientData.patientId,
+          patientData.branchId,
+          patientData.patientRecord
+        ),
         paymentDetails: allPaymentDetails,
         isBillDiscount: isBillingDiscount,
       };
@@ -1881,6 +2258,8 @@ const OpdBilling = () => {
     isPackageService,
     packagePopupHandler,
     servicePopupHandler,
+    getPerformingDoctorOptions,
+    performingDoctorChangeHandler,
     setOpdBillingFormData,
     setBillingValues,
     billingValues,

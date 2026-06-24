@@ -158,8 +158,6 @@ interface DoctorMasterItem {
 }
 
 type ServiceBindingItem = {
-  doctorId?: number;
-  doctorName?: string;
   rate: number;
   rateListId: number;
   isRateEditable: number;
@@ -179,13 +177,43 @@ type ServiceBindingItem = {
   isCorporateDiscount: number;
   gstPer: number;
   sampleTypeId: number;
+  reportTypeId: number;
+  doctorDepartmentIds: string;
+  isRequiredSeparatePerformingDoctor: number;
+  doctorId?: number;
+  doctorName?: string;
+  qty?: number;
+  dis?: number;
+  netAmount?: number;
   isUrgent?: number;
   isUnderPackage?: number;
-  netAmount?: number;
-  dis?: number;
-  qty?: number;
-  ReportTypeId?: number;
 };
+
+/*
+ {
+        "rate": 0.000000,
+        "rateListId": 0,
+        "isRateEditable": 1,
+        "serviceName": "CBC (COMPLETE BLOOD COUNT)",
+        "code": "",
+        "corporateAlias": "",
+        "corporateCode": "",
+        "validityDays": 0,
+        "discountPer": 0.000000,
+        "discountReason": "",
+        "isNonPayable": 0,
+        "serviceItemId": 167,
+        "corporateId": 1,
+        "categoryId": 3,
+        "subCategoryId": 1,
+        "subSubCategoryId": 5,
+        "isCorporateDiscount": 0,
+        "gstPer": 0.000000,
+        "sampleTypeId": 0,
+        "reportTypeId": 0,
+        "doctorDepartmentIds": "1,3",
+        "isRequiredSeparatePerformingDoctor": 1
+    } */
 
 type CategoryItem = {
   categoryId: number;
@@ -276,9 +304,16 @@ type PackagePayloadItem = {
 type OpdBillingItemPayload = {
   serviceItemId: number;
   subSubCategoryId: number;
+  subCategoryId: number;
+  categoryId: number;
   serviceName: string;
   code: string;
+  corporateAlias: string;
+  corporateCode: string;
+  discountReason: string;
+  isNonPayable: number;
   rateListId: number;
+  validityDays: number;
   doctorId: number;
   qty: number;
   rate: number;
@@ -286,12 +321,17 @@ type OpdBillingItemPayload = {
   discAmt: number;
   grossAmt: number;
   netAmt: number;
+  isUnderPackage: number;
+  packageId: number;
   isUrgent: number;
+  sampleTypeId: number;
 };
 
 type OpdBillingVisitDetailsPayload = {
   patientId: number;
+  uhid: string;
   branchId: number;
+  currentAge: string;
   insuranceCompanyId: number;
   corporateId: number;
   referDoctorId: number;
@@ -301,12 +341,23 @@ type OpdBillingVisitDetailsPayload = {
   totalDiscAmtOnBill: number;
   roundOff: number;
   netAmount: number;
+  discApprovedById: number;
+  discountReason: string;
+  remarks: string;
+  uniqueId: string;
+  mlc: string;
+  pi: string;
+  remark: string;
   policyNo: string;
   policyCardNo: string;
   expiryDate: string;
   cardHolder: string;
   referalNo: string;
   referalDate: string;
+  diagnosisId: number;
+  proId: number;
+  proName: string;
+  isSendMRD: number;
 };
 
 type OpdBillingSavePayload = {
@@ -513,6 +564,8 @@ type OpdBillingSectionProps = {
   isPackageService: (serviceName: unknown) => boolean;
   packagePopupHandler: (packageId: number) => void;
   servicePopupHandler: (service: ServiceBindingItem) => void;
+  getPerformingDoctorOptions: (doctorDepartmentIds?: string) => OptionItem[];
+  performingDoctorChangeHandler: (rowIndex: number, doctorId: number) => void | Promise<void>;
   setOpdBillingFormData: Dispatch<SetStateAction<OpdBillingFormData>>;
   setBillingValues: Dispatch<SetStateAction<BillingFormValues>>;
   billingValues: BillingFormValues;
