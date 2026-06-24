@@ -397,6 +397,16 @@ export const OpdRateListTableHeader = ["Remove", "OPD Rate List"];
 
 export const IpdRateListTableHeader = ["Remove", "IPD Rate List"];
 
+export const BranchCorporateRateListMappingTableHeader = [
+  "#",
+  "Branch",
+  "Corporate",
+  "OPD Rate List",
+  "IPD Rate List",
+  "Created By",
+  "Created On",
+];
+
 export const DiscountApprovalMasterTableHeader = [
   "#",
   "Name",

@@ -1076,7 +1076,6 @@ const AddLabInvestigation = ({
                 <InputField label="Sample Volume">
                   <input type="hidden" {...register("sampleVolume")} />
                   <select
-                    // className="input-field"
                     className={` ${disabled ? "disabled-input-field" : "input-field"}`}
                     value={selectedSampleVolume}
                     onChange={sampleVolumeChangeHandler}

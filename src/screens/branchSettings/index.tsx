@@ -1,6 +1,7 @@
 import { BranchSettingsTabName } from "@/constants/constants";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import BranchCorporateRateListMapping from "./components/BranchCorporateRateListMapping";
 import BranchRightMapping from "./components/BranchRightMapping";
 const BranchSettings = () => {
   const [activeTab, setActiveTab] = useState<string>(
@@ -10,7 +11,7 @@ const BranchSettings = () => {
   const renderTabs = (tabName: string) => {
     switch (tabName) {
       case BranchSettingsTabName?.BRANCH_CORPORATE_RATE_LIST_MAPPING: {
-        return <h1>BRANCH_CORPORATE_RATE_LIST_MAPPING</h1>;
+        return <BranchCorporateRateListMapping />;
       }
       case BranchSettingsTabName?.BRANCH_WISE_SERVICE_EXCLUDE: {
         return <h1>BRANCH_WISE_SERVICE_EXCLUDE</h1>;
