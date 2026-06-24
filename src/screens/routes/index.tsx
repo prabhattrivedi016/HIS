@@ -6,6 +6,7 @@ import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
 import BranchMaster from "../branchMaster";
+import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import CorporateMaster from "../corporateMaster";
@@ -107,4 +108,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "tab-master": <TabMaster />,
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
+  "branch-settings": <BranchSettings />,
 };
