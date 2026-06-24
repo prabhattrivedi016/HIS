@@ -65,6 +65,8 @@ const OpdBillingSection = ({
   isPackageService,
   packagePopupHandler,
   servicePopupHandler,
+  getPerformingDoctorOptions,
+  performingDoctorChangeHandler,
   setOpdBillingFormData,
   setBillingValues,
   billingValues,
@@ -349,7 +351,7 @@ const OpdBillingSection = ({
                               <div className="flex items-center justify-between ">
                                 <span>{item?.serviceName || "-"}</span>
 
-                                {item?.ReportTypeId === 1 ? (
+                                {item?.reportTypeId === 1 ? (
                                   <i
                                     className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
                                     title={
@@ -372,7 +374,26 @@ const OpdBillingSection = ({
                             </td>
                             <td className="table-td">{item?.code || "-"}</td>
                             <td className="table-td wrap-break-word max-w-30">
-                              {item?.doctorName || "-"}
+                              {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
+                                <select
+                                  className="input-field max-w-30"
+                                  value={Number(item?.doctorId ?? 0)}
+                                  onChange={e =>
+                                    performingDoctorChangeHandler(idx, Number(e.target.value))
+                                  }
+                                >
+                                  <option value={0}>Select doctor</option>
+                                  {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
+                                    doctor => (
+                                      <option key={doctor.value} value={doctor.value}>
+                                        {doctor.label}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                              ) : (
+                                item?.doctorName || selectedDoctor?.label || "-"
+                              )}
                             </td>
                             <td className="table-td">{item?.qty ?? 1}</td>
                             <td className="table-td">
@@ -408,7 +429,6 @@ const OpdBillingSection = ({
                             <td className="table-td text-red-500">
                               {item?.netAmount ?? item?.rate}
                             </td>
-
                             <td className="table-td">
                               <input
                                 type="checkbox"

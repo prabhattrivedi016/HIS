@@ -588,7 +588,7 @@ export const ApprovalAuthorityMasterTableHeader = [
   "Level-4 User",
   "Approval Flow",
   "Approval Required",
-  "Amount up to",
+  "Amount Up to",
   "Edit",
   "Status",
 ];
