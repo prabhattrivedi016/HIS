@@ -377,6 +377,8 @@ const ENDPOINTS = {
   // branch settings
   GET_BRANCH_RIGHT_MAPPING: "Admin/getBranchRightMapping",
   SAVE_BRANCH_RIGHT_MAPPING: "Admin/saveBranchRightMapping",
+  GET_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/getBranchCorporateRatelistMapping",
+  SAVE_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/saveBranchCorporateRatelistMapping",
 };
 
 export { ENDPOINTS };
