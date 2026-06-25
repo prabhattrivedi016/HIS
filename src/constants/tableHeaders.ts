@@ -407,6 +407,17 @@ export const BranchCorporateRateListMappingTableHeader = [
   "Created On",
 ];
 
+export const BranchWiseServiceExcludeTableHeader = ["#", "Service Name", "Code", "Remove"];
+
+export const BranchCorporateServiceExclusionMappingTableHeader = [
+  "#",
+  "Branch",
+  "Corporate",
+  "Service Item",
+  "Created By",
+  "Created On",
+];
+
 export const DiscountApprovalMasterTableHeader = [
   "#",
   "Name",

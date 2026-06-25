@@ -3,6 +3,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import BranchCorporateRateListMapping from "./components/BranchCorporateRateListMapping";
 import BranchRightMapping from "./components/BranchRightMapping";
+import BranchWiseServiceExclude from "./components/BranchWiseServiceExclude";
 const BranchSettings = () => {
   const [activeTab, setActiveTab] = useState<string>(
     BranchSettingsTabName?.BRANCH_CORPORATE_RATE_LIST_MAPPING
@@ -14,7 +15,7 @@ const BranchSettings = () => {
         return <BranchCorporateRateListMapping />;
       }
       case BranchSettingsTabName?.BRANCH_WISE_SERVICE_EXCLUDE: {
-        return <h1>BRANCH_WISE_SERVICE_EXCLUDE</h1>;
+        return <BranchWiseServiceExclude />;
       }
       case BranchSettingsTabName?.BRANCH_RIGHT_MAPPING: {
         return <BranchRightMapping />;
