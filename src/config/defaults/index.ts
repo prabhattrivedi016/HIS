@@ -379,6 +379,9 @@ const ENDPOINTS = {
   SAVE_BRANCH_RIGHT_MAPPING: "Admin/saveBranchRightMapping",
   GET_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/getBranchCorporateRatelistMapping",
   SAVE_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/saveBranchCorporateRatelistMapping",
+  SAVE_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING:
+    "Admin/saveBranchCorporateServiceExclusionMapping",
+  GET_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING: "Admin/getBranchCorporateServiceExclusionMapping",
 };
 
 export { ENDPOINTS };
