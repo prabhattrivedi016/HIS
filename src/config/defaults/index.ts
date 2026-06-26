@@ -67,6 +67,8 @@ const ENDPOINTS = {
   GET_CITY_MASTER: "Home/getCityMaster",
   GET_ALL_INSURANCE_COMPANY_LIST: "Home/getAllInsuranceCompanyList",
   GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID: "Home/getCorporateListByInsuranceCompanyId",
+  GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID:
+    "Home/getCorporateListByBranchIdAndInsuranceCompanyId",
   CREATE_UPDATE_BRANCH_MASTER: "Admin/createUpdateBranchMaster",
 
   //location master
@@ -198,6 +200,8 @@ const ENDPOINTS = {
   GET_CORPORATE_TYPE_MASTER_LIST: "Admin/getCorporateTypeMasterList",
   GET_PAYMENT_MODE_MASTER_LIST: "Home/getPaymentModeMasterList",
   UPDATE_CORPORATE_MASTER_STATUS: "Admin/updateCorporateMasterStatus",
+  GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID:
+    "Home/getCorporateListByBranchIdAndInsuranceCompanyId",
 
   // patient master
   GET_PATIENT_MASTER: "Patient/getPatientMaster",
@@ -383,6 +387,7 @@ const ENDPOINTS = {
   SAVE_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING:
     "Admin/saveBranchCorporateServiceExclusionMapping",
   GET_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING: "Admin/getBranchCorporateServiceExclusionMapping",
+  UPDATE_DEFAULT_BRANCH_SETTING: "Admin/updateDefaultBranchSetting",
 };
 
 export { ENDPOINTS };
