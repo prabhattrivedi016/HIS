@@ -1,26 +1,28 @@
-import { Status } from "@/constants/constants";
+import { usePickMaster } from "@/hooks/usePickMaster";
+import { PickMasterItem } from "@/types";
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import Select from "react-select";
-import { Spinner } from "../../../../assets/svgIcons";
+import Select, { SingleValue } from "react-select";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
-import { SelectStyles } from "../../../components/customSelect";
+import { OptionItem, SelectStyles } from "../../../components/customSelect";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
-import { usePickMaster } from "../../../hooks/usePickMaster";
-import { branchMasterSchema } from "../../../validation/branchMasterSchema";
-import {
-  CityItem,
-  CountryItem,
-  DefaultCorporate,
-  DistrictItem,
-  InsuranceItem,
-  SelectItem,
-  StateItem,
-} from "../types";
+import { BranchMasterFormValues, branchMasterSchema } from "../../../validation/branchMasterSchema";
+
+const defaultFormValues: BranchMasterFormValues = {
+  branchId: 0,
+  branchName: "",
+  branchCode: "",
+  email: "",
+  contactNo1: "",
+  contactNo2: "",
+  address: "",
+  isActive: 1,
+  fyStartFrom: "",
+};
 
 const BranchMasterDrawer = React.memo(
   ({
@@ -35,119 +37,40 @@ const BranchMasterDrawer = React.memo(
     onClose: () => void;
     buttonTitle: string;
     drawerTitle: string;
-    branchId: number;
+    branchId: number | null;
     onCloseDrawer: () => void;
   }) => {
-    const { loading, error, fetchApi } = useGlobalApi();
+    const { loading, fetchApi } = useGlobalApi();
 
-    /* -------------------- values for extracting for dropdown -------------------- */
-    const [countryList, setCountryList] = useState<CountryItem[]>([]);
-    const [stateList, setStateList] = useState<StateItem[]>([]);
-    const [districtList, setDistrictList] = useState<DistrictItem[]>([]);
-    const [cityList, setCityList] = useState<CityItem[]>([]);
-    const [insuranceCompany, setInsuranceCompany] = useState<InsuranceItem[]>([]);
-    const [defaultCorporate, setDefaultCorporate] = useState<DefaultCorporate[]>([]);
+    const [successMessage, setSuccessMessage] = useState<string>("");
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [selectedMonth, setSelectedMonth] = useState<SingleValue<OptionItem> | null>(null);
 
-    /* -------------------- selected Ids-------------------- */
-    const [monthId, setMonthId] = useState<string>("");
-    const [countryId, setCountryId] = useState<number | null>(null);
-    const [stateId, setStateId] = useState<number | null>(null);
-    const [districtId, setDistrictId] = useState<number | null>(null);
-    const [cityId, setCityId] = useState<number | null>(null);
-    const [insuranceCompanyId, setInsuranceCompanyId] = useState<number | null>(null);
-    const [corporateId, setCorporateId] = useState<number | null>(null);
-
-    const [successMessage, setSuccessMessage] = useState("");
-
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-    /* -------------------- drawer  form -------------------- */
     const {
       handleSubmit,
       register,
       reset,
+      watch,
+      setValue,
       formState: { errors },
-    } = useForm({
+    } = useForm<BranchMasterFormValues>({
       resolver: yupResolver(branchMasterSchema),
-      defaultValues: {
-        branchId: 0,
-        branchName: "",
-        branchCode: "",
-        email: "",
-        contactNo1: "",
-        contactNo2: "",
-        address: "",
-        isActive: 1,
-        fyStartFrom: "",
-      },
+      defaultValues: defaultFormValues,
     });
 
-    /* -------------------- financial month start from -------------------- */
     const financialYear = usePickMaster("FinancialYear");
+    const fyStartFrom = watch("fyStartFrom");
 
-    /* -------------------- api handlers -------------------- */
-    const getCountryName = useCallback(async () => {
-      const res = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_COUNTRY_MASTER,
-        {},
-        { params: { isActive: Status?.ACTIVE } }
-      );
-      setCountryList(res?.data ?? []);
-    }, []);
+    const monthSelectOption = useMemo<OptionItem[]>(
+      () =>
+        (financialYear?.pickMasterValue as PickMasterItem[])?.map(item => ({
+          value: String(item.key ?? ""),
+          label: String(item.value ?? ""),
+        })) ?? [],
+      [financialYear?.pickMasterValue]
+    );
 
-    const getStateName = useCallback(async (id: number) => {
-      const res = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_STATE_MASTER,
-        {},
-        { params: { countryId: id, isActive: 1 } }
-      );
-      setStateList(res?.data ?? []);
-    }, []);
-
-    const getDistrictName = useCallback(async (id: number) => {
-      const res = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_DISTRICT_MASTER,
-        {},
-        { params: { stateId: id, isActive: 1 } }
-      );
-      setDistrictList(res?.data ?? []);
-    }, []);
-
-    const getCityName = useCallback(async (id: number) => {
-      const res = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_CITY_MASTER,
-        {},
-        { params: { districtId: id, isActive: 1 } }
-      );
-      setCityList(res?.data ?? []);
-    }, []);
-
-    const getInsuranceCompanyName = useCallback(async () => {
-      const res = await fetchApi("GET", ENDPOINTS.GET_ALL_INSURANCE_COMPANY_LIST);
-      setInsuranceCompany(res?.data ?? []);
-    }, []);
-
-    const getDefaultCorporate = useCallback(async (id: number) => {
-      const res = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID,
-        {},
-        { params: { insuranceCompanyId: id, isActive: 1 } }
-      );
-      setDefaultCorporate(res?.data ?? []);
-    }, []);
-
-    /* -------------------- initial load on mounting -------------------- */
-    useEffect(() => {
-      getCountryName();
-      getInsuranceCompanyName();
-    }, []);
-
-    /* -------------------- edit load -------------------- */
+    // edit branch
     const loadBranchForEdit = useCallback(
       async (id: number) => {
         const res = await fetchApi(
@@ -157,168 +80,72 @@ const BranchMasterDrawer = React.memo(
           { params: { branchId: id } }
         );
 
-        const b = res?.data?.[0];
-        if (!b) return;
-
-        setCountryId(b?.defaultCountryId);
-        await getStateName(b?.defaultCountryId);
-
-        setStateId(b?.defaultStateId);
-        await getDistrictName(b?.defaultStateId);
-
-        setDistrictId(b?.defaultDistrictId);
-        await getCityName(b?.defaultDistrictId);
-
-        setCityId(b?.defaultCityId);
-
-        setInsuranceCompanyId(b?.defaultInsuranceCompanyId);
-        await getDefaultCorporate(b?.defaultInsuranceCompanyId);
-
-        setCorporateId(b?.defaultCorporateId);
-
-        setMonthId(b?.fyStartMonth);
+        const branch = res?.data?.[0];
 
         reset({
-          branchId: b?.branchId,
-          branchName: b?.branchName,
-          branchCode: b?.branchCode,
-          email: b?.email,
-          contactNo1: b?.contactNo1,
-          contactNo2: b?.contactNo2,
-          address: b?.address,
-          isActive: b?.isActive,
-          fyStartFrom: b?.fyStartFrom,
+          branchId: branch?.branchId ?? 0,
+          branchName: branch?.branchName ?? "",
+          branchCode: branch?.branchCode ?? "",
+          email: branch?.email ?? "",
+          contactNo1: branch?.contactNo1 ?? "",
+          contactNo2: branch?.contactNo2 ?? "",
+          address: branch?.address ?? "",
+          isActive: branch?.isActive ?? 1,
+          fyStartFrom: branch?.fyStartMonth ?? "",
         });
+        const selected = monthSelectOption.find(
+          o => Number(o.value) === Number(branch?.fyStartMonth)
+        );
+        setSelectedMonth(selected ?? null);
       },
-
-      [reset, getStateName, getDistrictName, getCityName, getDefaultCorporate]
+      [reset, monthSelectOption]
     );
 
     useEffect(() => {
-      if (branchId) loadBranchForEdit(branchId);
-    }, [branchId, loadBranchForEdit]);
+      if (!isOpen) return;
 
-    /* -------------------- options -------------------- */
+      setSuccessMessage("");
+      setErrorMessage("");
 
-    const monthSelectOption = useMemo(
-      () =>
-        financialYear?.pickMasterValue?.map(y => ({
-          value: String(y.key),
-          label: y.value,
-        })) || [],
-      [financialYear]
-    );
+      if (branchId) {
+        void loadBranchForEdit(branchId);
+        return;
+      }
+      reset(defaultFormValues);
+    }, [isOpen, branchId, loadBranchForEdit, reset]);
 
-    const countrySelectOption = countryList.map(c => ({
-      value: c.countryId,
-      label: c.countryName,
-    }));
-    const stateSelectOption = stateList.map(s => ({ value: s.stateId, label: s.stateName }));
-    const districtSelectOption = districtList.map(d => ({
-      value: d.districtId,
-      label: d.districtName,
-    }));
-    const citySelectOption = cityList.map(c => ({ value: c.cityId, label: c.cityName }));
-    const insuranceSelectOption = insuranceCompany.map(i => ({
-      value: i.insuranceCompanyId,
-      label: i.insuranceCompanyName,
-    }));
-    const defaultCorporateSelectOption = defaultCorporate.map(c => ({
-      value: c.corporateId,
-      label: c.corporateName,
-    }));
+    const onSubmit = async (data: BranchMasterFormValues) => {
+      setErrorMessage("");
+      setSuccessMessage("");
 
-    const selectedMonthOption = monthSelectOption.find(o => o.value === monthId) || null;
-
-    const selectedCountryOption = countrySelectOption.find(o => o.value === countryId) || null;
-    const selectedStateOption = stateSelectOption.find(o => o.value === stateId) || null;
-    const selectedDistrictOption = districtSelectOption.find(o => o.value === districtId) || null;
-    const selectedCityOption = citySelectOption.find(o => o.value === cityId) || null;
-    const selectedInsuranceOption =
-      insuranceSelectOption.find(o => o.value === insuranceCompanyId) || null;
-    const selectedCorporateOption =
-      defaultCorporateSelectOption.find(o => o.value === corporateId) || null;
-
-    /* -------------------- dropdown handlers -------------------- */
-
-    const monthDropDownHandler = (option: SelectItem) => {
-      const v = option?.value ?? "";
-      setMonthId(String(v));
-    };
-
-    const countryDropDownHandler = (option: SelectItem) => {
-      const v = option?.value ?? null;
-      setCountryId(v);
-      setStateId(null);
-      setDistrictId(null);
-      setCityId(null);
-      setInsuranceCompanyId(null);
-      setCorporateId(null);
-      setStateList([]);
-      setDistrictList([]);
-      setCityList([]);
-      setDefaultCorporate([]);
-      if (v) getStateName(v);
-    };
-
-    const stateDropDownHandler = (option: SelectItem) => {
-      const v = option?.value ?? null;
-      setStateId(v);
-      setDistrictId(null);
-      setCityId(null);
-      setDistrictList([]);
-      setCityList([]);
-      if (v) getDistrictName(v);
-    };
-
-    const distDropDownHandler = (option: SelectItem) => {
-      const v = option?.value ?? null;
-      setDistrictId(v);
-      setCityId(null);
-      setCityList([]);
-      if (v) getCityName(v);
-    };
-
-    const cityDropDownHandler = (option: SelectItem) => setCityId(option?.value ?? null);
-
-    const insuranceDropDownHandler = (option: SelectItem) => {
-      const v = option?.value ?? null;
-      setInsuranceCompanyId(v);
-      setCorporateId(null);
-      setDefaultCorporate([]);
-      if (v) getDefaultCorporate(v);
-    };
-
-    const corporateDropDownHandler = (option: SelectItem) => setCorporateId(option?.value ?? null);
-
-    /* -------------------- SUBMIT -------------------- */
-    const onSubmit = async data => {
-      setIsSubmitting(true);
-      if (!monthId) return;
       const payload = {
         ...data,
-        fyStartFrom: monthId,
-        defaultCountryId: countryId,
-        defaultStateId: stateId,
-        defaultDistrictId: districtId,
-        defaultCityId: cityId,
-        defaultInsuranceCompanyId: insuranceCompanyId,
-        defaultCorporateId: corporateId,
+        fyStartFrom: selectedMonth?.value ?? "",
       };
 
       const res = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_BRANCH_MASTER, payload);
-      if (!res) return;
 
-      setSuccessMessage(res?.message);
+      if (!res?.result) {
+        setErrorMessage(res?.message || "Failed to save data");
+        return;
+      }
+
+      setSuccessMessage(res?.message ?? "Data saved successfully");
+      setTimeout(() => {
+        onClose();
+        setSuccessMessage("");
+        setErrorMessage("");
+        reset(defaultFormValues);
+        setSelectedMonth(null);
+      }, 500);
       onCloseDrawer?.();
-      setTimeout(onClose, 1000);
     };
 
     return (
       <>
         <div className="drawer-bg-fade opacity-100 visible  " onClick={onClose} />
 
-        <div className="drawer-layout drawer-bg translate-x-0 lg:w-[1000px]">
+        <div className="drawer-layout drawer-bg translate-x-0 lg:w-250">
           <div className="drawer-title-border ">
             <h2 className="drawer-title">{drawerTitle}</h2>
             <button onClick={onClose} className="drawer-close-btn">
@@ -327,16 +154,11 @@ const BranchMasterDrawer = React.memo(
           </div>
 
           <div className="m-1">
-            {/* success & error message*/}
-            <div className="mb-2">
-              {successMessage && <SuccessMessage text={successMessage} />}
-              {error && <ErrorMessage text={error?.message} />}
-            </div>
+            {successMessage && <SuccessMessage text={successMessage} />}
+            {errorMessage && <ErrorMessage text={errorMessage} />}
 
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="card ">
-                {/* <h1 className=" text-xl">Branch Details</h1> */}
-
                 <div className="form-grid-2">
                   <InputField label="Branch Name" required>
                     <input
@@ -368,9 +190,7 @@ const BranchMasterDrawer = React.memo(
                     />
                     {errors.email && <p className="input-field-error">{errors.email.message}</p>}
                   </InputField>
-                </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
                   <InputField label="Contact Number-1" required>
                     <input
                       placeholder="Enter Contact Number"
@@ -397,148 +217,47 @@ const BranchMasterDrawer = React.memo(
                       className="input-field"
                     />
                   </InputField>
-                </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
                   <InputField label="Status" required>
-                    <select {...register("isActive")} className="input-field">
-                      <option value="">Select</option>
-                      <option value="1">Active</option>
-                      <option value="0">Inactive</option>
+                    <select
+                      {...register("isActive", { valueAsNumber: true })}
+                      className="input-field"
+                    >
+                      <option value={1}>Active</option>
+                      <option value={0}>Inactive</option>
                     </select>
+                    {errors.isActive && (
+                      <p className="input-field-error">{errors.isActive.message}</p>
+                    )}
                   </InputField>
 
                   <InputField label="Financial Year Start From" required>
-                    <Select
+                    <Select<OptionItem, false>
                       options={monthSelectOption}
-                      value={selectedMonthOption}
+                      value={selectedMonth}
                       placeholder="Select..."
                       isSearchable
                       isClearable
                       styles={SelectStyles}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
-                      onChange={monthDropDownHandler}
+                      onChange={(option: SingleValue<OptionItem>) => setSelectedMonth(option)}
                     />
-                    {isSubmitting && !monthId && (
-                      <p className="input-field-error">Month is required</p>
+                    {errors.fyStartFrom && (
+                      <p className="input-field-error">{errors.fyStartFrom.message}</p>
                     )}
                   </InputField>
                 </div>
               </div>
 
-              <div className="card mt-1">
-                <h1 className="mb-5 text-xl">Default Branch Setting</h1>
-
-                <div className="form-grid-3">
-                  <InputField label="Default Country" required={false}>
-                    <Select
-                      options={countrySelectOption}
-                      value={selectedCountryOption}
-                      placeholder="Select  country"
-                      isSearchable
-                      isClearable
-                      onChange={countryDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-
-                  <InputField label="Default State" required={false}>
-                    <Select
-                      options={stateSelectOption}
-                      value={selectedStateOption}
-                      placeholder="Select  state"
-                      isSearchable
-                      isClearable
-                      onChange={stateDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-
-                  <InputField label="Default District " required={false}>
-                    <Select
-                      options={districtSelectOption}
-                      value={selectedDistrictOption}
-                      placeholder="Select district"
-                      isSearchable
-                      isClearable
-                      onChange={distDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-                </div>
-
-                <div className="form-grid-3">
-                  <InputField label="Default City" required={false}>
-                    <Select
-                      options={citySelectOption}
-                      value={selectedCityOption}
-                      placeholder="Select city"
-                      isSearchable
-                      isClearable
-                      onChange={cityDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-
-                  <InputField label="Default Insurance Company" required={false}>
-                    <Select
-                      options={insuranceSelectOption}
-                      value={selectedInsuranceOption}
-                      placeholder="Select insurance"
-                      isSearchable
-                      isClearable
-                      onChange={insuranceDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-
-                  <InputField label="Default Corporate" required={false}>
-                    <Select
-                      options={defaultCorporateSelectOption}
-                      value={selectedCorporateOption}
-                      placeholder="Select corporate"
-                      isSearchable
-                      isClearable
-                      onChange={corporateDropDownHandler}
-                      styles={SelectStyles}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </InputField>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-2 rounded mt-5 flex justify-center items-center font-medium active:scale-95 transition-colors ${
-                  loading ? "bg-gray-400 cursor-not-allowed text-white" : "save-btn"
-                }`}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <Spinner /> Loading...
-                  </span>
-                ) : (
-                  buttonTitle
-                )}
+              <button type="submit" className="save-btn w-full mt-5">
+                {buttonTitle}
               </button>
             </form>
           </div>
         </div>
 
-        {loading ? <CustomLoader isLoading={loading} /> : <></>}
+        {loading ? <CustomLoader isLoading={loading} /> : null}
       </>
     );
   }
