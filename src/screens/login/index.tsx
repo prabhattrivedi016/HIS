@@ -12,6 +12,7 @@ import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { useAppDispatch } from "../../store/hooks";
+import { fetchAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { fetchUserRightAccess } from "../../store/slices/accessRightSlices";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
@@ -145,6 +146,7 @@ const Login = () => {
 
       const roleId = await fetchUserAssignedRoles(branchId);
       await dispatch(fetchUserRightAccess({ branchId, roleId })).unwrap();
+      await dispatch(fetchAssignBranchRight({ branchId })).unwrap();
       await fetchAuthorizedPages(branchId, roleId);
 
       if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {

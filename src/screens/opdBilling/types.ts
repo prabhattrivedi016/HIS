@@ -171,6 +171,7 @@ type ServiceBindingItem = {
   isNonPayable: number;
   serviceItemId: number;
   corporateId: number;
+  categoryTypeId: number;
   categoryId: number;
   subCategoryId: number;
   subSubCategoryId: number;
@@ -188,32 +189,6 @@ type ServiceBindingItem = {
   isUrgent?: number;
   isUnderPackage?: number;
 };
-
-/*
- {
-        "rate": 0.000000,
-        "rateListId": 0,
-        "isRateEditable": 1,
-        "serviceName": "CBC (COMPLETE BLOOD COUNT)",
-        "code": "",
-        "corporateAlias": "",
-        "corporateCode": "",
-        "validityDays": 0,
-        "discountPer": 0.000000,
-        "discountReason": "",
-        "isNonPayable": 0,
-        "serviceItemId": 167,
-        "corporateId": 1,
-        "categoryId": 3,
-        "subCategoryId": 1,
-        "subSubCategoryId": 5,
-        "isCorporateDiscount": 0,
-        "gstPer": 0.000000,
-        "sampleTypeId": 0,
-        "reportTypeId": 0,
-        "doctorDepartmentIds": "1,3",
-        "isRequiredSeparatePerformingDoctor": 1
-    } */
 
 type CategoryItem = {
   categoryId: number;
@@ -315,6 +290,7 @@ type OpdBillingItemPayload = {
   rateListId: number;
   validityDays: number;
   doctorId: number;
+  performingDoctorId: number;
   qty: number;
   rate: number;
   discPer: number;
@@ -327,6 +303,22 @@ type OpdBillingItemPayload = {
   sampleTypeId: number;
 };
 
+type OpdBookingItemPayload = {
+  code: string;
+  discAmt: number;
+  discPer: number;
+  doctorId: number;
+  grossAmt: number;
+  isUrgent: number;
+  netAmt: number;
+  qty: number;
+  rate: number;
+  rateListId: number;
+  serviceItemId: number;
+  serviceName: string;
+  subSubCategoryId: number;
+};
+
 type OpdBillingVisitDetailsPayload = {
   patientId: number;
   uhid: string;
@@ -335,7 +327,7 @@ type OpdBillingVisitDetailsPayload = {
   insuranceCompanyId: number;
   corporateId: number;
   referDoctorId: number;
-  isDiscountApprovalRequired: number;
+  doctorId: number;
   grossBillAmount: number;
   totalDiscPerOnBill: number;
   totalDiscAmtOnBill: number;
@@ -358,6 +350,31 @@ type OpdBillingVisitDetailsPayload = {
   proId: number;
   proName: string;
   isSendMRD: number;
+};
+
+type buildVisitDetailsPayloadForOpdBooking = {
+  branchId: number;
+  cardHolder: string;
+  corporateId: number;
+  expiryDate: string;
+  grossBillAmount: number;
+  insuranceCompanyId: number;
+  isDiscountApprovalRequired: number;
+  netAmount: number;
+  patientId: number;
+  policyCardNo: string;
+  policyNo: string;
+  referalDate: string;
+  referalNo: string;
+  referDoctorId: number;
+  roundOff: number;
+  totalDiscAmtOnBill: number;
+  totalDiscPerOnBill: number;
+};
+
+type OpdBookingSavePayload = {
+  visitDetails: buildVisitDetailsPayloadForOpdBooking;
+  billingItems: OpdBookingItemPayload[];
 };
 
 type OpdBillingSavePayload = {
@@ -573,6 +590,7 @@ type OpdBillingSectionProps = {
   maxDiscountPercentage: number | undefined;
 };
 export type {
+  buildVisitDetailsPayloadForOpdBooking,
   CategoryItem,
   CollectOnDeviceProps,
   DoctorMasterItem,
@@ -582,6 +600,8 @@ export type {
   OpdBillingSavePayload,
   OpdBillingSectionProps,
   OpdBillingVisitDetailsPayload,
+  OpdBookingItemPayload,
+  OpdBookingSavePayload,
   OpdCardDetailItem,
   OpdPatientDetails,
   OptionItem,

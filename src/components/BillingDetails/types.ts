@@ -42,6 +42,7 @@ type PaymentMethodPayloadItem = {
   amount: number;
   bankId: number;
   refNo: string;
+  isCopaymentReceipt: number;
   plutusTransactionReferenceID: string;
   transactionLogId: string;
 };
@@ -57,6 +58,7 @@ type BillingPaymentFormItem = {
   amount?: unknown;
   bankId?: unknown;
   refNo?: unknown;
+  isCopaymentReceipt?: unknown;
 };
 
 type BillingFormValues = {

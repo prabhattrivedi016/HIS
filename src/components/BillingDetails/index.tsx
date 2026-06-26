@@ -49,8 +49,22 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
     // payment modes added
     const [rows, setRows] = useState<
-      Array<{ paymentModeId: number | null; amount: string; bankId: number | null; refNo: string }>
-    >([{ paymentModeId: null, amount: "", bankId: null, refNo: "" }]);
+      Array<{
+        paymentModeId: number | null;
+        amount: string;
+        bankId: number | null;
+        refNo: string;
+        isCopaymentReceipt: number | null;
+      }>
+    >([
+      {
+        paymentModeId: null,
+        amount: "",
+        isCopaymentReceipt: 0,
+        bankId: null,
+        refNo: "",
+      },
+    ]);
 
     useEffect(() => {
       if (paymentList.length > 0) {
@@ -63,6 +77,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
               amount: String(toNumber(initialBillingValues?.netAmount ?? totalBillingAmount) || ""),
               bankId: null,
               refNo: "",
+              isCopaymentReceipt: 0,
             },
           ]);
         }
@@ -143,7 +158,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         return;
       }
 
-      setRows(prev => [...prev, { paymentModeId: null, amount: "", bankId: null, refNo: "" }]);
+      setRows(prev => [
+        ...prev,
+        { paymentModeId: null, amount: "", bankId: null, refNo: "", isCopaymentReceipt: 0 },
+      ]);
     };
 
     const handleRemoveRow = (index: number) => {
@@ -489,6 +507,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             amount: Number(r.amount) || 0,
             bankId: Number(r.bankId) || 0,
             refNo: String(r.refNo ?? ""),
+            isCopaymentReceipt: Number(r.isCopaymentReceipt ?? 0),
             plutusTransactionReferenceID: "",
             transactionLogId: "",
           };
@@ -522,6 +541,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
               amount: "",
               bankId: null,
               refNo: "",
+              isCopaymentReceipt: 0,
             },
           ]);
           // setPaymentValidationError("");

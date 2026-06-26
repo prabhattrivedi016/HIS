@@ -13,9 +13,6 @@ const DuplicateServicePopup = ({
   data: DuplicateServiceDataItem | null;
   onButtonClick: (value: string) => void;
 }) => {
-  console.log("Rendering DuplicateServicePopup with data:", data); // Debug
-  // log to check data passed to popup
-
   const prescribeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {

@@ -27,12 +27,10 @@ axiosInstance.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// Handle 401 Unauthorized responses
 axiosInstance.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // Clear auth data
       const storage = getAuthStorage();
       storage.removeItem("auth");
       storage.removeItem("accessToken");
@@ -44,10 +42,8 @@ axiosInstance.interceptors.response.use(
       sessionStorage.removeItem("accessToken");
       sessionStorage.removeItem("role");
 
-      // Dispatch custom event to notify listeners
       window.dispatchEvent(new CustomEvent("unauthorized", { detail: { status: 401 } }));
 
-      // Redirect to login
       window.location.replace(`${window.location.origin}/GWSNHIS`);
     }
 
