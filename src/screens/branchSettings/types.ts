@@ -84,10 +84,29 @@ type ServiceSearchItem = {
   subCategoryId: number;
   subSubCategoryId: number;
 };
-
+type BranchDefaultSettingItem = {
+  branchId: number;
+  branchName: string;
+  branchCode: string;
+  email: string;
+  contactNo1: string;
+  contactNo2: string;
+  address: string;
+  isActive: number;
+  fyStartMonth: string;
+  defaultCountryId: number;
+  defaultStateId: number;
+  defaultDistrictId: number;
+  defaultCityId: number;
+  defaultInsuranceCompanyId: number;
+  defaultCorporateId: number;
+  applyDiscountApproval: number;
+  separateCollectionCounter: number;
+};
 export type {
   BranchCorporateRateListMappingItem,
   BranchCorporateServiceExclusionItem,
+  BranchDefaultSettingItem,
   BranchTableItem,
   CategoryOptionItem,
   RateListItem,
