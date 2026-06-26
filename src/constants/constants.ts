@@ -478,6 +478,10 @@ export enum IPDAdmissionTabName {
   IPD_DOCUMENT = "Documents",
 }
 
+export enum PageType {
+  OPD_BILLING = "OPDBilling",
+  IPD_BILLING = "IPDBilling",
+}
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",
   OPD_BILLING = "OPD Billing",

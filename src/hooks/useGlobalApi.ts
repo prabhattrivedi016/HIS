@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 import { useState } from "react";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "@/api/axiosInstance";
 import { extractLineInfo } from "../utils/errorUtils";
 
 type HTTPMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";

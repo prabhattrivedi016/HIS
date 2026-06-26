@@ -212,6 +212,7 @@ const ENDPOINTS = {
 
   // access rights
   GET_USER_ACCESS_RIGHTS: "User/getUserAccessRights",
+  GET_ASSIGN_BRANCH_RIGHT: "/Home/getAssignBranchRight",
   GET_DASHBOARD_USER_ACCESS_RIGHTS: "User/getDashboardUserAccessRights",
 
   // opd billing

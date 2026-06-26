@@ -9,10 +9,17 @@ import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidG
 import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
 import { resolveVisitIdFromResponse } from "@/components/SingledrawerAndPopup/uploadVisitWiseDocuments";
 import { ENDPOINTS } from "@/config/defaults";
-import { IpdOpdTypeName, OPDBillingTabName, OPD_CATEGORY_IDs, Status } from "@/constants/constants";
+import {
+  IpdOpdTypeName,
+  OPD_CATEGORY_IDs,
+  OPDBillingTabName,
+  PageType,
+  Status,
+} from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -59,6 +66,8 @@ import {
   OpdBillingItemPayload,
   OpdBillingSavePayload,
   OpdBillingVisitDetailsPayload,
+  OpdBookingItemPayload,
+  OpdBookingSavePayload,
   OpdCardDetailItem,
   OptionItem,
   PackageItems,
@@ -120,6 +129,9 @@ const resolveRateListIdFromApiData = (
 
 const OpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const { isOPDBillingDiscountApprovalRequired } = useAssignBranchRight();
+  const isDiscountApprovalRequired = isOPDBillingDiscountApprovalRequired ? 1 : 0;
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -295,6 +307,14 @@ const OpdBilling = () => {
     return resp?.data?.[0]?.TotalBalanceAmountPharmacy;
   };
 
+  const normalizeDueAmount = (value: unknown): number => {
+    const amount = Number(value ?? 0);
+    return Number.isFinite(amount) ? amount : 0;
+  };
+
+  const hasAnyPreviousDue = (opd: unknown, ipd: unknown, pharmacy: unknown): boolean =>
+    normalizeDueAmount(opd) > 0 || normalizeDueAmount(ipd) > 0 || normalizeDueAmount(pharmacy) > 0;
+
   // autoFill patient data
 
   useEffect(() => {
@@ -341,19 +361,29 @@ const OpdBilling = () => {
           getPatientBalancePharmacy(resp?.uhid),
         ]);
 
+        const opdDue = normalizeDueAmount(opdResult);
+        const ipdDue = normalizeDueAmount(ipdResult);
+        const pharmacyDue = normalizeDueAmount(pharmacyResult);
+
         setPreviousDues({
-          opd: opdResult,
-          ipd: ipdResult,
-          pharmacy: pharmacyResult,
+          opd: opdDue,
+          ipd: ipdDue,
+          pharmacy: pharmacyDue,
         });
 
+        const patientHasPreviousDues = hasAnyPreviousDue(opdDue, ipdDue, pharmacyDue);
+
         setTimeout(() => {
-          if (opdResult !== null || ipdResult !== null || pharmacyResult !== null) {
-            setOpenIpdOpdPharmacy(true);
+          if (patientHasPreviousDues) {
             setRenderIpdOpdPharmacy(true);
+            setOpenIpdOpdPharmacy(true);
           } else {
-            // If no dues, focus service search input immediately
-            serviceInputRef.current?.focus();
+            setRenderIpdOpdPharmacy(false);
+            setOpenIpdOpdPharmacy(false);
+            setActiveTab(OPDBillingTabName.OPD_BILLING);
+            setTimeout(() => {
+              serviceInputRef.current?.focus();
+            }, 100);
           }
         }, 300);
       };
@@ -371,6 +401,7 @@ const OpdBilling = () => {
   const ipdOpdPharmacyPopupButtonHandler = useCallback((value: string) => {
     if (value === "continue") {
       setOpenIpdOpdPharmacy(false);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
       setTimeout(() => {
         serviceInputRef.current?.focus();
       }, 100);
@@ -472,6 +503,7 @@ const OpdBilling = () => {
         {},
         {
           params: {
+            branchId,
             corporateId: selectedCorporate?.value ?? row.corporateId,
             doctorId,
             serviceItemId: row.serviceItemId,
@@ -670,7 +702,10 @@ const OpdBilling = () => {
     });
   }, [serviceDataTableItem, performingDoctorsCache, loadPerformingDoctorsForDepartments]);
 
-  const mapServiceToBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
+  const resolvePerformingDoctorId = (row: ServiceBindingItem | PackagePayloadItem): number =>
+    Number(row?.doctorId) || 0;
+
+  const mapServiceToOpdBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
     const qty = Number(s?.qty) || 1;
     const rate = Number(s?.rate) || 0;
     const grossAmt = qty * rate;
@@ -692,6 +727,7 @@ const OpdBilling = () => {
       rateListId: resolveRateListIdForRow(s),
       validityDays: Number(s?.validityDays) || 0,
       doctorId: Number(s?.doctorId) || 0,
+      performingDoctorId: resolvePerformingDoctorId(s),
       qty,
       rate,
       discPer,
@@ -702,6 +738,31 @@ const OpdBilling = () => {
       packageId: 0,
       isUrgent: Number(s?.isUrgent) || 0,
       sampleTypeId: Number(s?.sampleTypeId) || 0,
+    };
+  };
+
+  const mapServiceToOpdBookingItem = (s: ServiceBindingItem): OpdBookingItemPayload => {
+    const qty = Number(s?.qty) || 1;
+    const rate = Number(s?.rate) || 0;
+    const grossAmt = qty * rate;
+    const discPer = Number(s?.discountPer) || 0;
+    const discAmt = Number(s?.dis) || (grossAmt * discPer) / 100;
+    const netAmt = Number(s?.netAmount) || Number((grossAmt - discAmt).toFixed(2));
+
+    return {
+      serviceItemId: s?.serviceItemId || 0,
+      serviceName: s?.serviceName || "",
+      code: s?.code || "",
+      discAmt,
+      discPer,
+      doctorId: Number(s?.doctorId) || 0,
+      grossAmt,
+      isUrgent: Number(s?.isUrgent) || 0,
+      netAmt,
+      qty,
+      rate,
+      rateListId: resolveRateListIdForRow(s),
+      subSubCategoryId: s?.subSubCategoryId || 0,
     };
   };
 
@@ -719,6 +780,7 @@ const OpdBilling = () => {
     rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
     validityDays: Number(item?.validityDays) || 0,
     doctorId: Number(item?.doctorId) || 0,
+    performingDoctorId: resolvePerformingDoctorId(item),
     qty: Number(item?.qty) || 1,
     rate: Number(item?.rate) || 0,
     discPer: Number(item?.discPer) || 0,
@@ -731,13 +793,36 @@ const OpdBilling = () => {
     sampleTypeId: Number(item?.sampleTypeId) || 0,
   });
 
+  const mapPackageToOpdBookingItem = (item: PackagePayloadItem): OpdBookingItemPayload => ({
+    serviceItemId: item?.serviceItemId || 0,
+    serviceName: item?.serviceName || "",
+    code: item?.code || "",
+    discAmt: Number(item?.discAmt) || 0,
+    discPer: Number(item?.discPer) || 0,
+    doctorId: Number(item?.doctorId) || 0,
+    grossAmt: Number(item?.grossAmt) || 0,
+    isUrgent: Number(item?.isUrgent) || 0,
+    netAmt: Number(item?.netAmt) || 0,
+    qty: Number(item?.qty) || 1,
+    rate: Number(item?.rate) || 0,
+    rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
+    subSubCategoryId: item?.subSubCategoryId || 0,
+  });
+
   const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
-    const tableItems = serviceDataTableItem.map(mapServiceToBillingItem);
+    const tableItems = serviceDataTableItem.map(mapServiceToOpdBillingItem);
     const packageItems = (packagePayload ?? []).map(mapPackageToBillingItem);
     return [...tableItems, ...packageItems];
   };
 
-  const buildVisitDetailsPayload = (
+  const createBillingItemsPayloadForOpdBooking = (): OpdBookingItemPayload[] => {
+    const tableItems = serviceDataTableItem.map(mapServiceToOpdBookingItem);
+    const packageItems = (packagePayload ?? []).map(mapPackageToOpdBookingItem);
+    return [...tableItems, ...packageItems];
+  };
+
+  // visit details payload for opd billing
+  const buildVisitDetailsPayloadForOpdBilling = (
     patientId: number,
     branchId: number,
     patientRecord?: Record<string, unknown> | null
@@ -754,7 +839,7 @@ const OpdBilling = () => {
       Number(opdBillingFormData.insuranceCompanyId ?? selectedInsurance ?? 0) || 0,
     corporateId: Number(opdBillingFormData.corporateId ?? selectedCorporate?.value ?? 0) || 0,
     referDoctorId: Number(opdBillingFormData.referDoctorId ?? selectedReferDoctor?.value ?? 0) || 0,
-    isDiscountApprovalRequired: 0,
+    doctorId: Number(selectedDoctor?.value ?? 0) || 0,
     grossBillAmount:
       Number(billingValues?.grossBillAmount ?? opdBillingFormData.grossBillAmount) || 0,
     totalDiscPerOnBill:
@@ -783,12 +868,46 @@ const OpdBilling = () => {
     isSendMRD: Number(opdBillingFormData.isSendMRD ?? 0) || 0,
   });
 
-  const buildOpdBillingSavePayload = (
+  // visit details payload for opd booking
+  const buildVisitDetailsPayloadForOpdBooking = (patientId: number, branchId: number) => ({
+    patientId,
+    branchId,
+    insuranceCompanyId:
+      Number(opdBillingFormData.insuranceCompanyId ?? selectedInsurance ?? 0) || 0,
+    cardHolder: opdBillingFormData.cardHolder ?? "",
+    corporateId: Number(opdBillingFormData.corporateId ?? selectedCorporate?.value ?? 0) || 0,
+    isDiscountApprovalRequired:
+      isDiscountApprovalRequired && Number(billingValues?.totalDiscPerOnBill ?? 0) > 0 ? 1 : 0,
+    expiryDate: opdBillingFormData.expiryDate ?? "",
+    grossBillAmount:
+      Number(billingValues?.grossBillAmount ?? opdBillingFormData.grossBillAmount) || 0,
+    netAmount: Number(billingValues?.netAmount ?? opdBillingFormData.netAmount) || 0,
+    policyCardNo: opdBillingFormData.policyCardNo ?? "",
+    policyNo: opdBillingFormData.policyNo ?? "",
+    referalDate: opdBillingFormData.referalDate ?? "",
+    referalNo: opdBillingFormData.referalNo ?? "",
+    referDoctorId: Number(opdBillingFormData.referDoctorId ?? selectedReferDoctor?.value ?? 0) || 0,
+    roundOff: Number(billingValues?.roundOff ?? opdBillingFormData.roundOff) || 0,
+    totalDiscAmtOnBill:
+      Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
+    totalDiscPerOnBill:
+      Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill) || 0,
+  });
+
+  const buildSavePayloadForOpdBooking = (
+    patientId: number,
+    branchId: number
+  ): OpdBookingSavePayload => ({
+    visitDetails: buildVisitDetailsPayloadForOpdBooking(patientId, branchId),
+    billingItems: createBillingItemsPayloadForOpdBooking(),
+  });
+
+  const buildSavePayloadForOpdBilling = (
     patientId: number,
     branchId: number,
     patientRecord?: Record<string, unknown> | null
   ): OpdBillingSavePayload => ({
-    visitDetails: buildVisitDetailsPayload(patientId, branchId, patientRecord),
+    visitDetails: buildVisitDetailsPayloadForOpdBilling(patientId, branchId, patientRecord),
     billingItems: createBillingItemsPayload(),
   });
 
@@ -917,7 +1036,7 @@ const OpdBilling = () => {
 
       setSearchPatientError("");
       await bindPatientToRegistration(patientId);
-      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
       return true;
     },
     [bindPatientToRegistration]
@@ -931,14 +1050,14 @@ const OpdBilling = () => {
       }
 
       await bindPatientToRegistration(patientId);
-      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
       return true;
     },
     [bindPatientToRegistration]
   );
 
   const handlePatientLoadedFromUhid = useCallback(() => {
-    setActiveTab(OPDBillingTabName.OPD_BILLING);
+    setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
   }, []);
 
   const SearchOldPatientHandler = () => {
@@ -1333,6 +1452,7 @@ const OpdBilling = () => {
       {},
       {
         params: {
+          branchId,
           corporateId: selectedCorporate?.value,
           doctorId: selectedDoctor?.value ?? 0,
           serviceItemId: item?.serviceItemId,
@@ -1392,6 +1512,7 @@ const OpdBilling = () => {
       {},
       {
         params: {
+          branchId,
           corporateId: selectedCorporate?.value,
           doctorId: selectedDoctor?.value ?? 0,
           serviceItemId: item?.serviceItemId,
@@ -1426,7 +1547,7 @@ const OpdBilling = () => {
     const serviceRow = finalizeServiceRow(resp?.data);
     const updatedServices = [...serviceDataTableItem, serviceRow];
 
-    if (serviceRow?.categoryId === 11) {
+    if (serviceRow?.categoryTypeId === 11) {
       getTestPackages(Number(serviceRow?.serviceItemId));
     }
     SetServiceDataTableItem(updatedServices);
@@ -1651,7 +1772,7 @@ const OpdBilling = () => {
       const selectedRow = prev[rowIndex];
 
       //  Only package category controls global urgent
-      if (Number(selectedRow?.categoryId) === 11) {
+      if (Number(selectedRow?.categoryTypeId) === 11) {
         setIsPackageUrgent(checked);
       }
 
@@ -1784,6 +1905,13 @@ const OpdBilling = () => {
     setRenderSearchPatientPopup(false);
     setPendingCombinedPrint(false);
     setPendingDoctorAppointmentPrint(false);
+    setRenderDueAmountPopup(false);
+    setOpenDueAmountPopup(false);
+    setDueAmount(0);
+    setRenderIpdOpdPharmacy(false);
+    setOpenIpdOpdPharmacy(false);
+    setPreviousDues({ opd: 0, ipd: 0, pharmacy: 0 });
+    setCanProceedBilling(false);
 
     // Force re-mount children with internal form state (PatientData + BillingDetails).
     setFormResetKey(prev => prev + 1);
@@ -1793,12 +1921,8 @@ const OpdBilling = () => {
   const dueAmountButtonClickHandler = (value: string) => {
     switch (value) {
       case "continue": {
-        if (dueAmount) {
-          setCanProceedBilling(true);
-          setOpenDueAmountPopup(false);
-        }
+        setCanProceedBilling(true);
         setOpenDueAmountPopup(false);
-
         break;
       }
 
@@ -1822,14 +1946,16 @@ const OpdBilling = () => {
       { params: { branchId, patientId: patientRegistrationDetails?.PatientId } },
       { component: "OpdBilling" }
     );
-    const dueAmountValue = resp?.data?.[0]?.TotalBalanceAmount ?? 0;
+    const dueAmountValue = normalizeDueAmount(resp?.data?.[0]?.TotalBalanceAmount);
+
     setDueAmount(dueAmountValue);
 
     if (dueAmountValue > 0) {
       setRenderDueAmountPopup(true);
       setOpenDueAmountPopup(true);
     } else {
-      // No due amount, proceed directly with billing
+      setRenderDueAmountPopup(false);
+      setOpenDueAmountPopup(false);
       setCanProceedBilling(true);
     }
   };
@@ -1910,10 +2036,9 @@ const OpdBilling = () => {
         return;
       }
 
-      const completePayload = buildOpdBillingSavePayload(
+      const completePayload = buildSavePayloadForOpdBooking(
         patientData.patientId,
-        patientData.branchId,
-        patientData.patientRecord
+        patientData.branchId
       );
 
       const saveOpdDraft = await fetchApi(
@@ -1979,10 +2104,19 @@ const OpdBilling = () => {
       }
 
       const billingPayload = billingDetailsRef.current?.getPayload?.();
-      const allPaymentDetails = billingPayload?.payments || [];
+      const allPaymentDetails = (billingPayload?.payments || []).map(payment => ({
+        paymentModeId: Number(payment?.paymentModeId) || 0,
+        paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
+        amount: Number(payment?.amount) || 0,
+        bankId: Number(payment?.bankId) || 0,
+        refNo: String(payment?.refNo ?? ""),
+        isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
+        plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
+        transactionLogId: String(payment?.transactionLogId ?? ""),
+      }));
 
       const completePayload = {
-        ...buildOpdBillingSavePayload(
+        ...buildSavePayloadForOpdBilling(
           patientData.patientId,
           patientData.branchId,
           patientData.patientRecord
@@ -2189,11 +2323,6 @@ const OpdBilling = () => {
     [patientRegistrationDetails]
   );
 
-  const saveButtonLabel = useMemo(() => {
-    const patientId = Number(patientRegistrationDetails?.PatientId ?? 0);
-    return patientId > 0 ? "Update" : "Create";
-  }, [patientRegistrationDetails?.PatientId]);
-
   const billingSectionProps = {
     formResetKey,
     billingDetailsRef,
@@ -2368,7 +2497,7 @@ const OpdBilling = () => {
         <IpdOpdDocument ref={ipdOpdDocumentRef} type={IpdOpdTypeName.OPD} />
       </div>
 
-      <Buttons onButtonClick={buttonClickHandler} saveLabel={saveButtonLabel} />
+      <Buttons onButtonClick={buttonClickHandler} pageType={PageType?.OPD_BILLING} />
 
       {!!loading && <CustomLoader isLoading={loading} />}
 
