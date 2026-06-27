@@ -59,6 +59,7 @@ export enum BankMasterTabName {
   BANK_MASTER = "Bank Master",
   BANK_DETAILS = "Bank Details",
 }
+
 export enum Radiology {
   RADIOLOGY = "radiology",
   DEFAULT_REPORT_TYPE = "2",

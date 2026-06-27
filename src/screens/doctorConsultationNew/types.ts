@@ -9,6 +9,7 @@ type PatientItem = {
   DoctorName: string;
   ValidUpToDate: string;
   IsExpired: number;
+  IsDischarged: number;
   VisitId: number;
   Id: number;
   IsConsultationDone: number;
