@@ -1,5 +1,4 @@
-import InputField from "@/components/customInputField";
-import { CalendarClock, ChevronLeft, ChevronRight, Edit, Stethoscope, User } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Edit, Stethoscope, User } from "lucide-react";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -251,46 +250,64 @@ const DoctorConsultationNew = () => {
           }`}
         >
           <div className="card mr-1 h-full flex flex-col gap-2 p-3">
-            {/* Filters row */}
+            {/* Doctor + Type in one row */}
             <div className="grid grid-cols-2 gap-2">
-              <InputField label="Doctor">
-                <select
-                  className="input-field"
-                  value={selectedDepartment}
-                  onChange={e => setSelectedDepartment(e.target.value)}
-                >
-                  <option value="0">-- All --</option>
-                  {doctorList.map((dept: any) => (
-                    <option key={dept.doctorId} value={dept.doctorId}>{dept.name}</option>
-                  ))}
-                </select>
-              </InputField>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-0.5">Doctor</label>
+                <div className="relative">
+                  <select
+                    value={selectedDepartment}
+                    onChange={e => setSelectedDepartment(e.target.value)}
+                    className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-2 pr-6 py-2 text-xs text-gray-700 cursor-pointer shadow-sm hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  >
+                    <option value="0">-- All --</option>
+                    {doctorList.map((dept: any) => (
+                      <option key={dept.doctorId} value={dept.doctorId}>{dept.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
 
-              <InputField label="Type">
-                <select
-                  className="input-field"
-                  onChange={e => setSelectedType(Number(e.target.value))}
-                >
-                  <option value={1}>OPD</option>
-                  <option value={2}>IPD</option>
-                  <option value={6}>Daycare</option>
-                  <option value={7}>Dialysis</option>
-                  <option value={9}>Emergency</option>
-                </select>
-              </InputField>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-0.5">Type</label>
+                <div className="relative">
+                  <select
+                    onChange={e => setSelectedType(Number(e.target.value))}
+                    className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-2 pr-6 py-2 text-xs text-gray-700 cursor-pointer shadow-sm hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  >
+                    <option value={1}>OPD</option>
+                    <option value={2}>IPD</option>
+                    <option value={6}>Daycare</option>
+                    <option value={7}>Dialysis</option>
+                    <option value={9}>Emergency</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
             {/* Search */}
             <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
               <input
-                className="input-field pl-8 text-sm"
-                placeholder="Search by Name, UHID, Mobile..."
+                className="w-full bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 shadow-sm hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                placeholder="Search name, UHID, mobile..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
               />
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-              </svg>
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Compact date navigator */}
@@ -380,12 +397,12 @@ const DoctorConsultationNew = () => {
               ) : (
                 filteredData.map((item: PatientItem, idx: number) => (
                   <div
-                    key={item.VisitId}
+                    key={`${item.VisitId}-${item.DoctorId}`}
                     onClick={() => setSelectedPatient(item)}
                     className={`w-full rounded-xl border shadow-sm p-2.5 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
-                      selectedPatient?.VisitId === item.VisitId
+                      selectedPatient?.VisitId === item.VisitId && selectedPatient?.DoctorId === item.DoctorId
                         ? "bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-500 ring-2 ring-blue-300 shadow-md"
-                        : "bg-gradient-to-br from-cyan-50 to-blue-50 border-blue-200 hover:border-blue-400 hover:shadow-md hover:from-cyan-100 hover:to-blue-100"
+                        : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50"
                     }`}
                   >
                     {/* Row 1 — Avatar + Name + Type + UP NEXT */}
