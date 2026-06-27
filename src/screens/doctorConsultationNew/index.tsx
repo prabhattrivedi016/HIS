@@ -44,6 +44,8 @@ const DoctorConsultationNew = () => {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
+  const [vitalsData, setVitalsData] = useState({ bp: "", pulse: "", rr: "", spo2: "", temp: "", grbs: "", ht: "", wt: "", bmi: "" });
+  const updateVital = (key: string, val: string) => setVitalsData(prev => ({ ...prev, [key]: val }));
   const getPatientLists = async () => {
     const resp = await fetchApi(
       "GET",
@@ -478,17 +480,112 @@ const DoctorConsultationNew = () => {
             </div>
           ) : (
             <>
-              {/* Patient Info Bar */}
-              <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-sm flex flex-wrap gap-x-5 gap-y-1 mb-3">
-                <span><strong className="text-gray-500 font-medium">UHID:</strong> <span className="text-gray-800">{selectedPatient.UHID}</span></span>
-                <span><strong className="text-gray-500 font-medium">Name:</strong> <span className="text-gray-800">{selectedPatient.PatientName}</span></span>
-                <span><strong className="text-gray-500 font-medium">Age / Gender:</strong> <span className="text-gray-800">{selectedPatient.Age} / {selectedPatient.Gender}</span></span>
-                <span><strong className="text-gray-500 font-medium">Doctor:</strong> <span className="text-gray-800">{selectedPatient.DoctorName}</span></span>
-                {selectedPatient.BedNo && (
-                  <span><strong className="text-gray-500 font-medium">Bed No:</strong> <span className="text-gray-800">{selectedPatient.BedNo}</span></span>
-                )}
-                <span><strong className="text-gray-500 font-medium">Appt:</strong> <span className="text-gray-800">{selectedPatient.AppDateTime}</span></span>
-              </div>
+              {/* Patient Header */}
+              {(() => {
+                const initials = selectedPatient.PatientName
+                  .split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase();
+                const vitals = [
+                  { label: "BP",    key: "bp",    value: vitalsData.bp,    unit: "mmHg",  color: "text-red-500",    labelColor: "text-red-400",    focusBorder: "focus:border-red-400" },
+                  { label: "PULSE", key: "pulse", value: vitalsData.pulse, unit: "/min",  color: "text-green-600",  labelColor: "text-green-500",  focusBorder: "focus:border-green-500" },
+                  { label: "RR",    key: "rr",    value: vitalsData.rr,    unit: "/min",  color: "text-slate-600",  labelColor: "text-slate-500",  focusBorder: "focus:border-slate-400" },
+                  { label: "SPO₂",  key: "spo2",  value: vitalsData.spo2,  unit: "%",     color: "text-blue-600",   labelColor: "text-blue-500",   focusBorder: "focus:border-blue-400" },
+                  { label: "TEMP",  key: "temp",  value: vitalsData.temp,  unit: "°F",    color: "text-green-600",  labelColor: "text-green-500",  focusBorder: "focus:border-green-500" },
+                  { label: "GRBS",  key: "grbs",  value: vitalsData.grbs,  unit: "mg/dL", color: "text-orange-500", labelColor: "text-orange-400", focusBorder: "focus:border-orange-400" },
+                  { label: "HT",    key: "ht",    value: vitalsData.ht,    unit: "cm",    color: "text-purple-600", labelColor: "text-purple-500", focusBorder: "focus:border-purple-400" },
+                  { label: "WT",    key: "wt",    value: vitalsData.wt,    unit: "kg",    color: "text-purple-600", labelColor: "text-purple-500", focusBorder: "focus:border-purple-400" },
+                  { label: "BMI",   key: "bmi",   value: vitalsData.bmi,   unit: "kg/m²", color: "text-orange-500", labelColor: "text-orange-400", focusBorder: "focus:border-orange-400" },
+                ];
+                const visitFields = [
+                  { label: "UHID / MRN", value: selectedPatient.UHID, highlight: false },
+                  { label: "VISIT ID",   value: selectedPatient.AppointmentNo, highlight: false },
+                  { label: "VISIT DATE", value: selectedPatient.AppDateTime, highlight: false },
+                  { label: "VISIT TYPE", value: selectedPatient.TypeName, highlight: false },
+                  ...(selectedPatient.BedNo ? [{ label: "BED NO", value: selectedPatient.BedNo, highlight: false }] : []),
+                  { label: "DOCTOR",     value: selectedPatient.DoctorName, highlight: true },
+                ];
+                return (
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-3 overflow-hidden">
+                    {/* ── Section 1: Name / badges / actions ── */}
+                    <div className="flex items-start justify-between gap-4 px-4 py-3">
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+                          <span className="text-white font-bold text-base tracking-wide">{initials}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {/* Name + age + allergy */}
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className="text-base font-bold text-gray-900">{selectedPatient.PatientName}</span>
+                            <span className="text-sm text-gray-500">{selectedPatient.Age} · {selectedPatient.Gender}</span>
+                            {/* Allergy badge */}
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200">
+                              No Allergy
+                            </span>
+                          </div>
+                          {/* Phone + ABHA */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {selectedPatient.ContactNumber && (
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center shrink-0">
+                                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                                <span className="text-sm text-blue-600 font-medium">{selectedPatient.ContactNumber}</span>
+                              </div>
+                            )}
+                            {/* ABHA Not Linked */}
+                            <span className="text-[11px] bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full font-medium">
+                              ABHA Not Linked
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 shrink-0 mt-1">
+                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">View</button>
+                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">Print</button>
+                        <button className="text-sm font-medium bg-slate-800 text-white rounded-lg px-4 py-1.5 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-1.5">
+                          Save <ChevronDown size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ── Section 2: Visit info strip (gray bg) ── */}
+                    <div className="bg-gray-50 border-t border-b border-gray-100 px-4 py-2.5 flex flex-wrap gap-x-8 gap-y-1">
+                      {visitFields.map(f => (
+                        <div key={f.label} className="flex flex-col">
+                          <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">{f.label}</span>
+                          <span className={`text-sm font-semibold ${f.highlight ? "text-teal-600" : "text-gray-800"}`}>{f.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Section 3: Vitals strip — full width, editable ── */}
+                    <div className="flex items-start divide-x divide-gray-100 w-full py-2">
+                      {vitals.map(v => (
+                        <div key={v.label} className="flex-1 flex flex-col items-center px-1">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${v.value ? v.labelColor : "text-gray-300"}`}>
+                            {v.label}
+                          </span>
+                          <input
+                            type="text"
+                            value={v.value}
+                            onChange={e => updateVital(v.key, e.target.value)}
+                            placeholder="--"
+                            className={`border-b-2 border-dashed focus:border-solid focus:outline-none bg-transparent text-base font-bold leading-none pb-0.5 text-center transition-colors w-full max-w-[56px] placeholder:text-gray-200 ${
+                              v.value ? v.color : "text-gray-300"
+                            } border-gray-200 ${v.focusBorder}`}
+                          />
+                          <span className={`text-[9px] mt-0.5 leading-none ${v.value ? "text-gray-400" : "text-gray-300"}`}>
+                            {v.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Tab */}
               <div className="bg-white border-b px-4 py-2 text-gray-700 font-medium">Consultation</div>
