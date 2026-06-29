@@ -369,6 +369,14 @@ const ENDPOINTS = {
   SEARCH_IPD_PATIENT: "Patient/searchIPDPatient",
   GET_BILLING_TABS: "Home/getBillingTabs",
 
+  // vital master
+  GET_VITAL_MASTER_LIST: "Admin/getVitalMasterList",
+  GET_VITAL_UNIT_MASTER_LIST: "Admin/getVitalUnitMasterList",
+  CREATE_UPDATE_VITAL_MASTER: "Admin/createUpdateVitalMaster",
+  CREATE_UPDATE_VITAL_UNIT_MASTER: "Admin/CreateUpdateVitalUnitMaster",
+  GET_VITAL_MAPPING_LIST: "Admin/getVitalDepartmentMapping",
+  SAVE_VITAL_MAPPING: "Admin/saveVitalDepartmentMapping",
+
   // authority approval
   GET_APPROVAL_AUTHORITY_MASTER_LIST: "Admin/getApprovalAuthorityMasterList",
   CREATE_UPDATE_APPROVAL_AUTHORITY_MASTER: "Admin/createUpdateApprovalAuthorityMaster",

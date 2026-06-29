@@ -113,6 +113,11 @@ export enum ConsultationHeaderMasterTabName {
   HEADER_MASTER = "Header Master",
   DOCTOR_DEPARTMENT_HEADER_MAPPING = "Doctor Department Header Mapping",
 }
+
+export enum VitalMasterTabName {
+  VITAL_MASTER = "Vital Master",
+  VITAL_MAPPING = "Vital Mapping",
+}
 export const BankDetailsTableHeader = [
   "#",
   "Payee Name",
