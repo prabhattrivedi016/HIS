@@ -65,11 +65,37 @@ type BillingFormValues = {
   payments?: BillingPaymentFormItem[];
   [key: string]: unknown;
 };
+
+type BillingValuesItem = {
+  grossBillAmount: number;
+  totalDiscPerOnBill: number;
+  totalDiscAmtOnBill: number;
+  roundOff: number;
+  netAmount: number;
+  balanceAmount: number;
+  discApprovedById: number;
+  discountReason: string;
+  remarks: string;
+};
+
+type BillingDetailsProps = {
+  setOpdBilling?: (value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)) => void;
+  setBillingValues?: (
+    value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)
+  ) => void;
+  billingValues?: BillingValuesItem;
+  paymentBilling?: Record<string, unknown>;
+  maxDiscountPercentage?: number;
+  creditCopayment?: boolean;
+};
+
 export type {
   BankItems,
   BillingDetailsHandle,
+  BillingDetailsProps,
   BillingFormValues,
   BillingPaymentFormItem,
+  BillingValuesItem,
   DiscountApproveItem,
   PaymentMethodPayloadItem,
   PaymentMethodsHandle,

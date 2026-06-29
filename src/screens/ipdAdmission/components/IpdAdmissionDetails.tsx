@@ -195,19 +195,19 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
   });
 
   // corporate list
-  const getCorporateList = async (insuranceId: number) => {
+  const getCorporateList = async (insuranceCompanyId: number) => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID,
+      ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,
       {},
-      { params: { insuranceCompanyId: insuranceId, isActive: Status.ACTIVE } },
+      { params: { branchId, insuranceCompanyId } },
       { component: "IpdAdmission" }
     );
     return (resp?.data ?? []) as CorporateItem[];
   };
 
   const { data: corporateList = EMPTY_CORPORATE_LIST } = useQuery({
-    queryKey: ["ipdAdmissionCorporateList", insuranceCompanyId],
+    queryKey: ["ipdAdmissionCorporateList", branchId, insuranceCompanyId],
     queryFn: () => getCorporateList(Number(insuranceCompanyId)),
     enabled: Number(insuranceCompanyId) > 0,
   });

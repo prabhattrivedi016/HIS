@@ -12,6 +12,11 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const getServiceRowRemarks = (row: ServiceRow | ServiceBindingItem | Record<string, unknown>) => {
+  const record = row as Record<string, unknown>;
+  return String(record?.remarks ?? record?.Remarks ?? "");
+};
+
 const recalculateFromDiscountPercentage = (
   row: ServiceRow,
   discountPerInput: number,
@@ -31,6 +36,7 @@ const recalculateFromDiscountPercentage = (
     discountPer: Number(normalizedDiscountPer.toFixed(2)),
     dis,
     netAmount,
+    remarks: getServiceRowRemarks(row),
   };
 };
 
@@ -48,6 +54,7 @@ const recalculateFromDiscountValue = (row: ServiceRow, discountValueInput: numbe
     discountPer: Number(discountPer.toFixed(2)),
     dis: Number(normalizedDiscountValue.toFixed(2)),
     netAmount,
+    remarks: getServiceRowRemarks(row),
   };
 };
 
@@ -91,6 +98,7 @@ export {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
   applyRateChange,
+  getServiceRowRemarks,
   recalculateFromDiscountPercentage,
   recalculateFromDiscountValue,
   toNumber,

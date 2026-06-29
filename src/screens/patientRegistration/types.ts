@@ -43,10 +43,13 @@ type InsuranceItem = {
 };
 
 type CorporateItem = {
+  branchId: number;
   corporateId: number;
   corporateName: string;
   insuranceCompanyId: number;
-  isActive: number;
+  paymentType: string;
+  paymentTypeId: number;
+  isActive?: number;
 };
 
 type PatientDataItem = {

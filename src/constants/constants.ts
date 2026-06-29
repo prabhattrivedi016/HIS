@@ -71,6 +71,11 @@ export enum Radiology {
   DEFAULT_REPORT_TYPE = "2",
 }
 
+export enum PaymentTypeValues {
+  CREDIT = "Credit Only",
+  BOTH = "Both",
+  CASH = "Cash Only",
+}
 export enum LabMasterTabName {
   SAMPLE_TYPE = "Sample Type",
   TEST_METHOD = "Test Method",

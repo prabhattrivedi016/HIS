@@ -453,6 +453,7 @@ export const OpdBillingServiceTableHeader = [
   "Disc (%)",
   "Disc",
   "Net Amt",
+  "Remarks",
   "U",
 ];
 
