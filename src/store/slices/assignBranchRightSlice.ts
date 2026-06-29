@@ -51,9 +51,7 @@ export const fetchAssignBranchRight = createAsyncThunk<
 
     return { branchId, rights };
   } catch (error: any) {
-    return rejectWithValue(
-      error?.response?.data?.message || "Failed to fetch assign branch right"
-    );
+    return rejectWithValue(error?.response?.data?.message || "Failed to fetch assign branch right");
   }
 });
 

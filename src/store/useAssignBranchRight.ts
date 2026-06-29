@@ -1,10 +1,8 @@
-import { useCallback, useContext, useEffect } from "react";
 import { AuthContext } from "@/context/AuthContext";
+import { useCallback, useContext, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "./hooks";
 import { fetchAssignBranchRight } from "./slices/assignBranchRightSlice";
 import type { RootState } from "./store";
-
-const toFlag = (value: number | undefined | null) => Number(value ?? 0) === 1;
 
 export const selectAssignBranchRightState = (state: RootState) => state.assignBranchRight;
 
@@ -28,12 +26,6 @@ export const useAssignBranchRight = () => {
     loading,
     error,
     refetchAssignBranchRight,
-    isOPDBillingAllowedForIPDPatient: toFlag(rights?.IsOPDBillingAllowedForIPDPatient),
-    isOPDBillingDiscountApprovalRequired: toFlag(
-      rights?.IsOPDBillingDiscountApprovalRequired
-    ),
-    isOutstandingAllowedForCashCorporate: toFlag(rights?.IsOutstandingAllowedForCashCorporate),
-    isSeparateCollectionCounterEnabled: toFlag(rights?.IsSeparateCollectionCounterEnabled),
   };
 };
 

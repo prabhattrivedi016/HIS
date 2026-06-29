@@ -9,13 +9,17 @@ import { BranchItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useAssignBranchRight } from "../../../store/useAssignBranchRight";
 import { BranchTableItem } from "../types";
 
 const BranchRightMapping = () => {
   const { loading, fetchApi } = useGlobalApi();
   const [selectedBranch, setSelectedBranch] = useState<number>(1);
+  const { refetchAssignBranchRight } = useAssignBranchRight();
   const branches = useGetBranchList()?.branchList?.data ?? [];
   const [updatedTable, setUpdatedTable] = useState<BranchTableItem[]>([]);
+
+  console.log("refetchAssignBranchRight", refetchAssignBranchRight);
 
   const branchSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
@@ -79,7 +83,7 @@ const BranchRightMapping = () => {
       return;
     }
     showSuccess("Data saved successfully");
-    refetch?.();
+    await Promise.allSettled([refetch?.(), refetchAssignBranchRight?.()]);
   };
 
   return (
