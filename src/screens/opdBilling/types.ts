@@ -188,6 +188,7 @@ type ServiceBindingItem = {
   netAmount?: number;
   isUrgent?: number;
   isUnderPackage?: number;
+  remarks?: string;
 };
 
 type CategoryItem = {
@@ -274,6 +275,7 @@ type PackagePayloadItem = {
   isUnderPackage: number;
   packageId?: number;
   isUrgent: number;
+  remarks?: string;
 };
 
 type OpdBillingItemPayload = {
@@ -301,6 +303,7 @@ type OpdBillingItemPayload = {
   packageId: number;
   isUrgent: number;
   sampleTypeId: number;
+  remarks: string;
 };
 
 type OpdBookingItemPayload = {
@@ -317,6 +320,7 @@ type OpdBookingItemPayload = {
   serviceItemId: number;
   serviceName: string;
   subSubCategoryId: number;
+  remarks: string;
 };
 
 type OpdBillingVisitDetailsPayload = {
@@ -370,6 +374,7 @@ type buildVisitDetailsPayloadForOpdBooking = {
   roundOff: number;
   totalDiscAmtOnBill: number;
   totalDiscPerOnBill: number;
+  remarks: string;
 };
 
 type OpdBookingSavePayload = {
@@ -577,6 +582,7 @@ type OpdBillingSectionProps = {
   rateChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   discountPercentageChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   discountChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  remarksChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   urgentChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   isPackageService: (serviceName: unknown) => boolean;
   packagePopupHandler: (packageId: number) => void;
@@ -588,6 +594,7 @@ type OpdBillingSectionProps = {
   billingValues: BillingFormValues;
   billingPaymentDetails: Record<string, unknown>;
   maxDiscountPercentage: number | undefined;
+  creditCopayment: boolean;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,

@@ -1,7 +1,6 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
-import { BillingAmountContext } from "@/context/BillingAmountContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
@@ -9,7 +8,6 @@ import {
   ChangeEvent,
   forwardRef,
   useCallback,
-  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -33,6 +31,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       billingValues: initialBillingValues,
       paymentBilling,
       maxDiscountPercentage,
+      creditCopayment = false,
     },
     ref
   ) => {
@@ -47,6 +46,14 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       Record<number, Partial<Record<"paymentModeId" | "amount" | "bankId" | "refNo", string>>>
     >({});
 
+    const [copaymentAmount, setCopaymentAmount] = useState<number>(0);
+
+    useEffect(() => {
+      if (!creditCopayment) {
+        setCopaymentAmount(0);
+      }
+    }, [creditCopayment]);
+
     // payment modes added
     const [rows, setRows] = useState<
       Array<{
@@ -59,7 +66,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     >([
       {
         paymentModeId: null,
-        amount: "",
+        amount: "0",
         isCopaymentReceipt: 0,
         bankId: null,
         refNo: "",
@@ -74,7 +81,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           setRows([
             {
               paymentModeId: cash?.paymentModeId,
-              amount: String(toNumber(initialBillingValues?.netAmount ?? totalBillingAmount) || ""),
+              amount: "0",
               bankId: null,
               refNo: "",
               isCopaymentReceipt: 0,
@@ -150,6 +157,18 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       }
 
       setRowErrors(nextRowErrors);
+
+      const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
+      const maxPaymentAmount = getMaxPaymentAmount();
+      if (totalPaid > maxPaymentAmount) {
+        if (creditCopayment && toNumber(copaymentAmount) > 0) {
+          showWarning("Total paid amount cannot exceed Co-payment amount");
+        } else if (!creditCopayment || toNumber(copaymentAmount) <= 0) {
+          showError("Total paid amount cannot exceed Net Amount");
+        }
+        return false;
+      }
+
       return !hasError;
     };
 
@@ -160,7 +179,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       setRows(prev => [
         ...prev,
-        { paymentModeId: null, amount: "", bankId: null, refNo: "", isCopaymentReceipt: 0 },
+        { paymentModeId: null, amount: "0", bankId: null, refNo: "", isCopaymentReceipt: 0 },
       ]);
     };
 
@@ -209,15 +228,15 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       const updatedRows = [...rows];
       updatedRows[index] = { ...updatedRows[index], [key]: value };
 
-      //  calculate total
       const totalPaid = updatedRows.reduce((sum, r) => sum + toNumber(r.amount), 0);
+      const maxPaymentAmount = getMaxPaymentAmount();
 
-      const netAmount = toNumber(billingValues?.netAmount);
-
-      //  block over payment
-      if (totalPaid > netAmount) {
-        showError("Total paid amount cannot exceed Net Amount");
-
+      if (totalPaid > maxPaymentAmount) {
+        if (creditCopayment && toNumber(copaymentAmount) > 0) {
+          showWarning("Total paid amount cannot exceed Co-payment amount");
+        } else if (!creditCopayment || toNumber(copaymentAmount) <= 0) {
+          showError("Total paid amount cannot exceed Net Amount");
+        }
         return;
       }
 
@@ -250,13 +269,19 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     const billingValues = initialBillingValues || defaultBillingValues;
 
     const [discountApproveList, setDiscountApproveList] = useState<DiscountApproveItem[]>([]);
-    const { totalBillingAmount } = useContext(BillingAmountContext);
 
     const toNumber = (value: unknown) => {
       if (value === "" || value === null || value === undefined) return 0;
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : 0;
     };
+
+    const getMaxPaymentAmount = useCallback(() => {
+      if (creditCopayment && toNumber(copaymentAmount) > 0) {
+        return toNumber(copaymentAmount);
+      }
+      return toNumber(billingValues?.netAmount);
+    }, [billingValues?.netAmount, copaymentAmount, creditCopayment]);
 
     const isServiceDiscountApplied = paymentBilling && paymentBilling.totalDiscAmtOnBill > 0;
 
@@ -300,23 +325,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         }
       }
     }, [paymentBilling]);
-
-    // Auto-fill cash amount from net amount when row is still empty.
-    useEffect(() => {
-      const netAmountValue = toNumber(billingValues?.netAmount);
-      const cashMode = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
-      if (!cashMode) return;
-
-      setRows(prev =>
-        prev.map((row, idx) => {
-          const isOnlyCashRow = prev.length === 1;
-          const shouldAutoFill =
-            isOnlyCashRow && idx === 0 && row.paymentModeId === cashMode.paymentModeId;
-          if (!shouldAutoFill) return row;
-          return { ...row, amount: String(netAmountValue || "") };
-        })
-      );
-    }, [billingValues?.netAmount, paymentList]);
 
     const roundToTwo = (value: number) => Number(value.toFixed(2));
     const hasBillLevelDiscount =
@@ -495,6 +503,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     };
 
     const getPaymentPayload = useCallback(() => {
+      const isCopaymentReceipt = toNumber(copaymentAmount) > 0 ? 1 : 0;
+
       return rows
         .filter(r => Number(r.amount) > 0 && !!r.paymentModeId)
         .map(r => {
@@ -507,12 +517,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             amount: Number(r.amount) || 0,
             bankId: Number(r.bankId) || 0,
             refNo: String(r.refNo ?? ""),
-            isCopaymentReceipt: Number(r.isCopaymentReceipt ?? 0),
+            isCopaymentReceipt,
             plutusTransactionReferenceID: "",
             transactionLogId: "",
           };
         });
-    }, [paymentList, rows]);
+    }, [copaymentAmount, paymentList, rows]);
 
     useEffect(() => {
       const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
@@ -538,7 +548,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           setRows([
             {
               paymentModeId: cash?.paymentModeId ?? null,
-              amount: "",
+              amount: "0",
               bankId: null,
               refNo: "",
               isCopaymentReceipt: 0,
@@ -546,6 +556,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           ]);
           // setPaymentValidationError("");
           setRowErrors({});
+          setCopaymentAmount(0);
           setBillingState({
             grossBillAmount: 0,
             totalDiscPerOnBill: 0,
@@ -560,7 +571,15 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           setBillingFieldErrors({});
         },
       }),
-      [billingValues, getPaymentPayload, paymentList, rows, hasBillLevelDiscount]
+      [
+        billingValues,
+        creditCopayment,
+        getPaymentPayload,
+        getMaxPaymentAmount,
+        paymentList,
+        rows,
+        hasBillLevelDiscount,
+      ]
     );
 
     return (
@@ -629,6 +648,25 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                 disabled={true}
               />
             </InputField>
+
+            {creditCopayment && (
+              <InputField label="Co-payment">
+                <input
+                  className="input-field"
+                  value={copaymentAmount}
+                  onInput={allowOnlyNumbers}
+                  onChange={e => {
+                    const nextCopaymentAmount = Number(e.target.value);
+                    const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
+                    if (nextCopaymentAmount > 0 && totalPaid > nextCopaymentAmount) {
+                      showWarning("Total paid amount cannot exceed Co-payment amount");
+                      return;
+                    }
+                    setCopaymentAmount(nextCopaymentAmount);
+                  }}
+                />
+              </InputField>
+            )}
 
             <InputField label="Discount Approved By">
               <select

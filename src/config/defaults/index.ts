@@ -67,8 +67,6 @@ const ENDPOINTS = {
   GET_CITY_MASTER: "Home/getCityMaster",
   GET_ALL_INSURANCE_COMPANY_LIST: "Home/getAllInsuranceCompanyList",
   GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID: "Home/getCorporateListByInsuranceCompanyId",
-  GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID:
-    "Home/getCorporateListByBranchIdAndInsuranceCompanyId",
   CREATE_UPDATE_BRANCH_MASTER: "Admin/createUpdateBranchMaster",
 
   //location master

@@ -14,6 +14,7 @@ import {
   OPD_CATEGORY_IDs,
   OPDBillingTabName,
   PageType,
+  PaymentTypeValues,
   Status,
 } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
@@ -51,6 +52,7 @@ import {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
   applyRateChange,
+  getServiceRowRemarks,
   recalculateFromDiscountPercentage,
 } from "./components/helperFunction";
 import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
@@ -171,6 +173,8 @@ const OpdBilling = () => {
   const [selectDoctorError, setSelectDoctorError] = useState<string>("");
 
   const [serviceDataTableItem, SetServiceDataTableItem] = useState<ServiceBindingItem[]>([]);
+  const serviceDataTableItemRef = useRef<ServiceBindingItem[]>([]);
+  const serviceItemRemarksRef = useRef<Record<number, string>>({});
 
   const [showTable, setShowTable] = useState<boolean>(false);
 
@@ -255,6 +259,8 @@ const OpdBilling = () => {
   const [openIpdOpdPharmacyPopup, setOpenIpdOpdPharmacy] = useState<boolean>(false);
   const [renderIpdOpdPharmacyPopup, setRenderIpdOpdPharmacy] = useState<boolean>(false);
 
+  const [creditCopayment, setCreditCopayment] = useState<boolean>(false);
+
   // get discount % user wise
   const getDiscountPerc = async (userId: number) => {
     const resp = await fetchApi(
@@ -322,6 +328,8 @@ const OpdBilling = () => {
       const fetchPatientData = async () => {
         // clear previous patient billing data
         SetServiceDataTableItem([]);
+        serviceDataTableItemRef.current = [];
+        serviceItemRemarksRef.current = {};
         SetServiceItemList([]);
         setSearchTerm("");
         setShowPopup(false);
@@ -474,9 +482,40 @@ const OpdBilling = () => {
   });
 
   //billing details payload
+  const resolveServiceRemarks = (
+    row: ServiceBindingItem | Record<string, unknown>,
+    serviceItemId?: number
+  ) => {
+    const fromRow = getServiceRowRemarks(row);
+    if (fromRow) return fromRow;
+
+    const id = Number(serviceItemId ?? (row as ServiceBindingItem)?.serviceItemId ?? 0);
+    return id > 0 ? String(serviceItemRemarksRef.current[id] ?? "") : "";
+  };
+
+  const updateServiceTableItem = (
+    updater: ServiceBindingItem[] | ((prev: ServiceBindingItem[]) => ServiceBindingItem[])
+  ) => {
+    SetServiceDataTableItem(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      serviceDataTableItemRef.current = next;
+      next.forEach(item => {
+        const remarks = resolveServiceRemarks(item, item.serviceItemId);
+        if (remarks && item.serviceItemId) {
+          serviceItemRemarksRef.current[item.serviceItemId] = remarks;
+        }
+      });
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    serviceDataTableItemRef.current = serviceDataTableItem;
+  }, [serviceDataTableItem]);
+
   const buildServiceRowFromApi = (
     apiData: ServiceBindingItem | Record<string, unknown> | null | undefined,
-    overrides?: { doctorId?: number; doctorName?: string }
+    overrides?: { doctorId?: number; doctorName?: string; remarks?: string }
   ): ServiceBindingItem => {
     const data = (apiData ?? {}) as ServiceBindingItem & Record<string, unknown>;
     const requiresPerformingDoctor = Number(data?.isRequiredSeparatePerformingDoctor) === 1;
@@ -492,6 +531,7 @@ const OpdBilling = () => {
       qty: data?.qty ?? 1,
       doctorId,
       doctorName,
+      remarks: String(overrides?.remarks ?? getServiceRowRemarks(data)),
     };
   };
 
@@ -594,7 +634,7 @@ const OpdBilling = () => {
     }
 
     if (!doctorId) {
-      SetServiceDataTableItem(prev =>
+      updateServiceTableItem(prev =>
         prev.map((item, index) =>
           index === rowIndex ? { ...item, doctorId: 0, doctorName: "", rateListId: 0 } : item
         )
@@ -605,23 +645,29 @@ const OpdBilling = () => {
 
     const options = getPerformingDoctorOptions(row?.doctorDepartmentIds);
     const selected = options.find(option => Number(option.value) === doctorId);
+    const existingRemarks = resolveServiceRemarks(row, row.serviceItemId);
     const apiData = await fetchServiceDetailsForRow(row, doctorId);
     const updatedRow = buildServiceRowFromApi(apiData, {
       doctorId,
       doctorName: selected?.label ?? "",
+      remarks: existingRemarks,
     });
     const mergedRow = recalculateFromDiscountPercentage(
       {
         ...row,
         ...updatedRow,
         qty: row.qty ?? updatedRow.qty ?? 1,
+        remarks: existingRemarks,
       },
       Number(row.discountPer ?? 0),
       Number(updatedRow.rate ?? row.rate ?? 0)
     );
     mergedRow.rateListId = resolveRateListIdForRow(mergedRow);
+    if (existingRemarks && row.serviceItemId) {
+      serviceItemRemarksRef.current[row.serviceItemId] = existingRemarks;
+    }
 
-    SetServiceDataTableItem(prev => {
+    updateServiceTableItem(prev => {
       const updated = prev.map((item, index) => (index === rowIndex ? mergedRow : item));
       setTimeout(() => calculateAndUpdateBillingDetails(updated), 0);
       return updated;
@@ -738,6 +784,7 @@ const OpdBilling = () => {
       packageId: 0,
       isUrgent: Number(s?.isUrgent) || 0,
       sampleTypeId: Number(s?.sampleTypeId) || 0,
+      remarks: resolveServiceRemarks(s, s?.serviceItemId),
     };
   };
 
@@ -763,6 +810,7 @@ const OpdBilling = () => {
       rate,
       rateListId: resolveRateListIdForRow(s),
       subSubCategoryId: s?.subSubCategoryId || 0,
+      remarks: resolveServiceRemarks(s, s?.serviceItemId),
     };
   };
 
@@ -791,6 +839,7 @@ const OpdBilling = () => {
     packageId: Number(item?.packageId) || 0,
     isUrgent: Number(item?.isUrgent) || 0,
     sampleTypeId: Number(item?.sampleTypeId) || 0,
+    remarks: resolveServiceRemarks(item, item?.serviceItemId),
   });
 
   const mapPackageToOpdBookingItem = (item: PackagePayloadItem): OpdBookingItemPayload => ({
@@ -807,16 +856,17 @@ const OpdBilling = () => {
     rate: Number(item?.rate) || 0,
     rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
     subSubCategoryId: item?.subSubCategoryId || 0,
+    remarks: resolveServiceRemarks(item, item?.serviceItemId),
   });
 
   const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
-    const tableItems = serviceDataTableItem.map(mapServiceToOpdBillingItem);
+    const tableItems = serviceDataTableItemRef.current.map(mapServiceToOpdBillingItem);
     const packageItems = (packagePayload ?? []).map(mapPackageToBillingItem);
     return [...tableItems, ...packageItems];
   };
 
   const createBillingItemsPayloadForOpdBooking = (): OpdBookingItemPayload[] => {
-    const tableItems = serviceDataTableItem.map(mapServiceToOpdBookingItem);
+    const tableItems = serviceDataTableItemRef.current.map(mapServiceToOpdBookingItem);
     const packageItems = (packagePayload ?? []).map(mapPackageToOpdBookingItem);
     return [...tableItems, ...packageItems];
   };
@@ -851,7 +901,7 @@ const OpdBilling = () => {
     discApprovedById:
       Number(billingValues?.discApprovedById ?? opdBillingFormData.discApprovedById ?? 0) || 0,
     discountReason: billingValues?.discountReason ?? opdBillingFormData.discountReason ?? "",
-    remarks: billingValues?.remarks ?? opdBillingFormData.remarks ?? "",
+    remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
     uniqueId: opdBillingFormData.uniqueId ?? "",
     mlc: opdBillingFormData.mlc ?? "",
     pi: opdBillingFormData.pi ?? "",
@@ -892,6 +942,7 @@ const OpdBilling = () => {
       Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
     totalDiscPerOnBill:
       Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill) || 0,
+    remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
   });
 
   const buildSavePayloadForOpdBooking = (
@@ -1094,6 +1145,7 @@ const OpdBilling = () => {
     if (!insuranceId) {
       setCorporateList([]);
       setSelectedCorporate(defaultCorporate);
+      setCreditCopayment(false);
       setSelectedInsurance(0);
 
       setOpdBillingFormData(prev => ({
@@ -1107,6 +1159,7 @@ const OpdBilling = () => {
     setSelectedInsurance(insuranceId);
     getCorporateList(insuranceId);
     setSelectedCorporate(null);
+    setCreditCopayment(false);
 
     setOpdBillingFormData(prev => ({
       ...prev,
@@ -1114,13 +1167,13 @@ const OpdBilling = () => {
     }));
   };
   // corporate list
-  const getCorporateList = async (corporateId: number) => {
+  const getCorporateList = async (insuranceCompanyId: number) => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+      ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,
       {},
-      { params: { insuranceCompanyId: corporateId, isActive: Status?.ACTIVE } },
-      { component: "Patient Registration" }
+      { params: { branchId, insuranceCompanyId } },
+      { component: "OpdBilling" }
     );
     setCorporateList(resp?.data ?? []);
   };
@@ -1147,9 +1200,19 @@ const OpdBilling = () => {
     setSelectedCorporateError("");
     if (!option) {
       setSelectedCorporate(null);
+      setCreditCopayment(false);
       return;
     }
     setSelectedCorporate(option);
+
+    const selected = corporateList.find(item => item.corporateId === Number(option?.value));
+    if (selected?.paymentType == PaymentTypeValues.CREDIT) {
+      setCreditCopayment(true);
+    } else if (selected?.paymentType == PaymentTypeValues.BOTH) {
+      setCreditCopayment(false);
+    } else {
+      setCreditCopayment(false);
+    }
 
     setOpdBillingFormData(prev => ({
       ...prev,
@@ -1166,9 +1229,9 @@ const OpdBilling = () => {
 
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+      ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,
       {},
-      { params: { corporateId } },
+      { params: { branchId, insuranceCompanyId: selectedInsurance } },
       { component: "OpdBilling", silent: true }
     );
 
@@ -1427,6 +1490,7 @@ const OpdBilling = () => {
         packageId: item?.packageId,
 
         isUrgent: isPackageUrgent,
+        remarks: "",
       }));
 
       setPackagePayload(packPayload);
@@ -1763,8 +1827,21 @@ const OpdBilling = () => {
     });
   };
 
-  // urgent change handler
+  // remarks change handler
+  const remarksChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
+    const value = e.target.value;
+    updateServiceTableItem(prev =>
+      prev.map((row, index) => {
+        if (index !== rowIndex) return row;
+        if (row.serviceItemId) {
+          serviceItemRemarksRef.current[row.serviceItemId] = value;
+        }
+        return { ...row, remarks: value };
+      })
+    );
+  };
 
+  // urgent change handler
   const urgentChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
     const checked = e.target.checked ? 1 : 0;
 
@@ -1782,11 +1859,17 @@ const OpdBilling = () => {
 
   // delete service handler
   const deleteHandler = (rowIndex: number) => {
-    SetServiceDataTableItem(prev => prev.filter((_, index) => index !== rowIndex));
+    const removedItem = serviceDataTableItem[rowIndex];
+    if (removedItem?.serviceItemId) {
+      delete serviceItemRemarksRef.current[removedItem.serviceItemId];
+    }
+
+    const updatedItems = serviceDataTableItem.filter((_, index) => index !== rowIndex);
+    serviceDataTableItemRef.current = updatedItems;
+    SetServiceDataTableItem(updatedItems);
     setShowDuplicateError("");
     setIsPackageUrgent(0);
-    // Recalculate billing amounts after deleting a service
-    calculateAndUpdateBillingDetails(serviceDataTableItem.filter((_, index) => index !== rowIndex));
+    calculateAndUpdateBillingDetails(updatedItems);
   };
 
   // refer doctor popup handler
@@ -1812,6 +1895,7 @@ const OpdBilling = () => {
     setCorporateList([]);
     setSelectedCorporate(defaultCorporate);
     setSelectedCorporateError("");
+    setCreditCopayment(false);
 
     // Reset doctor
     setSelectedDoctor(null);
@@ -1822,6 +1906,8 @@ const OpdBilling = () => {
 
     // Reset services
     SetServiceDataTableItem([]);
+    serviceDataTableItemRef.current = [];
+    serviceItemRemarksRef.current = {};
     SetServiceItemList([]);
     setSearchTerm("");
     setShowPopup(false);
@@ -2370,6 +2456,7 @@ const OpdBilling = () => {
     rateChangeHandler,
     discountPercentageChangeHandler,
     discountChangeHandler,
+    remarksChangeHandler,
     urgentChangeHandler,
     isPackageService,
     packagePopupHandler,
@@ -2381,6 +2468,7 @@ const OpdBilling = () => {
     billingValues,
     billingPaymentDetails,
     maxDiscountPercentage: data,
+    creditCopayment,
   };
 
   return (
@@ -2490,7 +2578,7 @@ const OpdBilling = () => {
       </div>
 
       <div className={activeTab === OPDBillingTabName.OPD_BILLING ? "" : "hidden"}>
-        <OpdBillingSection {...billingSectionProps} />
+        <OpdBillingSection {...billingSectionProps} creditCopayment={creditCopayment} />
       </div>
 
       <div className={activeTab === OPDBillingTabName.OPD_DOCUMENT ? "" : "hidden"}>
