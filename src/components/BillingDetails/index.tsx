@@ -327,12 +327,13 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     }, [paymentBilling]);
 
     const roundToTwo = (value: number) => Number(value.toFixed(2));
-    const hasBillLevelDiscount =
+    const hasAnyDiscount =
+      toNumber(billingValues?.totalDiscAmtOnBill) > 0 ||
       toNumber(billingValues?.totalDiscPerOnBill) > 0 ||
-      toNumber(billingValues?.totalDiscAmtOnBill) > 0;
+      toNumber(paymentBilling?.totalDiscAmtOnBill) > 0;
 
-    const validateBillingDiscountFields = () => {
-      if (!hasBillLevelDiscount) {
+    const validateDiscountFields = () => {
+      if (!hasAnyDiscount) {
         setBillingFieldErrors({});
         return true;
       }
@@ -354,6 +355,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       setBillingFieldErrors(nextErrors);
       return Object.keys(nextErrors).length === 0;
+    };
+
+    const clearDiscountFieldErrors = () => {
+      setBillingFieldErrors({});
     };
 
     const syncToOpdBilling = (nextValues: Partial<BillingValuesItem>) => {
@@ -462,6 +467,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         netAmount,
         roundOff,
       });
+
+      if (discountAmt <= 0) {
+        clearDiscountFieldErrors();
+      }
     };
 
     // discount amount validation
@@ -485,6 +494,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         netAmount,
         roundOff,
       });
+
+      if (discountAmt <= 0) {
+        clearDiscountFieldErrors();
+      }
     };
     const discountApprovedHandler = (e: ChangeEvent<HTMLSelectElement>) => {
       const value = Number(e.target.value) || 0;
@@ -534,10 +547,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       ref,
       () => ({
         validateForm: async () => {
-          const isBillingFieldsValid = validateBillingDiscountFields();
+          const isDiscountFieldsValid = validateDiscountFields();
           const isPaymentValid = validatePaymentRows();
-          return isBillingFieldsValid && isPaymentValid;
+          return isDiscountFieldsValid && isPaymentValid;
         },
+        validateDiscountFields,
         getPayload: () => ({
           ...billingValues,
           payments: getPaymentPayload(),
@@ -578,7 +592,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         getMaxPaymentAmount,
         paymentList,
         rows,
-        hasBillLevelDiscount,
+        hasAnyDiscount,
       ]
     );
 
@@ -688,8 +702,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
             <InputField label="Discount Reason">
               <input
+                className="input-field"
                 type="text"
-                className="input-field "
                 placeholder="Enter discount reason"
                 value={billingValues?.discountReason ?? ""}
                 onChange={discountChangeHandler}
@@ -701,9 +715,9 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
             <InputField label="Remark">
               <input
+                className="input-field"
                 type="text"
                 placeholder="Enter remarks"
-                className="input-field"
                 value={billingValues?.remarks ?? ""}
                 onChange={remarkChangeHandler}
               />

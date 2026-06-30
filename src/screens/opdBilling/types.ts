@@ -320,7 +320,8 @@ type OpdBookingItemPayload = {
   serviceItemId: number;
   serviceName: string;
   subSubCategoryId: number;
-  remarks: string;
+  // remarks: string;
+  performingDoctorId?: number;
 };
 
 type OpdBillingVisitDetailsPayload = {

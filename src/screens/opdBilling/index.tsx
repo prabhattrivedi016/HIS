@@ -132,8 +132,11 @@ const resolveRateListIdFromApiData = (
 const OpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const { isOPDBillingDiscountApprovalRequired } = useAssignBranchRight();
-  const isDiscountApprovalRequired = isOPDBillingDiscountApprovalRequired ? 1 : 0;
+  const { rights: branchRights } = useAssignBranchRight();
+  const isDiscountApprovalRequired =
+    Number(branchRights?.IsOPDBillingDiscountApprovalRequired ?? 0) === 1 ? 1 : 0;
+  const isSeparateCollectionCounterEnabled =
+    Number(branchRights?.IsSeparateCollectionCounterEnabled ?? 0) === 1;
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -158,6 +161,7 @@ const OpdBilling = () => {
   const [activePatientId, setActivePatientId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<string>(OPDBillingTabName.PATIENT_DETAILS);
   const [patientTabError, setPatientTabError] = useState<boolean>(false);
+  const [billingTabError, setBillingTabError] = useState<boolean>(false);
   const [documentTabError, setDocumentTabError] = useState<boolean>(false);
   const [searchPatientError, setSearchPatientError] = useState<string>("");
 
@@ -728,6 +732,32 @@ const OpdBilling = () => {
   const validateServiceDoctors = (): boolean =>
     validatePerformingDoctors() && validateBillingDoctorForServices() && validateRateListIds();
 
+  const hasBillingDiscount = () =>
+    Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill ?? 0) > 0;
+
+  const validateBillingDiscountBeforeSave = (): boolean => {
+    if (isSeparateCollectionCounterEnabled) {
+      setBillingTabError(false);
+      return true;
+    }
+
+    if (!hasBillingDiscount()) {
+      setBillingTabError(false);
+      return true;
+    }
+
+    const isDiscountValid = billingDetailsRef.current?.validateDiscountFields?.() ?? true;
+    if (!isDiscountValid) {
+      setBillingTabError(true);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      showWarning("Please fill Discount Approved By, Discount Reason and Remark");
+      return false;
+    }
+
+    setBillingTabError(false);
+    return true;
+  };
+
   const isHeaderDoctorRequired = useMemo(
     () => serviceDataTableItem.some(item => Number(item.isRequiredSeparatePerformingDoctor) !== 1),
     [serviceDataTableItem]
@@ -811,6 +841,7 @@ const OpdBilling = () => {
       rateListId: resolveRateListIdForRow(s),
       subSubCategoryId: s?.subSubCategoryId || 0,
       remarks: resolveServiceRemarks(s, s?.serviceItemId),
+      performingDoctorId: resolvePerformingDoctorId(s),
     };
   };
 
@@ -856,7 +887,7 @@ const OpdBilling = () => {
     rate: Number(item?.rate) || 0,
     rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
     subSubCategoryId: item?.subSubCategoryId || 0,
-    remarks: resolveServiceRemarks(item, item?.serviceItemId),
+    // remarks: resolveServiceRemarks(item, item?.serviceItemId),
   });
 
   const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
@@ -901,7 +932,6 @@ const OpdBilling = () => {
     discApprovedById:
       Number(billingValues?.discApprovedById ?? opdBillingFormData.discApprovedById ?? 0) || 0,
     discountReason: billingValues?.discountReason ?? opdBillingFormData.discountReason ?? "",
-    remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
     uniqueId: opdBillingFormData.uniqueId ?? "",
     mlc: opdBillingFormData.mlc ?? "",
     pi: opdBillingFormData.pi ?? "",
@@ -942,7 +972,7 @@ const OpdBilling = () => {
       Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
     totalDiscPerOnBill:
       Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill) || 0,
-    remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
+    // remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
   });
 
   const buildSavePayloadForOpdBooking = (
@@ -1971,6 +2001,7 @@ const OpdBilling = () => {
     setActivePatientId(null);
     setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
     setPatientTabError(false);
+    setBillingTabError(false);
     setDocumentTabError(false);
     setSearchPatientError("");
     ipdOpdDocumentRef.current?.resetForm();
@@ -2086,6 +2117,11 @@ const OpdBilling = () => {
       }
 
       setPatientTabError(false);
+
+      if (!validateBillingDiscountBeforeSave()) {
+        return;
+      }
+
       await getPatientPreviousDues();
     }
 
@@ -2099,6 +2135,11 @@ const OpdBilling = () => {
       }
 
       setPatientTabError(false);
+
+      if (!validateBillingDiscountBeforeSave()) {
+        return;
+      }
+
       await saveOpdBillingAsDraft();
     }
   };
@@ -2183,6 +2224,20 @@ const OpdBilling = () => {
       }
 
       setDocumentTabError(false);
+
+      if (!validateBillingDiscountBeforeSave()) {
+        return null;
+      }
+
+      const isBillingFormValid = (await billingDetailsRef.current?.validateForm?.()) ?? true;
+      if (!isBillingFormValid) {
+        setBillingTabError(true);
+        setActiveTab(OPDBillingTabName.OPD_BILLING);
+        showWarning("Please complete required billing details");
+        return null;
+      }
+
+      setBillingTabError(false);
 
       const patientData = await registerPatientForBilling();
       if (!patientData) {
@@ -2545,7 +2600,11 @@ const OpdBilling = () => {
           type="button"
           onClick={() => setActiveTab(OPDBillingTabName.OPD_BILLING)}
           className={`tab-btn transition ${
-            activeTab === OPDBillingTabName.OPD_BILLING ? "tab-btn-active" : "tab-btn-inactive"
+            billingTabError
+              ? "border-2 input-field-error"
+              : activeTab === OPDBillingTabName.OPD_BILLING
+                ? "tab-btn-active"
+                : "tab-btn-inactive"
           }`}
         >
           {OPDBillingTabName.OPD_BILLING}

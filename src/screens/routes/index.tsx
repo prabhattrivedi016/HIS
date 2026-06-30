@@ -35,6 +35,7 @@ import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
+import OPDiscountApproval from "../opDiscountApproval";
 import PatientRegistration from "../patientRegistration";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
@@ -109,4 +110,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
   "branch-settings": <BranchSettings />,
+  "op-discount-approval": <OPDiscountApproval />,
 };

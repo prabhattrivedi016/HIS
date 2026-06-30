@@ -31,6 +31,7 @@ type DiscountApproveItem = {
 
 type BillingDetailsHandle = {
   validateForm: () => Promise<boolean>;
+  validateDiscountFields: () => boolean;
   getPayload: () => Record<string, unknown>;
   getNetAmount: () => number;
   reset: () => void;

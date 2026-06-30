@@ -627,3 +627,16 @@ export const BedMasterTableHeader = [
   "Edit",
 ];
 export const BranchRightMappingTableHeader = ["#", "Branch Right Name", "Description", "Granted"];
+
+export const OpDiscountApprovalTableHeader = [
+  "#",
+  "Patient Name",
+  "Age",
+  "Gender",
+  "Corporate",
+  "Total Bill Amount",
+  "Is Payment Collected",
+  "Is Cancel",
+  "Approve",
+  "Cancel",
+];
