@@ -10,7 +10,7 @@ export const rateListMasterSchema = yup.object().shape({
   importFromRateListId: yup
     .number()
     .transform(value => (isNaN(value) ? 0 : value))
-    .moreThan(0, "Import rate list is required"),
+    .nullable(),
 });
 
 export type RateListMasterFormData = InferType<typeof rateListMasterSchema>;

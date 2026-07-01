@@ -19,6 +19,7 @@ import {
 } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -131,6 +132,8 @@ const resolveRateListIdFromApiData = (
 
 const OpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const roleId = Number(useContext(RoleContext)?.roleId) ?? 0;
 
   const { rights: branchRights } = useAssignBranchRight();
   const isDiscountApprovalRequired =
@@ -730,7 +733,7 @@ const OpdBilling = () => {
   };
 
   const validateServiceDoctors = (): boolean =>
-    validatePerformingDoctors() && validateBillingDoctorForServices() && validateRateListIds();
+    validatePerformingDoctors() && validateBillingDoctorForServices();
 
   const hasBillingDiscount = () =>
     Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill ?? 0) > 0;
@@ -918,6 +921,7 @@ const OpdBilling = () => {
       "",
     insuranceCompanyId:
       Number(opdBillingFormData.insuranceCompanyId ?? selectedInsurance ?? 0) || 0,
+    roleId: roleId,
     corporateId: Number(opdBillingFormData.corporateId ?? selectedCorporate?.value ?? 0) || 0,
     referDoctorId: Number(opdBillingFormData.referDoctorId ?? selectedReferDoctor?.value ?? 0) || 0,
     doctorId: Number(selectedDoctor?.value ?? 0) || 0,
@@ -935,7 +939,8 @@ const OpdBilling = () => {
     uniqueId: opdBillingFormData.uniqueId ?? "",
     mlc: opdBillingFormData.mlc ?? "",
     pi: opdBillingFormData.pi ?? "",
-    remark: opdBillingFormData.remark ?? "",
+    remarks: opdBillingFormData.remarks ?? "",
+    remark: "",
     policyNo: opdBillingFormData.policyNo ?? "",
     policyCardNo: opdBillingFormData.policyCardNo ?? "",
     expiryDate: opdBillingFormData.expiryDate ?? "",
@@ -1971,6 +1976,7 @@ const OpdBilling = () => {
       mlc: "",
       pi: "",
       remark: "",
+      remarks: "",
       policyNo: "",
       policyCardNo: "",
       expiryDate: "",
@@ -2199,7 +2205,7 @@ const OpdBilling = () => {
       const hasInvalidRate = serviceDataTableItem.some(s => !s?.rate || Number(s?.rate) <= 0);
 
       if (hasInvalidRate) {
-        showError("Please set rate of the service");
+        showWarning("Please set rate of the service");
         return;
       }
 
@@ -2548,7 +2554,7 @@ const OpdBilling = () => {
             />
           </div>
 
-          <button className="save-btn">Map PRO Patient</button>
+          <button className="save-btn">Map PRO </button>
           <button className="save-btn">Order Set</button>
           <button className="save-btn">Billing Details</button>
           <button className="save-btn" onClick={SearchOldPatientHandler}>

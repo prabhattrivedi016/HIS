@@ -4,6 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -87,8 +88,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     }: PatientDataProps,
     ref
   ) => {
-    const { loading, error, fetchApi } = useGlobalApi();
+    const { loading, fetchApi } = useGlobalApi();
     const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+    const roleId = useContext(RoleContext)?.roleId ?? 0;
     const lastAppliedBranchInsuranceKeyRef = useRef("");
 
     const [insuranceList, setInsuranceList] = useState<InsuranceItem[]>([]);
@@ -558,9 +560,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     // submit handler
     const onSubmit = async (data: any) => {
+      const payload = { ...data, roleId };
       const formData = new FormData();
-      for (const key in data) {
-        formData.append(key, data[key]);
+      for (const key in payload) {
+        formData.append(key, payload[key]);
       }
       const resp = await fetchApi(
         "POST",
