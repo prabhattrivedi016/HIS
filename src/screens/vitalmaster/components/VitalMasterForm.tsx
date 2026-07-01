@@ -9,6 +9,12 @@ interface VitalUnit {
   unitName: string;
 }
 
+interface SnomedItem {
+  conceptId: string;
+  term: string;
+  conceptFsn: string;
+}
+
 interface VitalRecord {
   vitalId: number;
   vitalName: string;
@@ -17,6 +23,7 @@ interface VitalRecord {
   minValue: string;
   maxValue: string;
   active: number;
+  snomedCode?: string;
 }
 
 interface FormErrors {
@@ -109,6 +116,7 @@ const UnitPopup = ({
 const VitalMasterForm = () => {
   const { loading, fetchApi } = useGlobalApi();
 
+  /* form fields */
   const [name, setName] = useState("");
   const [unitOptions, setUnitOptions] = useState<VitalUnit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<VitalUnit | null>(null);
@@ -120,11 +128,62 @@ const VitalMasterForm = () => {
   const [records, setRecords] = useState<VitalRecord[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
 
+  /* snomed */
+  const [snomedCode, setSnomedCode] = useState("");
+  const [snomedResults, setSnomedResults] = useState<SnomedItem[]>([]);
+  const [showSnomedDropdown, setShowSnomedDropdown] = useState(false);
+  const [snomedLoading, setSnomedLoading] = useState(false);
+  const snomedRef = useRef<HTMLDivElement>(null);
+  const skipSnomedRef = useRef(false);
+
+  /* ── on mount ── */
   useEffect(() => {
     loadUnitList();
     loadVitalList();
   }, []);
 
+  /* ── close SNOMED dropdown on outside click ── */
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (snomedRef.current && !snomedRef.current.contains(e.target as Node)) {
+        setShowSnomedDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  /* ── debounced SNOMED search (triggered by Vital Name typing) ── */
+  useEffect(() => {
+    if (skipSnomedRef.current) {
+      skipSnomedRef.current = false;
+      return;
+    }
+    const q = name.trim();
+    if (!q || q.length < 2) {
+      setSnomedResults([]);
+      setShowSnomedDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSnomedLoading(true);
+      try {
+        const url = `http://localhost:8080/csnoserv/api/search/search?term=${encodeURIComponent(q)}&state=active&semantictag=finding&acceptability=preferred&returnlimit=100`;
+        const res = await fetch(url);
+        const data: SnomedItem[] = await res.json();
+        setSnomedResults(data ?? []);
+        setShowSnomedDropdown((data ?? []).length > 0);
+      } catch {
+        setSnomedResults([]);
+        setShowSnomedDropdown(false);
+      } finally {
+        setSnomedLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [name]);
+
+  /* ── API loaders ── */
   const loadUnitList = async () => {
     const resp = await fetchApi(
       "GET",
@@ -155,11 +214,27 @@ const VitalMasterForm = () => {
     }
   };
 
+  /* ── handlers ── */
   const handleUnitSave = (unit: VitalUnit) => {
     setUnitOptions((prev) => [...prev, unit]);
     setSelectedUnit(unit);
     setShowUnitPopup(false);
     setErrors((p) => ({ ...p, unit: undefined }));
+  };
+
+  const handleSnomedSelect = (item: SnomedItem) => {
+    skipSnomedRef.current = true;
+    setName(item.term);
+    setSnomedCode(item.conceptId);
+    setSnomedResults([]);
+    setShowSnomedDropdown(false);
+    setErrors((p) => ({ ...p, name: undefined }));
+  };
+
+  const clearSnomed = () => {
+    setSnomedCode("");
+    setSnomedResults([]);
+    setShowSnomedDropdown(false);
   };
 
   const validate = (): boolean => {
@@ -175,6 +250,7 @@ const VitalMasterForm = () => {
   };
 
   const handleEdit = (r: VitalRecord) => {
+    skipSnomedRef.current = true;
     setName(r.vitalName);
     const unit = unitOptions.find((u) => u.unitName === r.unitName) ?? { id: r.unitID, unitName: r.unitName };
     setSelectedUnit(unit);
@@ -182,6 +258,7 @@ const VitalMasterForm = () => {
     setMax(r.maxValue);
     setIsActive(r.active === 0 ? 0 : 1);
     setEditId(r.vitalId);
+    setSnomedCode(r.snomedCode ?? "");
     setErrors({});
   };
 
@@ -199,6 +276,7 @@ const VitalMasterForm = () => {
         minValue: min,
         maxValue: max,
         active: isActive,
+        snomedCode: snomedCode || null,
       },
       {},
       { component: "VitalMaster" }
@@ -219,6 +297,7 @@ const VitalMasterForm = () => {
     setIsActive(1);
     setEditId(0);
     setErrors({});
+    clearSnomed();
   };
 
   return (
@@ -230,21 +309,68 @@ const VitalMasterForm = () => {
         </div>
 
         <div className="form-grid-4">
-          {/* Vital Name */}
+          {/* Vital Name — SNOMED dropdown anchored here */}
           <InputField label="Vital Name" required>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g. Blood Pressure"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setErrors((p) => ({ ...p, name: undefined }));
-              }}
-            />
+            <div className="relative" ref={snomedRef}>
+              <input
+                type="text"
+                className="input-field !mb-0"
+                placeholder="e.g. Blood Pressure"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((p) => ({ ...p, name: undefined }));
+                }}
+              />
+
+              {(showSnomedDropdown || snomedLoading) && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {snomedLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Searching…</div>
+                  ) : snomedResults.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-400">No results found</div>
+                  ) : (
+                    snomedResults.map((item, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSnomedSelect(item)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-800">{item.term}</div>
+                        <div className="text-xs text-gray-500">{item.conceptId}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             {errors.name && (
-              <p className="text-red-500 text-xs -mt-1 mb-1">{errors.name}</p>
+              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
             )}
+          </InputField>
+
+          {/* SNOMED Code — direct entry or auto-filled from dropdown above */}
+          <InputField label="SNOMED Code (optional)">
+            <div className="relative">
+              <input
+                type="text"
+                className="input-field !mb-0 pr-8"
+                placeholder="Auto-filled or enter code directly"
+                value={snomedCode}
+                onChange={(e) => setSnomedCode(e.target.value)}
+              />
+              {snomedCode && (
+                <button
+                  type="button"
+                  onClick={clearSnomed}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </InputField>
 
           {/* Unit */}

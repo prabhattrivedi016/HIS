@@ -369,6 +369,17 @@ const ENDPOINTS = {
   SEARCH_IPD_PATIENT: "Patient/searchIPDPatient",
   GET_BILLING_TABS: "Home/getBillingTabs",
 
+  // allergy master
+  GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
+  GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",
+  GET_SALT_NAME_MASTER_LIST: "EMR/getSaltNameMasterList",
+  CREATE_UPDATE_ALLERGY_MASTER: "EMR/createUpdateAllergyMaster",
+  DELETE_ALLERGY_MASTER: "EMR/deleteAllergyMaster",
+  SAVE_PATIENT_ALLERGY: "EMR/savePatientAllergy",
+  CREATE_UPDATE_PATIENT_ALLERGY_DETAILS: "EMR/createUpdatePatientAllergyDetails",
+  DELETE_PATIENT_ALLERGY: "EMR/deletePatientAllergy",
+  DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
+
   // vital master
   GET_VITAL_MASTER_LIST: "Admin/getVitalMasterList",
   GET_VITAL_UNIT_MASTER_LIST: "Admin/getVitalUnitMasterList",

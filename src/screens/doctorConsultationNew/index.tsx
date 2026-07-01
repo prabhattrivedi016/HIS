@@ -10,6 +10,7 @@ import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import VitalDrawer from "./components/VitalDrawer";
+import AllergyPanel from "./components/AllergyPanel";
 import { PatientItem } from "./types";
 
 /* ---------- format helper ---------- */
@@ -39,6 +40,7 @@ const DoctorConsultationNew = () => {
 
   const [renderVitalDrawer, setRenderVitalDrawer] = useState<boolean>(false);
   const [openVitalDrawer, setOpenVitalDrawer] = useState<boolean>(false);
+  const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState("0");
   const [searchText, setSearchText] = useState("");
@@ -400,7 +402,7 @@ const DoctorConsultationNew = () => {
                 filteredData.map((item: PatientItem, idx: number) => (
                   <div
                     key={`${item.VisitId}-${item.DoctorId}`}
-                    onClick={() => setSelectedPatient(item)}
+                    onClick={() => { setSelectedPatient(item); setLeftPanelVisible(false); }}
                     className={`w-full rounded-xl border shadow-sm p-2.5 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
                       selectedPatient?.VisitId === item.VisitId && selectedPatient?.DoctorId === item.DoctorId
                         ? "bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-500 ring-2 ring-blue-300 shadow-md"
@@ -518,9 +520,14 @@ const DoctorConsultationNew = () => {
                             <span className="text-base font-bold text-gray-900">{selectedPatient.PatientName}</span>
                             <span className="text-sm text-gray-500">{selectedPatient.Age} · {selectedPatient.Gender}</span>
                             {/* Allergy badge */}
-                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200">
+                            <button
+                              type="button"
+                              onClick={() => setShowAllergyPanel(true)}
+                              className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200 hover:bg-green-100 transition-colors"
+                            >
                               No Allergy
-                            </span>
+                              <Edit size={10} />
+                            </button>
                           </div>
                           {/* Phone + ABHA */}
                           <div className="flex items-center gap-3 flex-wrap">
@@ -543,6 +550,14 @@ const DoctorConsultationNew = () => {
                       </div>
                       {/* Action buttons */}
                       <div className="flex items-center gap-2 shrink-0 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedPatient(null); setLeftPanelVisible(true); }}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                        >
+                          <ChevronLeft size={14} />
+                          Back
+                        </button>
                         <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">View</button>
                         <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">Print</button>
                         <button className="text-sm font-medium bg-slate-800 text-white rounded-lg px-4 py-1.5 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-1.5">
@@ -621,6 +636,12 @@ const DoctorConsultationNew = () => {
       </div>
       {/* Drawer */}
       {renderVitalDrawer && <VitalDrawer isOpen={openVitalDrawer} onClose={closeHandler} />}
+      <AllergyPanel
+        isOpen={showAllergyPanel}
+        onClose={() => setShowAllergyPanel(false)}
+        patientId={selectedPatient?.VisitId}
+        visitId={selectedPatient?.VisitId}
+      />
     </div>
   );
 };
