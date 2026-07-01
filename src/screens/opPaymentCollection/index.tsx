@@ -10,9 +10,9 @@ import { BranchItem } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
-import ApproveCancelPopup from "./components/ApproveCancelPopup";
-import { OPDiscountItem } from "./types";
-const OPDiscountApproval = () => {
+import ApproveCancelPopup from "../opDiscountApproval/components/ApproveCancelPopup";
+import { OPPaymentItem } from "./types";
+const OPPaymentCollection = () => {
   const { loading, fetchApi } = useGlobalApi();
   const branchLists = useGetBranchList()?.branchList?.data ?? [];
   const branchId = Number(useContext(AuthContext)?.user?.branchId) ?? 1;
@@ -20,7 +20,7 @@ const OPDiscountApproval = () => {
   const today = new Date().toISOString().split("T")[0];
   const [queryValue, setQueryValue] = useState({ branchId, fromDate: today, toDate: today });
   const [popupType, setPopupType] = useState<string>("");
-  const [selectedItem, setSelectedItem] = useState<OPDiscountItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<OPPaymentItem | null>(null);
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
 
@@ -50,10 +50,10 @@ const OPDiscountApproval = () => {
   const getOpDiscountList = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_DISCOUNT_APPROVAL,
+      ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION,
       {},
       { params: queryValue },
-      { component: "OPDiscountApproval" }
+      { component: "OPPaymentCollection" }
     );
     return resp?.data ?? [];
   };
@@ -69,23 +69,23 @@ const OPDiscountApproval = () => {
     refetch?.();
   };
 
-  //   approve type handler
-  const approveHandler = (item: OPDiscountItem, popupType: string) => {
-    if (!item) {
-      setSelectedItem(null);
-      setPopupType("");
-      setRenderPopup(false);
-      setOpenPopup(false);
-      return;
-    }
-    setSelectedItem(item);
-    setPopupType(popupType);
-    setRenderPopup(true);
-    setOpenPopup(true);
-  };
+  //   //   approve type handler
+  //   const approveHandler = (item: OPPaymentItem, popupType: string) => {
+  //     if (!item) {
+  //       setSelectedItem(null);
+  //       setPopupType("");
+  //       setRenderPopup(false);
+  //       setOpenPopup(false);
+  //       return;
+  //     }
+  //     setSelectedItem(item);
+  //     setPopupType(popupType);
+  //     setRenderPopup(true);
+  //     setOpenPopup(true);
+  //   };
 
   //   cancel type handler
-  const cancelHandler = (item: OPDiscountItem, popupType: string) => {
+  const cancelHandler = (item: OPPaymentItem, popupType: string) => {
     if (!item) {
       setSelectedItem(null);
       setPopupType("");
@@ -115,14 +115,14 @@ const OPDiscountApproval = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">OP Discount Approval</h1>
+      <h1 className="page-heading">OP Payment Collection</h1>
 
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>OP Discount Approval</span>
+        <span>OP Payment Collection</span>
       </nav>
 
       {/* form  */}
@@ -184,17 +184,10 @@ const OPDiscountApproval = () => {
                   </tr>
                 )}
 
-                {opDiscountList.map((item: OPDiscountItem, idx: number) => (
+                {opDiscountList.map((item: OPPaymentItem, idx: number) => (
                   <tr key={item?.BookingId} className="table-row">
                     <td className="table-td">{idx + 1}</td>
                     <td className="table-td">{item?.PatientName || "-"}</td>
-                    {/* <td
-                      className={`table-td ${
-                        Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
-                    </td> */}
                     <td className="table-td">{item?.Age || "-"}</td>{" "}
                     <td className="table-td">{item?.Gender || "-"}</td>
                     {/* <td className="table-td">{item?.Gender || "-"}</td>{" "} */}
@@ -214,17 +207,12 @@ const OPDiscountApproval = () => {
                     >
                       {Number(item?.IsCancel) === 1 ? "Yes" : "No"}
                     </td>
-                    <td className="table-td">
-                      {item?.IsDiscountApproved === 0 ? (
-                        <button
-                          className="reset-btn"
-                          onClick={() => approveHandler(item, "approve")}
-                        >
-                          Approve
-                        </button>
-                      ) : (
-                        <></>
-                      )}
+                    <td
+                      className={`table-td ${
+                        Number(item?.IsDiscountApproved) === 1 ? "active-text" : "inactive-text"
+                      }`}
+                    >
+                      {Number(item?.IsDiscountApproved) === 1 ? "Yes" : "No"}
                     </td>
                     <td className="table-td">
                       {item?.IsCancel === 0 ? (
@@ -266,54 +254,4 @@ const OPDiscountApproval = () => {
   );
 };
 
-export default OPDiscountApproval;
-
-/*
- {
-            "BookingId": 6,
-            "TokenNo": null,
-            "BranchId": 1,
-            "PatientId": 44,
-            "UHID": "GWS/00000032",
-            "PatientName": "MR. SHUBHAM KUMAR MAURYA",
-            "Age": "28Y 0M 0D",
-            "Gender": "MALE",
-            "CorporateId": 1,
-            "CorporateName": "CASH",
-            "InsuranceCompanyId": 0,
-            "ReferDoctorId": null,
-            "TotalBillAmount": 111.000000,
-            "TotalDiscountPerOnBill": 9.010000,
-            "TotalDiscountAmountOnBill": 10.000000,
-            "RoundOff": 0.000000,
-            "TotalPatientPayableAmount": 101.000000,
-            "PolicyNo": null,
-            "PolicyCardNo": null,
-            "ExpiryDate": null,
-            "CardHolder": null,
-            "ReferalNo": null,
-            "ReferalDate": null,
-            "IsPaymentCollected": 0,
-            "IsDiscountApprovalRequired": 1,
-            "IsDiscountApproved": 0,
-            "IsLevel1Approve": null,
-            "Level1ApproveId": null,
-            "Level1ApproveOn": null,
-            "IsLevel2Approve": null,
-            "Level2ApproveId": null,
-            "Level2ApproveOn": null,
-            "IsLevel3Approve": null,
-            "Level3ApproveId": null,
-            "Level3ApproveOn": null,
-            "IsLevel4Approve": null,
-            "Level4ApproveId": null,
-            "Level4ApproveOn": null,
-            "IsCancel": 0,
-            "CancelBy": null,
-            "CancelOn": null,
-            "CancelReason": null,
-            "CreatedBy": "Prabhat  Trivedi (Prabhat)",
-            "CreatedOn": "29-06-2026",
-            "LastModifiedBy": null,
-            "LastModifiedOn": null
-        } */
+export default OPPaymentCollection;

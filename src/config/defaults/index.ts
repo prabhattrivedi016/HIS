@@ -391,6 +391,8 @@ const ENDPOINTS = {
   GET_OPD_BOOKING_DETAILS_FOR_DISCOUNT_APPROVAL: "Patient/getOPDBookingDetailsForDiscountApproval",
   APPROVE_OPD_BOOKING_DISCOUNT: "Patient/approveOPDBookingDiscount",
   CANCEL_OPD_BOOKING: "Patient/cancelOPDBooking",
+  GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION:
+    "Patient/getOPDBookingDetailsForPaymentCollection",
 };
 
 export { ENDPOINTS };
