@@ -214,7 +214,7 @@ const ApproveCancelPopup = ({
                 type="text"
                 placeholder="Enter approve percentage"
                 onChange={approveChangeHandler}
-                className={`input-field ${approveError ? "border-2 input-field-error" : ""}`}
+                className="input-field"
                 value={approveFormData.approvedPer}
                 onInput={allowOnlyNumbers}
               />
@@ -235,7 +235,7 @@ const ApproveCancelPopup = ({
               <input
                 type="text"
                 placeholder="Enter cancel reason"
-                className={`input-field ${cancelError ? "border-2 input-field-error" : ""}`}
+                className="input-field"
                 value={cancelFormData.cancelReason}
                 onChange={cancelChangeHandler}
               />

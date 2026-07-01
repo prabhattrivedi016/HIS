@@ -36,6 +36,7 @@ import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
+import OPPaymentCollection from "../opPaymentCollection";
 import PatientRegistration from "../patientRegistration";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
@@ -111,4 +112,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "temperature-room": <TemperatureRoom />,
   "branch-settings": <BranchSettings />,
   "op-discount-approval": <OPDiscountApproval />,
+  "op-payment-collection": <OPPaymentCollection />,
 };

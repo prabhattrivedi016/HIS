@@ -635,8 +635,8 @@ export const OpDiscountApprovalTableHeader = [
   "Gender",
   "Corporate",
   "Total Bill Amount",
-  "Is Payment Collected",
-  "Is Cancel",
+  "Payment Collected",
+  "Cancelled",
   "Approve",
   "Cancel",
 ];
