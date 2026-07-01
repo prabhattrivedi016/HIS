@@ -443,18 +443,18 @@ export const PatientSearchResultTableHeader = [
 ];
 
 export const OpdBillingServiceTableHeader = [
-  "Delete",
   "#",
   "Service Name",
   "Code",
   "Doctor",
+  "Performing Doctor",
   "QTY",
   "Rate",
   "Disc (%)",
   "Disc",
   "Net Amt",
   "Remarks",
-  "U",
+  "Urgent",
 ];
 
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No.", "Action"];

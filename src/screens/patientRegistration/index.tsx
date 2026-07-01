@@ -1,3 +1,5 @@
+import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
+import { showWarning } from "@/utils/alert";
 import { useCallback, useState } from "react";
 import { NavLink } from "react-router-dom";
 import PatientData from "./components/PatientData";
@@ -7,11 +9,13 @@ const PatientRegistration = () => {
   const [openSearchPatientPopup, setOpenSearchPatientPopup] = useState<boolean>(false);
   const [renderSearchPatientPopup, setRenderSearchPatientPopup] = useState<boolean>(false);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [uhidSearchResetKey, setUhidSearchResetKey] = useState(0);
 
   const [showTable, setShowTable] = useState<boolean>(false);
 
   const handleOpenSearchPatientPopup = () => {
     setSelectedPatientId(null);
+    setUhidSearchResetKey(prev => prev + 1);
     setOpenSearchPatientPopup(true);
     setRenderSearchPatientPopup(true);
   };
@@ -20,10 +24,20 @@ const PatientRegistration = () => {
     setOpenSearchPatientPopup(false);
   }, []);
 
+  const handleUhidPatientSelect = useCallback(async (patientId: number) => {
+    if (!patientId) {
+      showWarning("Invalid patient selected.");
+      return false;
+    }
+
+    setSelectedPatientId(patientId);
+    return true;
+  }, []);
+
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between w-full  flex-col  lg:flex-row">
-        <div>
+      <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
+        <div className="flex-1">
           <h1 className="page-heading">Patient Registration</h1>
 
           <nav className="helper-text">
@@ -35,7 +49,15 @@ const PatientRegistration = () => {
           </nav>
         </div>
 
-        <div className="flex gap-3 ">
+        <div className="flex justify-center flex-1">
+          <UhidGlobalSearch
+            onPatientSelect={handleUhidPatientSelect}
+            resetKey={uhidSearchResetKey}
+            className="mt-1"
+          />
+        </div>
+
+        <div className="flex justify-end flex-1">
           <button type="button" className="save-btn" onClick={handleOpenSearchPatientPopup}>
             Search Old Patient
           </button>
