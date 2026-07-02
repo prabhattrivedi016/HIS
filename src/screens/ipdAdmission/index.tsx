@@ -361,7 +361,7 @@ const IPDAdmission = () => {
       </div>
 
       <div className={activeTab === IPDAdmissionTabName.IPD_DOCUMENT ? "" : "hidden"}>
-        <IpdOpdDocument type={IpdOpdTypeName?.IPD} />
+        <IpdOpdDocument ref={ipdOpdDocumentRef} type={IpdOpdTypeName?.IPD} />
       </div>
     </>
   );

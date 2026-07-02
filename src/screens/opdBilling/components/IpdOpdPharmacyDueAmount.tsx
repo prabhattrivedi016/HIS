@@ -30,7 +30,10 @@ const IpdOpdPharmacyDueAmount = ({
   }, [isOpen]);
 
   // Filter and display only dues that have values
-  const hasDues = amount?.opd !== null || amount?.ipd !== null || amount?.pharmacy !== null;
+  const hasDues =
+    Number(amount?.opd ?? 0) > 0 ||
+    Number(amount?.ipd ?? 0) > 0 ||
+    Number(amount?.pharmacy ?? 0) > 0;
 
   useScrollLock(isOpen);
 
@@ -55,17 +58,17 @@ const IpdOpdPharmacyDueAmount = ({
 
         {hasDues && (
           <div className="Popup-helper-text font-medium">
-            {amount?.opd !== null && amount?.opd !== undefined && (
+            {Number(amount?.opd ?? 0) > 0 && (
               <p>
                 OPD Due Amount is: <span className="font-bold text-blue-400">₹{amount.opd}</span>
               </p>
             )}
-            {amount?.ipd !== null && amount?.ipd !== undefined && (
+            {Number(amount?.ipd ?? 0) > 0 && (
               <p>
                 IPD Due Amount is: <span className="font-bold text-blue-400">₹{amount.ipd}</span>
               </p>
             )}
-            {amount?.pharmacy !== null && amount?.pharmacy !== undefined && (
+            {Number(amount?.pharmacy ?? 0) > 0 && (
               <p>
                 Pharmacy Due Amount is:{" "}
                 <span className="font-bold text-blue-400">₹{amount.pharmacy}</span>

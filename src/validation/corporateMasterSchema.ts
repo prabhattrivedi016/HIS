@@ -49,38 +49,41 @@ export const corporateMasterSchema = yup.object().shape({
       "Please select at least one payment",
       value => !!value && value.trim() !== ""
     ),
-  activeBranches: yup
-    .string()
-    .required("Please select at least one branch")
-    .test(
-      "not-empty",
-      "Please select at least one branch",
-      value => !!value && value.trim() !== ""
-    ),
-  rateListIdOPD: yup
-    .string()
-    .required("At least one OPD rate list row is required")
-    .test(
-      "opd-rate-required",
-      "At least one OPD rate list row is required",
-      value =>
-        (value ?? "")
-          .split(",")
-          .map(v => Number(v.trim()))
-          .filter(v => Number.isFinite(v) && v > 0).length > 0
-    ),
-  rateListIdIPD: yup
-    .string()
-    .required("At least one IPD rate list row is required")
-    .test(
-      "ipd-rate-required",
-      "At least one IPD rate list row is required",
-      value =>
-        (value ?? "")
-          .split(",")
-          .map(v => Number(v.trim()))
-          .filter(v => Number.isFinite(v) && v > 0).length > 0
-    ),
+  // activeBranches: yup
+  //   .string()
+  //   .required("Please select at least one branch")
+  //   .test(
+  //     "not-empty",
+  //     "Please select at least one branch",
+  //     value => !!value && value.trim() !== ""
+  //   ),
+  activeBranches: yup.string().nullable(),
+  // rateListIdOPD: yup
+  //   .string()
+  //   .required("At least one OPD rate list row is required")
+  //   .test(
+  //     "opd-rate-required",
+  //     "At least one OPD rate list row is required",
+  //     value =>
+  //       (value ?? "")
+  //         .split(",")
+  //         .map(v => Number(v.trim()))
+  //         .filter(v => Number.isFinite(v) && v > 0).length > 0
+  //   ),
+  rateListIdOPD: yup.string().nullable(),
+  // rateListIdIPD: yup
+  //   .string()
+  //   .required("At least one IPD rate list row is required")
+  //   .test(
+  //     "ipd-rate-required",
+  //     "At least one IPD rate list row is required",
+  //     value =>
+  //       (value ?? "")
+  //         .split(",")
+  //         .map(v => Number(v.trim()))
+  //         .filter(v => Number.isFinite(v) && v > 0).length > 0
+  //   ),
+  rateListIdIPD: yup.string().nullable(),
 });
 
 export type CorporateMasterFormItem = InferType<typeof corporateMasterSchema>;

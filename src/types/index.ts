@@ -157,9 +157,15 @@ type RoleItem = {
   lastModifiedOn: string;
 };
 
+type OptionItem = {
+  value: number;
+  label: string;
+};
+
 export type {
   BranchItem,
   InvestigationName,
+  OptionItem,
   PickMasterItem,
   RoleItem,
   SelectItem,

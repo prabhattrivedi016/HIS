@@ -51,27 +51,35 @@ const ServiceMaster = () => {
   });
 
   //   service item list
-  const getServiceItemList = async (
-    categoryId: number,
-    subCategoryId: number = 0,
-    subSubCategoryId: number = 0,
-    serviceName: string = ""
-  ) => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_SERVICE_ITEM_LIST,
-      {},
-      { params: { categoryId, subCategoryId, subSubCategoryId, serviceName } },
-      { component: "ServiceMaster" }
-    );
-    if (!resp?.result) {
-      showWarning(resp?.message ?? "No data found");
-      setShowTable(false);
-      return;
-    }
-    setShowTable(true);
-    setServiceTableList(resp?.data ?? []);
-  };
+  const getServiceItemList = useCallback(
+    async (
+      categoryId: number,
+      subCategoryId: number = 0,
+      subSubCategoryId: number = 0,
+      serviceName: string = "",
+      options?: { silent?: boolean }
+    ) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_SERVICE_ITEM_LIST,
+        {},
+        { params: { categoryId, subCategoryId, subSubCategoryId, serviceName } },
+        { component: "ServiceMaster", silent: options?.silent ?? false }
+      );
+
+      if (!resp?.result) {
+        if (!options?.silent) {
+          showWarning(resp?.message ?? "No data found");
+          setShowTable(false);
+        }
+        return;
+      }
+
+      setShowTable(true);
+      setServiceTableList(resp?.data ?? []);
+    },
+    []
+  );
 
   //   category select handler
   const selectCategoryHandler = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -239,6 +247,33 @@ const ServiceMaster = () => {
     }, 100);
   }, []);
 
+  const refreshTableData = useCallback(
+    async (
+      categoryId?: number,
+      subCategoryId?: number,
+      subSubCategoryId?: number,
+      nameFilter?: string
+    ) => {
+      const resolvedCategoryId = Number(categoryId || selectedCategoryId);
+      if (!resolvedCategoryId) return;
+
+      await getServiceItemList(
+        resolvedCategoryId,
+        Number(subCategoryId ?? selectedSubcategory?.value ?? 0),
+        Number(subSubCategoryId ?? selectedSubSubCategory?.value ?? 0),
+        nameFilter ?? serviceName,
+        { silent: true }
+      );
+    },
+    [
+      getServiceItemList,
+      selectedCategoryId,
+      selectedSubcategory?.value,
+      selectedSubSubCategory?.value,
+      serviceName,
+    ]
+  );
+
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -267,7 +302,11 @@ const ServiceMaster = () => {
 
         <div className="form-grid-4">
           <InputField label="Category" required>
-            <select className="input-field" onChange={selectCategoryHandler}>
+            <select
+              className="input-field"
+              value={selectedCategoryId}
+              onChange={selectCategoryHandler}
+            >
               <option value={0}>Select category</option>
               {categoryList?.map((c: CategoryItem) => (
                 <option key={c?.categoryId} value={c?.categoryId}>
@@ -309,6 +348,7 @@ const ServiceMaster = () => {
             <input
               type="text"
               className="input-field"
+              placeholder="Enter service name to search"
               value={serviceName}
               onChange={serviceNameChangeHandler}
             />
@@ -388,6 +428,7 @@ const ServiceMaster = () => {
           isOpen={openAddService}
           onClose={closeServiceDrawer}
           data={selectedItemToEdit}
+          refreshTableData={refreshTableData}
         />
       )}
 

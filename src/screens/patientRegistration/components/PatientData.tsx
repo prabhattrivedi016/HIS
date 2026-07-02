@@ -3,8 +3,8 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
-import { Status } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -88,8 +88,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     }: PatientDataProps,
     ref
   ) => {
-    const { loading, error, fetchApi } = useGlobalApi();
+    const { loading, fetchApi } = useGlobalApi();
     const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+    const roleId = useContext(RoleContext)?.roleId ?? 0;
     const lastAppliedBranchInsuranceKeyRef = useRef("");
 
     const [insuranceList, setInsuranceList] = useState<InsuranceItem[]>([]);
@@ -289,21 +290,18 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     };
 
     // corporate list
-    const getCorporateList = useCallback(
-      async (insuranceCompanyId: number) => {
-        const resp = await fetchApi(
-          "GET",
-          ENDPOINTS.GET_CORPORATE_LIST_BY_INSURANCE_COMPANY_ID,
-          {},
-          { params: { insuranceCompanyId, isActive: Status?.ACTIVE } },
-          { component: "Patient Registration" }
-        );
-        const list = normalizeCorporateList(resp?.data);
-        setCorporateList(list);
-        return list;
-      },
-      [fetchApi]
-    );
+    const getCorporateList = async (insuranceCompanyId: number) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,
+        {},
+        { params: { branchId, insuranceCompanyId } },
+        { component: "Patient Registration" }
+      );
+      const list = normalizeCorporateList(resp?.data);
+      setCorporateList(list);
+      return list;
+    };
 
     const applyCorporateSelection = useCallback(
       (corporate: CorporateItem) => {
@@ -562,9 +560,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     // submit handler
     const onSubmit = async (data: any) => {
+      const payload = { ...data, roleId };
       const formData = new FormData();
-      for (const key in data) {
-        formData.append(key, data[key]);
+      for (const key in payload) {
+        formData.append(key, payload[key]);
       }
       const resp = await fetchApi(
         "POST",

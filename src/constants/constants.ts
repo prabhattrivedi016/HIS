@@ -60,11 +60,22 @@ export enum BankMasterTabName {
   BANK_DETAILS = "Bank Details",
 }
 
+export enum BranchSettingsTabName {
+  BRANCH_CORPORATE_RATE_LIST_MAPPING = "Branch Corporate Rate list Mapping",
+  BRANCH_WISE_SERVICE_EXCLUDE = "Branch Wise Service Exclude",
+  BRANCH_RIGHT_MAPPING = "Branch Right Mapping",
+  BRANCH_DEFAULT_SETTING = "Branch Default Setting",
+}
 export enum Radiology {
   RADIOLOGY = "radiology",
   DEFAULT_REPORT_TYPE = "2",
 }
 
+export enum PaymentTypeValues {
+  CREDIT = "Credit Only",
+  BOTH = "Both",
+  CASH = "Cash Only",
+}
 export enum LabMasterTabName {
   SAMPLE_TYPE = "Sample Type",
   TEST_METHOD = "Test Method",
@@ -478,6 +489,10 @@ export enum IPDAdmissionTabName {
   IPD_DOCUMENT = "Documents",
 }
 
+export enum PageType {
+  OPD_BILLING = "OPDBilling",
+  IPD_BILLING = "IPDBilling",
+}
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",
   OPD_BILLING = "OPD Billing",

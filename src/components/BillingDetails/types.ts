@@ -31,6 +31,7 @@ type DiscountApproveItem = {
 
 type BillingDetailsHandle = {
   validateForm: () => Promise<boolean>;
+  validateDiscountFields: () => boolean;
   getPayload: () => Record<string, unknown>;
   getNetAmount: () => number;
   reset: () => void;
@@ -42,6 +43,7 @@ type PaymentMethodPayloadItem = {
   amount: number;
   bankId: number;
   refNo: string;
+  isCopaymentReceipt: number;
   plutusTransactionReferenceID: string;
   transactionLogId: string;
 };
@@ -57,17 +59,44 @@ type BillingPaymentFormItem = {
   amount?: unknown;
   bankId?: unknown;
   refNo?: unknown;
+  isCopaymentReceipt?: unknown;
 };
 
 type BillingFormValues = {
   payments?: BillingPaymentFormItem[];
   [key: string]: unknown;
 };
+
+type BillingValuesItem = {
+  grossBillAmount: number;
+  totalDiscPerOnBill: number;
+  totalDiscAmtOnBill: number;
+  roundOff: number;
+  netAmount: number;
+  balanceAmount: number;
+  discApprovedById: number;
+  discountReason: string;
+  remarks: string;
+};
+
+type BillingDetailsProps = {
+  setOpdBilling?: (value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)) => void;
+  setBillingValues?: (
+    value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)
+  ) => void;
+  billingValues?: BillingValuesItem;
+  paymentBilling?: Record<string, unknown>;
+  maxDiscountPercentage?: number;
+  creditCopayment?: boolean;
+};
+
 export type {
   BankItems,
   BillingDetailsHandle,
+  BillingDetailsProps,
   BillingFormValues,
   BillingPaymentFormItem,
+  BillingValuesItem,
   DiscountApproveItem,
   PaymentMethodPayloadItem,
   PaymentMethodsHandle,

@@ -6,6 +6,7 @@ import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
 import BranchMaster from "../branchMaster";
+import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import CorporateMaster from "../corporateMaster";
@@ -34,6 +35,8 @@ import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
+import OPDiscountApproval from "../opDiscountApproval";
+import OPPaymentCollection from "../opPaymentCollection";
 import PatientRegistration from "../patientRegistration";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
@@ -109,4 +112,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
   "vital-master": <VitalMaster />
+  "branch-settings": <BranchSettings />,
+  "op-discount-approval": <OPDiscountApproval />,
+  "op-payment-collection": <OPPaymentCollection />,
 };

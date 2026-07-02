@@ -73,6 +73,9 @@ type InvestigationTableItem = {
   investigationComment: string;
   tatInMin: number;
   isActive: number;
+  snomedCode?: string;
+  isRequiredSeparatePerformingDoctor?: number;
+  doctorDepartmentIds?: string;
 };
 type PickMasterOption = {
   key: string;
@@ -124,9 +127,18 @@ type SaveTemplateItem = {
   investigationId: number;
   itemid: number;
 };
+
+type DoctorDepartmentItem = {
+  departmentId: number;
+  department: string;
+  departmentTypeId: number;
+  departmentType: string;
+  isActive: number;
+};
 export type {
   AddLabInvestigationProps,
   CategoryListItem,
+  DoctorDepartmentItem,
   EditablePopupData,
   InvestigationTableItem,
   PickMasterOption,

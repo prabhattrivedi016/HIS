@@ -3,6 +3,7 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showWarning } from "@/utils/alert";
+import { Search } from "lucide-react";
 import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { UhidGlobalSearchProps } from "../types";
 
@@ -101,14 +102,21 @@ const UhidGlobalSearch = ({
     <>
       <div className={`w-full flex justify-center ${className}`.trim()}>
         <InputField>
-          <input
-            type="text"
-            value={searchUhid}
-            className="input-field w-64"
-            placeholder={placeholder}
-            onChange={uhidChangeHandler}
-            onKeyDown={uhidKeyDownHandler}
-          />
+          <div className="relative w-64">
+            <Search
+              size={18}
+              className="absolute left-3 top-5 z-10 -translate-y-1/2 text-gray-500 pointer-events-none"
+            />
+
+            <input
+              type="text"
+              value={searchUhid}
+              className="input-field w-full pl-10!"
+              placeholder={placeholder}
+              onChange={uhidChangeHandler}
+              onKeyDown={uhidKeyDownHandler}
+            />
+          </div>
         </InputField>
       </div>
 

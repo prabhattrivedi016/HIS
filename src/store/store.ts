@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import accessRightReducer from "./slices/accessRightSlices";
+import assignBranchRightReducer from "./slices/assignBranchRightSlice";
 
 const PERSIST_KEY = "redux-store";
 
@@ -16,6 +17,7 @@ const loadState = () => {
 export const store = configureStore({
   reducer: {
     accessRights: accessRightReducer,
+    assignBranchRight: assignBranchRightReducer,
   },
   preloadedState: loadState(),
 });
@@ -25,6 +27,7 @@ store.subscribe(() => {
     const state = store.getState();
     const serializedState = JSON.stringify({
       accessRights: state.accessRights,
+      assignBranchRight: state.assignBranchRight,
     });
     localStorage.setItem(PERSIST_KEY, serializedState);
   } catch {

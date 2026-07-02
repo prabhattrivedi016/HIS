@@ -65,6 +65,26 @@ export const createUpdateServiceMasterSchema = yup.object().shape({
   isOnlineConsultationAllow: yup.number().nullable(),
   isTeleConsultationService: yup.number().nullable(),
   isActive: yup.number().nullable(),
+  isRequiredSeparatePerformingDoctor: yup
+    .number()
+    .transform((value, originalValue) =>
+      originalValue === "" || originalValue === null || originalValue === undefined
+        ? 0
+        : Number(value)
+    )
+    .nullable(),
+  doctorDepartmentIds: yup.string().when("isRequiredSeparatePerformingDoctor", {
+    is: (value: unknown) => Number(value) === 1,
+    then: schema =>
+      schema
+        .required("At least one doctor department is required")
+        .test(
+          "not-empty",
+          "At least one doctor department is required",
+          value => !!value && value.trim() !== ""
+        ),
+    otherwise: schema => schema.nullable(),
+  }),
 });
 
 export type createUpdateServiceMasterFormItem = yup.InferType<
