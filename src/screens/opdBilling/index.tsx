@@ -1,6 +1,6 @@
 import { getDoctorMaster, getPatientDataByPatientId } from "@/api/globalApiCall";
 import { BillingDetailsHandle } from "@/components/BillingDetails";
-import { BillingFormValues } from "@/components/BillingDetails/types";
+import { BillingValuesItem, PaymentBillingSummary } from "@/components/BillingDetails/types";
 import CustomLoader from "@/components/customLoader";
 import OpdCard from "@/components/reportTemplates/OpdCard";
 import OpdDetailsBills from "@/components/reportTemplates/OpdDetailsBill";
@@ -137,9 +137,9 @@ const OpdBilling = () => {
 
   const { rights: branchRights } = useAssignBranchRight();
   const isDiscountApprovalRequired =
-    Number(branchRights?.IsOPDBillingDiscountApprovalRequired ?? 0) === 1 ? 1 : 0;
+    Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
   const isSeparateCollectionCounterEnabled =
-    Number(branchRights?.IsSeparateCollectionCounterEnabled ?? 0) === 1;
+    Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -223,7 +223,7 @@ const OpdBilling = () => {
   const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
   const [formResetKey, setFormResetKey] = useState<number>(0);
 
-  const [billingPaymentDetails, setBillingPaymentDetails] = useState({});
+  const [billingPaymentDetails, setBillingPaymentDetails] = useState<PaymentBillingSummary>({});
 
   const [patientReceiptDetails, setPatientReceiptDetails] = useState<PatientReceiptItem[]>([]);
 
@@ -257,7 +257,11 @@ const OpdBilling = () => {
 
   const [canProceedBilling, setCanProceedBilling] = useState<boolean>(false);
 
-  const [previousDues, setPreviousDues] = useState({
+  const [previousDues, setPreviousDues] = useState<{
+    opd: number | null;
+    ipd: number | null;
+    pharmacy: number | null;
+  }>({
     opd: null,
     ipd: null,
     pharmacy: null,
@@ -717,33 +721,17 @@ const OpdBilling = () => {
     return true;
   };
 
-  const validateRateListIds = (): boolean => {
-    const missingRateList = serviceDataTableItem.some(item => resolveRateListIdForRow(item) <= 0);
-
-    if (missingRateList) {
-      const message =
-        "Rate list is not configured for one or more services. Please re-select performing doctor.";
-      setServiceValidationError(message);
-      showWarning(message);
-      setActiveTab(OPDBillingTabName.OPD_BILLING);
-      return false;
-    }
-
-    return true;
-  };
-
   const validateServiceDoctors = (): boolean =>
     validatePerformingDoctors() && validateBillingDoctorForServices();
 
+  // Detects a discount applied either overall on the bill or service-wise.
   const hasBillingDiscount = () =>
-    Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill ?? 0) > 0;
+    Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill ?? 0) > 0 ||
+    Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill ?? 0) > 0 ||
+    Number(billingPaymentDetails?.totalDiscAmtOnBill ?? 0) > 0 ||
+    Number(billingPaymentDetails?.totalDiscPerOnBill ?? 0) > 0;
 
   const validateBillingDiscountBeforeSave = (): boolean => {
-    if (isSeparateCollectionCounterEnabled) {
-      setBillingTabError(false);
-      return true;
-    }
-
     if (!hasBillingDiscount()) {
       setBillingTabError(false);
       return true;
@@ -760,11 +748,6 @@ const OpdBilling = () => {
     setBillingTabError(false);
     return true;
   };
-
-  const isHeaderDoctorRequired = useMemo(
-    () => serviceDataTableItem.some(item => Number(item.isRequiredSeparatePerformingDoctor) !== 1),
-    [serviceDataTableItem]
-  );
 
   useEffect(() => {
     serviceDataTableItem.forEach(item => {
@@ -890,7 +873,7 @@ const OpdBilling = () => {
     rate: Number(item?.rate) || 0,
     rateListId: Number(item?.rateListId) || corporateOpdRateListIds[0] || 0,
     subSubCategoryId: item?.subSubCategoryId || 0,
-    // remarks: resolveServiceRemarks(item, item?.serviceItemId),
+    remarks: resolveServiceRemarks(item, item?.serviceItemId),
   });
 
   const createBillingItemsPayload = (): OpdBillingItemPayload[] => {
@@ -935,7 +918,9 @@ const OpdBilling = () => {
     netAmount: Number(billingValues?.netAmount ?? opdBillingFormData.netAmount) || 0,
     discApprovedById:
       Number(billingValues?.discApprovedById ?? opdBillingFormData.discApprovedById ?? 0) || 0,
-    discountReason: billingValues?.discountReason ?? opdBillingFormData.discountReason ?? "",
+    discountReason: String(
+      billingValues?.discountReason ?? opdBillingFormData.discountReason ?? ""
+    ),
     uniqueId: opdBillingFormData.uniqueId ?? "",
     mlc: opdBillingFormData.mlc ?? "",
     pi: opdBillingFormData.pi ?? "",
@@ -961,6 +946,12 @@ const OpdBilling = () => {
       Number(opdBillingFormData.insuranceCompanyId ?? selectedInsurance ?? 0) || 0,
     cardHolder: opdBillingFormData.cardHolder ?? "",
     corporateId: Number(opdBillingFormData.corporateId ?? selectedCorporate?.value ?? 0) || 0,
+    discountApprovedID:
+      Number(billingValues?.discApprovedById ?? opdBillingFormData.discApprovedById ?? 0) || 0,
+    discountApprovedName: String(billingValues?.discApprovedName ?? ""),
+    discountReason: String(
+      billingValues?.discountReason ?? opdBillingFormData.discountReason ?? ""
+    ),
     isDiscountApprovalRequired:
       isDiscountApprovalRequired && Number(billingValues?.totalDiscPerOnBill ?? 0) > 0 ? 1 : 0,
     expiryDate: opdBillingFormData.expiryDate ?? "",
@@ -972,12 +963,13 @@ const OpdBilling = () => {
     referalDate: opdBillingFormData.referalDate ?? "",
     referalNo: opdBillingFormData.referalNo ?? "",
     referDoctorId: Number(opdBillingFormData.referDoctorId ?? selectedReferDoctor?.value ?? 0) || 0,
+    remark: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
+    roleId: roleId,
     roundOff: Number(billingValues?.roundOff ?? opdBillingFormData.roundOff) || 0,
     totalDiscAmtOnBill:
       Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill) || 0,
     totalDiscPerOnBill:
       Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill) || 0,
-    // remarks: String(billingValues?.remarks ?? opdBillingFormData.remarks ?? ""),
   });
 
   const buildSavePayloadForOpdBooking = (
@@ -1046,7 +1038,7 @@ const OpdBilling = () => {
   };
 
   // billing discount details
-  const [billingValues, setBillingValues] = useState<BillingFormValues>({
+  const [billingValues, setBillingValues] = useState<BillingValuesItem>({
     grossBillAmount: 0,
     totalDiscPerOnBill: 0,
     totalDiscAmtOnBill: 0,
@@ -1054,6 +1046,7 @@ const OpdBilling = () => {
     netAmount: 0,
     balanceAmount: 0,
     discApprovedById: 0,
+    discApprovedName: "",
     discountReason: "",
     remarks: "",
   });
@@ -1976,7 +1969,6 @@ const OpdBilling = () => {
       mlc: "",
       pi: "",
       remark: "",
-      remarks: "",
       policyNo: "",
       policyCardNo: "",
       expiryDate: "",
@@ -1998,6 +1990,7 @@ const OpdBilling = () => {
       netAmount: 0,
       balanceAmount: 0,
       discApprovedById: 0,
+      discApprovedName: "",
       discountReason: "",
       remarks: "",
     });
@@ -2251,7 +2244,10 @@ const OpdBilling = () => {
       }
 
       const billingPayload = billingDetailsRef.current?.getPayload?.();
-      const allPaymentDetails = (billingPayload?.payments || []).map(payment => ({
+      const paymentList = Array.isArray(billingPayload?.payments)
+        ? (billingPayload?.payments as Array<Record<string, unknown>>)
+        : [];
+      const allPaymentDetails = paymentList.map(payment => ({
         paymentModeId: Number(payment?.paymentModeId) || 0,
         paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
         amount: Number(payment?.amount) || 0,
@@ -2643,7 +2639,11 @@ const OpdBilling = () => {
       </div>
 
       <div className={activeTab === OPDBillingTabName.OPD_BILLING ? "" : "hidden"}>
-        <OpdBillingSection {...billingSectionProps} creditCopayment={creditCopayment} />
+        <OpdBillingSection
+          {...billingSectionProps}
+          creditCopayment={creditCopayment}
+          isSeparateCollectionCounterEnabled={isSeparateCollectionCounterEnabled}
+        />
       </div>
 
       <div className={activeTab === OPDBillingTabName.OPD_DOCUMENT ? "" : "hidden"}>

@@ -3,8 +3,6 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
-import { useAppSelector } from "@/store/hooks";
-import { selectAssignBranchRightState } from "@/store/useAssignBranchRight";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
 import Select, { StylesConfig } from "react-select";
 import { InsuranceItem } from "../../branchMaster/types";
@@ -77,8 +75,6 @@ const OpdBillingSection = ({
   maxDiscountPercentage,
   creditCopayment,
 }: OpdBillingSectionProps) => {
-  const { rights } = useAppSelector(selectAssignBranchRightState);
-  const isHideBilingSection = Boolean(rights?.IsSeparateCollectionCounterEnabled === 1);
   return (
     <div className="card mt-1">
       <div className="form-grid-4 ">
@@ -464,20 +460,18 @@ const OpdBillingSection = ({
         </div>
       </div>
 
-      {!isHideBilingSection && (
-        <div className="payment details">
-          <BillingDetails
-            key={`billing-details-${formResetKey}`}
-            ref={billingDetailsRef}
-            setOpdBilling={setOpdBillingFormData}
-            setBillingValues={setBillingValues}
-            billingValues={billingValues}
-            paymentBilling={billingPaymentDetails}
-            maxDiscountPercentage={maxDiscountPercentage}
-            creditCopayment={creditCopayment}
-          />
-        </div>
-      )}
+      <div className="payment details">
+        <BillingDetails
+          key={`billing-details-${formResetKey}`}
+          ref={billingDetailsRef}
+          setOpdBilling={setOpdBillingFormData}
+          setBillingValues={setBillingValues}
+          billingValues={billingValues}
+          paymentBilling={billingPaymentDetails}
+          maxDiscountPercentage={maxDiscountPercentage}
+          creditCopayment={creditCopayment}
+        />
+      </div>
     </div>
   );
 };

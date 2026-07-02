@@ -1,3 +1,6 @@
+import type { OpdBillingFormData } from "@/screens/opdBilling/types";
+import type { Dispatch, SetStateAction } from "react";
+
 type BankItems = {
   bankId: number;
   bankName: string;
@@ -75,17 +78,25 @@ type BillingValuesItem = {
   netAmount: number;
   balanceAmount: number;
   discApprovedById: number;
+  discApprovedName: string;
   discountReason: string;
   remarks: string;
 };
 
+type PaymentBillingSummary = {
+  grossBillAmount?: number;
+  totalDiscPerOnBill?: number;
+  totalDiscAmtOnBill?: number;
+  netAmount?: number;
+};
+
 type BillingDetailsProps = {
-  setOpdBilling?: (value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)) => void;
+  setOpdBilling?: Dispatch<SetStateAction<OpdBillingFormData>>;
   setBillingValues?: (
     value: BillingValuesItem | ((prev: BillingValuesItem) => BillingValuesItem)
   ) => void;
   billingValues?: BillingValuesItem;
-  paymentBilling?: Record<string, unknown>;
+  paymentBilling?: PaymentBillingSummary;
   maxDiscountPercentage?: number;
   creditCopayment?: boolean;
 };
@@ -98,7 +109,8 @@ export type {
   BillingPaymentFormItem,
   BillingValuesItem,
   DiscountApproveItem,
+  PaymentBillingSummary,
+  PaymentItems,
   PaymentMethodPayloadItem,
   PaymentMethodsHandle,
-  PaymentItems,
 };
