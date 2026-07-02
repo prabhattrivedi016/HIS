@@ -29,6 +29,8 @@ type PatientItem = {
   isOPDBill: number;
   isIPDBill: number;
   dsId: number;
+  OPDConsultationType: string;
+  OPDConsultationTypeId: number;
 };
 
 export type { PatientItem };

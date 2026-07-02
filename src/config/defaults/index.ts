@@ -383,6 +383,16 @@ const ENDPOINTS = {
   DELETE_PATIENT_ALLERGY: "EMR/deletePatientAllergy",
   DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
 
+  // diagnosis master
+  GET_DIAGNOSIS_MASTER_LIST: "EMR/getDiagnosisMasterList",
+  CREATE_UPDATE_DIAGNOSIS_MASTER: "EMR/createUpdateDiagnosisMaster",
+  DELETE_DIAGNOSIS_MASTER: "EMR/deleteDiagnosisMaster",
+
+  // procedure master
+  GET_PROCEDURE_MASTER_LIST: "EMR/getProcedureMasterList",
+  CREATE_UPDATE_PROCEDURE_MASTER: "EMR/createUpdateProcedureMaster",
+  DELETE_PROCEDURE_MASTER: "EMR/deleteProcedureMaster",
+
   // vital master
   GET_VITAL_MASTER_LIST: "Admin/getVitalMasterList",
   GET_VITAL_UNIT_MASTER_LIST: "Admin/getVitalUnitMasterList",

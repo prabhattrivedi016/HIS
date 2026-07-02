@@ -1,15 +1,18 @@
-import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Edit, Stethoscope, User } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Edit, History, LineChart, Stethoscope, User } from "lucide-react";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import VitalDrawer from "./components/VitalDrawer";
+import VitalGraph from "./components/VitalGraph";
+import VitalHistory from "./components/VitalHistory";
 import AllergyPanel from "./components/AllergyPanel";
 import { PatientItem } from "./types";
 
@@ -41,11 +44,14 @@ const DoctorConsultationNew = () => {
   const [renderVitalDrawer, setRenderVitalDrawer] = useState<boolean>(false);
   const [openVitalDrawer, setOpenVitalDrawer] = useState<boolean>(false);
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
+  const [showVitalGraph, setShowVitalGraph] = useState<boolean>(false);
+  const [showVitalHistory, setShowVitalHistory] = useState<boolean>(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState("0");
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
+  const [allergyText, setAllergyText] = useState("");
   const [vitalsData, setVitalsData] = useState({ bp: "", pulse: "", rr: "", spo2: "", temp: "", grbs: "", ht: "", wt: "", bmi: "" });
   const updateVital = (key: string, val: string) => setVitalsData(prev => ({ ...prev, [key]: val }));
   const getPatientLists = async () => {
@@ -207,7 +213,25 @@ const DoctorConsultationNew = () => {
   const closeHandler = useCallback(() => {
     setOpenVitalDrawer(false);
   }, []);
- 
+
+  const handleFinalSave = async () => {
+    if (!selectedPatient) return;
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_ALLERGY,
+      {
+        patientId: selectedPatient.PatientId,
+        visitId: selectedPatient.VisitId,
+        allergyText,
+      },
+      {},
+      { component: "DoctorConsultationNew" }
+    );
+    if (resp?.result) {
+      showSuccess("Consultation saved successfully");
+    }
+  };
+
   const getDoctorList = async () => {
     const resp = await fetchApi(
       "GET",
@@ -399,13 +423,23 @@ const DoctorConsultationNew = () => {
               {filteredData.length === 0 ? (
                 <div className="text-center text-gray-400 py-10 text-sm">No patients found</div>
               ) : (
-                filteredData.map((item: PatientItem, idx: number) => (
+                filteredData.map((item: PatientItem, idx: number) => {
+                  const isEmergency = item.TypeName === "OPD" && item.OPDConsultationTypeId === 3;
+                  const isSelected =
+                    selectedPatient !== null &&
+                    selectedPatient.VisitId === item.VisitId &&
+                    selectedPatient.DoctorId === item.DoctorId &&
+                    selectedPatient.Id === item.Id &&
+                    selectedPatient.AppointmentNo === item.AppointmentNo;
+                  return (
                   <div
-                    key={`${item.VisitId}-${item.DoctorId}`}
-                    onClick={() => { setSelectedPatient(item); setLeftPanelVisible(false); }}
+                    key={`${item.VisitId}-${item.DoctorId}-${item.Id}-${item.AppointmentNo}`}
+                    onClick={() => { setSelectedPatient(item); setLeftPanelVisible(false); setAllergyText(""); }}
                     className={`w-full rounded-xl border shadow-sm p-2.5 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
-                      selectedPatient?.VisitId === item.VisitId && selectedPatient?.DoctorId === item.DoctorId
+                      isSelected
                         ? "bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-500 ring-2 ring-blue-300 shadow-md"
+                        : isEmergency
+                        ? "bg-red-50/70 border-red-300 ring-1 ring-red-200 hover:border-red-400 hover:shadow-md"
                         : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50"
                     }`}
                   >
@@ -415,6 +449,15 @@ const DoctorConsultationNew = () => {
                         <User size={11} className="text-white" />
                       </div>
                       <span className="text-xs font-bold text-gray-800 flex-1 truncate">{item.PatientName}</span>
+                      {isEmergency && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded-full shrink-0">
+                          <span className="relative flex w-1.5 h-1.5">
+                            <span className="animate-ping absolute inline-flex w-full h-full rounded-full bg-white opacity-75" />
+                            <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-white" />
+                          </span>
+                          EMERGENCY
+                        </span>
+                      )}
                       {idx === 0 && activeTab === "pending" && (
                         <span className="text-[10px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full shrink-0">UP NEXT</span>
                       )}
@@ -451,7 +494,8 @@ const DoctorConsultationNew = () => {
                       <span className="font-medium shrink-0"># {item.AppointmentNo}</span>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -523,10 +567,15 @@ const DoctorConsultationNew = () => {
                             <button
                               type="button"
                               onClick={() => setShowAllergyPanel(true)}
-                              className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200 hover:bg-green-100 transition-colors"
+                              title={allergyText || undefined}
+                              className={`flex items-center gap-1 max-w-[220px] text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                                allergyText
+                                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                  : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                              }`}
                             >
-                              No Allergy
-                              <Edit size={10} />
+                              <span className="truncate">{allergyText || "No Allergy"}</span>
+                              <Edit size={10} className="shrink-0" />
                             </button>
                           </div>
                           {/* Phone + ABHA */}
@@ -560,7 +609,11 @@ const DoctorConsultationNew = () => {
                         </button>
                         <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">View</button>
                         <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">Print</button>
-                        <button className="text-sm font-medium bg-slate-800 text-white rounded-lg px-4 py-1.5 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleFinalSave}
+                          className="text-sm font-medium bg-slate-800 text-white rounded-lg px-4 py-1.5 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-1.5"
+                        >
                           Save <ChevronDown size={13} />
                         </button>
                       </div>
@@ -577,26 +630,44 @@ const DoctorConsultationNew = () => {
                     </div>
 
                     {/* ── Section 3: Vitals strip — full width, editable ── */}
-                    <div className="flex items-start divide-x divide-gray-100 w-full py-2">
-                      {vitals.map(v => (
-                        <div key={v.label} className="flex-1 flex flex-col items-center px-1">
-                          <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${v.value ? v.labelColor : "text-gray-300"}`}>
-                            {v.label}
-                          </span>
-                          <input
-                            type="text"
-                            value={v.value}
-                            onChange={e => updateVital(v.key, e.target.value)}
-                            placeholder="--"
-                            className={`border-b-2 border-dashed focus:border-solid focus:outline-none bg-transparent text-base font-bold leading-none pb-0.5 text-center transition-colors w-full max-w-[56px] placeholder:text-gray-200 ${
-                              v.value ? v.color : "text-gray-300"
-                            } border-gray-200 ${v.focusBorder}`}
-                          />
-                          <span className={`text-[9px] mt-0.5 leading-none ${v.value ? "text-gray-400" : "text-gray-300"}`}>
-                            {v.unit}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="flex items-center w-full py-2">
+                      <div className="flex items-start divide-x divide-gray-100 flex-1">
+                        {vitals.map(v => (
+                          <div key={v.label} className="flex-1 flex flex-col items-center px-1">
+                            <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${v.value ? v.labelColor : "text-gray-300"}`}>
+                              {v.label}
+                            </span>
+                            <input
+                              type="text"
+                              value={v.value}
+                              onChange={e => updateVital(v.key, e.target.value)}
+                              placeholder="--"
+                              className={`border-b-2 border-dashed focus:border-solid focus:outline-none bg-transparent text-base font-bold leading-none pb-0.5 text-center transition-colors w-full max-w-[56px] placeholder:text-gray-200 ${
+                                v.value ? v.color : "text-gray-300"
+                              } border-gray-200 ${v.focusBorder}`}
+                            />
+                            <span className={`text-[9px] mt-0.5 leading-none ${v.value ? "text-gray-400" : "text-gray-300"}`}>
+                              {v.unit}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowVitalHistory(true)}
+                        title="View vital history"
+                        className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-blue-500 shrink-0 ml-3 hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all"
+                      >
+                        <History size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowVitalGraph(true)}
+                        title="View vital graph"
+                        className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-blue-500 shrink-0 ml-1.5 hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all"
+                      >
+                        <LineChart size={15} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -609,7 +680,32 @@ const DoctorConsultationNew = () => {
               <div className="bg-white rounded-xl shadow mt-3 max-w-120">
                 <div className="flex items-center justify-between px-4 py-3 border-b">
                   <h3 className="font-semibold text-gray-800">Vitals Trend</h3>
-                  <Edit size={16} className="text-blue-500 cursor-pointer" onClick={vitalDrawerHandler} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowVitalHistory(true)}
+                      title="View vital history"
+                      className="flex items-center justify-center w-7 h-7 rounded-full text-blue-500 hover:bg-blue-50 active:scale-95 transition-all"
+                    >
+                      <History size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowVitalGraph(true)}
+                      title="View vital graph"
+                      className="flex items-center justify-center w-7 h-7 rounded-full text-blue-500 hover:bg-blue-50 active:scale-95 transition-all"
+                    >
+                      <LineChart size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={vitalDrawerHandler}
+                      title="Edit vitals"
+                      className="flex items-center justify-center w-7 h-7 rounded-full text-blue-500 hover:bg-blue-50 active:scale-95 transition-all"
+                    >
+                      <Edit size={15} />
+                    </button>
+                  </div>
                 </div>
                 <div className="lg:max-h-108 overflow-auto">
                   <table className="w-full text-sm">
@@ -636,11 +732,23 @@ const DoctorConsultationNew = () => {
       </div>
       {/* Drawer */}
       {renderVitalDrawer && <VitalDrawer isOpen={openVitalDrawer} onClose={closeHandler} />}
+      <VitalGraph
+        isOpen={showVitalGraph}
+        onClose={() => setShowVitalGraph(false)}
+        patientId={selectedPatient?.PatientId}
+        vitalsList={vitalsList}
+      />
+      <VitalHistory
+        isOpen={showVitalHistory}
+        onClose={() => setShowVitalHistory(false)}
+        patientId={selectedPatient?.PatientId}
+      />
       <AllergyPanel
         isOpen={showAllergyPanel}
         onClose={() => setShowAllergyPanel(false)}
         patientId={selectedPatient?.VisitId}
         visitId={selectedPatient?.VisitId}
+        onBind={setAllergyText}
       />
     </div>
   );

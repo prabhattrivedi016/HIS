@@ -11,6 +11,7 @@ import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
+import DiagnosisMaster from "../diagnosisMaster";
 import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
@@ -38,6 +39,7 @@ import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OPPaymentCollection from "../opPaymentCollection";
 import PatientRegistration from "../patientRegistration";
+import ProcedureMaster from "../procedureMaster";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
@@ -111,8 +113,10 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "tab-master": <TabMaster />,
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
-  "vital-master": <VitalMaster />
+  "vital-master": <VitalMaster />,
   "branch-settings": <BranchSettings />,
   "op-discount-approval": <OPDiscountApproval />,
   "op-payment-collection": <OPPaymentCollection />,
+  "diagnosis-master": <DiagnosisMaster />,
+  "procedure-master": <ProcedureMaster />,
 };
