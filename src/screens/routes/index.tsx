@@ -55,6 +55,7 @@ import UserGroupMaster from "../userGroupMaster";
 import UserMaster from "../userMaster";
 import UserWiseDiscountMaster from "../userWiseDiscountMaster";
 import VendorMaster from "../vendorMaster";
+import VitalMaster from "../vitalmaster";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
@@ -110,6 +111,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "tab-master": <TabMaster />,
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
+  "vital-master": <VitalMaster />
   "branch-settings": <BranchSettings />,
   "op-discount-approval": <OPDiscountApproval />,
   "op-payment-collection": <OPPaymentCollection />,

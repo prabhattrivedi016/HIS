@@ -1,6 +1,8 @@
 type ListOfLovsItem = {
   value: string;
   dataTypeId: number;
+  headerName?: string;
+  options?: string[];
 };
 
 type HeaderMasterItem = {
