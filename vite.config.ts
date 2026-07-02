@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => ({
   base: "/GWSNHIS",
 
   plugins: [react(), tailwindcss()],
+  
 
   optimizeDeps: {
     exclude: ["react-toastify"],
@@ -23,7 +24,12 @@ export default defineConfig(({ mode }) => ({
     open: true,
     proxy: {
       "/snowstorm": {
-        target: "https://snowstorm.ihtsdotools.org", // 👈 changed
+        target: "https://snowstorm.ihtsdotools.org",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/HISWEBAPI": {
+        target: "http://103.217.247.236",
         changeOrigin: true,
         secure: false,
       },
