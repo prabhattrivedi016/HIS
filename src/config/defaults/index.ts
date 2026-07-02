@@ -198,6 +198,8 @@ const ENDPOINTS = {
   GET_CORPORATE_TYPE_MASTER_LIST: "Admin/getCorporateTypeMasterList",
   GET_PAYMENT_MODE_MASTER_LIST: "Home/getPaymentModeMasterList",
   UPDATE_CORPORATE_MASTER_STATUS: "Admin/updateCorporateMasterStatus",
+  GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID:
+    "Home/getCorporateListByBranchIdAndInsuranceCompanyId",
 
   // patient master
   GET_PATIENT_MASTER: "Patient/getPatientMaster",
@@ -212,6 +214,7 @@ const ENDPOINTS = {
 
   // access rights
   GET_USER_ACCESS_RIGHTS: "User/getUserAccessRights",
+  GET_ASSIGN_BRANCH_RIGHT: "/Home/getAssignBranchRight",
   GET_DASHBOARD_USER_ACCESS_RIGHTS: "User/getDashboardUserAccessRights",
 
   // opd billing
@@ -392,6 +395,23 @@ const ENDPOINTS = {
   GET_APPROVAL_AUTHORITY_MASTER_LIST: "Admin/getApprovalAuthorityMasterList",
   CREATE_UPDATE_APPROVAL_AUTHORITY_MASTER: "Admin/createUpdateApprovalAuthorityMaster",
   UPDATE_APPROVAL_AUTHORITY_MASTER_STATUS: "Admin/updateApprovalAuthorityMasterStatus",
+
+  // branch settings
+  GET_BRANCH_RIGHT_MAPPING: "Admin/getBranchRightMapping",
+  SAVE_BRANCH_RIGHT_MAPPING: "Admin/saveBranchRightMapping",
+  GET_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/getBranchCorporateRatelistMapping",
+  SAVE_BRANCH_CORPORATE_RATE_LIST_MAPPING: "Admin/saveBranchCorporateRatelistMapping",
+  SAVE_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING:
+    "Admin/saveBranchCorporateServiceExclusionMapping",
+  GET_BRANCH_CORPORATE_SERVICE_EXCLUSION_MAPPING: "Admin/getBranchCorporateServiceExclusionMapping",
+  UPDATE_DEFAULT_BRANCH_SETTING: "Admin/updateDefaultBranchSetting",
+
+  // op discount approval
+  GET_OPD_BOOKING_DETAILS_FOR_DISCOUNT_APPROVAL: "Patient/getOPDBookingDetailsForDiscountApproval",
+  APPROVE_OPD_BOOKING_DISCOUNT: "Patient/approveOPDBookingDiscount",
+  CANCEL_OPD_BOOKING: "Patient/cancelOPDBooking",
+  GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION:
+    "Patient/getOPDBookingDetailsForPaymentCollection",
 };
 
 export { ENDPOINTS };

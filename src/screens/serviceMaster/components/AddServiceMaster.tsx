@@ -2,6 +2,7 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
+import MultiCheckboxOption from "@/components/multiSelectCheckBox";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -19,9 +20,10 @@ import { useQuery } from "@tanstack/react-query";
 import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
-import Select from "react-select";
+import Select, { MultiValue } from "react-select";
 import {
   CategoryItem,
+  DoctorDepartmentList,
   ServiceTableItem,
   SnomedItem,
   SubCategoryItem,
@@ -30,14 +32,27 @@ import {
 import CreateUpdatePopup from "./CreateUpdatePopup";
 import SnomedPopup from "./SnomedPopup";
 
+const parseCsvIds = (value?: string) =>
+  (value ?? "")
+    .split(",")
+    .map(v => Number(v.trim()))
+    .filter(v => Number.isFinite(v) && v > 0);
+
 const AddServiceMaster = ({
   isOpen,
   onClose,
   data,
+  refreshTableData,
 }: {
   isOpen: boolean;
   onClose: () => void;
   data: ServiceTableItem | null;
+  refreshTableData?: (
+    categoryId?: number,
+    subCategoryId?: number,
+    subSubCategoryId?: number,
+    nameFilter?: string
+  ) => Promise<void>;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -70,6 +85,32 @@ const AddServiceMaster = ({
 
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [selectedDoctorDepartments, setSelectedDoctorDepartments] = useState<SelectItem[]>([]);
+
+  const getDoctorDepartmentList = useCallback(async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_DEPARTMENT_LIST,
+      {},
+      {},
+      { component: "AddServiceMaster", silent: true }
+    );
+    return resp?.data ?? [];
+  }, [fetchApi]);
+
+  const { data: doctorDepartmentList = [] } = useQuery({
+    queryKey: ["getDoctorDepartmentList"],
+    queryFn: getDoctorDepartmentList,
+  });
+
+  const doctorDepartmentOptions = useMemo<readonly SelectItem[]>(
+    () =>
+      doctorDepartmentList.map((d: DoctorDepartmentList) => ({
+        label: d?.department,
+        value: d?.departmentId,
+      })),
+    [doctorDepartmentList]
+  );
 
   // get categoryLists
   const getCategories = async () => {
@@ -114,12 +155,15 @@ const AddServiceMaster = ({
       isOnlineConsultationAllow: 0,
       isTeleConsultationService: 0,
       isActive: 1,
+      isRequiredSeparatePerformingDoctor: 0,
+      doctorDepartmentIds: "",
     },
   });
 
   const isICU = Number(watch("isICU")) === 1;
   const isEdit = Boolean(watch("serviceItemId"));
   const selectedOpdTypeId = watch("opdConsultationTypeId");
+  const isRequiredPerformingDoctor = Number(watch("isRequiredSeparatePerformingDoctor")) === 1;
 
   const buttonTitle = isEdit ? "Update" : "Create";
 
@@ -333,6 +377,68 @@ const AddServiceMaster = ({
     }, 100);
   }, []);
 
+  const performingDoctorChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    setValue("isRequiredSeparatePerformingDoctor", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    if (value === 0) {
+      setSelectedDoctorDepartments([]);
+      setValue("doctorDepartmentIds", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const doctorDepartmentChangeHandler = (options: MultiValue<SelectItem>) => {
+    const selectedOptions = [...options];
+    setSelectedDoctorDepartments(selectedOptions);
+    setValue("doctorDepartmentIds", selectedOptions.map(option => option.value).join(","), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  useEffect(() => {
+    if (isRequiredPerformingDoctor) return;
+
+    setSelectedDoctorDepartments([]);
+    setValue("doctorDepartmentIds", "", {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+  }, [isRequiredPerformingDoctor, setValue]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !data?.serviceItemId ||
+      !data?.doctorDepartmentIds ||
+      doctorDepartmentOptions.length === 0
+    ) {
+      return;
+    }
+
+    if (Number(data?.isRequiredSeparatePerformingDoctor ?? 0) !== 1) {
+      return;
+    }
+
+    const idSet = new Set(parseCsvIds(data.doctorDepartmentIds));
+    const selected = doctorDepartmentOptions.filter(option => idSet.has(Number(option.value)));
+    setSelectedDoctorDepartments([...selected]);
+    setValue("doctorDepartmentIds", data.doctorDepartmentIds, { shouldValidate: false });
+  }, [
+    isOpen,
+    data?.serviceItemId,
+    data?.doctorDepartmentIds,
+    data?.isRequiredSeparatePerformingDoctor,
+    doctorDepartmentOptions,
+    setValue,
+  ]);
+
   useEffect(() => {
     if (!data?.serviceItemId) return;
     if (!categoryList.length) return;
@@ -354,6 +460,8 @@ const AddServiceMaster = ({
       isOnlineConsultationAllow: data.isOnlineConsultationAllow ?? 0,
       isTeleConsultationService: data.isTeleConsultationService ?? 0,
       isActive: data.isActive ?? 1,
+      isRequiredSeparatePerformingDoctor: data.isRequiredSeparatePerformingDoctor ?? 0,
+      doctorDepartmentIds: data.doctorDepartmentIds ?? "",
     });
 
     setCategoryId(data.categoryId);
@@ -467,10 +575,22 @@ const AddServiceMaster = ({
 
   // submit handler
   const onsubmit = async (formData: createUpdateServiceMasterFormItem) => {
+    const doctorDepartmentIds =
+      Number(formData.isRequiredSeparatePerformingDoctor) === 1
+        ? formData.doctorDepartmentIds ||
+          selectedDoctorDepartments.map(option => option.value).join(",")
+        : "";
+
+    const payload = {
+      ...formData,
+      isRequiredSeparatePerformingDoctor: Number(formData.isRequiredSeparatePerformingDoctor ?? 0),
+      doctorDepartmentIds,
+    };
+
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_SERVICE_ITEM_MASTER,
-      formData,
+      payload,
       {},
       { component: "AddServiceMaster" }
     );
@@ -479,7 +599,13 @@ const AddServiceMaster = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
+    await refreshTableData?.(
+      Number(payload.categoryId),
+      Number(payload.subCategoryId),
+      Number(payload.subSubCategoryId)
+    );
     setTimeout(() => {
+      setSelectedDoctorDepartments([]);
       reset({
         serviceItemId: 0,
         categoryId: 0,
@@ -497,6 +623,8 @@ const AddServiceMaster = ({
         isOnlineConsultationAllow: 0,
         isTeleConsultationService: 0,
         isActive: 1,
+        isRequiredSeparatePerformingDoctor: 0,
+        doctorDepartmentIds: "",
       });
       onClose?.();
     }, 500);
@@ -636,6 +764,43 @@ const AddServiceMaster = ({
                       <i className="fa-solid fa-magnifying-glass icon-color-button"></i>
                     </button>
                   </div>
+                </InputField>
+
+                <InputField label="Required Performing Doctor">
+                  <input type="hidden" {...register("isRequiredSeparatePerformingDoctor")} />
+                  <select
+                    className="input-field"
+                    value={Number(watch("isRequiredSeparatePerformingDoctor") ?? 0)}
+                    onChange={performingDoctorChangeHandler}
+                  >
+                    <option value={0}>No</option>
+                    <option value={1}>Yes</option>
+                  </select>
+                </InputField>
+
+                <InputField label="Doctor Department" required={isRequiredPerformingDoctor}>
+                  <input type="hidden" {...register("doctorDepartmentIds")} />
+                  <div
+                    className={!isRequiredPerformingDoctor ? "disabled-input-field !mb-0 !p-0" : ""}
+                  >
+                    <Select
+                      isMulti
+                      value={selectedDoctorDepartments}
+                      options={doctorDepartmentOptions}
+                      placeholder="Select doctor departments"
+                      isSearchable
+                      isClearable
+                      onChange={doctorDepartmentChangeHandler}
+                      components={{ Option: MultiCheckboxOption }}
+                      styles={!isRequiredPerformingDoctor ? "" : SelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      isDisabled={!isRequiredPerformingDoctor}
+                    />
+                  </div>
+                  {errors.doctorDepartmentIds && (
+                    <p className="input-field-error">{errors.doctorDepartmentIds.message}</p>
+                  )}
                 </InputField>
 
                 {!!categoryTypeId && categoryTypeId === 1 && (

@@ -6,6 +6,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { useAppDispatch } from "../../store/hooks";
+import { clearAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { clearAccessRights } from "../../store/slices/accessRightSlices";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
@@ -81,6 +82,7 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
     authContext?.logout();
     roleContext?.clearRole();
     dispatch(clearAccessRights());
+    dispatch(clearAssignBranchRight());
     setAuthorizedPages([]);
     setFavoriteRoles([]);
 

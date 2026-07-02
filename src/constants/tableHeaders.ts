@@ -397,6 +397,27 @@ export const OpdRateListTableHeader = ["Remove", "OPD Rate List"];
 
 export const IpdRateListTableHeader = ["Remove", "IPD Rate List"];
 
+export const BranchCorporateRateListMappingTableHeader = [
+  "#",
+  "Branch",
+  "Corporate",
+  "OPD Rate List",
+  "IPD Rate List",
+  "Created By",
+  "Created On",
+];
+
+export const BranchWiseServiceExcludeTableHeader = ["#", "Service Name", "Code", "Remove"];
+
+export const BranchCorporateServiceExclusionMappingTableHeader = [
+  "#",
+  "Branch",
+  "Corporate",
+  "Service Item",
+  "Created By",
+  "Created On",
+];
+
 export const DiscountApprovalMasterTableHeader = [
   "#",
   "Name",
@@ -422,17 +443,18 @@ export const PatientSearchResultTableHeader = [
 ];
 
 export const OpdBillingServiceTableHeader = [
-  "Delete",
   "#",
   "Service Name",
   "Code",
   "Doctor",
+  "Performing Doctor",
   "QTY",
   "Rate",
   "Disc (%)",
   "Disc",
   "Net Amt",
-  "U",
+  "Remarks",
+  "Urgent",
 ];
 
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No.", "Action"];
@@ -588,7 +610,7 @@ export const ApprovalAuthorityMasterTableHeader = [
   "Level-4 User",
   "Approval Flow",
   "Approval Required",
-  "Amount up to",
+  "Amount Up to",
   "Edit",
   "Status",
 ];
@@ -603,4 +625,18 @@ export const BedMasterTableHeader = [
   "Bed No",
   "Status",
   "Edit",
+];
+export const BranchRightMappingTableHeader = ["#", "Branch Right Name", "Description", "Granted"];
+
+export const OpDiscountApprovalTableHeader = [
+  "#",
+  "Patient Name",
+  "Age",
+  "Gender",
+  "Corporate",
+  "Total Bill Amount",
+  "Payment Collected",
+  "Cancelled",
+  "Approve",
+  "Cancel",
 ];
