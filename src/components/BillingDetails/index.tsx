@@ -2,6 +2,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
@@ -36,6 +37,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     ref
   ) => {
     const { fetchApi } = useGlobalApi();
+    const { rights: branchRights } = useAssignBranchRight();
+    const isSeparateCollectionCounterEnabled =
+      Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
+    const isDiscountApprovalRequired =
+      Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
 
     const [paymentList, setPaymentList] = useState<PaymentItems[]>([]);
     const [bankList, setBankList] = useState<BankItems[]>([]);
@@ -262,6 +268,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       netAmount: 0,
       balanceAmount: 0,
       discApprovedById: 0,
+      discApprovedName: "",
       discountReason: "",
       remarks: "",
     };
@@ -283,28 +290,32 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       return toNumber(billingValues?.netAmount);
     }, [billingValues?.netAmount, copaymentAmount, creditCopayment]);
 
-    const isServiceDiscountApplied = paymentBilling && paymentBilling.totalDiscAmtOnBill > 0;
+    const isServiceDiscountApplied =
+      !!paymentBilling && toNumber(paymentBilling.totalDiscAmtOnBill) > 0;
 
     const wasServiceDiscountAppliedRef = useRef(false);
 
     // payment
     useEffect(() => {
       if (paymentBilling && Object.keys(paymentBilling).length > 0) {
-        if (paymentBilling.totalDiscAmtOnBill > 0) {
+        const gross = toNumber(paymentBilling.grossBillAmount);
+        const discAmt = toNumber(paymentBilling.totalDiscAmtOnBill);
+        const discPer = toNumber(paymentBilling.totalDiscPerOnBill);
+
+        if (discAmt > 0) {
           wasServiceDiscountAppliedRef.current = true;
-          const rawNet = paymentBilling.grossBillAmount - paymentBilling.totalDiscAmtOnBill;
+          const rawNet = gross - discAmt;
           const netAmount = Math.round(rawNet);
           const roundOff = roundToTwo(netAmount - rawNet);
 
           setBillingState({
-            grossBillAmount: paymentBilling.grossBillAmount,
-            totalDiscAmtOnBill: paymentBilling.totalDiscAmtOnBill,
-            totalDiscPerOnBill: paymentBilling.totalDiscPerOnBill,
+            grossBillAmount: gross,
+            totalDiscAmtOnBill: discAmt,
+            totalDiscPerOnBill: discPer,
             netAmount: netAmount,
             roundOff: roundOff,
           });
         } else {
-          const gross = paymentBilling.grossBillAmount;
           let discOverride = billingValues?.totalDiscAmtOnBill ?? 0;
           if (wasServiceDiscountAppliedRef.current) {
             discOverride = 0;
@@ -330,7 +341,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     const hasAnyDiscount =
       toNumber(billingValues?.totalDiscAmtOnBill) > 0 ||
       toNumber(billingValues?.totalDiscPerOnBill) > 0 ||
-      toNumber(paymentBilling?.totalDiscAmtOnBill) > 0;
+      toNumber(paymentBilling?.totalDiscAmtOnBill) > 0 ||
+      toNumber(paymentBilling?.totalDiscPerOnBill) > 0;
 
     const validateDiscountFields = () => {
       if (!hasAnyDiscount) {
@@ -363,7 +375,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
     const syncToOpdBilling = (nextValues: Partial<BillingValuesItem>) => {
       if (!setOpdBilling) return;
-      setOpdBilling((prev: BillingValuesItem) => ({ ...prev, ...nextValues }));
+      setOpdBilling(prev => ({ ...prev, ...nextValues }));
     };
 
     const setBillingState = (nextValues: Partial<BillingValuesItem>) => {
@@ -501,7 +513,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     };
     const discountApprovedHandler = (e: ChangeEvent<HTMLSelectElement>) => {
       const value = Number(e.target.value) || 0;
-      setBillingState({ discApprovedById: value });
+      const selectedApprover = discountApproveList?.find(item => Number(item?.id) === value);
+      setBillingState({
+        discApprovedById: value,
+        discApprovedName: selectedApprover?.name ?? "",
+      });
       setBillingFieldErrors(prev => ({ ...prev, discApprovedById: undefined }));
     };
 
@@ -579,6 +595,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             netAmount: 0,
             balanceAmount: 0,
             discApprovedById: 0,
+            discApprovedName: "",
             discountReason: "",
             remarks: "",
           });
@@ -728,129 +745,138 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           </div>
         </div>
 
-        <div className="payment details w-full lg:w-1/2">
-          <div className="overflow-x-auto w-full">
-            <div className="table-container">
-              <div className="table-scroll-wrapper">
-                <div className="table-size w-full lg:min-h-60 lg:max-h-60">
-                  <table className="base-table w-full">
-                    <thead className="table-head">
-                      <tr>
-                        {BillingPaymentTableHeader.map((h, i) => (
-                          <th key={i} className="table-th">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
+        {isSeparateCollectionCounterEnabled === 1 ||
+          (isDiscountApprovalRequired === 0 && (
+            <div className="payment details w-full lg:w-1/2">
+              <div className="overflow-x-auto w-full">
+                <div className="table-container">
+                  <div className="table-scroll-wrapper">
+                    <div className="table-size w-full lg:min-h-60 lg:max-h-60">
+                      <table className="base-table w-full">
+                        <thead className="table-head">
+                          <tr>
+                            {BillingPaymentTableHeader.map((h, i) => (
+                              <th key={i} className="table-th">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
 
-                    <tbody>
-                      {rows.map((row, index) => (
-                        <tr key={index}>
-                          <td>
-                            <select
-                              className="input-field max-w-40 mt-2 ml-1"
-                              value={row.paymentModeId ?? ""}
-                              onChange={e => handlePaymentChange(index, Number(e.target.value))}
-                            >
-                              <option value="">Select</option>
+                        <tbody>
+                          {rows.map((row, index) => (
+                            <tr key={index}>
+                              <td>
+                                <select
+                                  className="input-field max-w-40 mt-2 ml-1"
+                                  value={row.paymentModeId ?? ""}
+                                  onChange={e => handlePaymentChange(index, Number(e.target.value))}
+                                >
+                                  <option value="">Select</option>
 
-                              {getAvailablePaymentModes(index).map(p => (
-                                <option key={p.paymentModeId} value={p.paymentModeId}>
-                                  {p.paymentModeName}
-                                </option>
-                              ))}
-                            </select>
-                            {!!rowErrors[index]?.paymentModeId && (
-                              <p className="input-field-error">{rowErrors[index]?.paymentModeId}</p>
-                            )}
-                          </td>
+                                  {getAvailablePaymentModes(index).map(p => (
+                                    <option key={p.paymentModeId} value={p.paymentModeId}>
+                                      {p.paymentModeName}
+                                    </option>
+                                  ))}
+                                </select>
+                                {!!rowErrors[index]?.paymentModeId && (
+                                  <p className="input-field-error">
+                                    {rowErrors[index]?.paymentModeId}
+                                  </p>
+                                )}
+                              </td>
 
-                          <td>
-                            <input
-                              className="input-field max-w-30"
-                              placeholder="Amount"
-                              value={row.amount}
-                              onInput={allowOnlyNumbers}
-                              onChange={e => handleRowValueChange(index, "amount", e.target.value)}
-                            />
-                            {!!rowErrors[index]?.amount && (
-                              <p className="input-field-error">{rowErrors[index]?.amount}</p>
-                            )}
-                          </td>
+                              <td>
+                                <input
+                                  className="input-field max-w-30"
+                                  placeholder="Amount"
+                                  value={row.amount}
+                                  onInput={allowOnlyNumbers}
+                                  onChange={e =>
+                                    handleRowValueChange(index, "amount", e.target.value)
+                                  }
+                                />
+                                {!!rowErrors[index]?.amount && (
+                                  <p className="input-field-error">{rowErrors[index]?.amount}</p>
+                                )}
+                              </td>
 
-                          <td>
-                            {isCardMode(row.paymentModeId) ? (
-                              <select
-                                className="input-field max-w-30 m-1"
-                                value={row.bankId ?? ""}
-                                onChange={e =>
-                                  handleRowValueChange(
-                                    index,
-                                    "bankId",
-                                    Number(e.target.value) || null
-                                  )
-                                }
-                              >
-                                <option value="">Select</option>
-                                {bankList.map(bank => (
-                                  <option key={bank.bankId} value={bank.bankId}>
-                                    {bank.bankName}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span>-</span>
-                            )}
-                            {!!rowErrors[index]?.bankId && (
-                              <p className="input-field-error">{rowErrors[index]?.bankId}</p>
-                            )}
-                          </td>
+                              <td>
+                                {isCardMode(row.paymentModeId) ? (
+                                  <select
+                                    className="input-field max-w-30 m-1"
+                                    value={row.bankId ?? ""}
+                                    onChange={e =>
+                                      handleRowValueChange(
+                                        index,
+                                        "bankId",
+                                        Number(e.target.value) || null
+                                      )
+                                    }
+                                  >
+                                    <option value="">Select</option>
+                                    {bankList.map(bank => (
+                                      <option key={bank.bankId} value={bank.bankId}>
+                                        {bank.bankName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span>-</span>
+                                )}
+                                {!!rowErrors[index]?.bankId && (
+                                  <p className="input-field-error">{rowErrors[index]?.bankId}</p>
+                                )}
+                              </td>
 
-                          <td>
-                            {!isCashMode(row.paymentModeId) ? (
-                              <input
-                                className="input-field max-w-40 ml-2"
-                                placeholder="Reference Number "
-                                value={row.refNo}
-                                onChange={e => handleRowValueChange(index, "refNo", e.target.value)}
-                              />
-                            ) : (
-                              <span>-</span>
-                            )}
-                            {!!rowErrors[index]?.refNo && (
-                              <p className="input-field-error">{rowErrors[index]?.refNo}</p>
-                            )}
-                          </td>
+                              <td>
+                                {!isCashMode(row.paymentModeId) ? (
+                                  <input
+                                    className="input-field max-w-40 ml-2"
+                                    placeholder="Reference Number "
+                                    value={row.refNo}
+                                    onChange={e =>
+                                      handleRowValueChange(index, "refNo", e.target.value)
+                                    }
+                                  />
+                                ) : (
+                                  <span>-</span>
+                                )}
+                                {!!rowErrors[index]?.refNo && (
+                                  <p className="input-field-error">{rowErrors[index]?.refNo}</p>
+                                )}
+                              </td>
 
-                          <td className="table-td text-center">
-                            {index > 0 ? (
-                              <button
-                                type="button"
-                                title="Remove payment row"
-                                onClick={() => handleRemoveRow(index)}
-                              >
-                                <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
-                              </button>
-                            ) : (
-                              <span>-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                              <td className="table-td text-center">
+                                {index > 0 ? (
+                                  <button
+                                    type="button"
+                                    title="Remove payment row"
+                                    onClick={() => handleRemoveRow(index)}
+                                  >
+                                    <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
+                                  </button>
+                                ) : (
+                                  <span>-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="w-full text-right">
+                    <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
+                      Add Row
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="w-full text-right">
-                <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
-                  Add Row
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
+          ))}
       </div>
     );
   }

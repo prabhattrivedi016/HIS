@@ -7,10 +7,12 @@ import { AuthContext } from "@/context/AuthContext";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { BranchItem } from "@/types";
+import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import ApproveCancelPopup from "./components/ApproveCancelPopup";
+import ViewDetailsPopup from "./components/ViewDetailsPopup";
 import { OPDiscountItem } from "./types";
 const OPDiscountApproval = () => {
   const { loading, fetchApi } = useGlobalApi();
@@ -23,6 +25,9 @@ const OPDiscountApproval = () => {
   const [selectedItem, setSelectedItem] = useState<OPDiscountItem | null>(null);
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
+  const [viewItem, setViewItem] = useState<OPDiscountItem | null>(null);
+  const [renderViewPopup, setRenderViewPopup] = useState<boolean>(false);
+  const [openViewPopup, setOpenViewPopup] = useState<boolean>(false);
 
   const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
@@ -109,10 +114,73 @@ const OPDiscountApproval = () => {
     }, 300);
   }, []);
 
+  //   view details handler
+  const viewHandler = (item: OPDiscountItem) => {
+    if (!item) return;
+    setViewItem(item);
+    setRenderViewPopup(true);
+    setOpenViewPopup(true);
+  };
+
+  //   close view popup handler
+  const closeViewHandler = useCallback(() => {
+    setOpenViewPopup(false);
+    setTimeout(() => {
+      setRenderViewPopup(false);
+      setViewItem(null);
+    }, 300);
+  }, []);
+
   const popupSuccessHandler = useCallback(() => {
     void refetch?.();
   }, [refetch]);
 
+  const sendForApprovalHandler = async (item: OPDiscountItem) => {
+    const payload = {
+      bookingId: Number(item?.BookingId),
+      flag: 0,
+      approvedPer: Number(item?.TotalApprovedDiscountPerOnBill),
+      approvalRemarks: "",
+    };
+    if (!item || !payload) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
+      payload,
+      {},
+      { component: "OPDiscountApproval" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Failed while sending for approval");
+      return;
+    }
+    showSuccess(resp?.message ?? "Discount sent for approval successfully");
+    void refetch?.();
+  };
+
+  /*
+    const resp = await fetchApi(
+        "PATCH",
+        ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
+        {
+          bookingId: Number(approveFormData.bookingId),
+          flag: Number(approveFormData.flag),
+          approvedPer: Number(approveFormData.approvedPer),
+        },
+        {},
+        { component: "ApproveCancelPopup" }
+      );
+
+      if (!resp?.result) {
+        setErrorMessage(resp?.message ?? "Failed while approving discount");
+        return;
+      }
+
+      setSuccessMessage(resp?.message ?? "Discount approved successfully");
+      setTimeout(() => {
+        onSuccess?.();
+        onClose?.();
+      }, 500); */
   return (
     <div className="page-container">
       <h1 className="page-heading">OP Discount Approval</h1>
@@ -187,6 +255,8 @@ const OPDiscountApproval = () => {
                 {opDiscountList.map((item: OPDiscountItem, idx: number) => (
                   <tr key={item?.BookingId} className="table-row">
                     <td className="table-td">{idx + 1}</td>
+                    <td className="table-td">{item?.TokenNo || "-"}</td>
+                    <td className="table-td">{item?.UHID || "-"}</td>
                     <td className="table-td">{item?.PatientName || "-"}</td>
                     {/* <td
                       className={`table-td ${
@@ -199,23 +269,31 @@ const OPDiscountApproval = () => {
                     <td className="table-td">{item?.Gender || "-"}</td>
                     {/* <td className="table-td">{item?.Gender || "-"}</td>{" "} */}
                     <td className="table-td">{item?.CorporateName || "-"}</td>
+                    <td className="table-td">{item?.TotalDiscountPerOnBill || "-"}</td>
+                    <td className="table-td">{item?.TotalDiscountAmountOnBill || "-"}</td>
+                    <td className="table-td">{item?.TotalPatientPayableAmount || "-"}</td>
                     <td className="table-td">{item?.TotalBillAmount || "-"}</td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsPaymentCollected) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsPaymentCollected) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsCancel) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsCancel) === 1 ? "Yes" : "No"}
+                    <td className="table-td">
+                      <button
+                        type="button"
+                        onClick={() => viewHandler(item)}
+                        aria-label="View details"
+                      >
+                        <i className="fa-solid fa-eye text-xl icon-color-button" />
+                      </button>
                     </td>
                     <td className="table-td">
-                      {item?.IsDiscountApproved === 0 ? (
+                      {item?.IsCancel !== 1 &&
+                      (!item?.IsLevel1Approve ||
+                        !item?.IsLevel2Approve ||
+                        !item?.IsLevel3Approve ||
+                        !item?.IsLevel4Approve) &&
+                      item?.FlagId === 0 &&
+                      item?.CanApprove === 0 ? (
+                        <button className="save-btn" onClick={() => sendForApprovalHandler(item)}>
+                          Send For Approval
+                        </button>
+                      ) : item?.IsCancel !== 1 && item?.CanApprove === 1 && item?.FlagId === 1 ? (
                         <button
                           className="reset-btn"
                           onClick={() => approveHandler(item, "approve")}
@@ -227,7 +305,7 @@ const OPDiscountApproval = () => {
                       )}
                     </td>
                     <td className="table-td">
-                      {item?.IsCancel === 0 ? (
+                      {item?.IsCancel !== 1 ? (
                         <button
                           className="delete-btn"
                           onClick={() => cancelHandler(item, "cancel")}
@@ -238,11 +316,6 @@ const OPDiscountApproval = () => {
                         <></>
                       )}
                     </td>
-                    {/*   <td className="table-td">{item?.lastModifiedBy || "-"}</td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td" onClick={() => editHandler(item)}>
-                      <i className="fa-solid fa-edit text-xl icon-color-button" />
-                    </td> */}
                   </tr>
                 ))}
               </tbody>
@@ -261,59 +334,13 @@ const OPDiscountApproval = () => {
         />
       )}
 
+      {!!renderViewPopup && (
+        <ViewDetailsPopup isOpen={openViewPopup} item={viewItem} onClose={closeViewHandler} />
+      )}
+
       {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };
 
 export default OPDiscountApproval;
-
-/*
- {
-            "BookingId": 6,
-            "TokenNo": null,
-            "BranchId": 1,
-            "PatientId": 44,
-            "UHID": "GWS/00000032",
-            "PatientName": "MR. SHUBHAM KUMAR MAURYA",
-            "Age": "28Y 0M 0D",
-            "Gender": "MALE",
-            "CorporateId": 1,
-            "CorporateName": "CASH",
-            "InsuranceCompanyId": 0,
-            "ReferDoctorId": null,
-            "TotalBillAmount": 111.000000,
-            "TotalDiscountPerOnBill": 9.010000,
-            "TotalDiscountAmountOnBill": 10.000000,
-            "RoundOff": 0.000000,
-            "TotalPatientPayableAmount": 101.000000,
-            "PolicyNo": null,
-            "PolicyCardNo": null,
-            "ExpiryDate": null,
-            "CardHolder": null,
-            "ReferalNo": null,
-            "ReferalDate": null,
-            "IsPaymentCollected": 0,
-            "IsDiscountApprovalRequired": 1,
-            "IsDiscountApproved": 0,
-            "IsLevel1Approve": null,
-            "Level1ApproveId": null,
-            "Level1ApproveOn": null,
-            "IsLevel2Approve": null,
-            "Level2ApproveId": null,
-            "Level2ApproveOn": null,
-            "IsLevel3Approve": null,
-            "Level3ApproveId": null,
-            "Level3ApproveOn": null,
-            "IsLevel4Approve": null,
-            "Level4ApproveId": null,
-            "Level4ApproveOn": null,
-            "IsCancel": 0,
-            "CancelBy": null,
-            "CancelOn": null,
-            "CancelReason": null,
-            "CreatedBy": "Prabhat  Trivedi (Prabhat)",
-            "CreatedOn": "29-06-2026",
-            "LastModifiedBy": null,
-            "LastModifiedOn": null
-        } */

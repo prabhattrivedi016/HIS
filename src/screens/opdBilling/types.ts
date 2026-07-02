@@ -1,5 +1,5 @@
 import { BillingDetailsHandle } from "@/components/BillingDetails";
-import { BillingFormValues } from "@/components/BillingDetails/types";
+import { BillingValuesItem, PaymentBillingSummary } from "@/components/BillingDetails/types";
 import { ChangeEvent, Dispatch, KeyboardEvent, RefObject, SetStateAction } from "react";
 import { SingleValue } from "react-select";
 import { InsuranceItem } from "../branchMaster/types";
@@ -320,7 +320,7 @@ type OpdBookingItemPayload = {
   serviceItemId: number;
   serviceName: string;
   subSubCategoryId: number;
-  // remarks: string;
+  remarks?: string;
   performingDoctorId?: number;
 };
 
@@ -330,6 +330,7 @@ type OpdBillingVisitDetailsPayload = {
   branchId: number;
   currentAge: string;
   insuranceCompanyId: number;
+  roleId: number;
   corporateId: number;
   referDoctorId: number;
   doctorId: number;
@@ -361,6 +362,9 @@ type buildVisitDetailsPayloadForOpdBooking = {
   branchId: number;
   cardHolder: string;
   corporateId: number;
+  discountApprovedID: number;
+  discountApprovedName: string;
+  discountReason: string;
   expiryDate: string;
   grossBillAmount: number;
   insuranceCompanyId: number;
@@ -372,10 +376,11 @@ type buildVisitDetailsPayloadForOpdBooking = {
   referalDate: string;
   referalNo: string;
   referDoctorId: number;
+  remark: string;
+  roleId: number;
   roundOff: number;
   totalDiscAmtOnBill: number;
   totalDiscPerOnBill: number;
-  remarks: string;
 };
 
 type OpdBookingSavePayload = {
@@ -591,11 +596,12 @@ type OpdBillingSectionProps = {
   getPerformingDoctorOptions: (doctorDepartmentIds?: string) => OptionItem[];
   performingDoctorChangeHandler: (rowIndex: number, doctorId: number) => void | Promise<void>;
   setOpdBillingFormData: Dispatch<SetStateAction<OpdBillingFormData>>;
-  setBillingValues: Dispatch<SetStateAction<BillingFormValues>>;
-  billingValues: BillingFormValues;
-  billingPaymentDetails: Record<string, unknown>;
+  setBillingValues: Dispatch<SetStateAction<BillingValuesItem>>;
+  billingValues: BillingValuesItem;
+  billingPaymentDetails: PaymentBillingSummary;
   maxDiscountPercentage: number | undefined;
   creditCopayment: boolean;
+  isSeparateCollectionCounterEnabled: number;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,
