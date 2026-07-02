@@ -45,13 +45,14 @@ interface AllergyPanelProps {
   onClose: () => void;
   patientId?: number;
   visitId?: number;
+  onBind?: (allergyText: string) => void;
 }
 
 const SEVERITY_OPTIONS = ["Major", "Moderate", "Minor", "No Alert"];
 const CLINICAL_STATUS_OPTIONS = ["Active", "Inactive", "Resolved"];
 const VERIFICATION_STATUS_OPTIONS = ["Unconfirmed", "Presumed", "Confirmed", "Refuted", "Entered in Error"];
 
-const AllergyPanel = ({ isOpen, onClose, patientId }: AllergyPanelProps) => {
+const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
   const { pickMasterValue } = usePickMaster("AllergyTypeName");
@@ -337,6 +338,31 @@ const AllergyPanel = ({ isOpen, onClose, patientId }: AllergyPanelProps) => {
     }
   };
 
+  const buildAllergySummary = () => {
+    if (notKnownAllergy && allergyRecords.length === 0) return "No Known Allergy";
+
+    const order: string[] = [];
+    const groups: Record<string, string[]> = {};
+    allergyRecords.forEach((r) => {
+      if (!r.allergy) return;
+      const type = r.allergyType || "Other";
+      if (!groups[type]) {
+        groups[type] = [];
+        order.push(type);
+      }
+      groups[type].push(r.allergy);
+    });
+
+    return order.map((type) => `${type}: ${groups[type].join(",")}`).join(" ; ");
+  };
+
+  const allergySummary = buildAllergySummary();
+
+  const handleBind = () => {
+    onBind?.(allergySummary);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
 
@@ -367,6 +393,15 @@ const AllergyPanel = ({ isOpen, onClose, patientId }: AllergyPanelProps) => {
             </button>
             <button type="button" className="cancel-button" onClick={resetForm}>
               New
+            </button>
+            <button
+              type="button"
+              className={allergySummary ? "save-btn" : "disabled-btn"}
+              onClick={handleBind}
+              disabled={!allergySummary}
+              title="Bind selected allergies to the consultation page"
+            >
+              Bind
             </button>
             <button type="button" className="close-drawer-btn" onClick={onClose}>
               &times;

@@ -4,36 +4,38 @@ import InputField from "@/components/customInputField";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess } from "@/utils/alert";
-import { Pencil, Search, Stethoscope, Trash2, X } from "lucide-react";
+import { Activity, Pencil, Search, Trash2, X } from "lucide-react";
 
 interface SnomedItem {
   conceptId: string;
   term: string;
 }
 
-interface DiagnosisMasterItem {
-  DiagnosisId: number;
-  DiagnosisName: string;
+interface ProcedureMasterItem {
+  ProcedureId: number;
+  ProcedureName: string;
   SnomedCode: string;
   Status: string;
 }
 
-const STATUS_OPTIONS = ["Active", "Inactive", "Preliminary", "Finished", "Resolved"];
+const STATUS_OPTIONS = ["Preparation", "In Progress", "Not Done", "On Hold", "Stopped", "Completed", "Entered in Error"];
 
 const STATUS_STYLES: Record<string, string> = {
-  Active: "bg-green-50 text-green-600 border border-green-200",
-  Inactive: "bg-gray-100 text-gray-500 border border-gray-200",
-  Preliminary: "bg-blue-50 text-blue-600 border border-blue-200",
-  Finished: "bg-purple-50 text-purple-600 border border-purple-200",
-  Resolved: "bg-teal-50 text-teal-600 border border-teal-200",
+  Preparation: "bg-amber-50 text-amber-600 border border-amber-200",
+  "In Progress": "bg-blue-50 text-blue-600 border border-blue-200",
+  "Not Done": "bg-gray-100 text-gray-500 border border-gray-200",
+  "On Hold": "bg-orange-50 text-orange-600 border border-orange-200",
+  Stopped: "bg-red-50 text-red-600 border border-red-200",
+  Completed: "bg-green-50 text-green-600 border border-green-200",
+  "Entered in Error": "bg-gray-100 text-gray-400 border border-gray-200 line-through",
 };
 
-const DiagnosisMaster = () => {
+const ProcedureMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const [diagnosisName, setDiagnosisName] = useState("");
+  const [procedureName, setProcedureName] = useState("");
   const [snomedCode, setSnomedCode] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(STATUS_OPTIONS[0]);
   const [editId, setEditId] = useState<number>(0);
 
   const [snomedResults, setSnomedResults] = useState<SnomedItem[]>([]);
@@ -42,17 +44,17 @@ const DiagnosisMaster = () => {
   const snomedRef = useRef<HTMLDivElement>(null);
   const skipSnomedRef = useRef(false);
 
-  const [records, setRecords] = useState<DiagnosisMasterItem[]>([]);
+  const [records, setRecords] = useState<ProcedureMasterItem[]>([]);
   const [listLoaded, setListLoaded] = useState(false);
   const [searchText, setSearchText] = useState("");
 
   const loadRecords = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_DIAGNOSIS_MASTER_LIST,
+      ENDPOINTS.GET_PROCEDURE_MASTER_LIST,
       {},
       {},
-      { component: "DiagnosisMaster" }
+      { component: "ProcedureMaster" }
     );
     setRecords(resp?.data ?? []);
     setListLoaded(true);
@@ -76,7 +78,7 @@ const DiagnosisMaster = () => {
       skipSnomedRef.current = false;
       return;
     }
-    const q = diagnosisName.trim();
+    const q = procedureName.trim();
     if (!q || q.length < 2) {
       setSnomedResults([]);
       setShowSnomedDropdown(false);
@@ -88,7 +90,7 @@ const DiagnosisMaster = () => {
       try {
         const url =
           `http://localhost:8080/csnoserv/api/search/search?term=${encodeURIComponent(q)}` +
-          `&state=active&semantictag=disorder&acceptability=preferred&returnlimit=100`;
+          `&state=active&semantictag=procedure&acceptability=preferred&returnlimit=100`;
         const res = await fetch(url);
         const data: SnomedItem[] = await res.json();
         setSnomedResults(data ?? []);
@@ -101,41 +103,41 @@ const DiagnosisMaster = () => {
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [diagnosisName]);
+  }, [procedureName]);
 
   const handleSnomedSelect = (item: SnomedItem) => {
     skipSnomedRef.current = true;
-    setDiagnosisName(item.term);
+    setProcedureName(item.term);
     setSnomedCode(item.conceptId);
     setSnomedResults([]);
     setShowSnomedDropdown(false);
   };
 
   const resetForm = () => {
-    setDiagnosisName("");
+    setProcedureName("");
     setSnomedCode("");
-    setStatus("");
+    setStatus(STATUS_OPTIONS[0]);
     setEditId(0);
     setSnomedResults([]);
     setShowSnomedDropdown(false);
   };
 
   const handleSave = async () => {
-    if (!diagnosisName.trim() || !status) return;
+    if (!procedureName.trim() || !status) return;
 
     const payload = {
-      diagnosisId: editId,
-      diagnosisName: diagnosisName.trim(),
+      procedureId: editId,
+      procedureName: procedureName.trim(),
       snomedCode: snomedCode.trim() || null,
       status,
     };
 
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.CREATE_UPDATE_DIAGNOSIS_MASTER,
+      ENDPOINTS.CREATE_UPDATE_PROCEDURE_MASTER,
       payload,
       {},
-      { component: "DiagnosisMaster" }
+      { component: "ProcedureMaster" }
     );
 
     if (resp?.result) {
@@ -145,10 +147,10 @@ const DiagnosisMaster = () => {
     }
   };
 
-  const handleEdit = (rec: DiagnosisMasterItem) => {
+  const handleEdit = (rec: ProcedureMasterItem) => {
     skipSnomedRef.current = true;
-    setEditId(rec.DiagnosisId);
-    setDiagnosisName(rec.DiagnosisName);
+    setEditId(rec.ProcedureId);
+    setProcedureName(rec.ProcedureName);
     setSnomedCode(rec.SnomedCode ?? "");
     setStatus(rec.Status);
   };
@@ -156,14 +158,14 @@ const DiagnosisMaster = () => {
   const handleDelete = async (id: number) => {
     const resp = await fetchApi(
       "PATCH",
-      ENDPOINTS.DELETE_DIAGNOSIS_MASTER,
+      ENDPOINTS.DELETE_PROCEDURE_MASTER,
       {},
-      { params: { diagnosisId: id } },
-      { component: "DiagnosisMaster" }
+      { params: { procedureId: id } },
+      { component: "ProcedureMaster" }
     );
     if (resp?.result) {
       showSuccess("Deleted successfully");
-      setRecords((prev) => prev.filter((r) => r.DiagnosisId !== id));
+      setRecords((prev) => prev.filter((r) => r.ProcedureId !== id));
       if (editId === id) resetForm();
     }
   };
@@ -173,7 +175,7 @@ const DiagnosisMaster = () => {
     if (!q) return records;
     return records.filter(
       (r) =>
-        r.DiagnosisName?.toLowerCase().includes(q) ||
+        r.ProcedureName?.toLowerCase().includes(q) ||
         r.SnomedCode?.toLowerCase().includes(q) ||
         r.Status?.toLowerCase().includes(q)
     );
@@ -181,37 +183,37 @@ const DiagnosisMaster = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">Diagnosis Master</h1>
+      <h1 className="page-heading">Procedure Master</h1>
 
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>Diagnosis Master</span>
+        <span>Procedure Master</span>
       </nav>
 
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <Stethoscope size={18} className="text-blue-500" />
+            <Activity size={18} className="text-blue-500" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-800">Diagnosis</h2>
-            <p className="text-xs text-gray-400">Search SNOMED disorders or add a custom diagnosis</p>
+            <h2 className="text-sm font-bold text-gray-800">Procedure</h2>
+            <p className="text-xs text-gray-400">Search SNOMED procedures or add a custom procedure</p>
           </div>
         </div>
 
         <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <InputField label="Diagnosis Name" required>
+          <InputField label="Procedure" required>
             <div className="relative" ref={snomedRef}>
               <input
                 type="text"
                 className="input-field !mb-0"
-                placeholder="Search diagnosis…"
-                value={diagnosisName}
+                placeholder="Search procedure…"
+                value={procedureName}
                 onChange={(e) => {
-                  setDiagnosisName(e.target.value);
+                  setProcedureName(e.target.value);
                   setSnomedCode("");
                 }}
               />
@@ -263,7 +265,6 @@ const DiagnosisMaster = () => {
 
           <InputField label="Status" required>
             <select className="input-field" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">-- Select --</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -272,7 +273,7 @@ const DiagnosisMaster = () => {
             </select>
           </InputField>
 
-          <div className="sm:col-span-3 flex justify-end gap-2 pt-1">
+          <div className="sm:col-span-3 flex items-end justify-end gap-2">
             {editId > 0 && (
               <button type="button" className="cancel-button" onClick={resetForm}>
                 Cancel
@@ -291,14 +292,14 @@ const DiagnosisMaster = () => {
 
         <div className="flex items-center justify-between mt-5 mb-2 gap-3 flex-wrap">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Diagnosis List ({filteredRecords.length})
+            Procedure List ({filteredRecords.length})
           </h3>
           <div className="relative w-full sm:w-64">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               className="input-field !mb-0 pl-8 !py-1.5 text-xs"
-              placeholder="Search name, SNOMED, status…"
+              placeholder="Search name, status…"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
@@ -310,8 +311,7 @@ const DiagnosisMaster = () => {
             <table className="base-table">
               <thead className="table-head">
                 <tr>
-                  <th className="table-th">#</th>
-                  <th className="table-th">Diagnosis Name</th>
+                  <th className="table-th">Procedure</th>
                   <th className="table-th">SNOMED Code</th>
                   <th className="table-th">Status</th>
                   <th className="table-th text-center">Action</th>
@@ -320,17 +320,16 @@ const DiagnosisMaster = () => {
               <tbody>
                 {!listLoaded ? (
                   <tr>
-                    <td colSpan={5} className="table-empty">Loading…</td>
+                    <td colSpan={4} className="table-empty">Loading…</td>
                   </tr>
                 ) : filteredRecords.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="table-empty">No records found</td>
+                    <td colSpan={4} className="table-empty">No records found</td>
                   </tr>
                 ) : (
-                  filteredRecords.map((rec, i) => (
-                    <tr key={rec.DiagnosisId} className="table-row hover:bg-blue-50/50 transition-colors">
-                      <td className="table-td">{i + 1}</td>
-                      <td className="table-td font-medium text-gray-800">{rec.DiagnosisName}</td>
+                  filteredRecords.map((rec) => (
+                    <tr key={rec.ProcedureId} className="table-row hover:bg-blue-50/50 transition-colors">
+                      <td className="table-td font-medium text-gray-800">{rec.ProcedureName}</td>
                       <td className="table-td text-xs text-gray-500">{rec.SnomedCode || "—"}</td>
                       <td className="table-td">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[rec.Status] ?? "bg-gray-50 text-gray-500 border border-gray-200"}`}>
@@ -347,7 +346,7 @@ const DiagnosisMaster = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(rec.DiagnosisId)}
+                          onClick={() => handleDelete(rec.ProcedureId)}
                           className="inline-flex items-center justify-center w-7 h-7 rounded bg-red-500 hover:bg-red-600 text-white transition active:scale-90 ml-1"
                         >
                           <Trash2 size={13} />
@@ -365,4 +364,4 @@ const DiagnosisMaster = () => {
   );
 };
 
-export default DiagnosisMaster;
+export default ProcedureMaster;
