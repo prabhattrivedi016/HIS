@@ -331,6 +331,7 @@ const ENDPOINTS = {
 
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
+  GET_PATIENT_VITAL: "Patient/getPatientVital",
 
   // service master
   GET_CATEGORY_TYPE_LIST: "Home/getCategoryTypeList",
