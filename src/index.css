@@ -301,6 +301,27 @@ select:-webkit-autofill {
   @apply text-sm text-red-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
 }
 
+/*----------------- input search icon ----------------*/
+.input-search-icon {
+  @apply absolute z-10 -translate-y-1/2 text-gray-500 pointer-events-none;
+}
+
+.input-search-icon-left {
+  @apply left-3 top-5;
+}
+
+.input-search-icon-right {
+  @apply right-4 top-1/2;
+}
+
+.input-field-search-left {
+  @apply pl-10!;
+}
+
+.input-field-search-right {
+  @apply pr-10;
+}
+
 .accept-color-button {
   @apply text-sm text-green-500 active:scale-90 cursor-pointer transition-transform duration-150 ml-1;
 }
@@ -366,7 +387,7 @@ select:-webkit-autofill {
 }
 
 .input-popup-row {
-  @apply cursor-pointer px-2 py-2 hover:bg-gray-100 transition-colors;
+  @apply cursor-pointer px-2 py-2 hover:bg-gray-300 transition-colors text-sm;
 }
 
 /* investigation result entry */

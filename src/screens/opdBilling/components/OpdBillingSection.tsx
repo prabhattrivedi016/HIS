@@ -4,6 +4,7 @@ import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
+import { useEffect, useState } from "react";
 import Select, { StylesConfig } from "react-select";
 import { InsuranceItem } from "../../branchMaster/types";
 import {
@@ -13,6 +14,7 @@ import {
   ServiceBindingItem,
   ServiceItemList,
 } from "../types";
+import { sanitizeQtyDraft } from "./helperFunction";
 
 const OpdBillingSection = ({
   formResetKey,
@@ -59,6 +61,7 @@ const OpdBillingSection = ({
   serviceValidationError,
   deleteHandler,
   rateChangeHandler,
+  qtyChangeHandler,
   discountPercentageChangeHandler,
   discountChangeHandler,
   remarksChangeHandler,
@@ -75,6 +78,42 @@ const OpdBillingSection = ({
   maxDiscountPercentage,
   creditCopayment,
 }: OpdBillingSectionProps) => {
+  const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    setQtyDrafts({});
+  }, [formResetKey, serviceDataTableItem.length]);
+
+  const getQtyDisplayValue = (rowIndex: number, item: ServiceBindingItem, isQtyFixed: boolean) => {
+    if (isQtyFixed) return "1";
+    if (qtyDrafts[rowIndex] !== undefined) return qtyDrafts[rowIndex];
+    return String(Math.max(1, Number(item?.qty) || 1));
+  };
+
+  const applyQtyDraft = (rowIndex: number, rawValue: string, isQtyFixed: boolean) => {
+    if (isQtyFixed) return;
+
+    const sanitized = sanitizeQtyDraft(rawValue);
+    setQtyDrafts(prev => ({ ...prev, [rowIndex]: sanitized }));
+
+    if (sanitized) {
+      qtyChangeHandler(rowIndex, sanitized);
+    }
+  };
+
+  const commitQtyChange = (rowIndex: number, item: ServiceBindingItem, isQtyFixed: boolean) => {
+    if (isQtyFixed) return;
+
+    const rawDraft = qtyDrafts[rowIndex] ?? String(item?.qty ?? 1);
+    setQtyDrafts(prev => {
+      const next = { ...prev };
+      delete next[rowIndex];
+      return next;
+    });
+
+    qtyChangeHandler(rowIndex, rawDraft ? sanitizeQtyDraft(rawDraft) || 1 : 1);
+  };
+
   return (
     <div className="card mt-1">
       <div className="form-grid-4 ">
@@ -103,9 +142,7 @@ const OpdBillingSection = ({
             isClearable={!hasSelectedService}
             isDisabled={hasSelectedService}
             onChange={corporateSelectHandler}
-            styles={
-              hasSelectedService ? undefined : (SelectStyles as StylesConfig<OptionItem, false>)
-            }
+            styles={SelectStyles as StylesConfig<OptionItem, false>}
             menuPortalTarget={document.body}
             menuPosition="fixed"
           />
@@ -251,19 +288,23 @@ const OpdBillingSection = ({
             <div className="relative w-full">
               <input
                 ref={serviceInputRef}
-                className="input-field"
+                className="input-field input-field-search-right"
                 placeholder="Type to search services"
                 value={searchTerm}
                 onChange={serviceItemHandler}
                 onKeyDown={serviceInputKeyDownHandler}
               />
+              <i
+                className="fa-solid fa-magnifying-glass input-search-icon input-search-icon-right"
+                aria-hidden="true"
+              />
               {showPopup && serviceNameList?.length > 0 && (
-                <div className="absolute top-full left-0  w-full bg-white border border-gray-300 rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
+                <div className="input-popup-bg">
                   {serviceNameList.map((s: ServiceItemList, index: number) => (
                     <div
                       key={index}
-                      className={`px-3 py-2 cursor-pointer text-sm ${
-                        index === activeServiceIndex ? "bg-green-100" : "hover:bg-green-200"
+                      className={`input-popup-row ${
+                        index === activeServiceIndex ? "bg-gray-200" : ""
                       }`}
                       onMouseEnter={() => setActiveServiceIndex(index)}
                       onClick={() => selectedServiceHandler(s)}
@@ -275,14 +316,14 @@ const OpdBillingSection = ({
               )}
             </div>
           </InputField>
-          {/* <div className="flex flex-row gap-2 justify-center items-center">
+          <div className="flex flex-row gap-2 justify-center items-center">
             <button type="button" className="save-btn text-sm">
               Investigation
             </button>
             <button type="button" className="save-btn text-sm">
               Consultation
             </button>
-          </div> */}
+          </div>
         </div>
       </div>
 
@@ -335,118 +376,148 @@ const OpdBillingSection = ({
                         </tr>
                       )}
 
-                      {serviceDataTableItem.map((item: ServiceBindingItem, idx: number) => (
-                        <tr
-                          key={idx}
-                          className="table-row"
-                          onDoubleClick={() => deleteHandler(idx)}
-                        >
-                          <td className="table-td">{idx + 1}</td>
-                          <td className="table-td ">
-                            <div className="flex items-center justify-between ">
-                              <span>{item?.serviceName || "-"}</span>
+                      {serviceDataTableItem.map((item: ServiceBindingItem, idx: number) => {
+                        const isQtyFixed = [1, 3, 11].includes(Number(item?.categoryTypeId));
 
-                              {item?.reportTypeId === 1 ? (
-                                <i
-                                  className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
-                                  title={
-                                    isPackageService(item?.serviceName)
-                                      ? "Package Service"
-                                      : "Service"
-                                  }
-                                  onClick={() => {
-                                    if (isPackageService(item?.serviceName)) {
-                                      packagePopupHandler(item?.serviceItemId);
-                                    } else {
-                                      servicePopupHandler(item);
+                        return (
+                          <tr
+                            key={idx}
+                            className="table-row"
+                            onDoubleClick={() => deleteHandler(idx)}
+                          >
+                            <td className="table-td">{idx + 1}</td>
+                            <td className="table-td ">
+                              <div className="flex items-center justify-between ">
+                                <span>{item?.serviceName || "-"}</span>
+
+                                {item?.reportTypeId === 1 ? (
+                                  <i
+                                    className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
+                                    title={
+                                      isPackageService(item?.serviceName)
+                                        ? "Package Service"
+                                        : "Service"
                                     }
-                                  }}
-                                />
+                                    onClick={() => {
+                                      if (isPackageService(item?.serviceName)) {
+                                        packagePopupHandler(item?.serviceItemId);
+                                      } else {
+                                        servicePopupHandler(item);
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <></>
+                                )}
+                              </div>
+                            </td>
+                            <td className="table-td">{item?.code || "-"}</td>
+                            <td className="table-td">{selectedDoctor?.label}</td>
+
+                            <td className="table-td wrap-break-word max-w-30">
+                              {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
+                                <select
+                                  className="input-field max-w-50 max-h-10"
+                                  value={Number(item?.doctorId ?? 0)}
+                                  onChange={e =>
+                                    performingDoctorChangeHandler(idx, Number(e.target.value))
+                                  }
+                                >
+                                  <option value={0}>Select doctor</option>
+                                  {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
+                                    doctor => (
+                                      <option key={doctor.value} value={doctor.value}>
+                                        {doctor.label}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
                               ) : (
                                 <></>
                               )}
-                            </div>
-                          </td>
-                          <td className="table-td">{item?.code || "-"}</td>
-                          <td className="table-td">{selectedDoctor?.label}</td>
+                            </td>
+                            <td className="table-td">
+                              <input
+                                className={`max-w-20 max-h-10 ${
+                                  isQtyFixed
+                                    ? "disabled-input-field cursor-not-allowed"
+                                    : "input-field"
+                                }`}
+                                value={getQtyDisplayValue(idx, item, isQtyFixed)}
+                                onChange={e => applyQtyDraft(idx, e.target.value, isQtyFixed)}
+                                onFocus={e => {
+                                  if (isQtyFixed) return;
+                                  setQtyDrafts(prev => ({
+                                    ...prev,
+                                    [idx]: String(item?.qty ?? 1),
+                                  }));
+                                  e.target.select();
+                                }}
+                                onBlur={() => commitQtyChange(idx, item, isQtyFixed)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                disabled={isQtyFixed}
+                                readOnly={isQtyFixed}
+                              />
+                            </td>
+                            <td className="table-td">
+                              <input
+                                value={item?.rate ?? 0}
+                                onChange={e => rateChangeHandler(e, idx)}
+                                className={`max-w-20 max-h-10 ${
+                                  item?.isRateEditable === 1
+                                    ? "input-field "
+                                    : "disabled-input-field cursor-not-allowed"
+                                }`}
+                                disabled={item?.isRateEditable !== 1}
+                              />
+                            </td>
+                            <td className="table-td">
+                              <input
+                                className={`${
+                                  item?.discountPer === 1
+                                    ? "disabled-input-field max-w-20 max-h-10"
+                                    : "input-field max-w-20 max-h-10"
+                                }`}
+                                value={item?.discountPer ?? 0}
+                                onChange={e => discountPercentageChangeHandler(e, idx)}
+                              />
+                            </td>
+                            <td className="table-td">
+                              <input
+                                className="input-field max-w-20 max-h-10"
+                                value={item?.dis ?? 0}
+                                onChange={e => discountChangeHandler(e, idx)}
+                              />
+                            </td>
+                            <td className="table-td input-field-error">
+                              {item?.netAmount ?? item?.rate}
+                            </td>
 
-                          <td className="table-td wrap-break-word max-w-30">
-                            {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
-                              <select
-                                className="input-field max-w-50 max-h-10"
-                                value={Number(item?.doctorId ?? 0)}
-                                onChange={e =>
-                                  performingDoctorChangeHandler(idx, Number(e.target.value))
-                                }
-                              >
-                                <option value={0}>Select doctor</option>
-                                {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
-                                  doctor => (
-                                    <option key={doctor.value} value={doctor.value}>
-                                      {doctor.label}
-                                    </option>
-                                  )
+                            <td className="table-td">
+                              <input
+                                className="input-field max-w-40 max-h-10"
+                                value={item?.remarks ?? ""}
+                                onChange={e => remarksChangeHandler(e, idx)}
+                                placeholder="Enter remarks"
+                              />
+                            </td>
+                            <td className="table-td">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={Boolean(
+                                  (item as { isUrgent?: number | string | null })?.isUrgent
                                 )}
-                              </select>
-                            ) : (
-                              item?.doctorName || selectedDoctor?.label || "-"
-                            )}
-                          </td>
-                          <td className="table-td">{item?.qty ?? 1}</td>
-                          <td className="table-td">
-                            <input
-                              value={item?.rate ?? 0}
-                              onChange={e => rateChangeHandler(e, idx)}
-                              className={`max-w-20 max-h-10 ${
-                                item?.isRateEditable === 1
-                                  ? "input-field "
-                                  : "disabled-input-field cursor-not-allowed"
-                              }`}
-                              disabled={item?.isRateEditable !== 1}
-                            />
-                          </td>
-                          <td className="table-td">
-                            <input
-                              className={`${
-                                item?.discountPer === 1
-                                  ? "disabled-input-field max-w-20 max-h-10"
-                                  : "input-field max-w-20 max-h-10"
-                              }`}
-                              value={item?.discountPer ?? 0}
-                              onChange={e => discountPercentageChangeHandler(e, idx)}
-                            />
-                          </td>
-                          <td className="table-td">
-                            <input
-                              className="input-field max-w-20 max-h-10"
-                              value={item?.dis ?? 0}
-                              onChange={e => discountChangeHandler(e, idx)}
-                            />
-                          </td>
-                          <td className="table-td input-field-error">
-                            {item?.netAmount ?? item?.rate}
-                          </td>
-
-                          <td className="table-td">
-                            <input
-                              className="input-field max-w-40 max-h-10"
-                              value={item?.remarks ?? ""}
-                              onChange={e => remarksChangeHandler(e, idx)}
-                              placeholder="Enter remarks"
-                            />
-                          </td>
-                          <td className="table-td">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4"
-                              checked={Boolean(
-                                (item as { isUrgent?: number | string | null })?.isUrgent
-                              )}
-                              onChange={e => urgentChangeHandler(e, idx)}
-                            />
-                          </td>
-                        </tr>
-                      ))}
+                                onChange={e => urgentChangeHandler(e, idx)}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

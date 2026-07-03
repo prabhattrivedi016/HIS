@@ -52,8 +52,10 @@ import DuplicateServicePopup from "./components/DuplicateServicePopup";
 import {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
+  applyQtyChange,
   applyRateChange,
   getServiceRowRemarks,
+  normalizeQty,
   recalculateFromDiscountPercentage,
 } from "./components/helperFunction";
 import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
@@ -569,7 +571,7 @@ const OpdBilling = () => {
 
       return resp?.data;
     },
-    [fetchApi, selectedCorporate?.value]
+    [branchId, selectedCorporate?.value]
   );
 
   const resolveRateListIdForRow = useCallback(
@@ -729,7 +731,12 @@ const OpdBilling = () => {
     Number(billingValues?.totalDiscAmtOnBill ?? opdBillingFormData.totalDiscAmtOnBill ?? 0) > 0 ||
     Number(billingValues?.totalDiscPerOnBill ?? opdBillingFormData.totalDiscPerOnBill ?? 0) > 0 ||
     Number(billingPaymentDetails?.totalDiscAmtOnBill ?? 0) > 0 ||
-    Number(billingPaymentDetails?.totalDiscPerOnBill ?? 0) > 0;
+    Number(billingPaymentDetails?.totalDiscPerOnBill ?? 0) > 0 ||
+    serviceDataTableItem.some(item => {
+      const dis = Number(item?.dis) || 0;
+      const discPer = Number(item?.discountPer) || 0;
+      return dis > 0 || discPer > 0;
+    });
 
   const validateBillingDiscountBeforeSave = (): boolean => {
     if (!hasBillingDiscount()) {
@@ -768,7 +775,7 @@ const OpdBilling = () => {
     Number(row?.doctorId) || 0;
 
   const mapServiceToOpdBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
-    const qty = Number(s?.qty) || 1;
+    const qty = [1, 3, 11].includes(Number(s?.categoryTypeId)) ? 1 : normalizeQty(s?.qty);
     const rate = Number(s?.rate) || 0;
     const grossAmt = qty * rate;
     const discPer = Number(s?.discountPer) || 0;
@@ -805,7 +812,7 @@ const OpdBilling = () => {
   };
 
   const mapServiceToOpdBookingItem = (s: ServiceBindingItem): OpdBookingItemPayload => {
-    const qty = Number(s?.qty) || 1;
+    const qty = [1, 3, 11].includes(Number(s?.categoryTypeId)) ? 1 : normalizeQty(s?.qty);
     const rate = Number(s?.rate) || 0;
     const grossAmt = qty * rate;
     const discPer = Number(s?.discountPer) || 0;
@@ -1631,6 +1638,7 @@ const OpdBilling = () => {
       s => s?.serviceItemId === resp?.data?.serviceItemId
     );
     if (filterItem) {
+      showWarning("Service is already added, Please select another service");
       setShowDuplicateError("Service is already added, Please select another service");
       return;
     }
@@ -1810,6 +1818,19 @@ const OpdBilling = () => {
     SetServiceDataTableItem(prev => {
       const updated = applyRateChange(prev, rowIndex, e.target.value);
       // Recalculate billing after rate change
+      setTimeout(() => calculateAndUpdateBillingDetails(updated), 0);
+      return updated;
+    });
+  };
+
+  const qtyChangeHandler = (rowIndex: number, nextQtyInput: number | string) => {
+    const row = serviceDataTableItem[rowIndex];
+    if ([1, 3, 11].includes(Number(row?.categoryTypeId))) return;
+
+    const nextQty = normalizeQty(String(nextQtyInput).replace(/\D/g, ""));
+
+    SetServiceDataTableItem(prev => {
+      const updated = applyQtyChange(prev, rowIndex, nextQty);
       setTimeout(() => calculateAndUpdateBillingDetails(updated), 0);
       return updated;
     });
@@ -2511,6 +2532,7 @@ const OpdBilling = () => {
     serviceValidationError,
     deleteHandler,
     rateChangeHandler,
+    qtyChangeHandler,
     discountPercentageChangeHandler,
     discountChangeHandler,
     remarksChangeHandler,
@@ -2650,7 +2672,11 @@ const OpdBilling = () => {
         <IpdOpdDocument ref={ipdOpdDocumentRef} type={IpdOpdTypeName.OPD} />
       </div>
 
-      <Buttons onButtonClick={buttonClickHandler} pageType={PageType?.OPD_BILLING} />
+      <Buttons
+        onButtonClick={buttonClickHandler}
+        pageType={PageType?.OPD_BILLING}
+        hasDiscountApplied={hasBillingDiscount()}
+      />
 
       {!!loading && <CustomLoader isLoading={loading} />}
 
