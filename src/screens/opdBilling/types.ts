@@ -586,6 +586,7 @@ type OpdBillingSectionProps = {
   serviceValidationError: string;
   deleteHandler: (rowIndex: number) => void;
   rateChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  qtyChangeHandler: (rowIndex: number, nextQty: number | string) => void;
   discountPercentageChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   discountChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   remarksChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
