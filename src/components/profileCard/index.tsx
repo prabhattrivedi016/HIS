@@ -12,12 +12,14 @@ const GridView = ({
   cardRightTopBtn,
   gridRightBtnRef,
   mapToUser,
+  onCustomButtonClick,
+  shouldShowButton,
+  getCustomButtonLabel,
 }: GridViewProps) => {
   const {
     cardLeftTop = [],
     cardRightTop = [],
     cardAvatar,
-    cardId = [],
     cardTitle = [],
     cardFooter = [],
     buttonSection = [],
@@ -30,9 +32,11 @@ const GridView = ({
     ? cardTitle?.map(t => t?.value).join(" ")
     : "Unknown";
 
-  const cardIdValue = Array.isArray(cardId) ? cardId?.map(t => t?.value) : "-";
+  const getButtonLabel = (btnLabel: string, btnAction: string) => {
+    if (getCustomButtonLabel) {
+      return getCustomButtonLabel(btnLabel, btnAction, id);
+    }
 
-  const getButtonLabel = (btnLabel: string) => {
     switch (btnLabel) {
       case "Active": {
         return cardLeftTop[0]?.value === 1 ? "Inactive" : "Active";
@@ -41,6 +45,10 @@ const GridView = ({
         return btnLabel;
     }
   };
+
+  const visibleButtons = shouldShowButton
+    ? buttonSection.filter(btn => shouldShowButton(btn.action, id))
+    : buttonSection;
 
   // button handler
   const buttonHandler = (btnAction: string) => {
@@ -51,8 +59,9 @@ const GridView = ({
       buttonTitle,
       drawerTitle: drawerTitle,
       id,
-      openDrawer: openDrawer,
+      openDrawer,
       mapToUser,
+      onCustomButtonClick,
     });
   };
 
@@ -64,30 +73,59 @@ const GridView = ({
     const value = cardLeftTop[0]?.value;
 
     if (label === "Status") {
-      return value === 1 ? "Active" : "Inactive";
+      if (value === 1 || value === 0) {
+        return value === 1 ? "Active" : "Inactive";
+      }
+      return value ?? "";
     }
 
     return value ?? "";
   };
 
+  const getStatusClass = () => {
+    if (!cardLeftTop?.length) return "card-status-default";
+
+    const label = cardLeftTop[0]?.label;
+    const value = cardLeftTop[0]?.value;
+
+    if (label === "Status") {
+      if (value === 1) return "active";
+      if (value === 0) return "inactive";
+
+      const statusText = String(value ?? "")
+        .toLowerCase()
+        .trim();
+
+      if (statusText.includes("draft")) return "card-status-draft";
+      if (statusText.includes("pending") || statusText.includes("approval")) {
+        return "card-status-pending";
+      }
+      if (
+        statusText.includes("approv") ||
+        statusText.includes("active") ||
+        statusText.includes("complete")
+      ) {
+        return "active";
+      }
+      if (statusText.includes("cancel") || statusText.includes("reject")) {
+        return "inactive";
+      }
+
+      return "card-status-default";
+    }
+
+    return "card-status-default";
+  };
+
   return (
     <div className="card-layout">
       <div className="flex justify-between items-center mb-3">
-        <span
-          className={`card-status ${
-            cardLeftTop?.[0]?.value === 1
-              ? "active"
-              : cardLeftTop?.[0]?.value === 0
-                ? "inactive"
-                : ""
-          }`}
-        >
-          {getStatusLabel()}
-        </span>
+        <span className={`card-status ${getStatusClass()}`}>{getStatusLabel()}</span>
 
-        {cardRightTop && (
+        {!!cardRightTop?.length && cardRightTopBtn && (
           <div className="relative">
             <button
+              type="button"
               className="p-2 hover:bg-gray-100 rounded-md transition"
               onClick={e => {
                 e.stopPropagation();
@@ -138,9 +176,9 @@ const GridView = ({
         </div>
       )}
 
-      {buttonSection.length > 0 && (
+      {visibleButtons.length > 0 && (
         <div className="flex gap-3 mt-4">
-          {buttonSection.map(btn => {
+          {visibleButtons.map(btn => {
             let btnClass = "grid-default-btn";
 
             switch (btn?.label) {
@@ -156,6 +194,12 @@ const GridView = ({
               case "Opd Billing":
                 btnClass = "grid-active-btn";
                 break;
+              case "Approve":
+                btnClass = "grid-active-btn";
+                break;
+              case "Cancel":
+                btnClass = "grid-edit-btn";
+                break;
               default:
                 btnClass = "";
             }
@@ -166,7 +210,7 @@ const GridView = ({
                 className={`w-full ${btnClass}`}
                 onClick={() => buttonHandler(btn?.action)}
               >
-                {getButtonLabel(btn?.label)}
+                {getButtonLabel(btn?.label, btn?.action)}
               </button>
             );
           })}

@@ -18,9 +18,10 @@ const Buttons = ({
 
   // "Save As Draft" is only applicable to OPD Billing; IPD admission always uses the plain "Save".
   const showSaveAsDraft =
-    pageType === PageType?.OPD_BILLING &&
-    isSeparateCollectionCounterEnabled === 1 &&
-    isDiscountApprovalRequired === 1;
+    (pageType === PageType?.OPD_BILLING &&
+      isSeparateCollectionCounterEnabled === 1 &&
+      isDiscountApprovalRequired === 1) ||
+    (isSeparateCollectionCounterEnabled === 1 && isDiscountApprovalRequired === 0);
 
   const showDiscountRequest =
     pageType === PageType?.OPD_BILLING &&
