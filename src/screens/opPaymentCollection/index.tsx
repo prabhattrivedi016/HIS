@@ -2,7 +2,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { OpDiscountApprovalTableHeader } from "@/constants/tableHeaders";
+import { OpPaymentCollectionTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import ApproveCancelPopup from "../opDiscountApproval/components/ApproveCancelPopup";
+import ViewDetailsPopup from "../opDiscountApproval/components/ViewDetailsPopup";
 import { OPPaymentItem } from "./types";
 const OPPaymentCollection = () => {
   const { loading, fetchApi } = useGlobalApi();
@@ -23,6 +24,9 @@ const OPPaymentCollection = () => {
   const [selectedItem, setSelectedItem] = useState<OPPaymentItem | null>(null);
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
+  const [viewItem, setViewItem] = useState<OPPaymentItem | null>(null);
+  const [renderViewPopup, setRenderViewPopup] = useState<boolean>(false);
+  const [openViewPopup, setOpenViewPopup] = useState<boolean>(false);
 
   const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
@@ -69,21 +73,6 @@ const OPPaymentCollection = () => {
     refetch?.();
   };
 
-  //   //   approve type handler
-  //   const approveHandler = (item: OPPaymentItem, popupType: string) => {
-  //     if (!item) {
-  //       setSelectedItem(null);
-  //       setPopupType("");
-  //       setRenderPopup(false);
-  //       setOpenPopup(false);
-  //       return;
-  //     }
-  //     setSelectedItem(item);
-  //     setPopupType(popupType);
-  //     setRenderPopup(true);
-  //     setOpenPopup(true);
-  //   };
-
   //   cancel type handler
   const cancelHandler = (item: OPPaymentItem, popupType: string) => {
     if (!item) {
@@ -106,6 +95,23 @@ const OPPaymentCollection = () => {
       setRenderPopup(false);
       setSelectedItem(null);
       setPopupType("");
+    }, 300);
+  }, []);
+
+  //   view details handler
+  const viewHandler = (item: OPPaymentItem) => {
+    if (!item) return;
+    setViewItem(item);
+    setRenderViewPopup(true);
+    setOpenViewPopup(true);
+  };
+
+  //   close view popup handler
+  const closeViewHandler = useCallback(() => {
+    setOpenViewPopup(false);
+    setTimeout(() => {
+      setRenderViewPopup(false);
+      setViewItem(null);
     }, 300);
   }, []);
 
@@ -167,7 +173,7 @@ const OPPaymentCollection = () => {
             <table className="base-table ">
               <thead className="table-head">
                 <tr>
-                  {OpDiscountApprovalTableHeader.map((h, index) => (
+                  {OpPaymentCollectionTableHeader.map((h, index) => (
                     <th key={index} className="table-th ">
                       {h}
                     </th>
@@ -178,7 +184,7 @@ const OPPaymentCollection = () => {
               <tbody>
                 {opDiscountList?.length === 0 && (
                   <tr>
-                    <td colSpan={OpDiscountApprovalTableHeader.length} className="table-empty">
+                    <td colSpan={OpPaymentCollectionTableHeader.length} className="table-empty">
                       No records found
                     </td>
                   </tr>
@@ -187,50 +193,44 @@ const OPPaymentCollection = () => {
                 {opDiscountList.map((item: OPPaymentItem, idx: number) => (
                   <tr key={item?.BookingId} className="table-row">
                     <td className="table-td">{idx + 1}</td>
+                    <td className="table-td">{item?.TokenNo || "-"}</td>
+                    <td className="table-td">{item?.UHID || "-"}</td>
                     <td className="table-td">{item?.PatientName || "-"}</td>
                     <td className="table-td">{item?.Age || "-"}</td>{" "}
                     <td className="table-td">{item?.Gender || "-"}</td>
-                    {/* <td className="table-td">{item?.Gender || "-"}</td>{" "} */}
                     <td className="table-td">{item?.CorporateName || "-"}</td>
+                    <td className="table-td">{item?.TotalApprovedDiscountPerOnBill || "-"}</td>
                     <td className="table-td">{item?.TotalBillAmount || "-"}</td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsPaymentCollected) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsPaymentCollected) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsCancel) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsCancel) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsDiscountApproved) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsDiscountApproved) === 1 ? "Yes" : "No"}
-                    </td>
                     <td className="table-td">
-                      {item?.IsCancel === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => viewHandler(item)}
+                        aria-label="View details"
+                      >
+                        <i className="fa-solid fa-eye text-xl icon-color-button" />
+                      </button>
+                    </td>
+                    {item?.IsPaymentCollected !== 1 ? (
+                      <td className="table-td">
+                        <button type="button" className="save-btn" aria-label="Collect payment">
+                          Collect Payment
+                        </button>
+                      </td>
+                    ) : (
+                      <td className="table-td"></td>
+                    )}
+                    {item?.IsPaymentCollected !== 1 && item?.IsCancel === 0 ? (
+                      <td className="table-td">
                         <button
                           className="delete-btn"
                           onClick={() => cancelHandler(item, "cancel")}
                         >
                           Cancel
                         </button>
-                      ) : (
-                        <></>
-                      )}
-                    </td>
-                    {/*   <td className="table-td">{item?.lastModifiedBy || "-"}</td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td" onClick={() => editHandler(item)}>
-                      <i className="fa-solid fa-edit text-xl icon-color-button" />
-                    </td> */}
+                      </td>
+                    ) : (
+                      <td className="table-td"></td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -247,6 +247,10 @@ const OPPaymentCollection = () => {
           onClose={closeHandler}
           onSuccess={popupSuccessHandler}
         />
+      )}
+
+      {!!renderViewPopup && (
+        <ViewDetailsPopup isOpen={openViewPopup} item={viewItem} onClose={closeViewHandler} />
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}

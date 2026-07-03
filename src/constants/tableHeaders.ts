@@ -639,11 +639,24 @@ export const OpDiscountApprovalTableHeader = [
   "Discount %",
   "Discount Amount",
   "Payable Amount",
-
   "Total Bill Amount",
-
   "View",
   "Approve",
+  "Cancel",
+];
+
+export const OpPaymentCollectionTableHeader = [
+  "#",
+  "Token No",
+  "UHID",
+  "Patient Name",
+  "Age",
+  "Gender",
+  "Corporate Name",
+  "Discount %",
+  "Discount Amount",
+  "View",
+  "Collect Payment",
   "Cancel",
 ];
 export const OpDiscountApprovalLevelTableHeader = [

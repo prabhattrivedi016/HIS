@@ -5,7 +5,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { OPDiscountApprovalDetail, OPDiscountItem } from "../types";
+import { OPDiscountApprovalDetail } from "../types";
 
 const formatValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "-";
@@ -40,7 +40,7 @@ const ViewDetailsPopup = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  item: OPDiscountItem | null;
+  item: { BookingId: number } | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const [detail, setDetail] = useState<OPDiscountApprovalDetail | null>(null);

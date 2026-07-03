@@ -111,7 +111,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "tab-master": <TabMaster />,
   "approval-authority-master": <ApprovalAuthorityMaster />,
   "temperature-room": <TemperatureRoom />,
-  "vital-master": <VitalMaster />
+  "vital-master": <VitalMaster />,
   "branch-settings": <BranchSettings />,
   "op-discount-approval": <OPDiscountApproval />,
   "op-payment-collection": <OPPaymentCollection />,
