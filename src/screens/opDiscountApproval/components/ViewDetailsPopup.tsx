@@ -135,7 +135,7 @@ const ViewDetailsPopup = ({
       />
 
       <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-250 ${
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-260 ${
           isOpen ? "opacity-full" : ""
         }`}
       >
@@ -149,10 +149,11 @@ const ViewDetailsPopup = ({
 
         {/* patient details */}
         <div className="card w-full mb-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <h3 className="card-header text-lg font-semibold italic">Patient Details</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
             {patientDetails.map(patientDetail => (
               <div key={patientDetail.label} className="flex flex-row gap-1">
-                <span className="name-header">{patientDetail.label} :</span>
+                <span className="name-header whitespace-nowrap">{patientDetail.label} :</span>
                 <span className="truncate">{formatValue(patientDetail.value)}</span>
               </div>
             ))}
@@ -160,7 +161,7 @@ const ViewDetailsPopup = ({
         </div>
 
         {/* billing / discount details table */}
-        <div className="table-container mb-1">
+        {/* <div className="table-container mb-1">
           <div className="table-scroll-wrapper">
             <div className="table-size">
               <table className="base-table w-full">
@@ -180,6 +181,18 @@ const ViewDetailsPopup = ({
                 </tbody>
               </table>
             </div>
+          </div>
+        </div> */}
+
+        <div className="card w-full mb-1">
+          <h3 className="card-header text-lg font-semibold italic">Billing / Discount Details</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            {billingDetails.map(billingDetail => (
+              <div key={billingDetail.label} className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">{billingDetail.label} :</span>
+                <span className="truncate">{formatValue(billingDetail.value)}</span>
+              </div>
+            ))}
           </div>
         </div>
 

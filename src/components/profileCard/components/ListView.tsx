@@ -1,53 +1,56 @@
 import { MoreVertical } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import {
+  type FC,
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  type MouseEvent,
+} from "react";
 import { useSortTableData } from "../../../hooks/useSortTableData";
 
 const Pagination = lazy(() => import("./Pagination"));
 
 import { formatDisplayDate } from "@/utils/dateConvertHandler";
-import { ListViewProps } from "../types";
+import { ListViewData, ListViewProps } from "../types";
 
-const ListView: React.FC<ListViewProps> = ({
+const ListView: FC<ListViewProps> = ({
   data = [],
   onStatusChange,
   openDrawer,
   columnVisibility = {},
+  renderRowActionMenu,
 }) => {
   const isDateFormat = (val: string) => /^\d{2}-\d{2}-\d{4}$/.test(val);
 
-  const [openListMenu, setOpenListMenu] = useState(null);
-  const [hiddenColumns, setHiddenColumns] = useState([]);
+  const [openListMenu, setOpenListMenu] = useState<ListViewData | null>(null);
   const [pageData, setPageData] = useState(10);
   const [activePage, setActivePage] = useState(1);
 
-  const { sortedItems, sortConfig, onSort } = useSortTableData(data);
+  const { sortedItems, sortConfig, onSort } = useSortTableData<ListViewData>(data);
   const tableData = sortedItems ?? data;
 
-  const firstData = tableData[0] || {};
+  const firstData = tableData[0] || ({} as ListViewData);
 
-  // slice data for pagination
   const start = (activePage - 1) * pageData;
   const end = start + pageData;
 
   const paginatedData = tableData.slice(start, end);
 
-  // headers form columns
   const headers = [
-    { key: "listLeftButton", label: firstData?.listLeftButton[0]?.label || "Action" },
+    { key: "listLeftButton", label: firstData?.listLeftButton?.[0]?.label || "Action" },
     ...(firstData?.columns?.map((f, index) => ({
       key: `column_${index}`,
       label: f.label,
     })) || []),
   ];
 
-  // column value
-  const getColumnValue = (rowData, key) => {
+  const getColumnValue = (rowData: ListViewData, key: string) => {
     const index = Number(key.replace("column_", ""));
     const col = rowData?.columns?.[index];
 
     if (!col) return "-";
 
-    // status column
     if (col.keyFromApi === "isActive") {
       const isActive = col.value === 1;
 
@@ -70,26 +73,24 @@ const ListView: React.FC<ListViewProps> = ({
     return value ?? "-";
   };
 
-  // Open Popup
-  const handleListLeftButton = (e, rowData) => {
+  const handleListLeftButton = (e: MouseEvent<HTMLButtonElement>, rowData: ListViewData) => {
     e.stopPropagation();
     setOpenListMenu(prev => (prev?.id === rowData?.id ? null : rowData));
   };
 
-  // Close Popup
   useEffect(() => {
     const closeMenu = () => setOpenListMenu(null);
     document.addEventListener("click", closeMenu);
     return () => document.removeEventListener("click", closeMenu);
   }, []);
 
-  // isActive value
-  const getIsActiveValue = rowData =>
+  const getIsActiveValue = (rowData: ListViewData) =>
     rowData.columns?.find(c => c.keyFromApi === "isActive")?.value;
 
-  //  status change
-  const handleStatusChange = rowData => {
-    const currentStatus = getIsActiveValue(rowData); // 1 or 0
+  const handleStatusChange = (rowData: ListViewData) => {
+    if (!onStatusChange) return;
+
+    const currentStatus = getIsActiveValue(rowData);
     const newStatus = currentStatus === 1 ? 0 : 1;
 
     const type = rowData?.type?.toLowerCase();
@@ -116,22 +117,12 @@ const ListView: React.FC<ListViewProps> = ({
     onStatusChange(payload);
   };
 
-  // open drawer
-  const openDrawerHandler = rowData => {
-    rowData?.type?.toLowerCase();
+  const openDrawerHandler = (rowData: ListViewData) => {
     setOpenListMenu(null);
-    openDrawer(rowData?.id);
+    openDrawer?.(rowData?.id);
   };
 
-  // hiding column
-  const handleHeaderClick = key => {
-    if (key !== "listLeftButton") {
-      onSort(key, getSortValue);
-    }
-  };
-
-  // Sorting table
-  const getSortValue = (rowData, key) => {
+  const getSortValue = (rowData: ListViewData, key: string) => {
     if (key === "listLeftButton") return "";
     const index = Number(key.replace("column_", ""));
     const col = rowData?.columns?.[index];
@@ -140,16 +131,27 @@ const ListView: React.FC<ListViewProps> = ({
 
     const value = col.value;
 
-    return typeof value === "string" ? value?.toLowerCase() : value;
+    return typeof value === "string" ? value.toLowerCase() : value;
   };
 
-  const renderActionMenu = (rowData, isActive) => {
+  const handleHeaderClick = (key: string) => {
+    if (key !== "listLeftButton") {
+      onSort(key, getSortValue);
+    }
+  };
+
+  const renderActionMenu = (rowData: ListViewData, isActive: boolean) => {
+    if (renderRowActionMenu) {
+      return renderRowActionMenu(rowData, () => setOpenListMenu(null));
+    }
+
     switch (rowData?.type) {
       case "branchMaster": {
         return (
           <ul className="text-sm">
             <li>
               <button
+                type="button"
                 className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
                 onClick={() => openDrawerHandler(rowData)}
               >
@@ -165,6 +167,7 @@ const ListView: React.FC<ListViewProps> = ({
           <ul className="text-sm">
             <li>
               <button
+                type="button"
                 className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
                 onClick={() => openDrawerHandler(rowData)}
               >
@@ -173,6 +176,7 @@ const ListView: React.FC<ListViewProps> = ({
             </li>
             <li>
               <button
+                type="button"
                 className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
                 onClick={() => handleStatusChange(rowData)}
               >
@@ -186,14 +190,14 @@ const ListView: React.FC<ListViewProps> = ({
   };
 
   return (
-    <div className=" table-container">
-      <div className="table-scroll-wrapper  ">
-        <div className="table-size lg:min-h-140 lg:max-h-140  ">
-          <table className="base-table ">
+    <div className="w-full max-w-full overflow-hidden">
+      <div className="table-container m-2">
+        <div className="table-scroll-wrapper lg:min-h-140 lg:max-h-140">
+          <table className="base-table">
             <thead className="table-head">
               <tr>
                 {headers.map(({ key, label }) =>
-                  hiddenColumns.includes(key) || columnVisibility?.[label] === false ? null : (
+                  columnVisibility?.[label] === false ? null : (
                     <th
                       key={key}
                       className={`table-th
@@ -202,7 +206,12 @@ const ListView: React.FC<ListViewProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         {label}
-                        {sortConfig?.key === key && (sortConfig.direction === "asc" ? "🔺" : "🔻")}
+                        {sortConfig?.key === key &&
+                          sortConfig?.direction === "asc"
+                          ? "🔺"
+                          : sortConfig?.key === key
+                            ? "🔻"
+                            : null}
                       </div>
                     </th>
                   )
@@ -217,18 +226,17 @@ const ListView: React.FC<ListViewProps> = ({
                 return (
                   <tr key={idx} className="table-row">
                     {headers.map(header =>
-                      hiddenColumns.includes(header.key) ||
                       columnVisibility?.[header.label] === false ? null : (
                         <td key={header.key} className=" table-td">
                           {header.key === "listLeftButton" ? (
                             <div className="relative">
                               <button
+                                type="button"
                                 className="p-2 hover:bg-gray-200 rounded"
                                 onClick={e => handleListLeftButton(e, rowData)}
                               >
                                 <MoreVertical size={18} className="text-gray-600" />
                               </button>
-                              {/* toggle button popup */}
                               {openListMenu?.id === rowData?.id && (
                                 <div className="absolute left-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg z-50">
                                   {renderActionMenu(rowData, isActive)}
@@ -250,7 +258,6 @@ const ListView: React.FC<ListViewProps> = ({
           </table>
         </div>
       </div>
-      {/* pagination helper function */}
       {tableData?.length > 20 ? (
         <Suspense fallback={<div>Loading pagination...</div>}>
           <Pagination
@@ -261,9 +268,7 @@ const ListView: React.FC<ListViewProps> = ({
             setActivePage={setActivePage}
           />
         </Suspense>
-      ) : (
-        <></>
-      )}
+      ) : null}
     </div>
   );
 };

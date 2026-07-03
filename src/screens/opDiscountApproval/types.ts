@@ -100,4 +100,40 @@ type OPDiscountApprovalDetail = {
   ApprovalRemarks: string | null;
 };
 
-export type { OPDiscountApprovalDetail, OPDiscountItem };
+type OpDiscountGridCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  cardLeftTop: { label: string; value: string | number | null }[];
+  cardRightTop: { label: string; action: string }[];
+  cardAvatar: string | null;
+  cardId: { label: string; value: string | number | null }[];
+  cardTitle: { label: string; value: string | number | null }[];
+  cardFooter: { label: string; value: string | number | null }[];
+  buttonSection: { label: string; action: string }[];
+};
+
+type OpDiscountListCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  listLeftButton: { label: string; action: string }[];
+  columns: {
+    label: string;
+    keyFromApi: string;
+    value: string | number | null;
+    isSortable?: boolean;
+    isSearchable?: boolean;
+    allowColumnFilter?: boolean;
+    isMasked?: boolean;
+  }[];
+};
+
+export type {
+  OPDiscountApprovalDetail,
+  OpDiscountGridCard,
+  OpDiscountListCard,
+  OPDiscountItem,
+};

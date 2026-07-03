@@ -1,110 +1,227 @@
-import CustomDateInput from "@/components/customDateInput";
-import InputField from "@/components/customInputField";
+import HideShowColumn from "@/components/buttonsPopup";
+import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
+import { ErrorMessage } from "@/components/infoText";
+import PageHeader from "@/components/pageHeader";
+import GridView from "@/components/profileCard";
+import ListView from "@/components/profileCard/components/ListView";
 import { ENDPOINTS } from "@/config/defaults";
-import { OpDiscountApprovalTableHeader } from "@/constants/tableHeaders";
+import { opDiscountConfig } from "@/config/masterConfig/opDiscountConfig";
+import { VIEWTYPE } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
+import { useConfigMaster } from "@/hooks/useConfigMaster";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { BranchItem } from "@/types";
+import { ColumnVisibility } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
-import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useCallback, useContext, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { exportListViewData } from "@/utils/exportUtils";
+import { filteredData } from "@/utils/filteredData";
+import { transformDataWithConfig } from "@/utils/utilities";
+import {
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ApproveCancelPopup from "./components/ApproveCancelPopup";
+import OpDiscountActionPopup from "./components/OpDiscountActionPopup";
+import OpDiscountFilterModal, { OpDiscountFilterValues } from "./components/OpDiscountFilterModal";
 import ViewDetailsPopup from "./components/ViewDetailsPopup";
-import { OPDiscountItem } from "./types";
+import {
+  OpDiscountGridCard as OpDiscountGridCardType,
+  OPDiscountItem,
+  OpDiscountListCard,
+} from "./types";
+import { canShowApprove, canShowCancel, canShowSendForApproval } from "./utils/opDiscountActions";
+
 const OPDiscountApproval = () => {
-  const { loading, fetchApi } = useGlobalApi();
+  const { loading, error, fetchApi } = useGlobalApi();
   const branchLists = useGetBranchList()?.branchList?.data ?? [];
-  const branchId = Number(useContext(AuthContext)?.user?.branchId) ?? 1;
-  const [selectedBranchId, setSelectedBranchId] = useState<number>(branchId);
+  const authBranchId = Number(useContext(AuthContext)?.user?.branchId) || 1;
   const today = new Date().toISOString().split("T")[0];
-  const [queryValue, setQueryValue] = useState({ branchId, fromDate: today, toDate: today });
-  const [popupType, setPopupType] = useState<string>("");
-  const [selectedItem, setSelectedItem] = useState<OPDiscountItem | null>(null);
-  const [renderPopup, setRenderPopup] = useState<boolean>(false);
-  const [openPopup, setOpenPopup] = useState<boolean>(false);
-  const [viewItem, setViewItem] = useState<OPDiscountItem | null>(null);
-  const [renderViewPopup, setRenderViewPopup] = useState<boolean>(false);
-  const [openViewPopup, setOpenViewPopup] = useState<boolean>(false);
 
-  const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
-    setSelectedBranchId(value);
-    setQueryValue(prev => ({
-      ...prev,
-      branchId: value,
-    }));
-  };
+  const { configDataValue: opDiscountConfigFromApi } = useConfigMaster("opDiscount");
+  const activeConfig = opDiscountConfigFromApi || opDiscountConfig;
 
-  const fromDateChangeHandler = (value: string) => {
-    setQueryValue(prev => ({
-      ...prev,
-      fromDate: value,
-    }));
-  };
-
-  const toDateChangeHandler = (value: string) => {
-    setQueryValue(prev => ({
-      ...prev,
-      toDate: value,
-    }));
-  };
-
-  const getOpDiscountList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_DISCOUNT_APPROVAL,
-      {},
-      { params: queryValue },
-      { component: "OPDiscountApproval" }
-    );
-    return resp?.data ?? [];
-  };
-
-  const { data: opDiscountList = [], refetch } = useQuery({
-    queryKey: ["getOpDiscountList"],
-    queryFn: getOpDiscountList,
-    enabled: !!queryValue.branchId,
+  const [queryValue, setQueryValue] = useState<OpDiscountFilterValues>({
+    branchId: authBranchId || 1,
+    fromDate: today,
+    toDate: today,
   });
 
-  const searchHandler = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    refetch?.();
+  const [opDiscountGridData, setOpDiscountGridData] = useState<OpDiscountGridCardType[]>([]);
+  const [opDiscountListData, setOpDiscountListData] = useState<OpDiscountListCard[]>([]);
+  const [gridFilteredData, setGridFilteredData] = useState<OpDiscountGridCardType[]>([]);
+  const [listFilteredData, setListFilteredData] = useState<OpDiscountListCard[]>([]);
+  const [rawItemMap, setRawItemMap] = useState<Record<number, OPDiscountItem>>({});
+
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+  const [hasFetched, setHasFetched] = useState(false);
+  const [cardView, setCardView] = useState(VIEWTYPE.GRID);
+  const [, setSearchQuery] = useState("");
+
+  const [popupType, setPopupType] = useState("");
+  const [selectedItem, setSelectedItem] = useState<OPDiscountItem | null>(null);
+  const [renderPopup, setRenderPopup] = useState(false);
+  const [openPopup, setOpenPopup] = useState(false);
+
+  const [viewItem, setViewItem] = useState<OPDiscountItem | null>(null);
+  const [renderViewPopup, setRenderViewPopup] = useState(false);
+  const [openViewPopup, setOpenViewPopup] = useState(false);
+
+  const [gridActionOpen, setGridActionOpen] = useState(false);
+  const [gridActionPopup, setGridActionPopup] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const [gridActionBookingId, setGridActionBookingId] = useState<number | null>(null);
+
+  const [onDownload, setOnDownload] = useState(false);
+  const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
+  const [hideShowColumn, setHideShowColumn] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+
+  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
+  const downloadBtnRef = useRef<HTMLButtonElement>(null);
+
+  const getOpDiscountList = useCallback(
+    async (params: { branchId: number; fromDate: string; toDate: string }) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_DISCOUNT_APPROVAL,
+        {},
+        { params },
+        { component: "OPDiscountApproval" }
+      );
+
+      const rawData: OPDiscountItem[] = resp?.data ?? [];
+      const transformed = transformDataWithConfig(activeConfig, resp);
+
+      setRawItemMap(Object.fromEntries(rawData.map(item => [Number(item.BookingId), item])));
+      setOpDiscountGridData(transformed?.gridView ?? []);
+      setOpDiscountListData(transformed?.listView ?? []);
+      setGridFilteredData(transformed?.gridView ?? []);
+      setListFilteredData(transformed?.listView ?? []);
+      setHasFetched(true);
+    },
+    [activeConfig]
+  );
+
+  useEffect(() => {
+    if (!activeConfig) return;
+
+    void getOpDiscountList({
+      branchId: authBranchId || 1,
+      fromDate: today,
+      toDate: today,
+    });
+  }, [activeConfig, authBranchId, getOpDiscountList, today]);
+
+  const handleCardView = (view: string) => setCardView(view);
+
+  const handleRefresh = useCallback(async () => {
+    await getOpDiscountList(queryValue);
+    setSearchQuery("");
+  }, [getOpDiscountList, queryValue]);
+
+  const searchHandler = useCallback(
+    (keyInput: string, selectedValue = "") => {
+      const value = keyInput?.toLowerCase()?.trim();
+      setSearchQuery(keyInput);
+
+      filteredData({
+        value,
+        selectedValue,
+        listData: opDiscountListData as never,
+        gridData: opDiscountGridData as never,
+        setListFilteredData: setListFilteredData as never,
+        setGridFilteredData: setGridFilteredData as never,
+      });
+    },
+    [opDiscountGridData, opDiscountListData]
+  );
+
+  useEffect(() => {
+    if (listFilteredData.length > 0) {
+      const visibility: Record<string, boolean> = {};
+      listFilteredData[0].columns.forEach(col => {
+        visibility[col.label] = true;
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [listFilteredData]);
+
+  const columnNames = useMemo(() => {
+    if (cardView === VIEWTYPE.LIST && listFilteredData.length > 0) {
+      return [
+        listFilteredData[0]?.listLeftButton?.[0]?.label || "Action",
+        ...(listFilteredData[0]?.columns?.map(col => col.label) || []),
+      ];
+    }
+    return [];
+  }, [cardView, listFilteredData]);
+
+  const downloadHandler = () => {
+    if (!downloadBtnRef.current) return;
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+    setOnDownload(prev => !prev);
   };
 
-  //   approve type handler
-  const approveHandler = (item: OPDiscountItem, popupType: string) => {
-    if (!item) {
-      setSelectedItem(null);
-      setPopupType("");
-      setRenderPopup(false);
-      setOpenPopup(false);
-      return;
+  const hideShowHandler = useCallback(() => {
+    if (hideShowBtnRef.current) {
+      const rect = hideShowBtnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.bottom + 5, left: rect.left });
     }
+    setHideShowColumn(prev => !prev);
+  }, []);
+
+  const onFilterDiscountApproval = useCallback(() => {
+    setFilterModalOpen(true);
+  }, []);
+
+  const closeFilterModal = useCallback(() => {
+    setFilterModalOpen(false);
+  }, []);
+
+  const applyFilterHandler = useCallback(
+    async (params: OpDiscountFilterValues) => {
+      setQueryValue(params);
+      setSearchQuery("");
+      await getOpDiscountList(params);
+      setFilterModalOpen(false);
+    },
+    [getOpDiscountList]
+  );
+
+  const filterDropDown = opDiscountListData?.[0]?.columns;
+
+  const openApprovePopup = (item: OPDiscountItem) => {
     setSelectedItem(item);
-    setPopupType(popupType);
+    setPopupType("approve");
     setRenderPopup(true);
     setOpenPopup(true);
   };
 
-  //   cancel type handler
-  const cancelHandler = (item: OPDiscountItem, popupType: string) => {
-    if (!item) {
-      setSelectedItem(null);
-      setPopupType("");
-      setRenderPopup(false);
-      setOpenPopup(false);
-      return;
-    }
+  const openCancelPopup = (item: OPDiscountItem) => {
     setSelectedItem(item);
-    setPopupType(popupType);
+    setPopupType("cancel");
     setRenderPopup(true);
     setOpenPopup(true);
   };
 
-  //   close handler
+  const viewHandler = (item: OPDiscountItem) => {
+    setViewItem(item);
+    setRenderViewPopup(true);
+    setOpenViewPopup(true);
+  };
+
   const closeHandler = useCallback(() => {
     setOpenPopup(false);
     setTimeout(() => {
@@ -114,15 +231,6 @@ const OPDiscountApproval = () => {
     }, 300);
   }, []);
 
-  //   view details handler
-  const viewHandler = (item: OPDiscountItem) => {
-    if (!item) return;
-    setViewItem(item);
-    setRenderViewPopup(true);
-    setOpenViewPopup(true);
-  };
-
-  //   close view popup handler
   const closeViewHandler = useCallback(() => {
     setOpenViewPopup(false);
     setTimeout(() => {
@@ -132,8 +240,8 @@ const OPDiscountApproval = () => {
   }, []);
 
   const popupSuccessHandler = useCallback(() => {
-    void refetch?.();
-  }, [refetch]);
+    void getOpDiscountList(queryValue);
+  }, [getOpDiscountList, queryValue]);
 
   const sendForApprovalHandler = async (item: OPDiscountItem) => {
     const payload = {
@@ -142,7 +250,7 @@ const OPDiscountApproval = () => {
       approvedPer: Number(item?.TotalApprovedDiscountPerOnBill),
       approvalRemarks: "",
     };
-    if (!item || !payload) return;
+
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
@@ -150,181 +258,246 @@ const OPDiscountApproval = () => {
       {},
       { component: "OPDiscountApproval" }
     );
+
     if (!resp?.result) {
       showWarning(resp?.message ?? "Failed while sending for approval");
       return;
     }
+
     showSuccess(resp?.message ?? "Discount sent for approval successfully");
-    void refetch?.();
+    void getOpDiscountList(queryValue);
   };
 
-  /*
-    const resp = await fetchApi(
-        "PATCH",
-        ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
-        {
-          bookingId: Number(approveFormData.bookingId),
-          flag: Number(approveFormData.flag),
-          approvedPer: Number(approveFormData.approvedPer),
-        },
-        {},
-        { component: "ApproveCancelPopup" }
-      );
+  const gridActionHandler = (bookingId: number, rect: DOMRect) => {
+    if (gridActionOpen && gridActionBookingId === bookingId) {
+      setGridActionOpen(false);
+      return;
+    }
 
-      if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while approving discount");
+    setGridActionPopup({
+      top: rect.bottom + 6,
+      left: rect.left,
+    });
+    setGridActionBookingId(bookingId);
+    setGridActionOpen(true);
+  };
+
+  const shouldShowGridButton = useCallback(
+    (action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (!item) return false;
+
+      if (action === "toggleApproveDiscount") {
+        return canShowSendForApproval(item) || canShowApprove(item);
+      }
+
+      if (action === "toggleCancelDiscount") {
+        return canShowCancel(item);
+      }
+
+      return false;
+    },
+    [rawItemMap]
+  );
+
+  const getGridButtonLabel = useCallback(
+    (label: string, action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (action === "toggleApproveDiscount" && item && canShowSendForApproval(item)) {
+        return "Send For Approval";
+      }
+      return label;
+    },
+    [rawItemMap]
+  );
+
+  const customButtonClickHandler = useCallback(
+    (action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (!item) return;
+
+      if (action === "toggleApproveDiscount") {
+        if (canShowSendForApproval(item)) {
+          void sendForApprovalHandler(item);
+          return;
+        }
+        if (canShowApprove(item)) {
+          openApprovePopup(item);
+        }
         return;
       }
 
-      setSuccessMessage(resp?.message ?? "Discount approved successfully");
-      setTimeout(() => {
-        onSuccess?.();
-        onClose?.();
-      }, 500); */
-  return (
-    <div className="page-container">
-      <h1 className="page-heading">OP Discount Approval</h1>
+      if (action === "toggleCancelDiscount" && canShowCancel(item)) {
+        openCancelPopup(item);
+      }
+    },
+    [rawItemMap]
+  );
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span>OP Discount Approval</span>
-      </nav>
+  const renderRowActionMenu = useCallback(
+    (rowData: { id: number }, closeMenu: () => void) => {
+      const item = rawItemMap[rowData.id];
+      if (!item) return null;
 
-      {/* form  */}
-      <div className="card">
-        <form onSubmit={searchHandler}>
-          <div className="form-grid-4">
-            <InputField label="Branch" required>
-              <select
-                className="input-field"
-                value={selectedBranchId}
-                onChange={branchChangeHandler}
-                name="branchId"
-              >
-                <option>--Select--</option>
-                {branchLists.map((b: BranchItem) => (
-                  <option key={b?.branchId} value={b?.branchId}>
-                    {b?.branchName}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-            <InputField label="From Date">
-              <CustomDateInput value={queryValue?.fromDate} onChange={fromDateChangeHandler} />
-            </InputField>
-            <InputField label="To Date">
-              <CustomDateInput value={queryValue?.toDate} onChange={toDateChangeHandler} />
-            </InputField>
-          </div>
+      const runAction = (action: (selected: OPDiscountItem) => void) => {
+        action(item);
+        closeMenu();
+      };
 
-          <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {"Search"}
+      return (
+        <ul className="text-sm">
+          <li>
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+              onClick={() => runAction(viewHandler)}
+            >
+              View
             </button>
-          </div>
-        </form>
-      </div>
-      {/* table */}
+          </li>
+          {canShowSendForApproval(item) && (
+            <li>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => runAction(sendForApprovalHandler)}
+              >
+                Send For Approval
+              </button>
+            </li>
+          )}
+          {canShowApprove(item) && (
+            <li>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => runAction(openApprovePopup)}
+              >
+                Approve
+              </button>
+            </li>
+          )}
+          {canShowCancel(item) && (
+            <li>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+                onClick={() => runAction(openCancelPopup)}
+              >
+                Cancel
+              </button>
+            </li>
+          )}
+        </ul>
+      );
+    },
+    [rawItemMap]
+  );
 
-      <div className="table-container mt-1 ">
-        <div className="table-scroll-wrapper ">
-          <div className="table-size lg:min-h-120">
-            <table className="base-table ">
-              <thead className="table-head">
-                <tr>
-                  {OpDiscountApprovalTableHeader.map((h, index) => (
-                    <th key={index} className="table-th ">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+  const renderComponent = (view: string) => {
+    if (error) return <ErrorMessage text={error?.message} />;
+    if (!activeConfig || !hasFetched) {
+      return <div className="initial-message">Loading OP Discount Approval...</div>;
+    }
 
-              <tbody>
-                {opDiscountList?.length === 0 && (
-                  <tr>
-                    <td colSpan={OpDiscountApprovalTableHeader.length} className="table-empty">
-                      No records found
-                    </td>
-                  </tr>
-                )}
+    if (view === VIEWTYPE.GRID) {
+      if (!gridFilteredData.length) return <div className="no-data-message">No records found</div>;
 
-                {opDiscountList.map((item: OPDiscountItem, idx: number) => (
-                  <tr key={item?.BookingId} className="table-row">
-                    <td className="table-td">{idx + 1}</td>
-                    <td className="table-td">{item?.TokenNo || "-"}</td>
-                    <td className="table-td">{item?.UHID || "-"}</td>
-                    <td className="table-td">{item?.PatientName || "-"}</td>
-                    {/* <td
-                      className={`table-td ${
-                        Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
-                    </td> */}
-                    <td className="table-td">{item?.Age || "-"}</td>{" "}
-                    <td className="table-td">{item?.Gender || "-"}</td>
-                    {/* <td className="table-td">{item?.Gender || "-"}</td>{" "} */}
-                    <td className="table-td">{item?.CorporateName || "-"}</td>
-                    <td className="table-td">{item?.TotalDiscountPerOnBill || "-"}</td>
-                    <td className="table-td">{item?.TotalDiscountAmountOnBill || "-"}</td>
-                    <td className="table-td">{item?.TotalPatientPayableAmount || "-"}</td>
-                    <td className="table-td">{item?.TotalBillAmount || "-"}</td>
-                    <td className="table-td">
-                      <button
-                        type="button"
-                        onClick={() => viewHandler(item)}
-                        aria-label="View details"
-                      >
-                        <i className="fa-solid fa-eye text-xl icon-color-button" />
-                      </button>
-                    </td>
-                    <td className="table-td">
-                      {item?.IsCancel !== 1 &&
-                      (!item?.IsLevel1Approve ||
-                        !item?.IsLevel2Approve ||
-                        !item?.IsLevel3Approve ||
-                        !item?.IsLevel4Approve) &&
-                      item?.FlagId === 0 &&
-                      item?.CanApprove === 0 ? (
-                        <button className="save-btn" onClick={() => sendForApprovalHandler(item)}>
-                          Send For Approval
-                        </button>
-                      ) : item?.IsCancel !== 1 && item?.CanApprove === 1 && item?.FlagId === 1 ? (
-                        <button
-                          className="reset-btn"
-                          onClick={() => approveHandler(item, "approve")}
-                        >
-                          Approve
-                        </button>
-                      ) : (
-                        <></>
-                      )}
-                    </td>
-                    <td className="table-td">
-                      {item?.IsCancel !== 1 ? (
-                        <button
-                          className="delete-btn"
-                          onClick={() => cancelHandler(item, "cancel")}
-                        >
-                          Cancel
-                        </button>
-                      ) : (
-                        <></>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      return (
+        <div className="grid-card-page-layout">
+          {gridFilteredData.map(item => (
+            <GridView
+              key={item.id}
+              data={item}
+              cardRightTopBtn={gridActionHandler}
+              onCustomButtonClick={customButtonClickHandler}
+              shouldShowButton={shouldShowGridButton}
+              getCustomButtonLabel={getGridButtonLabel}
+            />
+          ))}
         </div>
-      </div>
+      );
+    }
 
-      {!!renderPopup && (
+    if (view === VIEWTYPE.LIST) {
+      if (!listFilteredData.length) return <div className="no-data-message">No records found</div>;
+
+      return (
+        <div className="list-view-page-layout">
+          <ListView
+            data={listFilteredData}
+            columnVisibility={columnVisibility}
+            renderRowActionMenu={renderRowActionMenu}
+          />
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className="master-page-size">
+      <PageHeader
+        title="OP Discount Approval"
+        view={cardView}
+        onCardView={handleCardView}
+        buttonTitle=""
+        showAddButton={false}
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
+        onAddNew={() => {}}
+        onDownload={downloadHandler}
+        onFilter={filterDropDown}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
+        downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
+        onFilterDiscountApproval={onFilterDiscountApproval}
+      />
+
+      <div className="w-full">{renderComponent(cardView)}</div>
+
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef as RefObject<HTMLElement>}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
+      )}
+
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef as RefObject<HTMLElement>}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadPdf={() => {
+            exportListViewData(listFilteredData, "OpDiscountApprovalList", "pdf");
+            setOnDownload(false);
+          }}
+          onDownloadExcel={() => {
+            exportListViewData(listFilteredData, "OpDiscountApprovalList", "excel");
+            setOnDownload(false);
+          }}
+        />
+      )}
+
+      {gridActionOpen && gridActionBookingId ? (
+        <OpDiscountActionPopup
+          bookingId={gridActionBookingId}
+          rawItemMap={rawItemMap}
+          position={gridActionPopup}
+          onClose={() => setGridActionOpen(false)}
+          onView={viewHandler}
+          onApprove={openApprovePopup}
+          onCancel={openCancelPopup}
+          onSendForApproval={sendForApprovalHandler}
+        />
+      ) : null}
+
+      {renderPopup && (
         <ApproveCancelPopup
           isOpen={openPopup}
           popupType={popupType}
@@ -334,11 +507,19 @@ const OPDiscountApproval = () => {
         />
       )}
 
-      {!!renderViewPopup && (
+      {renderViewPopup && (
         <ViewDetailsPopup isOpen={openViewPopup} item={viewItem} onClose={closeViewHandler} />
       )}
 
-      {!!loading && <CustomLoader isLoading={loading} />}
+      <OpDiscountFilterModal
+        isOpen={filterModalOpen}
+        onClose={closeFilterModal}
+        onApply={applyFilterHandler}
+        initialValues={queryValue}
+        branchList={branchLists}
+      />
+
+      {loading ? <CustomLoader isLoading={loading} /> : null}
     </div>
   );
 };

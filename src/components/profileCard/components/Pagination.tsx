@@ -1,3 +1,6 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { type ChangeEvent, useState } from "react";
+
 type PaginationProps = {
   totalItem: number;
   pageData: number;
@@ -5,8 +8,7 @@ type PaginationProps = {
   setPageData: (n: number) => void;
   setActivePage: (n: number) => void;
 };
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+
 const Pagination = ({
   totalItem,
   pageData,
@@ -22,7 +24,7 @@ const Pagination = ({
   const no_of_pages = Math.ceil(totalItem / pageData);
 
   //   select handler
-  const selectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
 
     if (!value) return;

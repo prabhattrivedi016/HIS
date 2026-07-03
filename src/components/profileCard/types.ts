@@ -8,27 +8,28 @@ export type OnStatusChange = (payload: {
   doctorId?: number;
   referDoctorId?: number;
   corporateId?: number;
-}) => Promise<any> | void;
+}) => Promise<void> | void;
 
 export type HandleButtonClickProps = {
   btnAction: string;
-  onStatusChange: OnStatusChange;
-  cardLeftTop: { value?: number | null }[];
-  buttonTitle: (title: string) => void;
-  drawerTitle: (title: string) => void;
-  openDrawer: (id: number | null) => void;
+  onStatusChange?: OnStatusChange;
+  cardLeftTop: { label?: string; value?: string | number | null }[];
+  buttonTitle?: (title: string) => void;
+  drawerTitle?: (title: string) => void;
+  openDrawer?: (id: number | null) => void;
   id: number;
   mapToUser?: (id: number) => void;
+  onCustomButtonClick?: (action: string, id: number) => void;
 };
 
 export type ValueItem = {
   label?: string;
-  value?: string | number;
+  value?: string | number | null;
   keyFromApi?: string;
 };
 
 export type GridViewData = {
-  cardLeftTop: { value?: number | null }[];
+  cardLeftTop: { label?: string; value?: string | number | null }[];
   cardRightTop: ValueItem[];
   cardAvatar?: string | null;
   cardId: ValueItem[];
@@ -45,12 +46,15 @@ export type GridViewData = {
 export interface GridViewProps {
   data: GridViewData;
   onStatusChange?: OnStatusChange;
-  openDrawer: (id: number | null) => void;
+  openDrawer?: (id: number | null) => void;
   buttonTitle?: (title: string) => void;
   drawerTitle?: (title: string) => void;
   cardRightTopBtn?: (id: number, rect: DOMRect) => void;
   mapToUser?: (id: number) => void;
   gridRightBtnRef?: React.RefObject<HTMLButtonElement>;
+  onCustomButtonClick?: (action: string, id: number) => void;
+  shouldShowButton?: (action: string, id: number) => boolean;
+  getCustomButtonLabel?: (label: string, action: string, id: number) => string;
 }
 
 export type ListColumn = {
@@ -82,4 +86,5 @@ export interface ListViewProps {
   onStatusChange?: (payload: { isActive: number; doctorId?: number }) => void;
   openDrawer?: (id: number) => void;
   columnVisibility?: Record<string, boolean>;
+  renderRowActionMenu?: (rowData: ListViewData, closeMenu: () => void) => React.ReactNode;
 }
