@@ -68,11 +68,11 @@ const PageHeader = ({
           {onFilterDiscountApproval && (
             <button
               type="button"
-              className="p-1.5 rounded border border-gray-200 bg-white text-gray-700 hover:bg-gray-200"
+              className="p-2.5 ph-button-theme"
               title="Filter Data"
               onClick={onFilterDiscountApproval}
             >
-              <FilterIcon size={16} />
+              <FilterIcon size={18} />
             </button>
           )}
 

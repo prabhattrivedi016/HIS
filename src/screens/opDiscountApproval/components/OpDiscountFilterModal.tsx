@@ -21,12 +21,14 @@ const OpDiscountFilterModal = ({
   onApply,
   initialValues,
   branchList = [],
+  modalTitle = "Filter OP Discount Approval",
 }: {
   isOpen: boolean;
   onClose: () => void;
   onApply: (values: OpDiscountFilterValues) => void;
   initialValues: OpDiscountFilterValues;
   branchList?: BranchOption[];
+  modalTitle?: string;
 }) => {
   const [filterValues, setFilterValues] = useState<OpDiscountFilterValues>(initialValues);
 
@@ -69,7 +71,7 @@ const OpDiscountFilterModal = ({
 
       <div className="central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-200 max-w-2xl opacity-full">
         <div className="popup-header min-w-0">
-          <h2 className="popup-helper-text truncate">Filter OP Discount Approval</h2>
+          <h2 className="popup-helper-text truncate">{modalTitle}</h2>
           <button type="button" onClick={onClose} className="close-drawer-btn shrink-0 ml-3">
             ×
           </button>

@@ -185,7 +185,7 @@ const ViewDetailsPopup = ({
         </div> */}
 
         <div className="card w-full mb-1">
-          <h3 className="card-header text-lg font-semibold italic">Billing / Discount Details</h3>
+          <h3 className="card-header text-lg font-semibold italic">Billing Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
             {billingDetails.map(billingDetail => (
               <div key={billingDetail.label} className="flex flex-row gap-1">

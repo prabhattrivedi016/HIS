@@ -107,7 +107,9 @@ export const handleButtonClick = ({
     }
 
     case "toggleApproveDiscount":
-    case "toggleCancelDiscount": {
+    case "toggleCancelDiscount":
+    case "togglePaymentCollection":
+    case "toggleCancelPayment": {
       return onCustomButtonClick?.(btnAction, id);
     }
 
