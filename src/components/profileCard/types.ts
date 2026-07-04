@@ -55,6 +55,7 @@ export interface GridViewProps {
   onCustomButtonClick?: (action: string, id: number) => void;
   shouldShowButton?: (action: string, id: number) => boolean;
   getCustomButtonLabel?: (label: string, action: string, id: number) => string;
+  isButtonDisabled?: (action: string, id: number) => boolean;
 }
 
 export type ListColumn = {

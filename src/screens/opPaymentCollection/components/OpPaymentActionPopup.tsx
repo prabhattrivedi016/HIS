@@ -1,35 +1,34 @@
 import { useEffect, useRef } from "react";
-import { OPDiscountItem } from "../types";
+import { OPPaymentItem } from "../types";
 import {
-  getOpDiscountItemById,
-  handleApproveButtonClick,
-  handleCancelButtonClick,
-  isApproveButtonDisabled,
-  isCancelButtonDisabled,
-  shouldShowApproveButton,
-  shouldShowCancelButton,
-} from "../utils/opDiscountActions";
+  getOpPaymentItemById,
+  handleCancelPaymentButtonClick,
+  handleCollectPaymentButtonClick,
+  isCancelPaymentButtonDisabled,
+  isCollectPaymentButtonDisabled,
+  shouldShowCancelPaymentButton,
+  shouldShowCollectPaymentButton,
+} from "../utils/opPaymentActions";
 
-const OpDiscountActionPopup = ({
+const OpPaymentActionPopup = ({
   bookingId,
   rawItemMap,
   position,
   onClose,
   onView,
-  onApprove,
+  onCollectPayment,
   onCancel,
 }: {
   bookingId: number | null;
-  rawItemMap: Record<number, OPDiscountItem>;
+  rawItemMap: Record<number, OPPaymentItem>;
   position: { top: number; left: number } | null;
   onClose: () => void;
-  onView: (item: OPDiscountItem) => void;
-  onApprove: (item: OPDiscountItem) => void;
-  onCancel: (item: OPDiscountItem) => void;
-  onSendForApproval?: (item: OPDiscountItem) => void;
+  onView: (item: OPPaymentItem) => void;
+  onCollectPayment: (item: OPPaymentItem) => void;
+  onCancel: (item: OPPaymentItem) => void;
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
-  const item = getOpDiscountItemById(rawItemMap, bookingId);
+  const item = getOpPaymentItemById(rawItemMap, bookingId);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -44,13 +43,13 @@ const OpDiscountActionPopup = ({
 
   if (!item || !position) return null;
 
-  const runAction = (action: (selected: OPDiscountItem) => void) => {
+  const runAction = (action: (selected: OPPaymentItem) => void) => {
     action(item);
     onClose();
   };
 
-  const approveDisabled = isApproveButtonDisabled(item);
-  const cancelDisabled = isCancelButtonDisabled(item);
+  const collectDisabled = isCollectPaymentButtonDisabled(item);
+  const cancelDisabled = isCancelPaymentButtonDisabled(item);
 
   return (
     <div
@@ -64,28 +63,28 @@ const OpDiscountActionPopup = ({
       <button type="button" className="data-download-popup-btn" onClick={() => runAction(onView)}>
         View
       </button>
-      {shouldShowApproveButton(item) && (
+      {shouldShowCollectPaymentButton(item) && (
         <button
           type="button"
-          aria-disabled={approveDisabled}
-          className={`data-download-popup-btn ${approveDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+          aria-disabled={collectDisabled}
+          className={`data-download-popup-btn ${collectDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={() => {
-            handleApproveButtonClick(item, selected => {
-              onApprove(selected);
+            handleCollectPaymentButtonClick(item, selected => {
+              onCollectPayment(selected);
               onClose();
             });
           }}
         >
-          Approve
+          Collect Payment
         </button>
       )}
-      {shouldShowCancelButton(item) && (
+      {shouldShowCancelPaymentButton(item) && (
         <button
           type="button"
           aria-disabled={cancelDisabled}
           className={`data-download-popup-btn ${cancelDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={() => {
-            handleCancelButtonClick(item, selected => {
+            handleCancelPaymentButtonClick(item, selected => {
               onCancel(selected);
               onClose();
             });
@@ -98,4 +97,4 @@ const OpDiscountActionPopup = ({
   );
 };
 
-export default OpDiscountActionPopup;
+export default OpPaymentActionPopup;

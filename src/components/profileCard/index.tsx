@@ -15,6 +15,7 @@ const GridView = ({
   onCustomButtonClick,
   shouldShowButton,
   getCustomButtonLabel,
+  isButtonDisabled,
 }: GridViewProps) => {
   const {
     cardLeftTop = [],
@@ -180,6 +181,7 @@ const GridView = ({
         <div className="flex gap-3 mt-4">
           {visibleButtons.map(btn => {
             let btnClass = "grid-default-btn";
+            const isDisabled = isButtonDisabled?.(btn.action, id) ?? false;
 
             switch (btn?.label) {
               case "Active":
@@ -200,6 +202,10 @@ const GridView = ({
               case "Cancel":
                 btnClass = "grid-edit-btn";
                 break;
+              case "Paymemnt Collection":
+              case "Payment Collection":
+                btnClass = "grid-active-btn";
+                break;
               default:
                 btnClass = "";
             }
@@ -207,7 +213,9 @@ const GridView = ({
             return (
               <button
                 key={btn?.label}
-                className={`w-full ${btnClass}`}
+                type="button"
+                aria-disabled={isDisabled}
+                className={`w-full ${btnClass} ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
                 onClick={() => buttonHandler(btn?.action)}
               >
                 {getButtonLabel(btn?.label, btn?.action)}

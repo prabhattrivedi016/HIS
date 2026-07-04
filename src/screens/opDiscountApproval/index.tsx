@@ -1,7 +1,6 @@
 import HideShowColumn from "@/components/buttonsPopup";
 import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
-import { ErrorMessage } from "@/components/infoText";
 import PageHeader from "@/components/pageHeader";
 import GridView from "@/components/profileCard";
 import ListView from "@/components/profileCard/components/ListView";
@@ -13,7 +12,6 @@ import { useConfigMaster } from "@/hooks/useConfigMaster";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { ColumnVisibility } from "@/types";
-import { showSuccess, showWarning } from "@/utils/alert";
 import { exportListViewData } from "@/utils/exportUtils";
 import { filteredData } from "@/utils/filteredData";
 import { transformDataWithConfig } from "@/utils/utilities";
@@ -35,7 +33,14 @@ import {
   OPDiscountItem,
   OpDiscountListCard,
 } from "./types";
-import { canShowApprove, canShowCancel, canShowSendForApproval } from "./utils/opDiscountActions";
+import {
+  handleApproveButtonClick,
+  handleCancelButtonClick,
+  isApproveButtonDisabled,
+  isCancelButtonDisabled,
+  shouldShowApproveButton,
+  shouldShowCancelButton,
+} from "./utils/opDiscountActions";
 
 const OPDiscountApproval = () => {
   const { loading, error, fetchApi } = useGlobalApi();
@@ -243,31 +248,6 @@ const OPDiscountApproval = () => {
     void getOpDiscountList(queryValue);
   }, [getOpDiscountList, queryValue]);
 
-  const sendForApprovalHandler = async (item: OPDiscountItem) => {
-    const payload = {
-      bookingId: Number(item?.BookingId),
-      flag: 0,
-      approvedPer: Number(item?.TotalApprovedDiscountPerOnBill),
-      approvalRemarks: "",
-    };
-
-    const resp = await fetchApi(
-      "PATCH",
-      ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
-      payload,
-      {},
-      { component: "OPDiscountApproval" }
-    );
-
-    if (!resp?.result) {
-      showWarning(resp?.message ?? "Failed while sending for approval");
-      return;
-    }
-
-    showSuccess(resp?.message ?? "Discount sent for approval successfully");
-    void getOpDiscountList(queryValue);
-  };
-
   const gridActionHandler = (bookingId: number, rect: DOMRect) => {
     if (gridActionOpen && gridActionBookingId === bookingId) {
       setGridActionOpen(false);
@@ -288,11 +268,11 @@ const OPDiscountApproval = () => {
       if (!item) return false;
 
       if (action === "toggleApproveDiscount") {
-        return canShowSendForApproval(item) || canShowApprove(item);
+        return shouldShowApproveButton(item);
       }
 
       if (action === "toggleCancelDiscount") {
-        return canShowCancel(item);
+        return shouldShowCancelButton(item);
       }
 
       return false;
@@ -300,16 +280,22 @@ const OPDiscountApproval = () => {
     [rawItemMap]
   );
 
-  const getGridButtonLabel = useCallback(
-    (label: string, action: string, bookingId: number) => {
+  const isGridButtonDisabled = useCallback(
+    (action: string, bookingId: number) => {
       const item = rawItemMap[bookingId];
-      if (action === "toggleApproveDiscount" && item && canShowSendForApproval(item)) {
-        return "Send For Approval";
-      }
-      return label;
+      if (action === "toggleApproveDiscount") return isApproveButtonDisabled(item);
+      if (action === "toggleCancelDiscount") return isCancelButtonDisabled(item);
+      return false;
     },
     [rawItemMap]
   );
+
+  const getGridButtonLabel = useCallback((label: string, action: string) => {
+    if (action === "toggleApproveDiscount") {
+      return "Approve";
+    }
+    return label;
+  }, []);
 
   const customButtonClickHandler = useCallback(
     (action: string, bookingId: number) => {
@@ -317,18 +303,12 @@ const OPDiscountApproval = () => {
       if (!item) return;
 
       if (action === "toggleApproveDiscount") {
-        if (canShowSendForApproval(item)) {
-          void sendForApprovalHandler(item);
-          return;
-        }
-        if (canShowApprove(item)) {
-          openApprovePopup(item);
-        }
+        handleApproveButtonClick(item, openApprovePopup);
         return;
       }
 
-      if (action === "toggleCancelDiscount" && canShowCancel(item)) {
-        openCancelPopup(item);
+      if (action === "toggleCancelDiscount") {
+        handleCancelButtonClick(item, openCancelPopup);
       }
     },
     [rawItemMap]
@@ -355,34 +335,33 @@ const OPDiscountApproval = () => {
               View
             </button>
           </li>
-          {canShowSendForApproval(item) && (
+          {shouldShowApproveButton(item) && (
             <li>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-                onClick={() => runAction(sendForApprovalHandler)}
-              >
-                Send For Approval
-              </button>
-            </li>
-          )}
-          {canShowApprove(item) && (
-            <li>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-                onClick={() => runAction(openApprovePopup)}
+                aria-disabled={isApproveButtonDisabled(item)}
+                className={`w-full text-left px-3 py-2 text-gray-700 ${
+                  isApproveButtonDisabled(item)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-blue-50"
+                }`}
+                onClick={() => handleApproveButtonClick(item, () => runAction(openApprovePopup))}
               >
                 Approve
               </button>
             </li>
           )}
-          {canShowCancel(item) && (
+          {shouldShowCancelButton(item) && (
             <li>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-                onClick={() => runAction(openCancelPopup)}
+                aria-disabled={isCancelButtonDisabled(item)}
+                className={`w-full text-left px-3 py-2 text-gray-700 ${
+                  isCancelButtonDisabled(item)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-blue-50"
+                }`}
+                onClick={() => handleCancelButtonClick(item, () => runAction(openCancelPopup))}
               >
                 Cancel
               </button>
@@ -395,7 +374,6 @@ const OPDiscountApproval = () => {
   );
 
   const renderComponent = (view: string) => {
-    if (error) return <ErrorMessage text={error?.message} />;
     if (!activeConfig || !hasFetched) {
       return <div className="initial-message">Loading OP Discount Approval...</div>;
     }
@@ -413,6 +391,7 @@ const OPDiscountApproval = () => {
               onCustomButtonClick={customButtonClickHandler}
               shouldShowButton={shouldShowGridButton}
               getCustomButtonLabel={getGridButtonLabel}
+              isButtonDisabled={isGridButtonDisabled}
             />
           ))}
         </div>
@@ -493,7 +472,6 @@ const OPDiscountApproval = () => {
           onView={viewHandler}
           onApprove={openApprovePopup}
           onCancel={openCancelPopup}
-          onSendForApproval={sendForApprovalHandler}
         />
       ) : null}
 

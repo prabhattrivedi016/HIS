@@ -33,6 +33,7 @@ const ApproveCancelPopup = ({
     bookingId: 0,
     flag: 4,
     approvedPer: "",
+    approvalRemarks: "",
   });
 
   const [cancelError, setCancelError] = useState("");
@@ -53,6 +54,7 @@ const ApproveCancelPopup = ({
       bookingId: Number(item.BookingId ?? 0),
       flag: 4,
       approvedPer: "",
+      approvalRemarks: "",
     });
     setCancelError("");
     setApproveError("");
@@ -88,6 +90,13 @@ const ApproveCancelPopup = ({
     }));
     setApproveError("");
     setErrorMessage("");
+  };
+
+  const approvalRemarksChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setApproveFormData(prev => ({
+      ...prev,
+      approvalRemarks: e.target.value,
+    }));
   };
 
   const validateApproveForm = () => {
@@ -146,6 +155,7 @@ const ApproveCancelPopup = ({
           bookingId: Number(approveFormData.bookingId),
           flag: Number(approveFormData.flag),
           approvedPer: Number(approveFormData.approvedPer),
+          approvalRemarks: String(approveFormData.approvalRemarks).trim(),
         },
         {},
         { component: "ApproveCancelPopup" }
@@ -217,6 +227,17 @@ const ApproveCancelPopup = ({
                 className="input-field"
                 value={approveFormData.approvedPer}
                 onInput={allowOnlyNumbers}
+              />
+              {!!approveError && <p className="input-field-error">{approveError}</p>}
+            </InputField>
+
+            <InputField label="Approval Remark">
+              <input
+                type="text"
+                placeholder="Enter approval remark"
+                onChange={approvalRemarksChangeHandler}
+                className="input-field"
+                value={approveFormData.approvalRemarks}
               />
               {!!approveError && <p className="input-field-error">{approveError}</p>}
             </InputField>
