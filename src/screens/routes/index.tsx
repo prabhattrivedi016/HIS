@@ -16,6 +16,7 @@ import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import PatientDocumentMaster from "../documentMaster";
+import EmrControls from "../emrControls";
 import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import HistoReportMaster from "../histoReportMaster";
@@ -119,4 +120,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-payment-collection": <OPPaymentCollection />,
   "diagnosis-master": <DiagnosisMaster />,
   "procedure-master": <ProcedureMaster />,
+  "emr-controls": <EmrControls />,
 };

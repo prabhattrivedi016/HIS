@@ -383,6 +383,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_PATIENT_ALLERGY_DETAILS: "EMR/createUpdatePatientAllergyDetails",
   DELETE_PATIENT_ALLERGY: "EMR/deletePatientAllergy",
   DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
+  SAVE_CONSULTATION_EMR: "EMR/saveConsultationEmr",
 
   // diagnosis master
   GET_DIAGNOSIS_MASTER_LIST: "EMR/getDiagnosisMasterList",

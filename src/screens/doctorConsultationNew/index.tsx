@@ -8,7 +8,7 @@ import {
   Stethoscope,
   User,
 } from "lucide-react";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { ENDPOINTS } from "@/config/defaults";
@@ -22,7 +22,7 @@ import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
 import VitalDrawer from "./components/VitalDrawer";
 import VitalInsights from "./components/VitalInsights";
-import { PatientItem } from "./types";
+import { AllergySection, EmrConsultationPayload, PatientItem } from "./types";
 
 interface VitalMasterItem {
   vitalId: number;
@@ -67,7 +67,8 @@ const formatDate = (date: Date) =>
 
 const DoctorConsultationNew = () => {
   const { loading, fetchApi } = useGlobalApi();
-  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
+  const authUser = useContext(AuthContext)?.user;
+  const branchId = authUser?.branchId ?? 1;
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -89,7 +90,8 @@ const DoctorConsultationNew = () => {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
-  const [allergyText, setAllergyText] = useState("");
+  const [consultationId, setConsultationId] = useState("");
+  const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
   const updateVital = (vitalId: number, val: string) =>
     setVitalsData(prev => ({ ...prev, [vitalId]: val }));
@@ -226,24 +228,6 @@ const DoctorConsultationNew = () => {
     setOpenVitalDrawer(false);
   }, []);
 
-  const handleFinalSave = async () => {
-    if (!selectedPatient) return;
-    const resp = await fetchApi(
-      "POST",
-      ENDPOINTS.SAVE_PATIENT_ALLERGY,
-      {
-        patientId: selectedPatient.PatientId,
-        visitId: selectedPatient.VisitId,
-        allergyText,
-      },
-      {},
-      { component: "DoctorConsultationNew" }
-    );
-    if (resp?.result) {
-      showSuccess("Consultation saved successfully");
-    }
-  };
-
   const getDoctorList = async () => {
     const resp = await fetchApi(
       "GET",
@@ -277,6 +261,62 @@ const DoctorConsultationNew = () => {
   });
 
   const vitalsList = vitalMasterList.map((v: VitalMasterItem) => v.vitalName);
+
+  /* one consolidated, extensible payload for the whole consultation —
+   * see EmrConsultationPayload in ./types for the section-key skeleton */
+  const emrPayload: EmrConsultationPayload | null = useMemo(() => {
+    if (!selectedPatient || !consultationId) return null;
+
+    const now = new Date().toISOString();
+
+    return {
+      id: consultationId,
+      version: "1.0",
+
+      patientId: selectedPatient.PatientId,
+      patientName: selectedPatient.PatientName,
+      doctorId: selectedPatient.DoctorId,
+      doctorName: selectedPatient.DoctorName,
+      typeId: selectedPatient.TypeId,
+      typeName: selectedPatient.TypeName,
+      visitId: selectedPatient.VisitId,
+      uhid: selectedPatient.UHID,
+      appointmentNo: selectedPatient.AppointmentNo,
+
+      allergy: allergySection ?? { summary: null, notKnownAllergy: false, records: [] },
+      vitals: vitalMasterList
+        .filter((v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== "")
+        .map((v: VitalMasterItem) => ({
+          vitalId: v.vitalId,
+          vitalName: v.vitalName,
+          value: vitalsData[v.vitalId],
+          unitName: v.unitName,
+        })),
+
+      audit: {
+        createdBy: authUser?.userId ?? 0,
+        createdByName: authUser?.userName ?? "",
+        createdOn: now,
+        lastUpdatedBy: authUser?.userId ?? 0,
+        lastUpdatedByName: authUser?.userName ?? "",
+        lastUpdatedOn: now,
+      },
+    };
+  }, [selectedPatient, consultationId, vitalMasterList, vitalsData, allergySection, authUser]);
+
+  const handleFinalSave = async () => {
+    if (!emrPayload) return;
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_CONSULTATION_EMR,
+      emrPayload,
+      {},
+      { component: "DoctorConsultationNew" }
+    );
+    if (resp?.result) {
+      showSuccess("Consultation saved successfully");
+    }
+  };
 
   useEffect(() => {
     if (openVitalDrawer) return;
@@ -504,8 +544,9 @@ const DoctorConsultationNew = () => {
                       key={`${item.VisitId}-${item.DoctorId}-${item.Id}-${item.AppointmentNo}`}
                       onClick={() => {
                         setSelectedPatient(item);
+                        setConsultationId(crypto.randomUUID());
                         setLeftPanelVisible(false);
-                        setAllergyText("");
+                        setAllergySection(null);
                       }}
                       className={`w-full rounded-xl border shadow-sm p-2.5 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
                         isSelected
@@ -658,14 +699,16 @@ const DoctorConsultationNew = () => {
                             <button
                               type="button"
                               onClick={() => setShowAllergyPanel(true)}
-                              title={allergyText || undefined}
+                              title={allergySection?.summary || undefined}
                               className={`flex items-center gap-1 max-w-[220px] text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
-                                allergyText
+                                allergySection?.summary
                                   ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
                                   : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
                               }`}
                             >
-                              <span className="truncate">{allergyText || "No Allergy"}</span>
+                              <span className="truncate">
+                                {allergySection?.summary || "No Allergy"}
+                              </span>
                               <Edit size={10} className="shrink-0" />
                             </button>
                           </div>
@@ -746,7 +789,7 @@ const DoctorConsultationNew = () => {
                     </div>
 
                     {/* ── Section 3: Vitals strip — full width, editable ── */}
-                    <div className="flex items-center w-full py-2">
+                    <div className="flex items-center w-full px-4 py-3">
                       <div className="flex items-start divide-x divide-gray-100 flex-1">
                         {vitals.map(v => (
                           <div key={v.key} className="flex-1 flex flex-col items-center px-1">
@@ -776,9 +819,9 @@ const DoctorConsultationNew = () => {
                         type="button"
                         onClick={() => setShowVitalInsights(true)}
                         title="View vitals insights"
-                        className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shrink-0 ml-3 hover:bg-blue-100 hover:border-blue-200 active:scale-95 transition-all"
+                        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shrink-0 ml-4 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
                       >
-                        <Activity size={15} />
+                        <Activity size={16} />
                       </button>
                     </div>
                   </div>
@@ -797,9 +840,9 @@ const DoctorConsultationNew = () => {
                       type="button"
                       onClick={() => setShowVitalInsights(true)}
                       title="View vitals insights"
-                      className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 transition-all"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all"
                     >
-                      <Activity size={14} />
+                      <Activity size={15} />
                     </button>
                     <button
                       type="button"
@@ -849,7 +892,7 @@ const DoctorConsultationNew = () => {
         onClose={() => setShowAllergyPanel(false)}
         patientId={selectedPatient?.VisitId}
         visitId={selectedPatient?.VisitId}
-        onBind={setAllergyText}
+        onBind={setAllergySection}
       />
     </div>
   );
