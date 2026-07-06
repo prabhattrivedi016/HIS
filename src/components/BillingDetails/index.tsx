@@ -33,6 +33,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       paymentBilling,
       maxDiscountPercentage,
       creditCopayment = false,
+      showPaymentMode = false,
     },
     ref
   ) => {
@@ -79,23 +80,9 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       },
     ]);
 
-    useEffect(() => {
-      if (paymentList.length > 0) {
-        const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
-
-        if (cash) {
-          setRows([
-            {
-              paymentModeId: cash?.paymentModeId,
-              amount: "0",
-              bankId: null,
-              refNo: "",
-              isCopaymentReceipt: 0,
-            },
-          ]);
-        }
-      }
-    }, [paymentList]);
+    const shouldShowPaymentMode =
+      showPaymentMode ||
+      (isSeparateCollectionCounterEnabled === 0 && isDiscountApprovalRequired === 0);
 
     const getPaymentModeById = (paymentModeId: number | null) =>
       paymentList.find(p => p.paymentModeId === paymentModeId);
@@ -282,6 +269,40 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : 0;
     };
+
+    useEffect(() => {
+      if (!paymentList.length) return;
+
+      const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
+      if (!cash) return;
+
+      const net = toNumber(billingValues?.netAmount);
+      const targetAmount = shouldShowPaymentMode && net > 0 ? String(net) : "0";
+
+      setRows(prev => {
+        if (!prev.length || (prev.length === 1 && prev[0].paymentModeId === null)) {
+          return [
+            {
+              paymentModeId: cash.paymentModeId,
+              amount: targetAmount,
+              bankId: null,
+              refNo: "",
+              isCopaymentReceipt: 0,
+            },
+          ];
+        }
+
+        if (prev.length === 1 && prev[0].paymentModeId === cash.paymentModeId) {
+          if (prev[0].amount === targetAmount) {
+            return prev;
+          }
+
+          return [{ ...prev[0], amount: targetAmount }];
+        }
+
+        return prev;
+      });
+    }, [paymentList, shouldShowPaymentMode, billingValues?.netAmount]);
 
     const getMaxPaymentAmount = useCallback(() => {
       if (creditCopayment && toNumber(copaymentAmount) > 0) {
@@ -556,8 +577,13 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     useEffect(() => {
       const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
       const balanceAmount = roundToTwo(toNumber(billingValues?.netAmount) - totalPaid);
+
+      if (roundToTwo(toNumber(billingValues?.balanceAmount)) === balanceAmount) {
+        return;
+      }
+
       setBillingState({ balanceAmount });
-    }, [rows, billingValues?.netAmount]);
+    }, [rows, billingValues?.netAmount, billingValues?.balanceAmount]);
 
     useImperativeHandle(
       ref,
@@ -745,8 +771,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           </div>
         </div>
 
-        {isSeparateCollectionCounterEnabled === 1 ||
-          (isDiscountApprovalRequired === 0 && (
+        {shouldShowPaymentMode && (
             <div className="payment details w-full lg:w-1/2">
               <div className="overflow-x-auto w-full">
                 <div className="table-container">
@@ -876,7 +901,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                 </div>
               </div>
             </div>
-          ))}
+          )}
       </div>
     );
   }

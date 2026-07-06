@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import useAnchoredFixedPopupPosition from "../../../hooks/useAnchoredFixedPopupPosition";
 import { OPDiscountItem } from "../types";
 import {
   getOpDiscountItemById,
@@ -13,7 +14,7 @@ import {
 const OpDiscountActionPopup = ({
   bookingId,
   rawItemMap,
-  position,
+  anchorRect,
   onClose,
   onView,
   onApprove,
@@ -21,7 +22,7 @@ const OpDiscountActionPopup = ({
 }: {
   bookingId: number | null;
   rawItemMap: Record<number, OPDiscountItem>;
-  position: { top: number; left: number } | null;
+  anchorRect: DOMRect | null;
   onClose: () => void;
   onView: (item: OPDiscountItem) => void;
   onApprove: (item: OPDiscountItem) => void;
@@ -30,6 +31,7 @@ const OpDiscountActionPopup = ({
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
   const item = getOpDiscountItemById(rawItemMap, bookingId);
+  const position = useAnchoredFixedPopupPosition(anchorRect, popupRef, bookingId);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -42,7 +44,7 @@ const OpDiscountActionPopup = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  if (!item || !position) return null;
+  if (!item || !anchorRect) return null;
 
   const runAction = (action: (selected: OPDiscountItem) => void) => {
     action(item);
@@ -57,8 +59,9 @@ const OpDiscountActionPopup = ({
       ref={popupRef}
       className="btn-popup"
       style={{
-        top: position.top,
-        left: position.left,
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        visibility: position ? "visible" : "hidden",
       }}
     >
       <button type="button" className="data-download-popup-btn" onClick={() => runAction(onView)}>

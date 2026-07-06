@@ -25,7 +25,7 @@ export const opPaymentConfig = {
     ],
 
     gridButtonSection: [
-      { label: "Paymemnt Collection", action: "togglePaymentCollection" },
+      { label: "Payment Collection", action: "togglePaymentCollection" },
       { label: "Cancel", action: "toggleCancelPayment" },
     ],
   },

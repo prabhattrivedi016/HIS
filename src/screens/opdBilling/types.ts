@@ -383,6 +383,87 @@ type buildVisitDetailsPayloadForOpdBooking = {
   totalDiscPerOnBill: number;
 };
 
+type OpdBookingItemResponse = {
+  ServiceItemId?: number;
+  serviceItemId?: number;
+  CategoryId?: number;
+  categoryId?: number;
+  SubCategoryId?: number;
+  subCategoryId?: number;
+  SubSubCategoryId?: number;
+  subSubCategoryId?: number;
+  ServiceName?: string;
+  serviceName?: string;
+  ServiceCode?: string;
+  serviceCode?: string;
+  code?: string;
+  DoctorId?: number;
+  doctorId?: number;
+  PerformingDoctorId?: number;
+  performingDoctorId?: number;
+  Remarks?: string;
+  remarks?: string;
+  Rate?: number;
+  rate?: number;
+  Qty?: number;
+  qty?: number;
+  GrossAmt?: number;
+  grossAmt?: number;
+  DiscPer?: number;
+  discPer?: number;
+  DiscAmt?: number;
+  discAmt?: number;
+  NetAmt?: number;
+  netAmt?: number;
+  RateListId?: number;
+  rateListId?: number;
+  IsUrgent?: number;
+  isUrgent?: number;
+};
+
+type OpdBookingDetailsResponse = {
+  BookingId?: number;
+  bookingId?: number;
+  TokenNo?: string;
+  tokenNo?: string;
+  BranchId?: number;
+  branchId?: number;
+  PatientId?: number;
+  patientId?: number;
+  UHID?: string;
+  uhid?: string;
+  CorporateId?: number;
+  corporateId?: number;
+  InsuranceCompanyId?: number;
+  insuranceCompanyId?: number;
+  ReferDoctorId?: number | null;
+  referDoctorId?: number | null;
+  TotalBillAmount?: number;
+  totalBillAmount?: number;
+  TotalDiscountPerOnBill?: number;
+  totalDiscountPerOnBill?: number;
+  TotalDiscountAmountOnBill?: number;
+  totalDiscountAmountOnBill?: number;
+  RoundOff?: number;
+  roundOff?: number;
+  TotalPatientPayableAmount?: number;
+  totalPatientPayableAmount?: number;
+  PolicyNo?: string | null;
+  policyNo?: string | null;
+  PolicyCardNo?: string | null;
+  policyCardNo?: string | null;
+  ExpiryDate?: string | null;
+  expiryDate?: string | null;
+  CardHolder?: string | null;
+  cardHolder?: string | null;
+  ReferalNo?: string | null;
+  referalNo?: string | null;
+  ReferalDate?: string | null;
+  referalDate?: string | null;
+  bookingItems?: OpdBookingItemResponse[];
+  BookingItems?: OpdBookingItemResponse[];
+};
+
 type OpdBookingSavePayload = {
   visitDetails: buildVisitDetailsPayloadForOpdBooking;
   billingItems: OpdBookingItemPayload[];
@@ -603,6 +684,7 @@ type OpdBillingSectionProps = {
   maxDiscountPercentage: number | undefined;
   creditCopayment: boolean;
   isSeparateCollectionCounterEnabled: number;
+  showPaymentMode?: boolean;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,
@@ -615,7 +697,9 @@ export type {
   OpdBillingSavePayload,
   OpdBillingSectionProps,
   OpdBillingVisitDetailsPayload,
+  OpdBookingDetailsResponse,
   OpdBookingItemPayload,
+  OpdBookingItemResponse,
   OpdBookingSavePayload,
   OpdCardDetailItem,
   OpdPatientDetails,

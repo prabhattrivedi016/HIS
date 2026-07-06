@@ -1,7 +1,6 @@
 import HideShowColumn from "@/components/buttonsPopup";
 import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
-import { ErrorMessage } from "@/components/infoText";
 import PageHeader from "@/components/pageHeader";
 import GridView from "@/components/profileCard";
 import ListView from "@/components/profileCard/components/ListView";
@@ -41,6 +40,11 @@ import {
   shouldShowCancelPaymentButton,
   shouldShowCollectPaymentButton,
 } from "./utils/opPaymentActions";
+import {
+  getDefaultOpPaymentFilters,
+  opPaymentCollectionStateRef,
+  saveOpPaymentCollectionState,
+} from "./utils/opPaymentCollectionStateRef";
 
 const OPPaymentCollection = () => {
   const navigate = useNavigate();
@@ -51,22 +55,35 @@ const OPPaymentCollection = () => {
 
   const { configDataValue: opPaymentConfigFromApi } = useConfigMaster("opPaymentCollection");
   const activeConfig = opPaymentConfigFromApi || opPaymentConfig;
+  const defaultFilters = useMemo(
+    () => getDefaultOpPaymentFilters(authBranchId, today),
+    [authBranchId, today]
+  );
+  const cachedState = opPaymentCollectionStateRef.current;
 
-  const [queryValue, setQueryValue] = useState<OpDiscountFilterValues>({
-    branchId: authBranchId || 1,
-    fromDate: today,
-    toDate: today,
-  });
+  const [queryValue, setQueryValue] = useState<OpDiscountFilterValues>(
+    () => cachedState?.queryValue ?? defaultFilters
+  );
 
-  const [opPaymentGridData, setOpPaymentGridData] = useState<OpPaymentGridCard[]>([]);
-  const [opPaymentListData, setOpPaymentListData] = useState<OpPaymentListCard[]>([]);
-  const [gridFilteredData, setGridFilteredData] = useState<OpPaymentGridCard[]>([]);
-  const [listFilteredData, setListFilteredData] = useState<OpPaymentListCard[]>([]);
-  const [rawItemMap, setRawItemMap] = useState<Record<number, OPPaymentItem>>({});
+  const [opPaymentGridData, setOpPaymentGridData] = useState<OpPaymentGridCard[]>(
+    () => cachedState?.opPaymentGridData ?? []
+  );
+  const [opPaymentListData, setOpPaymentListData] = useState<OpPaymentListCard[]>(
+    () => cachedState?.opPaymentListData ?? []
+  );
+  const [gridFilteredData, setGridFilteredData] = useState<OpPaymentGridCard[]>(
+    () => cachedState?.gridFilteredData ?? []
+  );
+  const [listFilteredData, setListFilteredData] = useState<OpPaymentListCard[]>(
+    () => cachedState?.listFilteredData ?? []
+  );
+  const [rawItemMap, setRawItemMap] = useState<Record<number, OPPaymentItem>>(
+    () => cachedState?.rawItemMap ?? {}
+  );
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
-  const [hasFetched, setHasFetched] = useState(false);
-  const [cardView, setCardView] = useState(VIEWTYPE.GRID);
+  const [hasFetched, setHasFetched] = useState(() => cachedState?.hasFetched ?? false);
+  const [cardView, setCardView] = useState(() => cachedState?.cardView ?? VIEWTYPE.GRID);
   const [, setSearchQuery] = useState("");
 
   const [popupType, setPopupType] = useState("");
@@ -79,9 +96,7 @@ const OPPaymentCollection = () => {
   const [openViewPopup, setOpenViewPopup] = useState(false);
 
   const [gridActionOpen, setGridActionOpen] = useState(false);
-  const [gridActionPopup, setGridActionPopup] = useState<{ top: number; left: number } | null>(
-    null
-  );
+  const [gridActionPopup, setGridActionPopup] = useState<DOMRect | null>(null);
   const [gridActionBookingId, setGridActionBookingId] = useState<number | null>(null);
 
   const [onDownload, setOnDownload] = useState(false);
@@ -92,9 +107,15 @@ const OPPaymentCollection = () => {
 
   const hideShowBtnRef = useRef<HTMLButtonElement>(null);
   const downloadBtnRef = useRef<HTMLButtonElement>(null);
+  const hasInitializedRef = useRef(false);
+  const cardViewRef = useRef(cardView);
+
+  useEffect(() => {
+    cardViewRef.current = cardView;
+  }, [cardView]);
 
   const getOpPaymentList = useCallback(
-    async (params: { branchId: number; fromDate: string; toDate: string }) => {
+    async (params: OpDiscountFilterValues) => {
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION,
@@ -105,28 +126,73 @@ const OPPaymentCollection = () => {
 
       const rawData: OPPaymentItem[] = resp?.data ?? [];
       const transformed = transformDataWithConfig(activeConfig, resp);
+      const nextRawItemMap = Object.fromEntries(
+        rawData.map(item => [Number(item.BookingId), item])
+      );
+      const nextGridData = transformed?.gridView ?? [];
+      const nextListData = transformed?.listView ?? [];
 
-      setRawItemMap(Object.fromEntries(rawData.map(item => [Number(item.BookingId), item])));
-      setOpPaymentGridData(transformed?.gridView ?? []);
-      setOpPaymentListData(transformed?.listView ?? []);
-      setGridFilteredData(transformed?.gridView ?? []);
-      setListFilteredData(transformed?.listView ?? []);
+      setRawItemMap(nextRawItemMap);
+      setOpPaymentGridData(nextGridData);
+      setOpPaymentListData(nextListData);
+      setGridFilteredData(nextGridData);
+      setListFilteredData(nextListData);
       setHasFetched(true);
+
+      saveOpPaymentCollectionState({
+        queryValue: params,
+        opPaymentGridData: nextGridData,
+        opPaymentListData: nextListData,
+        gridFilteredData: nextGridData,
+        listFilteredData: nextListData,
+        rawItemMap: nextRawItemMap,
+        hasFetched: true,
+        cardView: cardViewRef.current,
+      });
     },
     [activeConfig]
   );
 
   useEffect(() => {
-    if (!activeConfig) return;
+    if (!activeConfig || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
-    void getOpPaymentList({
-      branchId: authBranchId || 1,
-      fromDate: today,
-      toDate: today,
-    });
-  }, [activeConfig, authBranchId, getOpPaymentList, today]);
+    const cached = opPaymentCollectionStateRef.current;
+    if (cached?.shouldRefreshOnReturn) {
+      setQueryValue(cached.queryValue);
+      setCardView(cached.cardView);
+      opPaymentCollectionStateRef.current = {
+        ...cached,
+        shouldRefreshOnReturn: false,
+      };
+      void getOpPaymentList(cached.queryValue);
+      return;
+    }
 
-  const handleCardView = (view: string) => setCardView(view);
+    if (cached?.hasFetched) {
+      setQueryValue(cached.queryValue);
+      setOpPaymentGridData(cached.opPaymentGridData);
+      setOpPaymentListData(cached.opPaymentListData);
+      setGridFilteredData(cached.gridFilteredData);
+      setListFilteredData(cached.listFilteredData);
+      setRawItemMap(cached.rawItemMap);
+      setHasFetched(true);
+      setCardView(cached.cardView);
+      return;
+    }
+
+    void getOpPaymentList(defaultFilters);
+  }, [activeConfig, defaultFilters, getOpPaymentList]);
+
+  const handleCardView = (view: string) => {
+    setCardView(view);
+    if (opPaymentCollectionStateRef.current) {
+      opPaymentCollectionStateRef.current = {
+        ...opPaymentCollectionStateRef.current,
+        cardView: view,
+      };
+    }
+  };
 
   const handleRefresh = useCallback(async () => {
     await getOpPaymentList(queryValue);
@@ -222,8 +288,25 @@ const OPPaymentCollection = () => {
   };
 
   const collectPaymentHandler = (item: OPPaymentItem) => {
+    saveOpPaymentCollectionState({
+      queryValue,
+      opPaymentGridData,
+      opPaymentListData,
+      gridFilteredData,
+      listFilteredData,
+      rawItemMap,
+      hasFetched,
+      cardView,
+    });
+
     navigate("/opd-billing", {
-      state: { bookingId: item.BookingId, tokenNo: item.TokenNo, uhid: item.UHID },
+      state: {
+        bookingId: item.BookingId,
+        tokenNo: item.TokenNo,
+        uhid: item.UHID,
+        patientId: item.PatientId,
+        fromPaymentCollection: true,
+      },
     });
   };
 
@@ -254,10 +337,7 @@ const OPPaymentCollection = () => {
       return;
     }
 
-    setGridActionPopup({
-      top: rect.bottom + 6,
-      left: rect.left,
-    });
+    setGridActionPopup(rect);
     setGridActionBookingId(bookingId);
     setGridActionOpen(true);
   };
@@ -371,7 +451,6 @@ const OPPaymentCollection = () => {
   );
 
   const renderComponent = (view: string) => {
-    if (error) return <ErrorMessage text={error?.message} />;
     if (!activeConfig || !hasFetched) {
       return <div className="initial-message">Loading OP Payment Collection...</div>;
     }
@@ -464,7 +543,7 @@ const OPPaymentCollection = () => {
         <OpPaymentActionPopup
           bookingId={gridActionBookingId}
           rawItemMap={rawItemMap}
-          position={gridActionPopup}
+          anchorRect={gridActionPopup}
           onClose={() => setGridActionOpen(false)}
           onView={viewHandler}
           onCollectPayment={collectPaymentHandler}

@@ -423,6 +423,8 @@ const ENDPOINTS = {
   GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION:
     "Patient/getOPDBookingDetailsForPaymentCollection",
   GET_OPD_BOOKING_APPROVAL_DETAILS: "Patient/getOPDBookingApprovalDetails",
+  GET_OPD_BOOKING_DETAILS_BY_BOOKING_ID: "Patient/getOPDBookingDetailsByBookingId",
+  PAYMENT_COLLECTED_FOR_OPD_BOOKING: "Patient/paymentCollectedForOPDBooking",
 };
 
 export { ENDPOINTS };

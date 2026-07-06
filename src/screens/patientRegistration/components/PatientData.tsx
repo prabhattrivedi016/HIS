@@ -45,6 +45,7 @@ import {
   formatDate,
   getAgeFromDob,
   getDobFromAge,
+  normalizePatientGenderForApi,
   resolveMaritalStatus,
   resolvePickValue,
 } from "./dobHelper";
@@ -511,7 +512,10 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         setValue("Title", remappedTitle, { shouldDirty: false, shouldValidate: true });
       }
       if (remappedGender && remappedGender !== watch("Gender")) {
-        setValue("Gender", remappedGender, { shouldDirty: false, shouldValidate: true });
+        setValue("Gender", normalizePatientGenderForApi(remappedGender) || remappedGender, {
+          shouldDirty: false,
+          shouldValidate: true,
+        });
       }
     }, [titleList, patientGenderList, watch, setValue]);
 
@@ -759,7 +763,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         AgeMonths: data?.ageMonths ?? 0,
         AgeDays: data?.ageDays ?? 0,
         Dob: data?.dob ?? "",
-        Gender: mappedGender,
+        Gender: normalizePatientGenderForApi(mappedGender || data?.gender),
         MaritalStatus: resolveMaritalStatus(data?.maritalStatus),
         Relation: data?.relation ?? "",
         RelativeName: data?.relativeName ?? "",
@@ -982,6 +986,15 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
             await getEditPatientData(patientId);
             onPayloadChangeRef.current?.(methods.getValues() as Record<string, unknown>);
           }
+        },
+        applyApiFieldErrors: (errors: Record<string, string[] | string>) => {
+          Object.entries(errors).forEach(([field, messages]) => {
+            const message = Array.isArray(messages) ? messages[0] : String(messages);
+            methods.setError(field as keyof typeof defaultPatientRegistrationValues, {
+              type: "server",
+              message,
+            });
+          });
         },
       }),
       [methods, validateMandatoryDocuments]
