@@ -52,7 +52,9 @@ const GridView = ({
     : buttonSection;
 
   // button handler
-  const buttonHandler = (btnAction: string) => {
+  const buttonHandler = (btnAction: string, isDisabled: boolean) => {
+    if (isDisabled) return;
+
     handleButtonClick({
       btnAction: btnAction,
       onStatusChange,
@@ -215,8 +217,9 @@ const GridView = ({
                 key={btn?.label}
                 type="button"
                 aria-disabled={isDisabled}
-                className={`w-full ${btnClass} ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
-                onClick={() => buttonHandler(btn?.action)}
+                disabled={isDisabled}
+                className={`w-full ${btnClass} ${isDisabled ? "opacity-60 cursor-not-allowed!" : ""}`}
+                onClick={() => buttonHandler(btn?.action, isDisabled)}
               >
                 {getButtonLabel(btn?.label, btn?.action)}
               </button>

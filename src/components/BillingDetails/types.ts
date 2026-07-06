@@ -99,6 +99,7 @@ type BillingDetailsProps = {
   paymentBilling?: PaymentBillingSummary;
   maxDiscountPercentage?: number;
   creditCopayment?: boolean;
+  showPaymentMode?: boolean;
 };
 
 export type {

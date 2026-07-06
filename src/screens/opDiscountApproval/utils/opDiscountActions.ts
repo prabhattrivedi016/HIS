@@ -16,11 +16,9 @@ export const canShowApprove = (item?: OPDiscountItem | null) =>
 
 export const canShowCancel = (item?: OPDiscountItem | null) => !!item && item.IsCancel !== 1;
 
-export const shouldShowApproveButton = (item?: OPDiscountItem | null) =>
-  !!item && item.IsCancel !== 1;
+export const shouldShowApproveButton = (item?: OPDiscountItem | null) => !!item;
 
-export const shouldShowCancelButton = (item?: OPDiscountItem | null) =>
-  !!item && item.IsCancel !== 1;
+export const shouldShowCancelButton = (item?: OPDiscountItem | null) => !!item;
 
 export const isApproveButtonDisabled = (item?: OPDiscountItem | null) => {
   if (!item || item.IsCancel === 1) return true;
@@ -80,4 +78,4 @@ export const handleCancelButtonClick = (
 export const getOpDiscountItemById = (
   rawItemMap: Record<number, OPDiscountItem>,
   id?: number | null
-) => (id ? rawItemMap[id] ?? null : null);
+) => (id ? (rawItemMap[id] ?? null) : null);

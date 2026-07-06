@@ -59,45 +59,61 @@ type OPDiscountItem = {
 
 type OPDiscountApprovalDetail = {
   BookingId: number;
-  TokenNo: string;
+  TokenNo: "Admin000012";
   BranchId: number;
   PatientId: number;
   UHID: string;
   PatientName: string;
+  Age: string;
+  Gender: string;
   CorporateId: number;
   CorporateName: string;
+  InsuranceCompanyId: number;
+  ReferDoctorId: number | null;
   TotalBillAmount: number;
+  TotalDiscountPerOnBill: number;
   TotalDiscountAmountOnBill: number;
-  BillDiscountPercentage: number;
-  ApprovedPercentage: number | null;
-  StatusId: number;
-  Status: string;
+  RoundOff: number;
+  TotalPatientPayableAmount: number;
+  PolicyNo: string | undefined | null;
+  PolicyCardNo: string | undefined | null;
+  ExpiryDate: string | undefined | null;
+  CardHolder: string | null;
+  ReferalNo: string | undefined | undefined | null;
+  ReferalDate: string | null;
+  IsPaymentCollected: number;
   IsDiscountApprovalRequired: number;
   IsDiscountApproved: number;
-  ApprovalFlowId: number;
-  ApprovalFlow: string;
-  IsAllApprovalRequired: number;
-  ApprovalLevelId: number;
-  ApprovalLevel: string;
-  Level1ApproverNames: string | null;
-  Level2ApproverNames: string | null;
-  Level3ApproverNames: string | null;
-  Level4ApproverNames: string | null;
-  IsLevel1Approve: number | null;
-  Level1ApprovedByName: string | null;
-  Level1ApproveOn: string | null;
-  IsLevel2Approve: number | null;
-  Level2ApprovedByName: string | null;
-  Level2ApproveOn: string | null;
+  TotalApprovedDiscountPerOnBill: number;
+  ApprovalRemarks: string;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number;
+  Level2ApproveId: number;
+  Level2ApproveOn: string;
   IsLevel3Approve: number | null;
-  Level3ApprovedByName: string | null;
-  Level3ApproveOn: string | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: null;
   IsLevel4Approve: number | null;
-  Level4ApprovedByName: string | null;
+  Level4ApproveId: number | null;
   Level4ApproveOn: string | null;
-  NextApprovalName: string | null;
-  NextApprovalLevel: number | null;
-  ApprovalRemarks: string | null;
+  IsCancel: number;
+  Status: string;
+  StatusId: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+  FlagId: number;
+  CanApprove: number;
+  DiscountApprovedID: number;
+  DiscountApprovedName: string;
+  DiscountReason: string;
+  Remark: string;
 };
 
 type OpDiscountGridCard = {
@@ -131,9 +147,4 @@ type OpDiscountListCard = {
   }[];
 };
 
-export type {
-  OPDiscountApprovalDetail,
-  OpDiscountGridCard,
-  OpDiscountListCard,
-  OPDiscountItem,
-};
+export type { OPDiscountApprovalDetail, OpDiscountGridCard, OPDiscountItem, OpDiscountListCard };

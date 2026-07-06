@@ -40,7 +40,7 @@ const ViewDetailsPopup = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  item: { BookingId: number } | null;
+  item: { BookingId: number; IsDiscountApprovalRequired?: number } | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const [detail, setDetail] = useState<OPDiscountApprovalDetail | null>(null);
@@ -83,18 +83,22 @@ const ViewDetailsPopup = ({
     { label: "Token No", value: detail?.TokenNo },
     { label: "UHID", value: detail?.UHID },
     { label: "Patient Name", value: detail?.PatientName },
+    { label: "Age/Gender", value: detail?.AgeGender },
+
     { label: "Corporate", value: detail?.CorporateName },
     { label: "Status", value: detail?.Status },
-    { label: "Approval Flow", value: detail?.ApprovalFlow },
+    // { label: "Approval Flow", value: detail?.ApprovalFlow },
   ];
 
   const billingDetails = [
     { label: "Total Bill Amount", value: detail?.TotalBillAmount },
     { label: "Bill Discount (%)", value: detail?.BillDiscountPercentage },
     { label: "Total Discount Amount", value: detail?.TotalDiscountAmountOnBill },
-    { label: "Approved Discount (%)", value: detail?.ApprovedPercentage },
-    { label: "Approval Level", value: detail?.ApprovalLevel },
-    { label: "Approval Remarks", value: detail?.ApprovalRemarks },
+    { label: "Total Payable Amount", value: detail?.TotalPatientPayableAmount },
+
+    // { label: "Approved Discount (%)", value: detail?.ApprovedPercentage },
+    // { label: "Approval Level", value: detail?.ApprovalLevel },
+    // { label: "Approval Remarks", value: detail?.ApprovalRemarks },
   ];
 
   const approvalLevels = [
@@ -127,6 +131,9 @@ const ViewDetailsPopup = ({
       approvedOn: detail?.Level4ApproveOn,
     },
   ].filter(level => splitApproverNames(level.approverNames).length > 0);
+
+  const showApprovalTable =
+    Number(detail?.IsDiscountApprovalRequired ?? item?.IsDiscountApprovalRequired) === 1;
 
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
@@ -197,53 +204,55 @@ const ViewDetailsPopup = ({
         </div>
 
         {/* approval levels table */}
-        <div className="table-container">
-          <div className="table-scroll-wrapper">
-            <div className="table-size">
-              <table className="base-table w-full">
-                <thead className="table-head">
-                  <tr>
-                    {OpDiscountApprovalLevelTableHeader.map((h: string, index: number) => (
-                      <th key={index} className="table-th ">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {approvalLevels.length === 0 && (
+        {showApprovalTable && (
+          <div className="table-container">
+            <div className="table-scroll-wrapper">
+              <div className="table-size">
+                <table className="base-table w-full">
+                  <thead className="table-head">
                     <tr>
-                      <td
-                        colSpan={OpDiscountApprovalLevelTableHeader.length}
-                        className="table-empty"
-                      >
-                        No data found
-                      </td>
+                      {OpDiscountApprovalLevelTableHeader.map((h: string, index: number) => (
+                        <th key={index} className="table-th ">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  )}
+                  </thead>
+                  <tbody>
+                    {approvalLevels.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={OpDiscountApprovalLevelTableHeader.length}
+                          className="table-empty"
+                        >
+                          No data found
+                        </td>
+                      </tr>
+                    )}
 
-                  {approvalLevels.map(level => (
-                    <tr key={level.level} className="table-row">
-                      <td className="table-td">{level.level}</td>
-                      <td className="table-td">
-                        <ApproverNamesCell value={level.approverNames} />
-                      </td>
-                      <td
-                        className={`table-td ${
-                          Number(level.isApprove) === 1 ? "active-text" : "inactive-text"
-                        }`}
-                      >
-                        {Number(level.isApprove) === 1 ? "Yes" : "No"}
-                      </td>
-                      <td className="table-td">{formatValue(level.approvedBy)}</td>
-                      <td className="table-td">{formatValue(level.approvedOn)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    {approvalLevels.map(level => (
+                      <tr key={level.level} className="table-row">
+                        <td className="table-td">{level.level}</td>
+                        <td className="table-td">
+                          <ApproverNamesCell value={level.approverNames} />
+                        </td>
+                        <td
+                          className={`table-td ${
+                            Number(level.isApprove) === 1 ? "active-text" : "inactive-text"
+                          }`}
+                        >
+                          {Number(level.isApprove) === 1 ? "Yes" : "No"}
+                        </td>
+                        <td className="table-td">{formatValue(level.approvedBy)}</td>
+                        <td className="table-td">{formatValue(level.approvedOn)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {!!loading && <CustomLoader isLoading={loading} />}

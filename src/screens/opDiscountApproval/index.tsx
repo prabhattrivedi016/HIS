@@ -78,9 +78,7 @@ const OPDiscountApproval = () => {
   const [openViewPopup, setOpenViewPopup] = useState(false);
 
   const [gridActionOpen, setGridActionOpen] = useState(false);
-  const [gridActionPopup, setGridActionPopup] = useState<{ top: number; left: number } | null>(
-    null
-  );
+  const [gridActionPopup, setGridActionPopup] = useState<DOMRect | null>(null);
   const [gridActionBookingId, setGridActionBookingId] = useState<number | null>(null);
 
   const [onDownload, setOnDownload] = useState(false);
@@ -254,10 +252,7 @@ const OPDiscountApproval = () => {
       return;
     }
 
-    setGridActionPopup({
-      top: rect.bottom + 6,
-      left: rect.left,
-    });
+    setGridActionPopup(rect);
     setGridActionBookingId(bookingId);
     setGridActionOpen(true);
   };
@@ -467,7 +462,7 @@ const OPDiscountApproval = () => {
         <OpDiscountActionPopup
           bookingId={gridActionBookingId}
           rawItemMap={rawItemMap}
-          position={gridActionPopup}
+          anchorRect={gridActionPopup}
           onClose={() => setGridActionOpen(false)}
           onView={viewHandler}
           onApprove={openApprovePopup}

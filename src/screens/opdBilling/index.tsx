@@ -23,6 +23,7 @@ import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { formatApiValidationMessage, getApiValidationFieldErrors } from "@/utils/errorUtils";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChangeEvent,
@@ -34,10 +35,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { SingleValue } from "react-select";
 import { InsuranceItem } from "../branchMaster/types";
 import { buildIpdPatientSummary } from "../ipdAdmission/helpers";
+import { markOpPaymentCollectionRefreshOnReturn } from "../opPaymentCollection/utils/opPaymentCollectionStateRef";
+import { normalizePatientGenderForApi } from "../patientRegistration/components/dobHelper";
 import PatientData from "../patientRegistration/components/PatientData";
 import SearchPatientPopup from "../patientRegistration/components/SearchPatientPopup";
 import {
@@ -71,7 +74,9 @@ import {
   OpdBillingItemPayload,
   OpdBillingSavePayload,
   OpdBillingVisitDetailsPayload,
+  OpdBookingDetailsResponse,
   OpdBookingItemPayload,
+  OpdBookingItemResponse,
   OpdBookingSavePayload,
   OpdCardDetailItem,
   OptionItem,
@@ -132,8 +137,176 @@ const resolveRateListIdFromApiData = (
     (data as ServiceBindingItem)?.rateListId ?? (data as Record<string, unknown>)?.RateListId ?? 0
   ) || 0;
 
+const pickBookingValue = <T,>(
+  source: Record<string, unknown>,
+  ...keys: string[]
+): T | undefined => {
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== undefined && value !== null) {
+      return value as T;
+    }
+  }
+  return undefined;
+};
+
+const getBookingItemsFromDetails = (
+  booking: OpdBookingDetailsResponse | Record<string, unknown>
+): OpdBookingItemResponse[] => {
+  const items =
+    pickBookingValue<OpdBookingItemResponse[]>(
+      booking as Record<string, unknown>,
+      "bookingItems",
+      "BookingItems",
+      "billingItems",
+      "BillingItems"
+    ) ?? [];
+  return Array.isArray(items) ? items : [];
+};
+
+const normalizeBookingDetailsResponse = (resp: unknown): OpdBookingDetailsResponse | null => {
+  if (!resp || typeof resp !== "object") return null;
+
+  const payload = resp as Record<string, unknown>;
+  const data = payload.data;
+
+  if (Array.isArray(data)) {
+    return (data[0] ?? null) as OpdBookingDetailsResponse | null;
+  }
+
+  if (data && typeof data === "object") {
+    return data as OpdBookingDetailsResponse;
+  }
+
+  if ("BookingId" in payload || "bookingId" in payload) {
+    return payload as OpdBookingDetailsResponse;
+  }
+
+  return null;
+};
+
+const mapBookingItemToServiceRow = (
+  item: OpdBookingItemResponse,
+  doctorId: number,
+  doctorName: string
+): ServiceBindingItem => {
+  const serviceItemId = Number(item.serviceItemId ?? item.ServiceItemId ?? 0);
+  const rate = Number(item.rate ?? item.Rate ?? 0);
+  const qty = Number(item.qty ?? item.Qty ?? 1);
+  const discountPer = Number(item.discPer ?? item.DiscPer ?? 0);
+  const dis = Number(item.discAmt ?? item.DiscAmt ?? 0);
+  const grossAmt = Number(item.grossAmt ?? item.GrossAmt ?? rate * qty);
+  const netAmount = Number(item.netAmt ?? item.NetAmt ?? grossAmt - dis);
+  const performingDoctorId = Number(
+    item.performingDoctorId ?? item.PerformingDoctorId ?? item.doctorId ?? item.DoctorId ?? doctorId
+  );
+
+  return {
+    serviceItemId,
+    serviceName: String(item.serviceName ?? item.ServiceName ?? ""),
+    code: String(item.code ?? item.serviceCode ?? item.ServiceCode ?? ""),
+    categoryId: Number(item.categoryId ?? item.CategoryId ?? 0),
+    subCategoryId: Number(item.subCategoryId ?? item.SubCategoryId ?? 0),
+    subSubCategoryId: Number(item.subSubCategoryId ?? item.SubSubCategoryId ?? 0),
+    rate,
+    rateListId: Number(item.rateListId ?? item.RateListId ?? 0),
+    qty,
+    discountPer,
+    dis,
+    netAmount,
+    doctorId: performingDoctorId,
+    doctorName,
+    isUrgent: Number(item.isUrgent ?? item.IsUrgent ?? 0),
+    remarks: String(item.remarks ?? item.Remarks ?? ""),
+    isRateEditable: 0,
+    corporateAlias: "",
+    corporateCode: "",
+    validityDays: 0,
+    discountReason: "",
+    isNonPayable: 0,
+    corporateId: 0,
+    categoryTypeId: 0,
+    isCorporateDiscount: 0,
+    gstPer: 0,
+    sampleTypeId: 0,
+    reportTypeId: 0,
+    doctorDepartmentIds: "",
+    isRequiredSeparatePerformingDoctor: 0,
+  };
+};
+
+const getBookingItemServiceApiParams = (
+  booking: OpdBookingDetailsResponse | Record<string, unknown>,
+  item: OpdBookingItemResponse
+) => {
+  const bookingRecord = booking as Record<string, unknown>;
+
+  return {
+    branchId: Number(pickBookingValue(bookingRecord, "branchId", "BranchId") ?? 1),
+    corporateId: Number(pickBookingValue(bookingRecord, "corporateId", "CorporateId") ?? 1),
+    doctorId: Number(
+      item.doctorId ?? item.DoctorId ?? item.performingDoctorId ?? item.PerformingDoctorId ?? 0
+    ),
+    serviceItemId: Number(item.serviceItemId ?? item.ServiceItemId ?? 0),
+    categoryId: Number(item.categoryId ?? item.CategoryId ?? 0),
+    subCategoryId: Number(item.subCategoryId ?? item.SubCategoryId ?? 0),
+    subSubCategoryId: Number(item.subSubCategoryId ?? item.SubSubCategoryId ?? 0),
+    bedTypeId: 0,
+  };
+};
+
+const mergeBookingItemPrefillIntoServiceRow = (
+  apiRow: ServiceBindingItem,
+  bookingItem: OpdBookingItemResponse,
+  performingDoctorName: string
+): ServiceBindingItem => {
+  const performingDoctorId = Number(
+    bookingItem.performingDoctorId ??
+      bookingItem.PerformingDoctorId ??
+      bookingItem.doctorId ??
+      bookingItem.DoctorId ??
+      apiRow.doctorId ??
+      0
+  );
+  const requiresPerformingDoctor = Number(apiRow.isRequiredSeparatePerformingDoctor) === 1;
+
+  return {
+    ...apiRow,
+    serviceName: String(
+      bookingItem.serviceName ?? bookingItem.ServiceName ?? apiRow.serviceName ?? ""
+    ),
+    code: String(
+      bookingItem.serviceCode ?? bookingItem.ServiceCode ?? bookingItem.code ?? apiRow.code ?? ""
+    ),
+    rate: Number(bookingItem.rate ?? bookingItem.Rate ?? apiRow.rate ?? 0),
+    qty: Number(bookingItem.qty ?? bookingItem.Qty ?? apiRow.qty ?? 1),
+    discountPer: Number(bookingItem.discPer ?? bookingItem.DiscPer ?? apiRow.discountPer ?? 0),
+    dis: Number(bookingItem.discAmt ?? bookingItem.DiscAmt ?? apiRow.dis ?? 0),
+    netAmount: Number(bookingItem.netAmt ?? bookingItem.NetAmt ?? apiRow.netAmount ?? 0),
+    isUrgent: Number(bookingItem.isUrgent ?? bookingItem.IsUrgent ?? apiRow.isUrgent ?? 0),
+    rateListId: Number(bookingItem.rateListId ?? bookingItem.RateListId ?? apiRow.rateListId ?? 0),
+    remarks: String(bookingItem.remarks ?? bookingItem.Remarks ?? apiRow.remarks ?? ""),
+    doctorId: requiresPerformingDoctor ? performingDoctorId : apiRow.doctorId,
+    doctorName: requiresPerformingDoctor ? performingDoctorName : apiRow.doctorName,
+  };
+};
+
 const OpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const navigate = useNavigate();
+
+  const location = useLocation();
+  const locationState = (location.state ?? {}) as {
+    bookingId?: number;
+    tokenNo?: string;
+    uhid?: string;
+    patientId?: number;
+    fromPaymentCollection?: boolean;
+  };
+
+  const paymentCollectionBookingId = Number(locationState.bookingId) || 0;
+  const paymentCollectionPatientId = Number(locationState.patientId) || 0;
+  const isPaymentCollectionMode = paymentCollectionBookingId > 0;
 
   const roleId = Number(useContext(RoleContext)?.roleId) ?? 0;
 
@@ -163,7 +336,12 @@ const OpdBilling = () => {
   const [selectedCorporateError, setSelectedCorporateError] = useState<string>("");
   const [corporateOpdRateListIds, setCorporateOpdRateListIds] = useState<number[]>([]);
 
-  const [activePatientId, setActivePatientId] = useState<number | null>(null);
+  const [activePatientId, setActivePatientId] = useState<number | null>(() => {
+    if (paymentCollectionBookingId > 0 && paymentCollectionPatientId > 0) {
+      return paymentCollectionPatientId;
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState<string>(OPDBillingTabName.PATIENT_DETAILS);
   const [patientTabError, setPatientTabError] = useState<boolean>(false);
   const [billingTabError, setBillingTabError] = useState<boolean>(false);
@@ -274,6 +452,34 @@ const OpdBilling = () => {
 
   const [creditCopayment, setCreditCopayment] = useState<boolean>(false);
 
+  const paymentCollectionInitRef = useRef(false);
+  const paymentCollectionInitializingRef = useRef(false);
+  const referDoctorListRef = useRef<ReferDoctorItem[]>([]);
+
+  useEffect(() => {
+    paymentCollectionInitRef.current = false;
+    paymentCollectionInitializingRef.current = false;
+  }, [paymentCollectionBookingId]);
+
+  const getBookingDetailsByBookingId = async (bookingId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_OPD_BOOKING_DETAILS_BY_BOOKING_ID,
+      {},
+      { params: { bookingId } },
+      { component: "OpdBilling" }
+    );
+    return normalizeBookingDetailsResponse(resp);
+  };
+
+  const { data: bookingDetails } = useQuery({
+    queryKey: ["bookingDetailsByBookingId", paymentCollectionBookingId],
+    queryFn: () => getBookingDetailsByBookingId(paymentCollectionBookingId),
+    enabled: isPaymentCollectionMode && paymentCollectionBookingId > 0,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
   // get discount % user wise
   const getDiscountPerc = async (userId: number) => {
     const resp = await fetchApi(
@@ -337,81 +543,79 @@ const OpdBilling = () => {
   // autoFill patient data
 
   useEffect(() => {
-    if (patientRegistrationDetails?.PatientId) {
-      const fetchPatientData = async () => {
-        // clear previous patient billing data
-        SetServiceDataTableItem([]);
-        serviceDataTableItemRef.current = [];
-        serviceItemRemarksRef.current = {};
-        SetServiceItemList([]);
-        setSearchTerm("");
-        setShowPopup(false);
-        setShowDuplicateError("");
-        setPackagePayload([]);
-        setIsPackageUrgent(0);
-        setSelectDoctorError("");
+    if (!patientRegistrationDetails?.PatientId) return;
+    if (isPaymentCollectionMode) return;
 
-        calculateAndUpdateBillingDetails([]);
+    const fetchPatientData = async () => {
+      SetServiceDataTableItem([]);
+      serviceDataTableItemRef.current = [];
+      serviceItemRemarksRef.current = {};
+      SetServiceItemList([]);
+      setSearchTerm("");
+      setShowPopup(false);
+      setShowDuplicateError("");
+      setPackagePayload([]);
+      setIsPackageUrgent(0);
+      setSelectDoctorError("");
 
-        const resp = await getPatientDataByPatientId(
-          fetchApi,
-          Number(patientRegistrationDetails?.PatientId),
-          "opdBilling"
-        );
+      calculateAndUpdateBillingDetails([]);
 
-        if (!resp || Object.keys(resp).length === 0) return;
+      const resp = await getPatientDataByPatientId(
+        fetchApi,
+        Number(patientRegistrationDetails?.PatientId),
+        "opdBilling"
+      );
 
-        setPatientRegistrationDetails(prev => ({
-          ...prev,
-          ...resp,
-        }));
+      if (!resp || Object.keys(resp).length === 0) return;
 
-        if (resp?.doctorId) {
-          const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
+      setPatientRegistrationDetails(prev => ({
+        ...prev,
+        ...resp,
+      }));
 
-          if (doctor) {
-            setSelectedDoctor(doctor);
-          }
+      if (resp?.doctorId) {
+        const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
+
+        if (doctor) {
+          setSelectedDoctor(doctor);
         }
+      }
 
-        // bind patient dues
+      const [opdResult, ipdResult, pharmacyResult] = await Promise.all([
+        getPatientBalanceOpd(resp?.uhid),
+        getPatientBalanceIpd(resp?.uhid),
+        getPatientBalancePharmacy(resp?.uhid),
+      ]);
 
-        const [opdResult, ipdResult, pharmacyResult] = await Promise.all([
-          getPatientBalanceOpd(resp?.uhid),
-          getPatientBalanceIpd(resp?.uhid),
-          getPatientBalancePharmacy(resp?.uhid),
-        ]);
+      const opdDue = normalizeDueAmount(opdResult);
+      const ipdDue = normalizeDueAmount(ipdResult);
+      const pharmacyDue = normalizeDueAmount(pharmacyResult);
 
-        const opdDue = normalizeDueAmount(opdResult);
-        const ipdDue = normalizeDueAmount(ipdResult);
-        const pharmacyDue = normalizeDueAmount(pharmacyResult);
+      setPreviousDues({
+        opd: opdDue,
+        ipd: ipdDue,
+        pharmacy: pharmacyDue,
+      });
 
-        setPreviousDues({
-          opd: opdDue,
-          ipd: ipdDue,
-          pharmacy: pharmacyDue,
-        });
+      const patientHasPreviousDues = hasAnyPreviousDue(opdDue, ipdDue, pharmacyDue);
 
-        const patientHasPreviousDues = hasAnyPreviousDue(opdDue, ipdDue, pharmacyDue);
+      setTimeout(() => {
+        if (patientHasPreviousDues) {
+          setRenderIpdOpdPharmacy(true);
+          setOpenIpdOpdPharmacy(true);
+        } else {
+          setRenderIpdOpdPharmacy(false);
+          setOpenIpdOpdPharmacy(false);
+          setActiveTab(OPDBillingTabName.OPD_BILLING);
+          setTimeout(() => {
+            serviceInputRef.current?.focus();
+          }, 100);
+        }
+      }, 300);
+    };
 
-        setTimeout(() => {
-          if (patientHasPreviousDues) {
-            setRenderIpdOpdPharmacy(true);
-            setOpenIpdOpdPharmacy(true);
-          } else {
-            setRenderIpdOpdPharmacy(false);
-            setOpenIpdOpdPharmacy(false);
-            setActiveTab(OPDBillingTabName.OPD_BILLING);
-            setTimeout(() => {
-              serviceInputRef.current?.focus();
-            }, 100);
-          }
-        }, 300);
-      };
-
-      fetchPatientData();
-    }
-  }, [patientRegistrationDetails?.PatientId]);
+    void fetchPatientData();
+  }, [patientRegistrationDetails?.PatientId, isPaymentCollectionMode]);
 
   // close ipd opd pharmacy popup
   const closeIpdOpdPharmacyPopup = useCallback(() => {
@@ -757,6 +961,8 @@ const OpdBilling = () => {
   };
 
   useEffect(() => {
+    if (paymentCollectionInitializingRef.current) return;
+
     serviceDataTableItem.forEach(item => {
       if (Number(item.isRequiredSeparatePerformingDoctor) !== 1) {
         return;
@@ -997,9 +1203,32 @@ const OpdBilling = () => {
   });
 
   const registerPatientForBilling = async () => {
+    const normalizedGender = normalizePatientGenderForApi(
+      patientRegistrationDetails?.Gender ?? patientRegistrationDetails?.gender
+    );
+
+    if (!normalizedGender) {
+      patientDataRef.current?.applyApiFieldErrors?.({
+        Gender: ["Gender must be Male, Female, or Other"],
+      });
+      setPatientTabError(true);
+      setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
+      showWarning("Gender must be Male, Female, or Other");
+      return null;
+    }
+
     const formData = new FormData();
+    let hasGenderField = false;
+
     for (const key in patientRegistrationDetails) {
-      const value = patientRegistrationDetails[key];
+      if (key === "gender") continue;
+
+      let value = patientRegistrationDetails[key];
+      if (key === "Gender") {
+        value = normalizedGender;
+        hasGenderField = true;
+      }
+
       if (value === null || value === undefined || value === "") {
         continue;
       }
@@ -1010,6 +1239,10 @@ const OpdBilling = () => {
       }
     }
 
+    if (!hasGenderField) {
+      formData.append("Gender", normalizedGender);
+    }
+
     const registrationResp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_PATIENT_MASTER,
@@ -1018,8 +1251,17 @@ const OpdBilling = () => {
       { component: "Opd Billing" }
     );
 
+    const apiFieldErrors = getApiValidationFieldErrors(registrationResp);
+    if (Object.keys(apiFieldErrors).length > 0) {
+      patientDataRef.current?.applyApiFieldErrors?.(apiFieldErrors);
+      setPatientTabError(true);
+      setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
+      showError(formatApiValidationMessage(registrationResp, "Failed to register patient"));
+      return null;
+    }
+
     if (!registrationResp?.data) {
-      showError("Failed to register patient");
+      showError(formatApiValidationMessage(registrationResp, "Failed to register patient"));
       return null;
     }
 
@@ -1073,22 +1315,6 @@ const OpdBilling = () => {
       setIsBillingDiscount(1);
     }
   }, [billingValues?.totalDiscPerOnBill, billingValues?.totalDiscAmtOnBill]);
-
-  // Auto-calculate balance amount whenever payment details or net amount changes
-  // Balance = Net Amount - Total Payment
-  // Can be negative if overpaid, positive if pending, zero if fully paid
-  useEffect(() => {
-    const billingPayload = billingDetailsRef.current?.getPayload?.();
-    const payments = (billingPayload?.payments ?? []) as Array<{ amount?: unknown }>;
-
-    const totalPayment = payments.reduce((acc: number, curr) => acc + Number(curr?.amount || 0), 0);
-    const balanceAmount = Number(billingValues?.netAmount ?? 0) - totalPayment;
-
-    setBillingValues(prev => ({
-      ...prev,
-      balanceAmount: Number(balanceAmount.toFixed(2)),
-    }));
-  }, [paymentDetails, billingValues?.netAmount]);
 
   // payment details payload
 
@@ -1282,6 +1508,7 @@ const OpdBilling = () => {
   }, []);
 
   useEffect(() => {
+    if (paymentCollectionInitializingRef.current) return;
     void loadCorporateOpdRateListIds(Number(selectedCorporate?.value ?? defaultCorporate.value));
   }, [loadCorporateOpdRateListIds, selectedCorporate?.value]);
 
@@ -1300,6 +1527,10 @@ const OpdBilling = () => {
   }, [selectedCategory]);
 
   // refer doctor
+  useEffect(() => {
+    referDoctorListRef.current = referDoctorList;
+  }, [referDoctorList]);
+
   const getReferDoctor = useCallback(async () => {
     const resp = await fetchApi(
       "GET",
@@ -1361,6 +1592,233 @@ const OpdBilling = () => {
     getDoctorsLists();
     getCategory();
   }, []);
+
+  const loadPaymentCollectionBooking = useCallback(async () => {
+    if (
+      !bookingDetails ||
+      paymentCollectionInitRef.current ||
+      paymentCollectionInitializingRef.current
+    ) {
+      return;
+    }
+
+    const bookingItems = getBookingItemsFromDetails(bookingDetails);
+    if (!bookingItems.length) return;
+
+    paymentCollectionInitializingRef.current = true;
+
+    try {
+      const bookingRecord = bookingDetails as Record<string, unknown>;
+      const corporateId = Number(
+        pickBookingValue(bookingRecord, "corporateId", "CorporateId") ?? 1
+      );
+      const insuranceCompanyId = Number(
+        pickBookingValue(bookingRecord, "insuranceCompanyId", "InsuranceCompanyId") ?? 0
+      );
+      const referDoctorId = Number(
+        pickBookingValue(bookingRecord, "referDoctorId", "ReferDoctorId") ?? 0
+      );
+      const bookingDoctorId = Number(bookingItems[0]?.doctorId ?? bookingItems[0]?.DoctorId ?? 0);
+
+      setSelectedInsurance(insuranceCompanyId);
+      if (insuranceCompanyId) {
+        await getCorporateList(insuranceCompanyId);
+      }
+
+      const corporateOption =
+        corporateId === defaultCorporate.value
+          ? defaultCorporate
+          : { value: corporateId, label: String(corporateId) };
+      setSelectedCorporate(corporateOption);
+      await loadCorporateOpdRateListIds(corporateId);
+
+      let doctorOption: OptionItem | null = null;
+      if (bookingDoctorId) {
+        doctorOption = await getDoctorMaster(fetchApi, bookingDoctorId, "opdBilling");
+        if (doctorOption?.value) {
+          setSelectedDoctor(doctorOption);
+        }
+      }
+
+      if (referDoctorId) {
+        const referDoctor = referDoctorListRef.current.find(
+          item => item.referDoctorId === referDoctorId
+        );
+        if (referDoctor) {
+          setSelectedReferDoctor({
+            value: referDoctor.referDoctorId,
+            label: referDoctor.doctorName,
+          });
+        }
+      }
+
+      const grossBillAmount = Number(
+        pickBookingValue(bookingRecord, "totalBillAmount", "TotalBillAmount") ?? 0
+      );
+      const totalDiscPerOnBill = Number(
+        pickBookingValue(bookingRecord, "totalDiscountPerOnBill", "TotalDiscountPerOnBill") ?? 0
+      );
+      const totalDiscAmtOnBill = Number(
+        pickBookingValue(bookingRecord, "totalDiscountAmountOnBill", "TotalDiscountAmountOnBill") ??
+          0
+      );
+      const roundOff = Number(pickBookingValue(bookingRecord, "roundOff", "RoundOff") ?? 0);
+      const netAmount = Number(
+        pickBookingValue(bookingRecord, "totalPatientPayableAmount", "TotalPatientPayableAmount") ??
+          0
+      );
+
+      setOpdBillingFormData(prev => ({
+        ...prev,
+        corporateId,
+        insuranceCompanyId,
+        referDoctorId,
+        grossBillAmount,
+        totalDiscPerOnBill,
+        totalDiscAmtOnBill,
+        roundOff,
+        netAmount,
+        policyNo: String(pickBookingValue(bookingRecord, "policyNo", "PolicyNo") ?? ""),
+        policyCardNo: String(pickBookingValue(bookingRecord, "policyCardNo", "PolicyCardNo") ?? ""),
+        expiryDate: String(pickBookingValue(bookingRecord, "expiryDate", "ExpiryDate") ?? ""),
+        cardHolder: String(pickBookingValue(bookingRecord, "cardHolder", "CardHolder") ?? ""),
+        referalNo: String(pickBookingValue(bookingRecord, "referalNo", "ReferalNo") ?? ""),
+        referalDate: String(pickBookingValue(bookingRecord, "referalDate", "ReferalDate") ?? ""),
+      }));
+
+      setBillingValues(prev => ({
+        ...prev,
+        grossBillAmount,
+        totalDiscPerOnBill,
+        totalDiscAmtOnBill,
+        roundOff,
+        netAmount,
+      }));
+
+      const doctorId = Number(doctorOption?.value ?? bookingDoctorId ?? 0);
+      const doctorName = String(doctorOption?.label ?? "");
+      const performingDoctorNameCache = new Map<number, string>();
+      if (doctorId) {
+        performingDoctorNameCache.set(doctorId, doctorName);
+      }
+
+      const resolvePerformingDoctorName = async (performingDoctorId: number): Promise<string> => {
+        if (!performingDoctorId) return "";
+        const cached = performingDoctorNameCache.get(performingDoctorId);
+        if (cached) return cached;
+
+        const perfDoctor = await getDoctorMaster(fetchApi, performingDoctorId, "opdBilling");
+        const name = String(perfDoctor?.label ?? "");
+        performingDoctorNameCache.set(performingDoctorId, name);
+        return name;
+      };
+
+      const prefilledRows = bookingItems.map(item =>
+        mapBookingItemToServiceRow(item, doctorId, doctorName)
+      );
+      prefilledRows.forEach(row => {
+        if (row.remarks && row.serviceItemId) {
+          serviceItemRemarksRef.current[row.serviceItemId] = row.remarks;
+        }
+      });
+
+      const serviceRows = await Promise.all(
+        bookingItems.map(async (item, index) => {
+          const apiParams = getBookingItemServiceApiParams(bookingDetails, item);
+          const baseRow =
+            prefilledRows[index] ?? mapBookingItemToServiceRow(item, doctorId, doctorName);
+          const performingDoctorId = apiParams.doctorId;
+          const performingDoctorName = await resolvePerformingDoctorName(performingDoctorId);
+
+          const resp = await fetchApi(
+            "GET",
+            ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
+            {},
+            { params: apiParams },
+            { component: "OpdBilling", silent: true }
+          );
+
+          if (!resp?.data) {
+            return {
+              ...baseRow,
+              rateListId: resolveRateListIdForRow(baseRow),
+            };
+          }
+
+          const requiresPerformingDoctor =
+            Number(resp.data?.isRequiredSeparatePerformingDoctor) === 1;
+          const apiRow = buildServiceRowFromApi(resp.data, {
+            doctorId: requiresPerformingDoctor ? performingDoctorId : doctorId,
+            doctorName: requiresPerformingDoctor ? performingDoctorName : doctorName,
+            remarks: baseRow.remarks,
+          });
+          const mergedRow = mergeBookingItemPrefillIntoServiceRow(
+            apiRow,
+            item,
+            performingDoctorName
+          );
+
+          return {
+            ...mergedRow,
+            rateListId: resolveRateListIdForRow(mergedRow),
+          };
+        })
+      );
+
+      await Promise.all(
+        serviceRows.map(row =>
+          Number(row.isRequiredSeparatePerformingDoctor) === 1 && row.doctorDepartmentIds
+            ? loadPerformingDoctorsForDepartments(row.doctorDepartmentIds)
+            : Promise.resolve()
+        )
+      );
+
+      updateServiceTableItem(serviceRows);
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      paymentCollectionInitRef.current = true;
+    } catch (error) {
+      paymentCollectionInitRef.current = false;
+      console.error("Failed to load payment collection booking:", error);
+      showError("Failed to load booking services. Please try again.");
+    } finally {
+      paymentCollectionInitializingRef.current = false;
+    }
+  }, [
+    bookingDetails,
+    loadCorporateOpdRateListIds,
+    loadPerformingDoctorsForDepartments,
+    resolveRateListIdForRow,
+    updateServiceTableItem,
+  ]);
+
+  useEffect(() => {
+    if (!isPaymentCollectionMode || !bookingDetails) return;
+    if (paymentCollectionInitRef.current) return;
+
+    const loadedPatientId = Number(
+      patientRegistrationDetails?.PatientId ?? patientRegistrationDetails?.patientId ?? 0
+    );
+    if (!loadedPatientId || loadedPatientId !== paymentCollectionPatientId) return;
+
+    const referDoctorId = Number(
+      pickBookingValue(
+        bookingDetails as Record<string, unknown>,
+        "referDoctorId",
+        "ReferDoctorId"
+      ) ?? 0
+    );
+    if (referDoctorId > 0 && referDoctorList.length === 0) return;
+
+    void loadPaymentCollectionBooking();
+  }, [
+    isPaymentCollectionMode,
+    bookingDetails,
+    patientRegistrationDetails?.PatientId,
+    patientRegistrationDetails?.patientId,
+    paymentCollectionPatientId,
+    referDoctorList.length,
+    loadPaymentCollectionBooking,
+  ]);
 
   const prescribeButtonHandler = async (value: string) => {
     if (value === "prescribe" && pendingService) {
@@ -1934,6 +2392,8 @@ const OpdBilling = () => {
 
   // Reset form to initial state
   const resetForm = () => {
+    paymentCollectionInitRef.current = false;
+    paymentCollectionInitializingRef.current = false;
     billingDetailsRef.current?.reset?.();
 
     // Reset patient registration
@@ -1965,7 +2425,7 @@ const OpdBilling = () => {
     setPerformingDoctorsCache({});
 
     // Reset category and subcategories
-    setSelectedCategory("");
+    setSelectedCategory("1, 3, 4, 5, 8, 11");
     setSelectedSubCategory(null);
     setSelectedSubSubCategory(null);
 
@@ -2047,11 +2507,172 @@ const OpdBilling = () => {
     setDueAmount(0);
     setRenderIpdOpdPharmacy(false);
     setOpenIpdOpdPharmacy(false);
-    setPreviousDues({ opd: 0, ipd: 0, pharmacy: 0 });
+    setPreviousDues({ opd: null, ipd: null, pharmacy: null });
     setCanProceedBilling(false);
 
     // Force re-mount children with internal form state (PatientData + BillingDetails).
     setFormResetKey(prev => prev + 1);
+  };
+
+  const resetFormAndClearNavigation = (fromPaymentCollection = false) => {
+    resetForm();
+
+    if (fromPaymentCollection) {
+      markOpPaymentCollectionRefreshOnReturn();
+      navigate("/op-payment-collection", { replace: true });
+      return;
+    }
+
+    navigate("/opd-billing", { replace: true, state: null });
+  };
+
+  const resolveBookingIdFromSaveResponse = (
+    responseData: Record<string, unknown> | null | undefined,
+    fallbackBookingId: number
+  ): number => Number(responseData?.bookingId ?? responseData?.BookingId ?? fallbackBookingId) || 0;
+
+  const fetchAndPrintOpdBillAfterSave = async (responseData: Record<string, unknown>) => {
+    const ftid = Number(responseData.ftid || 0);
+    const resolvedVisitId =
+      resolveVisitIdFromResponse(responseData) || Number(responseData.visitId || 0);
+    const receiptId = Number(responseData.receiptId || 0);
+    const isDoctorAppointment = responseData?.isDoctorAppointment === true;
+    const isReceipt = responseData?.isReceipt === true ? 1 : 0;
+
+    let opdData = null;
+    let receiptData: PatientReceiptItem[] = [];
+    let paymentModes: PaymentModeItem[] = [];
+
+    const promises = [
+      isDoctorAppointment && ftid > 0
+        ? fetchApi(
+            "GET",
+            ENDPOINTS.GET_OPD_CARD_DETAILS,
+            {},
+            { params: { ftid } },
+            { component: "OpdBilling" }
+          )
+        : Promise.resolve(null),
+
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
+        {},
+        { params: { ftid, isReceipt, receiptId } },
+        { component: "OpdBilling" }
+      ),
+
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_OPD_RECEIPT_LIST,
+        {},
+        { params: { visitNo: resolvedVisitId } },
+        { component: "OpdBilling" }
+      ),
+    ];
+
+    const [opdResult, receiptResult, paymentResult] = await Promise.allSettled(promises);
+
+    if (opdResult.status === "fulfilled") {
+      opdData = opdResult.value?.data?.[0] ?? null;
+    }
+
+    if (receiptResult.status === "fulfilled") {
+      receiptData = receiptResult.value?.data ?? [];
+    } else {
+      console.error("Receipt details fetch failed:", receiptResult.reason);
+    }
+
+    if (paymentResult.status === "fulfilled") {
+      paymentModes = paymentResult.value?.data ?? [];
+    } else {
+      console.error("Payment mode list fetch failed:", paymentResult.reason);
+    }
+
+    setOpdCardDetails(opdData);
+    setPatientReceiptDetails(receiptData);
+    setPaymentModeList(paymentModes);
+
+    await new Promise(res => setTimeout(res, 120));
+
+    if (isDoctorAppointment) {
+      openOpdPrintInNewTab();
+      return true;
+    }
+
+    if (!receiptData?.length) {
+      showError("Billing saved, but receipt data is unavailable for printing.");
+      return false;
+    }
+
+    openReceiptInNewTab(receiptData);
+    return true;
+  };
+
+  const handlePaymentCollectionAfterSave = async (
+    saveBillingResp: Record<string, unknown>,
+    patientData: {
+      patientId: number;
+      registrationResp: Record<string, unknown>;
+    },
+    responseData: Record<string, unknown>
+  ) => {
+    const savedPatientId = Number(
+      (patientData.registrationResp as { data?: { patientId?: number } })?.data?.patientId ?? 0
+    );
+    const visitId = resolveVisitIdFromResponse(responseData);
+
+    if (savedPatientId > 0 && visitId > 0) {
+      const documentsUploaded = await ipdOpdDocumentRef.current?.uploadDocuments(
+        savedPatientId,
+        visitId
+      );
+
+      if (documentsUploaded === false) {
+        showWarning("Billing saved, but document upload failed");
+      }
+    }
+
+    const collectedBookingId = resolveBookingIdFromSaveResponse(
+      responseData,
+      paymentCollectionBookingId
+    );
+
+    if (!collectedBookingId) {
+      showError("Billing saved, but booking ID was not returned for payment collection.");
+      return null;
+    }
+
+    const paymentCollectedResp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.PAYMENT_COLLECTED_FOR_OPD_BOOKING,
+      {},
+      { params: { bookingId: collectedBookingId } },
+      { component: "opdBilling" }
+    );
+
+    const paymentCollectedErrors = getApiValidationFieldErrors(paymentCollectedResp);
+    if (Object.keys(paymentCollectedErrors).length > 0 || paymentCollectedResp?.result === false) {
+      showError(
+        formatApiValidationMessage(
+          paymentCollectedResp,
+          paymentCollectedResp?.message || "Failed to mark payment as collected"
+        )
+      );
+      return null;
+    }
+
+    await showSuccess(
+      paymentCollectedResp?.message ?? "Payment collected for OPD booking successfully"
+    );
+
+    await fetchAndPrintOpdBillAfterSave(responseData);
+
+    setTimeout(() => {
+      resetFormAndClearNavigation(Boolean(locationState.fromPaymentCollection));
+    }, 300);
+
+    return paymentCollectedResp;
   };
 
   // due button click handler
@@ -2115,6 +2736,13 @@ const OpdBilling = () => {
 
   // button click handler
   const buttonClickHandler = async (value: string) => {
+    if (value === "back") {
+      if (isPaymentCollectionMode && locationState.fromPaymentCollection) {
+        navigate("/op-payment-collection");
+      }
+      return;
+    }
+
     if (value === "collectOnDevice") {
       if (!totalBillingAmount) return;
       const netAmount = billingDetailsRef.current?.getNetAmount() ?? totalBillingAmount;
@@ -2306,13 +2934,18 @@ const OpdBilling = () => {
         return null;
       }
 
-      // success
-      await showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
-
-      const responseData = saveBillingResp?.data;
+      const responseData = (saveBillingResp?.data ?? null) as Record<string, unknown> | null;
       if (!responseData) {
+        showError("Billing saved, but response data is unavailable.");
         return null;
       }
+
+      if (isPaymentCollectionMode) {
+        return handlePaymentCollectionAfterSave(saveBillingResp, patientData, responseData);
+      }
+
+      // success
+      await showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
 
       const savedPatientId = Number(registrationResp?.data?.patientId ?? 0);
       const visitId = resolveVisitIdFromResponse(responseData);
@@ -2330,81 +2963,7 @@ const OpdBilling = () => {
       }
 
       //  extract response
-      const ftid = Number(responseData.ftid || 0);
-      const resolvedVisitId = visitId || Number(responseData.visitId || 0);
-      const receiptId = Number(responseData.receiptId || 0);
-      const isDoctorAppointment = responseData?.isDoctorAppointment === true;
-      const isReceipt = responseData?.isReceipt === true ? 1 : 0;
-
-      // fetch required data
-      let opdData = null;
-      let receiptData: any[] = [];
-      let paymentModes: any[] = [];
-
-      const promises = [
-        isDoctorAppointment && ftid > 0
-          ? fetchApi(
-              "GET",
-              ENDPOINTS.GET_OPD_CARD_DETAILS,
-              {},
-              { params: { ftid } },
-              { component: "OpdBilling" }
-            )
-          : Promise.resolve(null),
-
-        fetchApi(
-          "GET",
-          ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
-          {},
-          { params: { ftid, isReceipt, receiptId } },
-          { component: "OpdBilling" }
-        ),
-
-        fetchApi(
-          "GET",
-          ENDPOINTS.GET_OPD_RECEIPT_LIST,
-          {},
-          { params: { visitNo: resolvedVisitId } },
-          { component: "OpdBilling" }
-        ),
-      ];
-
-      const [opdResult, receiptResult, paymentResult] = await Promise.allSettled(promises);
-
-      if (opdResult.status === "fulfilled") {
-        opdData = opdResult.value?.data?.[0] ?? null;
-      }
-
-      if (receiptResult.status === "fulfilled") {
-        receiptData = receiptResult.value?.data ?? [];
-      } else {
-        console.error("Receipt details fetch failed:", receiptResult.reason);
-      }
-
-      if (paymentResult.status === "fulfilled") {
-        paymentModes = paymentResult.value?.data ?? [];
-      } else {
-        console.error("Payment mode list fetch failed:", paymentResult.reason);
-      }
-
-      //  update state
-      setOpdCardDetails(opdData);
-      setPatientReceiptDetails(receiptData);
-      setPaymentModeList(paymentModes);
-
-      // wait for dom render
-      await new Promise(res => setTimeout(res, 120));
-
-      // Print on a dedicated blank page only after successful save + success toast.
-      if (isDoctorAppointment) {
-        openOpdPrintInNewTab();
-      } else {
-        if (!receiptData?.length) {
-          showError("Billing saved, but receipt data is unavailable for printing.");
-          return saveBillingResp;
-        }
-        openReceiptInNewTab(receiptData);
-      }
+      await fetchAndPrintOpdBillAfterSave(responseData);
 
       // reset after print
       setTimeout(() => {
@@ -2548,6 +3107,7 @@ const OpdBilling = () => {
     billingPaymentDetails,
     maxDiscountPercentage: data,
     creditCopayment,
+    showPaymentMode: isPaymentCollectionMode,
   };
 
   return (
@@ -2676,6 +3236,7 @@ const OpdBilling = () => {
         onButtonClick={buttonClickHandler}
         pageType={PageType?.OPD_BILLING}
         hasDiscountApplied={hasBillingDiscount()}
+        paymentCollectionMode={isPaymentCollectionMode}
       />
 
       {!!loading && <CustomLoader isLoading={loading} />}

@@ -1,16 +1,14 @@
 import { OPPaymentItem } from "../types";
 
-export const shouldShowCollectPaymentButton = (item?: OPPaymentItem | null) =>
-  !!item && item.IsCancel !== 1;
+export const shouldShowCollectPaymentButton = (item?: OPPaymentItem | null) => !!item;
 
-export const shouldShowCancelPaymentButton = (item?: OPPaymentItem | null) =>
-  !!item && item.IsCancel !== 1;
+export const shouldShowCancelPaymentButton = (item?: OPPaymentItem | null) => !!item;
 
 export const isCollectPaymentButtonDisabled = (item?: OPPaymentItem | null) =>
-  !item || item.IsPaymentCollected === 1;
+  !item || item.IsCancel === 1 || item.IsPaymentCollected === 1;
 
 export const isCancelPaymentButtonDisabled = (item?: OPPaymentItem | null) =>
-  !item || item.IsPaymentCollected === 1;
+  !item || item.IsCancel === 1 || item.IsPaymentCollected === 1;
 
 export const handleCollectPaymentButtonClick = (
   item: OPPaymentItem,

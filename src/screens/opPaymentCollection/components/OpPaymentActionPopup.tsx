@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import useAnchoredFixedPopupPosition from "../../../hooks/useAnchoredFixedPopupPosition";
 import { OPPaymentItem } from "../types";
 import {
   getOpPaymentItemById,
@@ -13,7 +14,7 @@ import {
 const OpPaymentActionPopup = ({
   bookingId,
   rawItemMap,
-  position,
+  anchorRect,
   onClose,
   onView,
   onCollectPayment,
@@ -21,7 +22,7 @@ const OpPaymentActionPopup = ({
 }: {
   bookingId: number | null;
   rawItemMap: Record<number, OPPaymentItem>;
-  position: { top: number; left: number } | null;
+  anchorRect: DOMRect | null;
   onClose: () => void;
   onView: (item: OPPaymentItem) => void;
   onCollectPayment: (item: OPPaymentItem) => void;
@@ -29,6 +30,7 @@ const OpPaymentActionPopup = ({
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
   const item = getOpPaymentItemById(rawItemMap, bookingId);
+  const position = useAnchoredFixedPopupPosition(anchorRect, popupRef, bookingId);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -41,7 +43,7 @@ const OpPaymentActionPopup = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  if (!item || !position) return null;
+  if (!item || !anchorRect) return null;
 
   const runAction = (action: (selected: OPPaymentItem) => void) => {
     action(item);
@@ -56,8 +58,9 @@ const OpPaymentActionPopup = ({
       ref={popupRef}
       className="btn-popup"
       style={{
-        top: position.top,
-        left: position.left,
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        visibility: position ? "visible" : "hidden",
       }}
     >
       <button type="button" className="data-download-popup-btn" onClick={() => runAction(onView)}>
