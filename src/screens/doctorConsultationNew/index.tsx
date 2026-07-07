@@ -8,7 +8,7 @@ import {
   Stethoscope,
   User,
 } from "lucide-react";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { ENDPOINTS } from "@/config/defaults";
@@ -20,9 +20,9 @@ import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
-import VitalDrawer from "./components/VitalDrawer";
+import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import VitalInsights from "./components/VitalInsights";
-import { AllergySection, EmrConsultationPayload, PatientItem } from "./types";
+import { AllergySection, EmrConsultationPayload, EmrSectionAnswerEntry, PatientItem } from "./types";
 
 interface VitalMasterItem {
   vitalId: number;
@@ -81,8 +81,6 @@ const DoctorConsultationNew = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showFullCalendar, setShowFullCalendar] = useState(false);
 
-  const [renderVitalDrawer, setRenderVitalDrawer] = useState<boolean>(false);
-  const [openVitalDrawer, setOpenVitalDrawer] = useState<boolean>(false);
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
@@ -92,6 +90,7 @@ const DoctorConsultationNew = () => {
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
   const [consultationId, setConsultationId] = useState("");
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
+  const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
   const updateVital = (vitalId: number, val: string) =>
     setVitalsData(prev => ({ ...prev, [vitalId]: val }));
@@ -217,17 +216,6 @@ const DoctorConsultationNew = () => {
     return future ? `in ${Math.floor(hrs / 24)}d` : `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const vitalDrawerHandler = () => {
-    setRenderVitalDrawer(true);
-    requestAnimationFrame(() => {
-      setOpenVitalDrawer(true);
-    });
-  };
-
-  const closeHandler = useCallback(() => {
-    setOpenVitalDrawer(false);
-  }, []);
-
   const getDoctorList = async () => {
     const resp = await fetchApi(
       "GET",
@@ -292,6 +280,7 @@ const DoctorConsultationNew = () => {
           value: vitalsData[v.vitalId],
           unitName: v.unitName,
         })),
+      emrSections: emrSectionsData,
 
       audit: {
         createdBy: authUser?.userId ?? 0,
@@ -302,7 +291,15 @@ const DoctorConsultationNew = () => {
         lastUpdatedOn: now,
       },
     };
-  }, [selectedPatient, consultationId, vitalMasterList, vitalsData, allergySection, authUser]);
+  }, [
+    selectedPatient,
+    consultationId,
+    vitalMasterList,
+    vitalsData,
+    allergySection,
+    emrSectionsData,
+    authUser,
+  ]);
 
   const handleFinalSave = async () => {
     if (!emrPayload) return;
@@ -318,15 +315,6 @@ const DoctorConsultationNew = () => {
     }
   };
 
-  useEffect(() => {
-    if (openVitalDrawer) return;
-
-    const closeTimer = setTimeout(() => {
-      setRenderVitalDrawer(false);
-    }, 300);
-
-    return () => clearTimeout(closeTimer);
-  }, [openVitalDrawer]);
   return (
     <div className="page-container">
       <h1 className="page-heading">Doctor Consultation New</h1>
@@ -828,59 +816,15 @@ const DoctorConsultationNew = () => {
                 );
               })()}
 
-              <div className="bg-white border-b px-4 py-2 text-gray-700 font-medium">
-                Consultation
-              </div>
-
-              <div className="bg-white rounded-xl shadow mt-3 max-w-120">
-                <div className="flex items-center justify-between px-4 py-3 border-b">
-                  <h3 className="font-semibold text-gray-800">Vitals Trend</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowVitalInsights(true)}
-                      title="View vitals insights"
-                      className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all"
-                    >
-                      <Activity size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={vitalDrawerHandler}
-                      title="Edit vitals"
-                      className="flex items-center justify-center w-7 h-7 rounded-full text-blue-500 hover:bg-blue-50 active:scale-95 transition-all"
-                    >
-                      <Edit size={15} />
-                    </button>
-                  </div>
-                </div>
-                <div className="lg:max-h-108 overflow-auto">
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-gray-100">
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left px-4 py-2 font-medium text-gray-600">
-                          Vital Type
-                        </th>
-                        <th className="text-right px-4 py-2 font-medium text-gray-600">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vitalsList.map((vital, i) => (
-                        <tr key={i} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-2 text-gray-700">{vital}</td>
-                          <td className="px-10 py-2 text-right text-gray-400">-</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <ConsultationEmrSections
+                doctorId={selectedPatient?.DoctorId}
+                onSectionsChange={setEmrSectionsData}
+              />
             </>
           )}
         </div>
       </div>
 
-      {renderVitalDrawer && <VitalDrawer isOpen={openVitalDrawer} onClose={closeHandler} />}
       <VitalInsights
         isOpen={showVitalInsights}
         onClose={() => setShowVitalInsights(false)}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { EmrControlsTabName } from "../../constants/constants";
-import DoctorDepartmentHeaderMapping from "../consultationHeaderMaster/components/DoctorDepartmentHeaderMapping";
+import DoctorDepartmentEmrSectionMapping from "./components/DoctorDepartmentEmrSectionMapping";
 import EMRControls from "./components/EMRControls";
 
 const EmrControlsPage = () => {
@@ -12,7 +12,7 @@ const EmrControlsPage = () => {
       return <EMRControls />;
     }
     if (tabName === EmrControlsTabName.DOCTOR_DEPARTMENT_EMR_CONTROLS) {
-      return <DoctorDepartmentHeaderMapping />;
+      return <DoctorDepartmentEmrSectionMapping />;
     }
   };
 

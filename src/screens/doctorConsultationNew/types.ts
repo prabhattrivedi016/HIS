@@ -69,6 +69,16 @@ type AllergySection = {
   records: AllergyRecordEntry[];
 };
 
+/** one answered control within an EMR Section built via the Section Builder (emrControls) */
+type EmrSectionAnswerEntry = {
+  sectionId: number;
+  sectionName: string;
+  headerId: number;
+  headerName: string;
+  controlType: string;
+  value: unknown;
+};
+
 /** who created/last touched this payload, and when — populated from AuthContext at build time */
 type EmrAudit = {
   createdBy: number;
@@ -98,6 +108,7 @@ type EmrConsultationPayload = {
   // ── sections: one optional key per EMR attribute ──
   allergy?: AllergySection;
   vitals?: VitalEntry[];
+  emrSections?: EmrSectionAnswerEntry[];
 
   // future sections — give each a real type when it's actually built;
   // until then it can still be sent as a plain object
@@ -114,10 +125,11 @@ type EmrConsultationPayload = {
 };
 
 export type {
-  PatientItem,
-  VitalEntry,
   AllergyRecordEntry,
   AllergySection,
   EmrAudit,
   EmrConsultationPayload,
+  EmrSectionAnswerEntry,
+  PatientItem,
+  VitalEntry,
 };

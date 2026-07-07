@@ -329,6 +329,19 @@ const ENDPOINTS = {
   GET_DOCTOR_HEADER_MAPPING_FOR_MASTER: "Admin/getDoctorHeaderMappingForMaster",
   SAVE_DOCTOR_HEADER_DEPARTMENT_MAPPING: "Admin/saveDoctorHeaderDepartmentMapping",
 
+  // emr controls — sections built from existing Header Master controls
+  GET_ALL_EMR_SECTIONS: "EMR/getEMRSectionMaster",
+  CREATE_UPDATE_EMR_SECTION: "EMR/createUpdateEMRSectionMaster",
+  GET_EMR_SECTION_HEADER_MAPPING: "EMR/getEMRSectionHeaderMapping",
+
+  // emr controls — mapping EMR Sections to a doctor or department
+  GET_EMR_SECTION_DEPARTMENT_MAPPING: "EMR/getEMRSectionDepartmentMapping",
+  SAVE_EMR_SECTION_DEPARTMENT_MAPPING: "EMR/saveEMRSectionDepartmentMapping",
+
+  // emr controls — score formula per section (e.g. Braden Scale style scored assessments)
+  GET_EMR_SECTION_SCORE_FORMULA: "EMR/getEMRSectionScoreFormula",
+  CREATE_UPDATE_EMR_SECTION_SCORE_FORMULA: "EMR/createUpdateEMRSectionScoreFormula",
+
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
   GET_PATIENT_VITAL: "Patient/getPatientVital",

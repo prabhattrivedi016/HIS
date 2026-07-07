@@ -9,6 +9,7 @@ import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
+import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
@@ -121,4 +122,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "diagnosis-master": <DiagnosisMaster />,
   "procedure-master": <ProcedureMaster />,
   "emr-controls": <EmrControls />,
+  "control-test": <ControlTest />,
 };
