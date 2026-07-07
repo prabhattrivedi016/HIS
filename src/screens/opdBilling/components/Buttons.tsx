@@ -1,5 +1,6 @@
 import { PageType } from "@/constants/constants";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
+import { isDiscountRequestButtonMode } from "../utils/billingUiRules";
 
 const Buttons = ({
   onButtonClick,
@@ -27,8 +28,7 @@ const Buttons = ({
 
   const showDiscountRequest =
     pageType === PageType?.OPD_BILLING &&
-    !isSeparateCollectionCounterEnabled &&
-    isDiscountApprovalRequired;
+    isDiscountRequestButtonMode(isSeparateCollectionCounterEnabled, isDiscountApprovalRequired);
 
   const showSaveButton =
     isSeparateCollectionCounterEnabled === 0 && isDiscountApprovalRequired === 0;
@@ -63,12 +63,17 @@ const Buttons = ({
 
         {showDiscountRequest ? (
           <>
-            <button type="button" className="save-btn" onClick={() => onButtonClick("saveAsDraft")}>
+            <button
+              type="button"
+              className={hasDiscountApplied ? "save-btn" : "disabled-btn cursor-not-allowed"}
+              onClick={() => onButtonClick("saveAsDraft")}
+              disabled={!hasDiscountApplied}
+            >
               Request Discount
             </button>
             <button
               type="button"
-              className={hasDiscountApplied ? "disabled-btn" : "save-btn"}
+              className={hasDiscountApplied ? "disabled-btn cursor-not-allowed" : "save-btn"}
               onClick={() => onButtonClick("save")}
               disabled={hasDiscountApplied}
             >

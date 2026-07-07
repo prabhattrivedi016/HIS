@@ -88,4 +88,55 @@ type OpPaymentListCard = {
   }[];
 };
 
-export type { OPPaymentItem, OpPaymentGridCard, OpPaymentListCard };
+type OPPaymentCollectionPatientDetails = {
+  BookingId: 10;
+  TokenNo: "Admin000021";
+  BranchId: 1;
+  PatientId: 2050;
+  UHID: "GWS/00000040";
+  PatientName: "MR. SHIVAM";
+  Age: "33Y 0M 0D";
+  Gender: "MALE";
+  CorporateId: 1;
+  CorporateName: "CASH";
+  TotalBillAmount: 5000;
+  TotalDiscountAmountOnBill: 500;
+  BillDiscountPercentage: 10;
+  ApprovedPercentage: null;
+  TotalPatientPayableAmount: 4500;
+  StatusId: 1;
+  Status: "Discount Approval Pending";
+  IsDiscountApprovalRequired: 1;
+  IsDiscountApproved: 0;
+  ApprovalFlowId: 2;
+  ApprovalFlow: "Parallel";
+  IsAllApprovalRequired: 0;
+  ApprovalLevelId: 4;
+  ApprovalLevel: "4 Level Approval";
+  Level1ApproverNames: "Rohit   (Rohit), GWT   (GWT)";
+  Level2ApproverNames: "Rohit   (Rohit)";
+  Level3ApproverNames: "GWS   (GWS), Rohit   (Rohit)";
+  Level4ApproverNames: "Rohit   (Rohit), Ajay   (ajay)";
+  IsLevel1Approve: null;
+  Level1ApprovedByName: null;
+  Level1ApproveOn: null;
+  IsLevel2Approve: null;
+  Level2ApprovedByName: null;
+  Level2ApproveOn: null;
+  IsLevel3Approve: null;
+  Level3ApprovedByName: null;
+  Level3ApproveOn: null;
+  IsLevel4Approve: null;
+  Level4ApprovedByName: null;
+  Level4ApproveOn: null;
+  NextApprovalName: "Rohit   (Rohit), GWT   (GWT)";
+  NextApprovalLevel: 1;
+  ApprovalRemarks: "";
+};
+
+export type {
+  OPPaymentCollectionPatientDetails,
+  OpPaymentGridCard,
+  OPPaymentItem,
+  OpPaymentListCard,
+};

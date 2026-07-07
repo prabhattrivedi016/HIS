@@ -168,7 +168,7 @@ const GridView = ({
               <div key={idx} className="px-2 py-1 text-center flex-1 min-w-[90px]">
                 <p className="footer-label">{footer?.label}</p>
                 {/* <p className="footer-value">{footer?.value || "—"}</p> */}
-                <p className="footer-value wrap-break-word">
+                <p className="footer-value truncate">
                   {isDateFormat(String(footer?.value))
                     ? formatDisplayDate(String(footer?.value))
                     : footer?.value || "—"}

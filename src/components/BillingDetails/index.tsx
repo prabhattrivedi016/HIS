@@ -2,6 +2,11 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import {
+  getBookingDiscountPrefillFromDetails,
+  hasBookingDiscountPrefillData,
+} from "@/screens/opdBilling/utils/bookingDiscountPrefill";
+import { shouldShowOpdPaymentMode } from "@/screens/opdBilling/utils/billingUiRules";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
@@ -11,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -34,10 +40,17 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       maxDiscountPercentage,
       creditCopayment = false,
       showPaymentMode = false,
+      hasDiscountApplied = false,
+      bookingDetails = null,
     },
     ref
   ) => {
     const { fetchApi } = useGlobalApi();
+    const bookingDiscountPrefill = useMemo(
+      () => getBookingDiscountPrefillFromDetails(bookingDetails),
+      [bookingDetails]
+    );
+    const isPaymentCollectionPrefill = hasBookingDiscountPrefillData(bookingDiscountPrefill);
     const { rights: branchRights } = useAssignBranchRight();
     const isSeparateCollectionCounterEnabled =
       Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
@@ -80,9 +93,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       },
     ]);
 
-    const shouldShowPaymentMode =
-      showPaymentMode ||
-      (isSeparateCollectionCounterEnabled === 0 && isDiscountApprovalRequired === 0);
+    const shouldShowPaymentMode = shouldShowOpdPaymentMode({
+      showPaymentMode,
+      isSeparateCollectionCounterEnabled,
+      isDiscountApprovalRequired,
+      hasDiscountApplied,
+    });
 
     const getPaymentModeById = (paymentModeId: number | null) =>
       paymentList.find(p => p.paymentModeId === paymentModeId);
@@ -316,8 +332,53 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
     const wasServiceDiscountAppliedRef = useRef(false);
 
+    const roundToTwo = (value: number) => Number(value.toFixed(2));
+
+    const syncToOpdBilling = useCallback(
+      (nextValues: Partial<BillingValuesItem>) => {
+        if (!setOpdBilling) return;
+        setOpdBilling(prev => ({ ...prev, ...nextValues }));
+      },
+      [setOpdBilling]
+    );
+
+    const setBillingState = useCallback(
+      (nextValues: Partial<BillingValuesItem>) => {
+        const sanitized = Object.fromEntries(
+          Object.entries(nextValues).filter(([, value]) => value !== undefined)
+        ) as Partial<BillingValuesItem>;
+
+        if (setBillingValues) {
+          setBillingValues((prev: BillingValuesItem) => ({ ...prev, ...sanitized }));
+        }
+        syncToOpdBilling(sanitized);
+      },
+      [setBillingValues, syncToOpdBilling]
+    );
+
+    const calculateFromAmount = useCallback(
+      (gross: number, discountAmtInput: unknown) => {
+        const normalizedGross = Math.max(0, gross);
+        const discountAmt = roundToTwo(
+          Math.min(normalizedGross, Math.max(0, toNumber(discountAmtInput)))
+        );
+        const discountPer =
+          normalizedGross > 0 ? roundToTwo((discountAmt / normalizedGross) * 100) : 0;
+        const rawNet = normalizedGross - discountAmt;
+        const netAmount = Math.round(rawNet);
+        const roundOff = roundToTwo(netAmount - rawNet);
+
+        return { discountPer, discountAmt, netAmount, roundOff };
+      },
+      []
+    );
+
+    const calculateFromAmountWithRoundOff = calculateFromAmount;
+
     // payment
     useEffect(() => {
+      if (isPaymentCollectionPrefill) return;
+
       if (paymentBilling && Object.keys(paymentBilling).length > 0) {
         const gross = toNumber(paymentBilling.grossBillAmount);
         const discAmt = toNumber(paymentBilling.totalDiscAmtOnBill);
@@ -356,9 +417,30 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           });
         }
       }
-    }, [paymentBilling]);
+    }, [
+      billingValues?.totalDiscAmtOnBill,
+      calculateFromAmountWithRoundOff,
+      isPaymentCollectionPrefill,
+      paymentBilling,
+      setBillingState,
+    ]);
 
-    const roundToTwo = (value: number) => Number(value.toFixed(2));
+    useEffect(() => {
+      if (!isPaymentCollectionPrefill || !bookingDiscountPrefill) return;
+
+      setBillingState({
+        grossBillAmount: Number(bookingDiscountPrefill.grossBillAmount ?? 0),
+        totalDiscPerOnBill: Number(bookingDiscountPrefill.totalDiscPerOnBill ?? 0),
+        totalDiscAmtOnBill: Number(bookingDiscountPrefill.totalDiscAmtOnBill ?? 0),
+        roundOff: Number(bookingDiscountPrefill.roundOff ?? 0),
+        netAmount: Number(bookingDiscountPrefill.netAmount ?? 0),
+        discApprovedById: Number(bookingDiscountPrefill.discApprovedById ?? 0),
+        discApprovedName: String(bookingDiscountPrefill.discApprovedName ?? ""),
+        discountReason: String(bookingDiscountPrefill.discountReason ?? ""),
+        remarks: String(bookingDiscountPrefill.remarks ?? ""),
+      });
+    }, [bookingDiscountPrefill, isPaymentCollectionPrefill, setBillingState]);
+
     const hasAnyDiscount =
       toNumber(billingValues?.totalDiscAmtOnBill) > 0 ||
       toNumber(billingValues?.totalDiscPerOnBill) > 0 ||
@@ -394,18 +476,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       setBillingFieldErrors({});
     };
 
-    const syncToOpdBilling = (nextValues: Partial<BillingValuesItem>) => {
-      if (!setOpdBilling) return;
-      setOpdBilling(prev => ({ ...prev, ...nextValues }));
-    };
-
-    const setBillingState = (nextValues: Partial<BillingValuesItem>) => {
-      if (setBillingValues) {
-        setBillingValues((prev: BillingValuesItem) => ({ ...prev, ...nextValues }));
-      }
-      syncToOpdBilling(nextValues);
-    };
-
     const calculateFromPercentage = (gross: number, discountPerInput: unknown) => {
       const normalizedGross = Math.max(0, gross);
       const discountPer = roundToTwo(Math.min(100, Math.max(0, toNumber(discountPerInput))));
@@ -416,22 +486,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       return { discountPer, discountAmt, netAmount, roundOff };
     };
-
-    const calculateFromAmount = (gross: number, discountAmtInput: unknown) => {
-      const normalizedGross = Math.max(0, gross);
-      const discountAmt = roundToTwo(
-        Math.min(normalizedGross, Math.max(0, toNumber(discountAmtInput)))
-      );
-      const discountPer =
-        normalizedGross > 0 ? roundToTwo((discountAmt / normalizedGross) * 100) : 0;
-      const rawNet = normalizedGross - discountAmt;
-      const netAmount = Math.round(rawNet);
-      const roundOff = roundToTwo(netAmount - rawNet);
-
-      return { discountPer, discountAmt, netAmount, roundOff };
-    };
-
-    const calculateFromAmountWithRoundOff = calculateFromAmount;
 
     // discount approved by
     const getDiscountApprovedBy = async () => {
@@ -449,6 +503,30 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     useEffect(() => {
       getDiscountApprovedBy();
     }, []);
+
+    useEffect(() => {
+      const approvedById = Number(billingValues?.discApprovedById ?? 0);
+      const approvedByName = String(billingValues?.discApprovedName ?? "").trim();
+      if (!approvedById || !approvedByName) return;
+
+      setDiscountApproveList(prev => {
+        if (prev.some(item => Number(item.id) === approvedById)) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          {
+            id: approvedById,
+            name: approvedByName,
+            isActive: 1,
+            discountType: "",
+            branchName: "",
+            firstName: approvedByName,
+          },
+        ];
+      });
+    }, [billingValues?.discApprovedById, billingValues?.discApprovedName]);
 
     // payment methods
     const getPaymentMethod = useCallback(async () => {
@@ -772,136 +850,136 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         </div>
 
         {shouldShowPaymentMode && (
-            <div className="payment details w-full lg:w-1/2">
-              <div className="overflow-x-auto w-full">
-                <div className="table-container">
-                  <div className="table-scroll-wrapper">
-                    <div className="table-size w-full lg:min-h-60 lg:max-h-60">
-                      <table className="base-table w-full">
-                        <thead className="table-head">
-                          <tr>
-                            {BillingPaymentTableHeader.map((h, i) => (
-                              <th key={i} className="table-th">
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
+          <div className="payment details w-full lg:w-1/2">
+            <div className="overflow-x-auto w-full">
+              <div className="table-container">
+                <div className="table-scroll-wrapper">
+                  <div className="table-size w-full lg:min-h-60 lg:max-h-60">
+                    <table className="base-table w-full">
+                      <thead className="table-head">
+                        <tr>
+                          {BillingPaymentTableHeader.map((h, i) => (
+                            <th key={i} className="table-th">
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
 
-                        <tbody>
-                          {rows.map((row, index) => (
-                            <tr key={index}>
-                              <td>
+                      <tbody>
+                        {rows.map((row, index) => (
+                          <tr key={index}>
+                            <td>
+                              <select
+                                className="input-field max-w-40 mt-2 ml-1"
+                                value={row.paymentModeId ?? ""}
+                                onChange={e => handlePaymentChange(index, Number(e.target.value))}
+                              >
+                                <option value="">Select</option>
+
+                                {getAvailablePaymentModes(index).map(p => (
+                                  <option key={p.paymentModeId} value={p.paymentModeId}>
+                                    {p.paymentModeName}
+                                  </option>
+                                ))}
+                              </select>
+                              {!!rowErrors[index]?.paymentModeId && (
+                                <p className="input-field-error">
+                                  {rowErrors[index]?.paymentModeId}
+                                </p>
+                              )}
+                            </td>
+
+                            <td>
+                              <input
+                                className="input-field max-w-30"
+                                placeholder="Amount"
+                                value={row.amount}
+                                onInput={allowOnlyNumbers}
+                                onChange={e =>
+                                  handleRowValueChange(index, "amount", e.target.value)
+                                }
+                              />
+                              {!!rowErrors[index]?.amount && (
+                                <p className="input-field-error">{rowErrors[index]?.amount}</p>
+                              )}
+                            </td>
+
+                            <td>
+                              {isCardMode(row.paymentModeId) ? (
                                 <select
-                                  className="input-field max-w-40 mt-2 ml-1"
-                                  value={row.paymentModeId ?? ""}
-                                  onChange={e => handlePaymentChange(index, Number(e.target.value))}
+                                  className="input-field max-w-30 m-1"
+                                  value={row.bankId ?? ""}
+                                  onChange={e =>
+                                    handleRowValueChange(
+                                      index,
+                                      "bankId",
+                                      Number(e.target.value) || null
+                                    )
+                                  }
                                 >
                                   <option value="">Select</option>
-
-                                  {getAvailablePaymentModes(index).map(p => (
-                                    <option key={p.paymentModeId} value={p.paymentModeId}>
-                                      {p.paymentModeName}
+                                  {bankList.map(bank => (
+                                    <option key={bank.bankId} value={bank.bankId}>
+                                      {bank.bankName}
                                     </option>
                                   ))}
                                 </select>
-                                {!!rowErrors[index]?.paymentModeId && (
-                                  <p className="input-field-error">
-                                    {rowErrors[index]?.paymentModeId}
-                                  </p>
-                                )}
-                              </td>
+                              ) : (
+                                <span>-</span>
+                              )}
+                              {!!rowErrors[index]?.bankId && (
+                                <p className="input-field-error">{rowErrors[index]?.bankId}</p>
+                              )}
+                            </td>
 
-                              <td>
+                            <td>
+                              {!isCashMode(row.paymentModeId) ? (
                                 <input
-                                  className="input-field max-w-30"
-                                  placeholder="Amount"
-                                  value={row.amount}
-                                  onInput={allowOnlyNumbers}
+                                  className="input-field max-w-40 ml-2"
+                                  placeholder="Reference Number "
+                                  value={row.refNo}
                                   onChange={e =>
-                                    handleRowValueChange(index, "amount", e.target.value)
+                                    handleRowValueChange(index, "refNo", e.target.value)
                                   }
                                 />
-                                {!!rowErrors[index]?.amount && (
-                                  <p className="input-field-error">{rowErrors[index]?.amount}</p>
-                                )}
-                              </td>
+                              ) : (
+                                <span>-</span>
+                              )}
+                              {!!rowErrors[index]?.refNo && (
+                                <p className="input-field-error">{rowErrors[index]?.refNo}</p>
+                              )}
+                            </td>
 
-                              <td>
-                                {isCardMode(row.paymentModeId) ? (
-                                  <select
-                                    className="input-field max-w-30 m-1"
-                                    value={row.bankId ?? ""}
-                                    onChange={e =>
-                                      handleRowValueChange(
-                                        index,
-                                        "bankId",
-                                        Number(e.target.value) || null
-                                      )
-                                    }
-                                  >
-                                    <option value="">Select</option>
-                                    {bankList.map(bank => (
-                                      <option key={bank.bankId} value={bank.bankId}>
-                                        {bank.bankName}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <span>-</span>
-                                )}
-                                {!!rowErrors[index]?.bankId && (
-                                  <p className="input-field-error">{rowErrors[index]?.bankId}</p>
-                                )}
-                              </td>
-
-                              <td>
-                                {!isCashMode(row.paymentModeId) ? (
-                                  <input
-                                    className="input-field max-w-40 ml-2"
-                                    placeholder="Reference Number "
-                                    value={row.refNo}
-                                    onChange={e =>
-                                      handleRowValueChange(index, "refNo", e.target.value)
-                                    }
-                                  />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                                {!!rowErrors[index]?.refNo && (
-                                  <p className="input-field-error">{rowErrors[index]?.refNo}</p>
-                                )}
-                              </td>
-
-                              <td className="table-td text-center">
-                                {index > 0 ? (
-                                  <button
-                                    type="button"
-                                    title="Remove payment row"
-                                    onClick={() => handleRemoveRow(index)}
-                                  >
-                                    <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
-                                  </button>
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                            <td className="table-td text-center">
+                              {index > 0 ? (
+                                <button
+                                  type="button"
+                                  title="Remove payment row"
+                                  onClick={() => handleRemoveRow(index)}
+                                >
+                                  <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
+                                </button>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
+                </div>
 
-                  <div className="w-full text-right">
-                    <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
-                      Add Row
-                    </button>
-                  </div>
+                <div className="w-full text-right">
+                  <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
+                    Add Row
+                  </button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     );
   }

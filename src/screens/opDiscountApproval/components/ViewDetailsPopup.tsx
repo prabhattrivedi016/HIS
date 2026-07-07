@@ -5,7 +5,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { OPDiscountApprovalDetail } from "../types";
+import { OPPaymentCollectionPatientDetails } from "../types";
 
 const formatValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "-";
@@ -43,7 +43,7 @@ const ViewDetailsPopup = ({
   item: { BookingId: number; IsDiscountApprovalRequired?: number } | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const [detail, setDetail] = useState<OPDiscountApprovalDetail | null>(null);
+  const [detail, setDetail] = useState<OPPaymentCollectionPatientDetails | null>(null);
 
   useScrollLock(isOpen);
 
@@ -83,11 +83,10 @@ const ViewDetailsPopup = ({
     { label: "Token No", value: detail?.TokenNo },
     { label: "UHID", value: detail?.UHID },
     { label: "Patient Name", value: detail?.PatientName },
-    { label: "Age/Gender", value: detail?.AgeGender },
+    { label: "Age/Gender", value: detail?.Age + " /" + detail?.Gender },
 
     { label: "Corporate", value: detail?.CorporateName },
     { label: "Status", value: detail?.Status },
-    // { label: "Approval Flow", value: detail?.ApprovalFlow },
   ];
 
   const billingDetails = [
@@ -95,9 +94,10 @@ const ViewDetailsPopup = ({
     { label: "Bill Discount (%)", value: detail?.BillDiscountPercentage },
     { label: "Total Discount Amount", value: detail?.TotalDiscountAmountOnBill },
     { label: "Total Payable Amount", value: detail?.TotalPatientPayableAmount },
-
-    // { label: "Approved Discount (%)", value: detail?.ApprovedPercentage },
-    // { label: "Approval Level", value: detail?.ApprovalLevel },
+    { label: "Discount Approved Name", value: detail?.DiscountApprovedName },
+    { label: "Discount Reason", value: detail?.DiscountReason },
+    { label: "Remark", value: detail?.Remark },
+    // { label: "Approved Discount (%)", value: detail?.ApprovedPercentage ?? 0 },
     // { label: "Approval Remarks", value: detail?.ApprovalRemarks },
   ];
 
@@ -147,7 +147,7 @@ const ViewDetailsPopup = ({
         }`}
       >
         <div className="popup-header min-w-0">
-          <h2 className="popup-helper-text truncate">Patient Booking Discount Details</h2>
+          <h2 className="popup-helper-text truncate">Patient Booking Details</h2>
 
           <button type="button" onClick={onClose} className="close-drawer-btn shrink-0 ml-3">
             ×
@@ -167,30 +167,6 @@ const ViewDetailsPopup = ({
           </div>
         </div>
 
-        {/* billing / discount details table */}
-        {/* <div className="table-container mb-1">
-          <div className="table-scroll-wrapper">
-            <div className="table-size">
-              <table className="base-table w-full">
-                <thead className="table-head">
-                  <tr>
-                    <th className="table-th">Description</th>
-                    <th className="table-th">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {billingDetails.map(billingDetail => (
-                    <tr key={billingDetail.label} className="table-row">
-                      <td className="table-td">{billingDetail.label}</td>
-                      <td className="table-td">{formatValue(billingDetail.value)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div> */}
-
         <div className="card w-full mb-1">
           <h3 className="card-header text-lg font-semibold italic">Billing Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
@@ -205,50 +181,83 @@ const ViewDetailsPopup = ({
 
         {/* approval levels table */}
         {showApprovalTable && (
-          <div className="table-container">
-            <div className="table-scroll-wrapper">
-              <div className="table-size">
-                <table className="base-table w-full">
-                  <thead className="table-head">
-                    <tr>
-                      {OpDiscountApprovalLevelTableHeader.map((h: string, index: number) => (
-                        <th key={index} className="table-th ">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {approvalLevels.length === 0 && (
+          <div className="card w-full mb-1">
+            <h3 className="card-header text-lg font-semibold italic">Approval Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 mb-1">
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">Approval Level :</span>
+                <span className="truncate">{formatValue(detail?.ApprovalLevel)}</span>
+              </div>
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">All Approval Reqired :</span>
+                <span className="truncate">
+                  {formatValue(detail?.IsAllApprovalRequired === 1 ? "Yes" : "No")}
+                </span>
+              </div>
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">Approval Flow :</span>
+                <span className="truncate">{formatValue(detail?.ApprovalFlow)}</span>
+              </div>
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">Approved Discount (%) :</span>
+                <span className="truncate">{formatValue(detail?.ApprovedPercentage ?? 0)}</span>
+              </div>
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">Approval Remarks :</span>
+                <span className="truncate">{formatValue(detail?.ApprovalRemarks)}</span>
+              </div>
+              <div className="flex flex-row gap-1">
+                <span className="name-header whitespace-nowrap">Approval Status :</span>
+                <span className="truncate">
+                  {formatValue(detail?.IsDiscountApproved === 1 ? "Yes" : "No")}
+                </span>
+              </div>
+            </div>
+            <div className="table-container">
+              <div className="table-scroll-wrapper">
+                <div className="table-size">
+                  <table className="base-table w-full">
+                    <thead className="table-head">
                       <tr>
-                        <td
-                          colSpan={OpDiscountApprovalLevelTableHeader.length}
-                          className="table-empty"
-                        >
-                          No data found
-                        </td>
+                        {OpDiscountApprovalLevelTableHeader.map((h: string, index: number) => (
+                          <th key={index} className="table-th ">
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    )}
+                    </thead>
+                    <tbody>
+                      {approvalLevels.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={OpDiscountApprovalLevelTableHeader.length}
+                            className="table-empty"
+                          >
+                            No data found
+                          </td>
+                        </tr>
+                      )}
 
-                    {approvalLevels.map(level => (
-                      <tr key={level.level} className="table-row">
-                        <td className="table-td">{level.level}</td>
-                        <td className="table-td">
-                          <ApproverNamesCell value={level.approverNames} />
-                        </td>
-                        <td
-                          className={`table-td ${
-                            Number(level.isApprove) === 1 ? "active-text" : "inactive-text"
-                          }`}
-                        >
-                          {Number(level.isApprove) === 1 ? "Yes" : "No"}
-                        </td>
-                        <td className="table-td">{formatValue(level.approvedBy)}</td>
-                        <td className="table-td">{formatValue(level.approvedOn)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      {approvalLevels.map(level => (
+                        <tr key={level.level} className="table-row">
+                          <td className="table-td">{level.level}</td>
+                          <td className="table-td">
+                            <ApproverNamesCell value={level.approverNames} />
+                          </td>
+                          <td
+                            className={`table-td ${
+                              Number(level.isApprove) === 1 ? "active-text" : "inactive-text"
+                            }`}
+                          >
+                            {Number(level.isApprove) === 1 ? "Yes" : "No"}
+                          </td>
+                          <td className="table-td">{formatValue(level.approvedBy)}</td>
+                          <td className="table-td">{formatValue(level.approvedOn)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

@@ -413,6 +413,7 @@ const OPPaymentCollection = () => {
               <button
                 type="button"
                 aria-disabled={isCollectPaymentButtonDisabled(item)}
+                disabled={isCollectPaymentButtonDisabled(item)}
                 className={`w-full text-left px-3 py-2 text-gray-700 ${
                   isCollectPaymentButtonDisabled(item)
                     ? "opacity-60 cursor-not-allowed"

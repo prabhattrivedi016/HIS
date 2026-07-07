@@ -90,6 +90,8 @@ import {
   SubCategoryItem,
   SubSubCategoryItem,
 } from "./types";
+import { isDiscountRequestButtonMode } from "./utils/billingUiRules";
+import { getBookingDiscountPrefillFromDetails } from "./utils/bookingDiscountPrefill";
 
 const parseDepartmentIds = (value?: string) =>
   (value ?? "")
@@ -315,6 +317,10 @@ const OpdBilling = () => {
     Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
   const isSeparateCollectionCounterEnabled =
     Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
+  const isDiscountRequestMode = isDiscountRequestButtonMode(
+    isSeparateCollectionCounterEnabled,
+    isDiscountApprovalRequired
+  );
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -752,32 +758,6 @@ const OpdBilling = () => {
     };
   };
 
-  const fetchServiceDetailsForRow = useCallback(
-    async (row: ServiceBindingItem, doctorId: number) => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
-        {},
-        {
-          params: {
-            branchId,
-            corporateId: selectedCorporate?.value ?? row.corporateId,
-            doctorId,
-            serviceItemId: row.serviceItemId,
-            categoryId: row.categoryId,
-            subCategoryId: row.subCategoryId,
-            subSubCategoryId: row.subSubCategoryId,
-            bedTypeId: 0,
-          },
-        },
-        { component: "OpdBilling", silent: true }
-      );
-
-      return resp?.data;
-    },
-    [branchId, selectedCorporate?.value]
-  );
-
   const resolveRateListIdForRow = useCallback(
     (row: ServiceBindingItem): number => {
       const rowRateListId = resolveRateListIdFromApiData(row);
@@ -844,7 +824,7 @@ const OpdBilling = () => {
     [performingDoctorsCache]
   );
 
-  const performingDoctorChangeHandler = async (rowIndex: number, doctorId: number) => {
+  const performingDoctorChangeHandler = (rowIndex: number, doctorId: number) => {
     const row = serviceDataTableItem[rowIndex];
     if (!row) {
       return;
@@ -853,7 +833,7 @@ const OpdBilling = () => {
     if (!doctorId) {
       updateServiceTableItem(prev =>
         prev.map((item, index) =>
-          index === rowIndex ? { ...item, doctorId: 0, doctorName: "", rateListId: 0 } : item
+          index === rowIndex ? { ...item, doctorId: 0, doctorName: "" } : item
         )
       );
       setServiceValidationError("");
@@ -862,33 +842,18 @@ const OpdBilling = () => {
 
     const options = getPerformingDoctorOptions(row?.doctorDepartmentIds);
     const selected = options.find(option => Number(option.value) === doctorId);
-    const existingRemarks = resolveServiceRemarks(row, row.serviceItemId);
-    const apiData = await fetchServiceDetailsForRow(row, doctorId);
-    const updatedRow = buildServiceRowFromApi(apiData, {
-      doctorId,
-      doctorName: selected?.label ?? "",
-      remarks: existingRemarks,
-    });
-    const mergedRow = recalculateFromDiscountPercentage(
-      {
-        ...row,
-        ...updatedRow,
-        qty: row.qty ?? updatedRow.qty ?? 1,
-        remarks: existingRemarks,
-      },
-      Number(row.discountPer ?? 0),
-      Number(updatedRow.rate ?? row.rate ?? 0)
-    );
-    mergedRow.rateListId = resolveRateListIdForRow(mergedRow);
-    if (existingRemarks && row.serviceItemId) {
-      serviceItemRemarksRef.current[row.serviceItemId] = existingRemarks;
-    }
 
-    updateServiceTableItem(prev => {
-      const updated = prev.map((item, index) => (index === rowIndex ? mergedRow : item));
-      setTimeout(() => calculateAndUpdateBillingDetails(updated), 0);
-      return updated;
-    });
+    updateServiceTableItem(prev =>
+      prev.map((item, index) =>
+        index === rowIndex
+          ? {
+              ...item,
+              doctorId,
+              doctorName: selected?.label ?? "",
+            }
+          : item
+      )
+    );
     setServiceValidationError("");
   };
 
@@ -1300,6 +1265,28 @@ const OpdBilling = () => {
     remarks: "",
   });
 
+  const applyBookingDiscountPrefill = useCallback((prefill: Partial<BillingValuesItem>) => {
+    setBillingValues(prev => ({ ...prev, ...prefill }));
+    setOpdBillingFormData(prev => ({
+      ...prev,
+      grossBillAmount: Number(prefill.grossBillAmount ?? prev.grossBillAmount ?? 0),
+      totalDiscPerOnBill: Number(prefill.totalDiscPerOnBill ?? prev.totalDiscPerOnBill ?? 0),
+      totalDiscAmtOnBill: Number(prefill.totalDiscAmtOnBill ?? prev.totalDiscAmtOnBill ?? 0),
+      roundOff: Number(prefill.roundOff ?? prev.roundOff ?? 0),
+      netAmount: Number(prefill.netAmount ?? prev.netAmount ?? 0),
+      discApprovedById: Number(prefill.discApprovedById ?? prev.discApprovedById ?? 0),
+      discountReason: String(prefill.discountReason ?? prev.discountReason ?? ""),
+      remarks: String(prefill.remarks ?? prev.remarks ?? ""),
+    }));
+    setTotalBillingAmount(Number(prefill.netAmount ?? 0));
+    setBillingPaymentDetails({
+      grossBillAmount: Number(prefill.grossBillAmount ?? 0),
+      totalDiscPerOnBill: Number(prefill.totalDiscPerOnBill ?? 0),
+      totalDiscAmtOnBill: Number(prefill.totalDiscAmtOnBill ?? 0),
+      netAmount: Number(prefill.netAmount ?? 0),
+    });
+  }, []);
+
   // payment paid amount
   useEffect(() => {
     const paidAmountFromAPI = paymentModeList?.reduce((acc, cur) => acc + Number(cur?.Amount), 0);
@@ -1668,6 +1655,8 @@ const OpdBilling = () => {
           0
       );
 
+      const discountPrefill = getBookingDiscountPrefillFromDetails(bookingDetails);
+
       setOpdBillingFormData(prev => ({
         ...prev,
         corporateId,
@@ -1678,6 +1667,9 @@ const OpdBilling = () => {
         totalDiscAmtOnBill,
         roundOff,
         netAmount,
+        discApprovedById: Number(discountPrefill?.discApprovedById ?? 0),
+        discountReason: String(discountPrefill?.discountReason ?? ""),
+        remarks: String(discountPrefill?.remarks ?? ""),
         policyNo: String(pickBookingValue(bookingRecord, "policyNo", "PolicyNo") ?? ""),
         policyCardNo: String(pickBookingValue(bookingRecord, "policyCardNo", "PolicyCardNo") ?? ""),
         expiryDate: String(pickBookingValue(bookingRecord, "expiryDate", "ExpiryDate") ?? ""),
@@ -1686,14 +1678,9 @@ const OpdBilling = () => {
         referalDate: String(pickBookingValue(bookingRecord, "referalDate", "ReferalDate") ?? ""),
       }));
 
-      setBillingValues(prev => ({
-        ...prev,
-        grossBillAmount,
-        totalDiscPerOnBill,
-        totalDiscAmtOnBill,
-        roundOff,
-        netAmount,
-      }));
+      if (discountPrefill) {
+        applyBookingDiscountPrefill(discountPrefill);
+      }
 
       const doctorId = Number(doctorOption?.value ?? bookingDoctorId ?? 0);
       const doctorName = String(doctorOption?.label ?? "");
@@ -1774,6 +1761,11 @@ const OpdBilling = () => {
       );
 
       updateServiceTableItem(serviceRows);
+
+      if (discountPrefill) {
+        applyBookingDiscountPrefill(discountPrefill);
+      }
+
       setActiveTab(OPDBillingTabName.OPD_BILLING);
       paymentCollectionInitRef.current = true;
     } catch (error) {
@@ -1789,6 +1781,7 @@ const OpdBilling = () => {
     loadPerformingDoctorsForDepartments,
     resolveRateListIdForRow,
     updateServiceTableItem,
+    applyBookingDiscountPrefill,
   ]);
 
   useEffect(() => {
@@ -2098,6 +2091,8 @@ const OpdBilling = () => {
     if (filterItem) {
       showWarning("Service is already added, Please select another service");
       setShowDuplicateError("Service is already added, Please select another service");
+      setSearchTerm("");
+      setTimeout(() => serviceInputRef.current?.focus(), 0);
       return;
     }
 
@@ -2110,7 +2105,11 @@ const OpdBilling = () => {
     }
     SetServiceDataTableItem(updatedServices);
     setSearchTerm("");
-    setTimeout(() => calculateAndUpdateBillingDetails(updatedServices), 0);
+    setActiveServiceIndex(0);
+    setTimeout(() => {
+      calculateAndUpdateBillingDetails(updatedServices);
+      serviceInputRef.current?.focus();
+    }, 0);
   };
 
   // category
@@ -2191,71 +2190,87 @@ const OpdBilling = () => {
   };
 
   // Calculate and update billing details from service items
-  const calculateAndUpdateBillingDetails = (items: ServiceBindingItem[]) => {
-    if (!items || items.length === 0) {
-      // Reset billing details if no services
+  const calculateAndUpdateBillingDetails = useCallback(
+    (items: ServiceBindingItem[]) => {
+      if (!items || items.length === 0) {
+        if (isPaymentCollectionMode && bookingDetails) {
+          return;
+        }
+
+        // Reset billing details if no services
+        setOpdBillingFormData(prev => ({
+          ...prev,
+          grossBillAmount: 0,
+          totalDiscPerOnBill: 0,
+          totalDiscAmtOnBill: 0,
+          netAmount: 0,
+          roundOff: 0,
+        }));
+        setTotalBillingAmount(0);
+        setBillingPaymentDetails({});
+        return;
+      }
+
+      if (isPaymentCollectionMode && bookingDetails) {
+        const discountPrefill = getBookingDiscountPrefillFromDetails(bookingDetails);
+        if (discountPrefill) {
+          applyBookingDiscountPrefill(discountPrefill);
+          return;
+        }
+      }
+
+      // Calculate total gross amount from all services
+      let totalGrossAmount = 0;
+      let totalDiscountAmount = 0;
+
+      items.forEach(item => {
+        const qty = Number((item as { qty?: number | string | null })?.qty) || 1;
+        const rate = Number(item?.rate) || 0;
+        const grossAmt = rate * qty;
+
+        // Get discount amount
+        const dis = Number((item as { dis?: number | string | null })?.dis) || 0;
+        const discPer =
+          Number((item as { discountPer?: number | string | null })?.discountPer) || 0;
+        const discountAmt = dis > 0 ? dis : (grossAmt * discPer) / 100;
+
+        totalGrossAmount += grossAmt;
+        totalDiscountAmount += discountAmt;
+      });
+
+      // Calculate net amount
+      const netAmount = totalGrossAmount - totalDiscountAmount;
+      const roundOff = Math.round(netAmount) - netAmount;
+      const finalNetAmount = Math.round(netAmount);
+
+      setTotalBillingAmount(finalNetAmount);
+
+      // Update billing form data with calculated values
       setOpdBillingFormData(prev => ({
         ...prev,
-        grossBillAmount: 0,
-        totalDiscPerOnBill: 0,
-        totalDiscAmtOnBill: 0,
-        netAmount: 0,
-        roundOff: 0,
+        grossBillAmount: Number(totalGrossAmount.toFixed(2)),
+        totalDiscAmtOnBill: Number(totalDiscountAmount.toFixed(2)),
+        totalDiscPerOnBill:
+          totalGrossAmount > 0
+            ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
+            : 0,
+        roundOff: Number(roundOff.toFixed(2)),
+        netAmount: Number(finalNetAmount.toFixed(2)),
       }));
-      setTotalBillingAmount(0);
-      setBillingPaymentDetails({});
-      return;
-    }
 
-    // Calculate total gross amount from all services
-    let totalGrossAmount = 0;
-    let totalDiscountAmount = 0;
-
-    items.forEach(item => {
-      const qty = Number((item as { qty?: number | string | null })?.qty) || 1;
-      const rate = Number(item?.rate) || 0;
-      const grossAmt = rate * qty;
-
-      // Get discount amount
-      const dis = Number((item as { dis?: number | string | null })?.dis) || 0;
-      const discPer = Number((item as { discountPer?: number | string | null })?.discountPer) || 0;
-      const discountAmt = dis > 0 ? dis : (grossAmt * discPer) / 100;
-
-      totalGrossAmount += grossAmt;
-      totalDiscountAmount += discountAmt;
-    });
-
-    // Calculate net amount
-    const netAmount = totalGrossAmount - totalDiscountAmount;
-    const roundOff = Math.round(netAmount) - netAmount;
-    const finalNetAmount = Math.round(netAmount);
-
-    setTotalBillingAmount(finalNetAmount);
-
-    // Update billing form data with calculated values
-    setOpdBillingFormData(prev => ({
-      ...prev,
-      grossBillAmount: Number(totalGrossAmount.toFixed(2)),
-      totalDiscAmtOnBill: Number(totalDiscountAmount.toFixed(2)),
-      totalDiscPerOnBill:
-        totalGrossAmount > 0
-          ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
-          : 0,
-      roundOff: Number(roundOff.toFixed(2)),
-      netAmount: Number(finalNetAmount.toFixed(2)),
-    }));
-
-    const details = {
-      grossBillAmount: totalGrossAmount,
-      totalDiscAmtOnBill: totalDiscountAmount,
-      totalDiscPerOnBill:
-        totalGrossAmount > 0
-          ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
-          : 0,
-      netAmount: finalNetAmount,
-    };
-    setBillingPaymentDetails(details);
-  };
+      const details = {
+        grossBillAmount: totalGrossAmount,
+        totalDiscAmtOnBill: totalDiscountAmount,
+        totalDiscPerOnBill:
+          totalGrossAmount > 0
+            ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
+            : 0,
+        netAmount: finalNetAmount,
+      };
+      setBillingPaymentDetails(details);
+    },
+    [applyBookingDiscountPrefill, bookingDetails, isPaymentCollectionMode]
+  );
 
   // Recalculate billing when service items change
   useEffect(() => {
@@ -2264,7 +2279,7 @@ const OpdBilling = () => {
     } else {
       calculateAndUpdateBillingDetails([]);
     }
-  }, [serviceDataTableItem]);
+  }, [calculateAndUpdateBillingDetails, serviceDataTableItem]);
 
   // rate and discount calculation
   const isPackageService = (serviceName: unknown) =>
@@ -2382,12 +2397,14 @@ const OpdBilling = () => {
   // refer doctor popup handler
   const referDoctorPopUpHandler = () => {
     setRenderReferDoctorPopup(true);
-    setOpenReferDoctorPopup(true);
+    setTimeout(() => setOpenReferDoctorPopup(true), 0);
   };
 
   const closeReferDoctorHandler = useCallback(() => {
     setOpenReferDoctorPopup(false);
-    setRenderReferDoctorPopup(false);
+    setTimeout(() => {
+      setRenderReferDoctorPopup(false);
+    }, 300);
   }, []);
 
   // Reset form to initial state
@@ -2756,6 +2773,11 @@ const OpdBilling = () => {
     }
 
     if (value === "save") {
+      if (isDiscountRequestMode && hasBillingDiscount()) {
+        showWarning("Save is not allowed when discount is applied. Please use Request Discount.");
+        return;
+      }
+
       const isValid = await patientDataRef.current?.validateForm();
 
       if (!isValid) {
@@ -2774,6 +2796,11 @@ const OpdBilling = () => {
     }
 
     if (value === "saveAsDraft") {
+      if (isDiscountRequestMode && !hasBillingDiscount()) {
+        showWarning("Please apply a discount before requesting discount approval.");
+        return;
+      }
+
       const isValid = await patientDataRef.current?.validateForm();
 
       if (!isValid) {
@@ -3108,6 +3135,8 @@ const OpdBilling = () => {
     maxDiscountPercentage: data,
     creditCopayment,
     showPaymentMode: isPaymentCollectionMode,
+    hasDiscountApplied: hasBillingDiscount(),
+    bookingDetails: isPaymentCollectionMode ? (bookingDetails ?? null) : null,
   };
 
   return (

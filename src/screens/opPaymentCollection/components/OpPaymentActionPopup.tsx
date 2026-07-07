@@ -70,6 +70,7 @@ const OpPaymentActionPopup = ({
         <button
           type="button"
           aria-disabled={collectDisabled}
+          disabled={collectDisabled}
           className={`data-download-popup-btn ${collectDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={() => {
             handleCollectPaymentButtonClick(item, selected => {

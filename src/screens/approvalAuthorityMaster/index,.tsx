@@ -87,6 +87,9 @@ const ApprovalAuthorityMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
   const queryClient = useQueryClient();
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
+  const [selectedSequential, setSelectedSequential] = useState<SingleValue<OptionItem> | null>(
+    APPROVAL_FLOW_OPTIONS[0]
+  );
 
   const approvalTypeList = usePickMaster("AuthorityApprovalType")?.pickMasterValue ?? [];
   const authorityApprovalLevelList = usePickMaster("AuthorityApprovalLevel")?.pickMasterValue ?? [];
@@ -131,6 +134,8 @@ const ApprovalAuthorityMaster = () => {
 
   const watchedApprovalTypeId = Number(watch("approvalTypeId") ?? 0);
   const watchedAmountUpTo = watch("amountUpTo");
+  const watchedApprovalFlowId = Number(watch("approvalFlowId") ?? 1);
+  const isSequentialFlow = watchedApprovalFlowId === 1;
   const isEdit = Boolean(watch("id"));
   const buttonTitle = isEdit ? "Update" : "Create";
   const showAmountUpTo = AMOUNT_REQUIRED_APPROVAL_TYPE_IDS.includes(watchedApprovalTypeId);
@@ -322,12 +327,18 @@ const ApprovalAuthorityMaster = () => {
   const approvalFlowSelectHandler = (option: SingleValue<OptionItem>) => {
     if (!option) return;
     setSelectedApprovalFlow(option);
-    setValue("approvalFlowId", Number(option.value ?? 0), {
+    const flowId = Number(option.value ?? 0);
+    setValue("approvalFlowId", flowId, {
       shouldValidate: true,
       shouldDirty: true,
     });
     setValue("approvalFlow", option.label ?? "", { shouldDirty: true });
     clearErrors("approvalFlowId");
+
+    if (flowId === 1) {
+      setValue("isAllApprovalRequired", 1, { shouldValidate: true, shouldDirty: true });
+      clearErrors("isAllApprovalRequired");
+    }
   };
 
   const levelUserSelectHandler = (level: 1 | 2 | 3 | 4, options: MultiValue<SelectItem>) => {
@@ -367,7 +378,7 @@ const ApprovalAuthorityMaster = () => {
       branchId,
       id: Number(formData.id ?? 0),
       approvalFlowId: Number(formData.approvalFlowId),
-      isAllApprovalRequired: Number(formData.isAllApprovalRequired),
+      isAllApprovalRequired: isSequentialFlow ? 1 : Number(formData.isAllApprovalRequired),
       approvalTypeId: Number(formData.approvalTypeId),
       roleId: Number(formData.roleId ?? 0),
       approvalLevelId: Number(formData.approvalLevelId),
@@ -463,6 +474,12 @@ const ApprovalAuthorityMaster = () => {
     await invalidateAuthorityList();
   };
 
+  const renderUsers = (users?: string | null) => {
+    if (!users) return "-";
+
+    return users.split(",").map((user, index) => <div key={index}>{user.trim()}</div>);
+  };
+
   return (
     <div className="page-container">
       <h1 className="page-heading">Authority Approval Master</h1>
@@ -508,6 +525,47 @@ const ApprovalAuthorityMaster = () => {
                 menuPosition="fixed"
               />
               {errors.roleId && <p className="input-field-error">{errors.roleId.message}</p>}
+            </InputField>
+
+            <InputField label="Approval Flow" required>
+              <Select<OptionItem, false>
+                value={selectedApprovalFlow}
+                options={APPROVAL_FLOW_OPTIONS}
+                placeholder="Select approval flow"
+                isSearchable
+                isClearable={false}
+                onChange={approvalFlowSelectHandler}
+                styles={SelectStyles as StylesConfig<OptionItem, false>}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+              {errors.approvalFlowId && (
+                <p className="input-field-error">{errors.approvalFlowId.message}</p>
+              )}
+            </InputField>
+
+            <InputField label="All Approvals Required" required>
+              <select
+                className={
+                  isSequentialFlow ? "disabled-input-field cursor-not-allowed" : "input-field"
+                }
+                disabled={isSequentialFlow}
+                {...register("isAllApprovalRequired")}
+              >
+                <option value={1}>Yes</option>
+                <option value={0}>No</option>
+              </select>
+              {errors.isAllApprovalRequired && (
+                <p className="input-field-error">{errors.isAllApprovalRequired.message}</p>
+              )}
+            </InputField>
+
+            <InputField label="Status" required>
+              <select className="input-field" {...register("isActive")}>
+                <option value={1}>Active</option>
+                <option value={0}>Inactive</option>
+              </select>
+              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
 
             <InputField label="Approval Level" required>
@@ -619,33 +677,6 @@ const ApprovalAuthorityMaster = () => {
               </InputField>
             )}
 
-            <InputField label="Approval Flow" required>
-              <Select<OptionItem, false>
-                value={selectedApprovalFlow}
-                options={APPROVAL_FLOW_OPTIONS}
-                placeholder="Select approval flow"
-                isSearchable
-                isClearable={false}
-                onChange={approvalFlowSelectHandler}
-                styles={SelectStyles as StylesConfig<OptionItem, false>}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-              {errors.approvalFlowId && (
-                <p className="input-field-error">{errors.approvalFlowId.message}</p>
-              )}
-            </InputField>
-
-            <InputField label="Is All Approval Required" required>
-              <select className="input-field" {...register("isAllApprovalRequired")}>
-                <option value={1}>Yes</option>
-                <option value={0}>No</option>
-              </select>
-              {errors.isAllApprovalRequired && (
-                <p className="input-field-error">{errors.isAllApprovalRequired.message}</p>
-              )}
-            </InputField>
-
             {showAmountUpTo && (
               <InputField label="Amount up to" required>
                 <input
@@ -663,14 +694,6 @@ const ApprovalAuthorityMaster = () => {
                 )}
               </InputField>
             )}
-
-            <InputField label="Status" required>
-              <select className="input-field" {...register("isActive")}>
-                <option value={1}>Active</option>
-                <option value={0}>Inactive</option>
-              </select>
-              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
-            </InputField>
           </div>
 
           <div className="form-actions-responsive mt-5">
@@ -715,10 +738,10 @@ const ApprovalAuthorityMaster = () => {
                         <td className="table-td">{idx + 1}</td>
                         <td className="table-td">{item?.ApprovalType ?? "-"}</td>
                         <td className="table-td">{item?.RoleName ?? "-"}</td>
-                        <td className="table-td">{item?.Level1UserName ?? "-"}</td>
-                        <td className="table-td">{item?.Level2UserName ?? "-"}</td>
-                        <td className="table-td">{item?.Level3UserName ?? "-"}</td>
-                        <td className="table-td">{item?.Level4UserName ?? "-"}</td>
+                        <td className="table-td">{renderUsers(item?.Level1UserName)}</td>
+                        <td className="table-td">{renderUsers(item?.Level2UserName)}</td>
+                        <td className="table-td">{renderUsers(item?.Level3UserName)}</td>
+                        <td className="table-td">{renderUsers(item?.Level4UserName)}</td>
                         <td className="table-td">{item?.ApprovalFlow ?? "-"}</td>
 
                         <td
