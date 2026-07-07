@@ -460,6 +460,14 @@ type OpdBookingDetailsResponse = {
   referalNo?: string | null;
   ReferalDate?: string | null;
   referalDate?: string | null;
+  DiscountApprovedID?: number | null;
+  discountApprovedID?: number | null;
+  DiscountApprovedName?: string | null;
+  discountApprovedName?: string | null;
+  DiscountReason?: string | null;
+  discountReason?: string | null;
+  Remark?: string | null;
+  remark?: string | null;
   bookingItems?: OpdBookingItemResponse[];
   BookingItems?: OpdBookingItemResponse[];
 };
@@ -685,6 +693,8 @@ type OpdBillingSectionProps = {
   creditCopayment: boolean;
   isSeparateCollectionCounterEnabled: number;
   showPaymentMode?: boolean;
+  hasDiscountApplied?: boolean;
+  bookingDetails?: OpdBookingDetailsResponse | null;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,

@@ -147,4 +147,60 @@ type OpDiscountListCard = {
   }[];
 };
 
-export type { OPDiscountApprovalDetail, OpDiscountGridCard, OPDiscountItem, OpDiscountListCard };
+type OPPaymentCollectionPatientDetails = {
+  BookingId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  CorporateId: number;
+  CorporateName: string;
+  TotalBillAmount: number;
+  TotalDiscountAmountOnBill: number;
+  BillDiscountPercentage: number;
+  ApprovedPercentage: number | null;
+  TotalPatientPayableAmount: number;
+  StatusId: number;
+  Status: string;
+  IsDiscountApprovalRequired: number;
+  IsDiscountApproved: number;
+  ApprovalFlowId: number;
+  ApprovalFlow: string;
+  IsAllApprovalRequired: number;
+  ApprovalLevelId: number;
+  ApprovalLevel: string;
+  Level1ApproverNames: string;
+  Level2ApproverNames: string;
+  Level3ApproverNames: string | null;
+  Level4ApproverNames: string | null;
+  IsLevel1Approve: number | null;
+  Level1ApprovedByName: string | null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: number | null;
+  Level2ApprovedByName: string | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApprovedByName: string | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApprovedByName: string | null;
+  Level4ApproveOn: string | null;
+  NextApprovalName: string;
+  NextApprovalLevel: number;
+  ApprovalRemarks: string;
+  DiscountApprovedID: number;
+  DiscountApprovedName: string;
+  DiscountReason: string;
+  Remark: string;
+};
+
+export type {
+  OPDiscountApprovalDetail,
+  OpDiscountGridCard,
+  OPDiscountItem,
+  OpDiscountListCard,
+  OPPaymentCollectionPatientDetails,
+};

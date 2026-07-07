@@ -78,6 +78,8 @@ const OpdBillingSection = ({
   maxDiscountPercentage,
   creditCopayment,
   showPaymentMode = false,
+  hasDiscountApplied = false,
+  bookingDetails = null,
 }: OpdBillingSectionProps) => {
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
 
@@ -543,6 +545,8 @@ const OpdBillingSection = ({
           maxDiscountPercentage={maxDiscountPercentage}
           creditCopayment={creditCopayment}
           showPaymentMode={showPaymentMode}
+          hasDiscountApplied={hasDiscountApplied}
+          bookingDetails={bookingDetails}
         />
       </div>
     </div>

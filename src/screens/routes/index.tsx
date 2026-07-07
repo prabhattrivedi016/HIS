@@ -38,6 +38,7 @@ import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OPPaymentCollection from "../opPaymentCollection";
+import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
 import RateListMaster from "../rateListMaster";
@@ -119,4 +120,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-payment-collection": <OPPaymentCollection />,
   "diagnosis-master": <DiagnosisMaster />,
   "procedure-master": <ProcedureMaster />,
+  "patient-advance": <PatientAdvance />,
 };

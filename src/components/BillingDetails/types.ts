@@ -1,4 +1,4 @@
-import type { OpdBillingFormData } from "@/screens/opdBilling/types";
+import type { OpdBillingFormData, OpdBookingDetailsResponse } from "@/screens/opdBilling/types";
 import type { Dispatch, SetStateAction } from "react";
 
 type BankItems = {
@@ -100,6 +100,8 @@ type BillingDetailsProps = {
   maxDiscountPercentage?: number;
   creditCopayment?: boolean;
   showPaymentMode?: boolean;
+  hasDiscountApplied?: boolean;
+  bookingDetails?: OpdBookingDetailsResponse | null;
 };
 
 export type {
