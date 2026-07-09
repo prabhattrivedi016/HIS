@@ -1,9 +1,17 @@
 import BillingDetails from "@/components/BillingDetails";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
+import { ENDPOINTS } from "@/config/defaults";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
+import {
+  getDefaultAdvanceLedgerDetails,
+  normalizeAdvanceLedgerDetails,
+} from "../../patientAdvance/utils/patientAdvanceUtils";
 import { useEffect, useState } from "react";
 import Select, { StylesConfig } from "react-select";
 import { InsuranceItem } from "../../branchMaster/types";
@@ -17,6 +25,7 @@ import {
 import { sanitizeQtyDraft } from "./helperFunction";
 
 const OpdBillingSection = ({
+  patientId,
   formResetKey,
   billingDetailsRef,
   insuranceList,
@@ -80,12 +89,22 @@ const OpdBillingSection = ({
   showPaymentMode = false,
   hasDiscountApplied = false,
   bookingDetails = null,
+  isPaymentCollectionMode = false,
 }: OpdBillingSectionProps) => {
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
+
+  const { loading, fetchApi } = useGlobalApi();
+  const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
+  const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
 
   useEffect(() => {
     setQtyDrafts({});
   }, [formResetKey, serviceDataTableItem.length]);
+
+  useEffect(() => {
+    setPatientAdvanceChecked(false);
+    setPatientAdvanceAmount(0);
+  }, [formResetKey]);
 
   const getQtyDisplayValue = (rowIndex: number, item: ServiceBindingItem, isQtyFixed: boolean) => {
     if (isQtyFixed) return "1";
@@ -115,6 +134,38 @@ const OpdBillingSection = ({
     });
 
     qtyChangeHandler(rowIndex, rawDraft ? sanitizeQtyDraft(rawDraft) || 1 : 1);
+  };
+
+  const settledWithPatientAdvanceHandler = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (!checked || !patientId) {
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    const patientAdvance = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_LEDGER_BILL,
+      {},
+      { params: { patientId } },
+      { component: "OpdBillingSection" }
+    );
+
+    const ledgerDetails =
+      normalizeAdvanceLedgerDetails(patientAdvance?.data, patientId) ??
+      getDefaultAdvanceLedgerDetails(patientId);
+    const availableAdvance = Number(ledgerDetails.TotalNetAmt ?? 0);
+
+    if (availableAdvance <= 0) {
+      showWarning("No patient advance balance is available for this patient.");
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    setPatientAdvanceChecked(true);
+    setPatientAdvanceAmount(availableAdvance);
   };
 
   return (
@@ -381,12 +432,20 @@ const OpdBillingSection = ({
 
                       {serviceDataTableItem.map((item: ServiceBindingItem, idx: number) => {
                         const isQtyFixed = [1, 3, 11].includes(Number(item?.categoryTypeId));
+                        const isDiscountLocked =
+                          isPaymentCollectionMode || Number(item?.isDiscountLocked ?? 0) === 1;
+                        const isBookingServiceLocked =
+                          Number(item?.isBookingServiceLocked ?? 0) === 1;
 
                         return (
                           <tr
                             key={idx}
                             className="table-row"
-                            onDoubleClick={() => deleteHandler(idx)}
+                            onDoubleClick={() => {
+                              if (!isBookingServiceLocked) {
+                                deleteHandler(idx);
+                              }
+                            }}
                           >
                             <td className="table-td">{idx + 1}</td>
                             <td className="table-td ">
@@ -481,19 +540,25 @@ const OpdBillingSection = ({
                             <td className="table-td">
                               <input
                                 className={`${
-                                  item?.discountPer === 1
+                                  item?.discountPer === 1 || isDiscountLocked
                                     ? "disabled-input-field max-w-20 max-h-10"
                                     : "input-field max-w-20 max-h-10"
                                 }`}
                                 value={item?.discountPer ?? 0}
                                 onChange={e => discountPercentageChangeHandler(e, idx)}
+                                disabled={isDiscountLocked}
                               />
                             </td>
                             <td className="table-td">
                               <input
-                                className="input-field max-w-20 max-h-10"
+                                className={`${
+                                  isDiscountLocked
+                                    ? "disabled-input-field max-w-20 max-h-10"
+                                    : "input-field max-w-20 max-h-10"
+                                }`}
                                 value={item?.dis ?? 0}
                                 onChange={e => discountChangeHandler(e, idx)}
+                                disabled={isDiscountLocked}
                               />
                             </td>
                             <td className="table-td input-field-error">
@@ -535,6 +600,30 @@ const OpdBillingSection = ({
       </div>
 
       <div className="payment details">
+        <div className="flex justify-end mb-1">
+          <div className="flex flex-wrap items-center gap-4 px-4 py-2">
+            {patientAdvanceChecked && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-bold text-gray-700">
+                  Patient Advance Net Amount:
+                </label>
+                <span className="text-base font-bold text-green-600">
+                  ₹ {patientAdvanceAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={patientAdvanceChecked}
+                onChange={settledWithPatientAdvanceHandler}
+              />
+              <span>Settled with Patient Advance</span>
+            </label>
+          </div>
+        </div>
         <BillingDetails
           key={`billing-details-${formResetKey}`}
           ref={billingDetailsRef}
@@ -547,8 +636,12 @@ const OpdBillingSection = ({
           showPaymentMode={showPaymentMode}
           hasDiscountApplied={hasDiscountApplied}
           bookingDetails={bookingDetails}
+          patientAdvanceEnabled={patientAdvanceChecked && patientAdvanceAmount > 0}
+          patientAdvanceAmount={patientAdvanceAmount}
+          disableDiscountEditing={isPaymentCollectionMode}
         />
       </div>
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

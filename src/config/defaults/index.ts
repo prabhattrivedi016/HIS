@@ -425,6 +425,12 @@ const ENDPOINTS = {
   GET_OPD_BOOKING_APPROVAL_DETAILS: "Patient/getOPDBookingApprovalDetails",
   GET_OPD_BOOKING_DETAILS_BY_BOOKING_ID: "Patient/getOPDBookingDetailsByBookingId",
   PAYMENT_COLLECTED_FOR_OPD_BOOKING: "Patient/paymentCollectedForOPDBooking",
+
+  // patient advance
+  GET_PATIENT_LEDGER_BILL: "Home/getPatientLedgerBill",
+  SAVE_PATIENT_ADVANCE: "Patient/savePatientAdvance",
+  GET_PATIENT_LEDGER_RECEIPT_DETAILS: "Patient/getPatientLedgerReceiptDetails",
+  GET_PATIENT_ADVANCE_RECEIPT_LIST: "Patient/getPatientAdvanceReceiptList",
 };
 
 export { ENDPOINTS };

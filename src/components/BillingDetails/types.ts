@@ -47,6 +47,7 @@ type PaymentMethodPayloadItem = {
   bankId: number;
   refNo: string;
   isCopaymentReceipt: number;
+  isPatientAdvanceAmount?: number;
   plutusTransactionReferenceID: string;
   transactionLogId: string;
 };
@@ -102,6 +103,13 @@ type BillingDetailsProps = {
   showPaymentMode?: boolean;
   hasDiscountApplied?: boolean;
   bookingDetails?: OpdBookingDetailsResponse | null;
+  hideBillingSection?: boolean;
+  relaxPaymentAmountLimit?: boolean;
+  maxPaymentAmount?: number | null;
+  paymentAmountExceededMessage?: string;
+  patientAdvanceEnabled?: boolean;
+  patientAdvanceAmount?: number;
+  disableDiscountEditing?: boolean;
 };
 
 export type {

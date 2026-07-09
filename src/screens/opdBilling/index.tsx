@@ -59,7 +59,6 @@ import {
   applyRateChange,
   getServiceRowRemarks,
   normalizeQty,
-  recalculateFromDiscountPercentage,
 } from "./components/helperFunction";
 import IpdOpdPharmacyDueAmount from "./components/IpdOpdPharmacyDueAmount";
 import OpdBillingSection from "./components/OpdBillingSection";
@@ -152,6 +151,24 @@ const pickBookingValue = <T,>(
   return undefined;
 };
 
+const resolveBoundPatientId = (details: Record<string, unknown>) =>
+  Number(pickBookingValue(details, "PatientId", "patientId") ?? 0) || 0;
+
+const resolvePatientDoctorId = (patientRecord: Record<string, unknown>) =>
+  Number(
+    pickBookingValue(
+      patientRecord,
+      "doctorId",
+      "DoctorId",
+      "defaultDoctorId",
+      "DefaultDoctorId",
+      "consultingDoctorId",
+      "ConsultingDoctorId",
+      "lastDoctorId",
+      "LastDoctorId"
+    ) ?? 0
+  ) || 0;
+
 const getBookingItemsFromDetails = (
   booking: OpdBookingDetailsResponse | Record<string, unknown>
 ): OpdBookingItemResponse[] => {
@@ -234,6 +251,8 @@ const mapBookingItemToServiceRow = (
     reportTypeId: 0,
     doctorDepartmentIds: "",
     isRequiredSeparatePerformingDoctor: 0,
+    isDiscountLocked: 1,
+    isBookingServiceLocked: 1,
   };
 };
 
@@ -290,6 +309,29 @@ const mergeBookingItemPrefillIntoServiceRow = (
     remarks: String(bookingItem.remarks ?? bookingItem.Remarks ?? apiRow.remarks ?? ""),
     doctorId: requiresPerformingDoctor ? performingDoctorId : apiRow.doctorId,
     doctorName: requiresPerformingDoctor ? performingDoctorName : apiRow.doctorName,
+    isDiscountLocked: 1,
+    isBookingServiceLocked: 1,
+  };
+};
+
+const applyApprovedDiscountToServiceRow = (
+  row: ServiceBindingItem,
+  approvedDiscountPercentage: number
+): ServiceBindingItem => {
+  const qty = Math.max(1, Number(row?.qty ?? 1) || 1);
+  const rate = Number(row?.rate ?? 0) || 0;
+  const grossAmt = qty * rate;
+  const boundedDiscountPer = Math.max(0, Math.min(100, Number(approvedDiscountPercentage) || 0));
+  const dis = Number(((grossAmt * boundedDiscountPer) / 100).toFixed(2));
+  const netAmount = Number((grossAmt - dis).toFixed(2));
+
+  return {
+    ...row,
+    qty,
+    discountPer: boundedDiscountPer,
+    dis,
+    netAmount,
+    isDiscountLocked: 1,
   };
 };
 
@@ -779,6 +821,17 @@ const OpdBilling = () => {
       rateListId: resolveRateListIdForRow(row),
     };
   };
+
+  const normalizeServiceRowForPaymentCollection = useCallback(
+    (row: ServiceBindingItem): ServiceBindingItem => {
+      if (!isPaymentCollectionMode) return row;
+      return {
+        ...applyApprovedDiscountToServiceRow(row, 0),
+        isBookingServiceLocked: Number(row?.isBookingServiceLocked ?? 0),
+      };
+    },
+    [isPaymentCollectionMode]
+  );
 
   const loadPerformingDoctorsForDepartments = useCallback(async (doctorDepartmentIds?: string) => {
     const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
@@ -1318,11 +1371,99 @@ const OpdBilling = () => {
     }
   }, [routePatientId, activePatientId]);
 
-  const bindPatientToRegistration = useCallback(async (patientId: number) => {
-    setActivePatientId(patientId);
-    setPatientTabError(false);
-    await patientDataRef.current?.loadPatientById(patientId);
-  }, []);
+  const resetBoundPatientContext = useCallback(() => {
+    paymentCollectionInitRef.current = false;
+    paymentCollectionInitializingRef.current = false;
+    billingDetailsRef.current?.reset?.();
+    ipdOpdDocumentRef.current?.resetForm();
+
+    setPatientRegistrationDetails({});
+    setSelectedInsurance(0);
+    setCorporateList([]);
+    setSelectedCorporate(defaultCorporate);
+    setSelectedCorporateError("");
+    setCreditCopayment(false);
+    setSelectedDoctor(null);
+    setSelectDoctorError("");
+    setSelectedReferDoctor(null);
+    SetServiceDataTableItem([]);
+    serviceDataTableItemRef.current = [];
+    serviceItemRemarksRef.current = {};
+    SetServiceItemList([]);
+    setSearchTerm("");
+    setShowPopup(false);
+    setShowDuplicateError("");
+    setServiceValidationError("");
+    setPerformingDoctorsCache({});
+    setSelectedCategory("1, 3, 4, 5, 8, 11");
+    setSelectedSubCategory(null);
+    setSelectedSubSubCategory(null);
+    setPackagePayload([]);
+    setIsPackageUrgent(0);
+    setBillingPaymentDetails({});
+    setBillingValues({
+      grossBillAmount: 0,
+      totalDiscPerOnBill: 0,
+      totalDiscAmtOnBill: 0,
+      roundOff: 0,
+      netAmount: 0,
+      balanceAmount: 0,
+      discApprovedById: 0,
+      discApprovedName: "",
+      discountReason: "",
+      remarks: "",
+    });
+    setOpdBillingFormData({
+      patientId: 0,
+      uhid: "",
+      branchId: 0,
+      currentAge: "",
+      insuranceCompanyId: 0,
+      corporateId: 1,
+      referDoctorId: 0,
+      grossBillAmount: 0,
+      totalDiscPerOnBill: 0,
+      totalDiscAmtOnBill: 0,
+      roundOff: 0,
+      netAmount: 0,
+      discApprovedById: 0,
+      discountReason: "",
+      remarks: "",
+      uniqueId: "",
+      mlc: "",
+      pi: "",
+      remark: "",
+      policyNo: "",
+      policyCardNo: "",
+      expiryDate: "",
+      cardHolder: "",
+      referalNo: "",
+      referalDate: "",
+      diagnosisId: 0,
+      proId: 0,
+      proName: "",
+      isSendMRD: 0,
+    });
+    setPaymentDetails([]);
+    setTotalBillingAmount(0);
+    setPatientReceiptDetails([]);
+    setPaymentModeList([]);
+    setOpdCardDetails(null);
+    setDocumentTabError(false);
+    setBillingTabError(false);
+  }, [setTotalBillingAmount]);
+
+  const bindPatientToRegistration = useCallback(
+    async (patientId: number) => {
+      if (activePatientId && activePatientId !== patientId) {
+        resetBoundPatientContext();
+      }
+      setActivePatientId(patientId);
+      setPatientTabError(false);
+      await patientDataRef.current?.loadPatientById(patientId);
+    },
+    [activePatientId, resetBoundPatientContext]
+  );
 
   const handleSelectPatient = useCallback(
     async (item: SearchedPatientItem) => {
@@ -1559,7 +1700,7 @@ const OpdBilling = () => {
 
   const doctorSelectOption = useMemo(() => {
     return doctorList.map(item => ({
-      value: item?.doctorId,
+      value: Number(item?.doctorId),
       label: item?.completeName,
     }));
   }, [doctorList]);
@@ -1643,7 +1784,13 @@ const OpdBilling = () => {
         pickBookingValue(bookingRecord, "totalBillAmount", "TotalBillAmount") ?? 0
       );
       const totalDiscPerOnBill = Number(
-        pickBookingValue(bookingRecord, "totalDiscountPerOnBill", "TotalDiscountPerOnBill") ?? 0
+        pickBookingValue(
+          bookingRecord,
+          "totalApprovedDiscountPerOnBill",
+          "TotalApprovedDiscountPerOnBill",
+          "totalDiscountPerOnBill",
+          "TotalDiscountPerOnBill"
+        ) ?? 0
       );
       const totalDiscAmtOnBill = Number(
         pickBookingValue(bookingRecord, "totalDiscountAmountOnBill", "TotalDiscountAmountOnBill") ??
@@ -1760,7 +1907,20 @@ const OpdBilling = () => {
         )
       );
 
-      updateServiceTableItem(serviceRows);
+      const approvedDiscountPer = Number(
+        pickBookingValue(
+          bookingRecord,
+          "totalApprovedDiscountPerOnBill",
+          "TotalApprovedDiscountPerOnBill",
+          "totalDiscountPerOnBill",
+          "TotalDiscountPerOnBill"
+        ) ?? 0
+      );
+      const normalizedServiceRows = serviceRows.map(row =>
+        applyApprovedDiscountToServiceRow(row, approvedDiscountPer)
+      );
+
+      updateServiceTableItem(normalizedServiceRows);
 
       if (discountPrefill) {
         applyBookingDiscountPrefill(discountPrefill);
@@ -2023,7 +2183,7 @@ const OpdBilling = () => {
       return;
     }
 
-    const serviceRow = finalizeServiceRow(resp?.data);
+    const serviceRow = normalizeServiceRowForPaymentCollection(finalizeServiceRow(resp?.data));
     const updatedServices = [...serviceDataTableItem, serviceRow];
 
     SetServiceDataTableItem(updatedServices);
@@ -2097,7 +2257,7 @@ const OpdBilling = () => {
     }
 
     setShowDuplicateError("");
-    const serviceRow = finalizeServiceRow(resp?.data);
+    const serviceRow = normalizeServiceRowForPaymentCollection(finalizeServiceRow(resp?.data));
     const updatedServices = [...serviceDataTableItem, serviceRow];
 
     if (serviceRow?.categoryTypeId === 11) {
@@ -2190,87 +2350,70 @@ const OpdBilling = () => {
   };
 
   // Calculate and update billing details from service items
-  const calculateAndUpdateBillingDetails = useCallback(
-    (items: ServiceBindingItem[]) => {
-      if (!items || items.length === 0) {
-        if (isPaymentCollectionMode && bookingDetails) {
-          return;
-        }
-
-        // Reset billing details if no services
-        setOpdBillingFormData(prev => ({
-          ...prev,
-          grossBillAmount: 0,
-          totalDiscPerOnBill: 0,
-          totalDiscAmtOnBill: 0,
-          netAmount: 0,
-          roundOff: 0,
-        }));
-        setTotalBillingAmount(0);
-        setBillingPaymentDetails({});
-        return;
-      }
-
-      if (isPaymentCollectionMode && bookingDetails) {
-        const discountPrefill = getBookingDiscountPrefillFromDetails(bookingDetails);
-        if (discountPrefill) {
-          applyBookingDiscountPrefill(discountPrefill);
-          return;
-        }
-      }
-
-      // Calculate total gross amount from all services
-      let totalGrossAmount = 0;
-      let totalDiscountAmount = 0;
-
-      items.forEach(item => {
-        const qty = Number((item as { qty?: number | string | null })?.qty) || 1;
-        const rate = Number(item?.rate) || 0;
-        const grossAmt = rate * qty;
-
-        // Get discount amount
-        const dis = Number((item as { dis?: number | string | null })?.dis) || 0;
-        const discPer =
-          Number((item as { discountPer?: number | string | null })?.discountPer) || 0;
-        const discountAmt = dis > 0 ? dis : (grossAmt * discPer) / 100;
-
-        totalGrossAmount += grossAmt;
-        totalDiscountAmount += discountAmt;
-      });
-
-      // Calculate net amount
-      const netAmount = totalGrossAmount - totalDiscountAmount;
-      const roundOff = Math.round(netAmount) - netAmount;
-      const finalNetAmount = Math.round(netAmount);
-
-      setTotalBillingAmount(finalNetAmount);
-
-      // Update billing form data with calculated values
+  const calculateAndUpdateBillingDetails = useCallback((items: ServiceBindingItem[]) => {
+    if (!items || items.length === 0) {
       setOpdBillingFormData(prev => ({
         ...prev,
-        grossBillAmount: Number(totalGrossAmount.toFixed(2)),
-        totalDiscAmtOnBill: Number(totalDiscountAmount.toFixed(2)),
-        totalDiscPerOnBill:
-          totalGrossAmount > 0
-            ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
-            : 0,
-        roundOff: Number(roundOff.toFixed(2)),
-        netAmount: Number(finalNetAmount.toFixed(2)),
+        grossBillAmount: 0,
+        totalDiscPerOnBill: 0,
+        totalDiscAmtOnBill: 0,
+        netAmount: 0,
+        roundOff: 0,
       }));
+      setTotalBillingAmount(0);
+      setBillingPaymentDetails({});
+      return;
+    }
 
-      const details = {
-        grossBillAmount: totalGrossAmount,
-        totalDiscAmtOnBill: totalDiscountAmount,
-        totalDiscPerOnBill:
-          totalGrossAmount > 0
-            ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
-            : 0,
-        netAmount: finalNetAmount,
-      };
-      setBillingPaymentDetails(details);
-    },
-    [applyBookingDiscountPrefill, bookingDetails, isPaymentCollectionMode]
-  );
+    // Calculate total gross amount from all services
+    let totalGrossAmount = 0;
+    let totalDiscountAmount = 0;
+
+    items.forEach(item => {
+      const qty = Number((item as { qty?: number | string | null })?.qty) || 1;
+      const rate = Number(item?.rate) || 0;
+      const grossAmt = rate * qty;
+
+      // Get discount amount
+      const dis = Number((item as { dis?: number | string | null })?.dis) || 0;
+      const discPer = Number((item as { discountPer?: number | string | null })?.discountPer) || 0;
+      const discountAmt = dis > 0 ? dis : (grossAmt * discPer) / 100;
+
+      totalGrossAmount += grossAmt;
+      totalDiscountAmount += discountAmt;
+    });
+
+    // Calculate net amount
+    const netAmount = totalGrossAmount - totalDiscountAmount;
+    const roundOff = Math.round(netAmount) - netAmount;
+    const finalNetAmount = Math.round(netAmount);
+
+    setTotalBillingAmount(finalNetAmount);
+
+    // Update billing form data with calculated values
+    setOpdBillingFormData(prev => ({
+      ...prev,
+      grossBillAmount: Number(totalGrossAmount.toFixed(2)),
+      totalDiscAmtOnBill: Number(totalDiscountAmount.toFixed(2)),
+      totalDiscPerOnBill:
+        totalGrossAmount > 0
+          ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
+          : 0,
+      roundOff: Number(roundOff.toFixed(2)),
+      netAmount: Number(finalNetAmount.toFixed(2)),
+    }));
+
+    const details = {
+      grossBillAmount: totalGrossAmount,
+      totalDiscAmtOnBill: totalDiscountAmount,
+      totalDiscPerOnBill:
+        totalGrossAmount > 0
+          ? Number(((totalDiscountAmount / totalGrossAmount) * 100).toFixed(2))
+          : 0,
+      netAmount: finalNetAmount,
+    };
+    setBillingPaymentDetails(details);
+  }, []);
 
   // Recalculate billing when service items change
   useEffect(() => {
@@ -2311,6 +2454,9 @@ const OpdBilling = () => {
 
   // discount change handler
   const discountChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
+    if (isPaymentCollectionMode) return;
+    if (Number(serviceDataTableItem[rowIndex]?.isDiscountLocked ?? 0) === 1) return;
+
     const value = Number(e.target.value);
 
     // max discount validation
@@ -2328,15 +2474,11 @@ const OpdBilling = () => {
 
   // discount % change handler
   const discountPercentageChangeHandler = (e: ChangeEvent<HTMLInputElement>, rowIndex: number) => {
-    // max discount validation
-    const discountAmt = Number(e.target.value);
+    if (isPaymentCollectionMode) return;
+    if (Number(serviceDataTableItem[rowIndex]?.isDiscountLocked ?? 0) === 1) return;
 
-    const row = serviceDataTableItem[rowIndex];
-
-    const grossAmount = (Number(row?.rate) || 0) * (Number(row?.qty) || 1);
-
-    const discountPer = grossAmount > 0 ? (discountAmt / grossAmount) * 100 : 0;
-
+    // e.target.value here is the discount percentage input itself.
+    const discountPer = Number(e.target.value);
     if (discountPer > Number(data ?? 0)) {
       showWarning(`You cannot give more than ${data}% discount`);
       return;
@@ -2382,6 +2524,11 @@ const OpdBilling = () => {
   // delete service handler
   const deleteHandler = (rowIndex: number) => {
     const removedItem = serviceDataTableItem[rowIndex];
+    if (Number(removedItem?.isBookingServiceLocked ?? 0) === 1) {
+      showWarning("Booking services cannot be removed in payment collection mode.");
+      return;
+    }
+
     if (removedItem?.serviceItemId) {
       delete serviceItemRemarksRef.current[removedItem.serviceItemId];
     }
@@ -2773,10 +2920,10 @@ const OpdBilling = () => {
     }
 
     if (value === "save") {
-      if (isDiscountRequestMode && hasBillingDiscount()) {
-        showWarning("Save is not allowed when discount is applied. Please use Request Discount.");
-        return;
-      }
+      // if (isDiscountRequestMode && hasBillingDiscount()) {
+      //   showWarning("Save is not allowed when discount is applied. Please use Request Discount.");
+      //   return;
+      // }
 
       const isValid = await patientDataRef.current?.validateForm();
 
@@ -2930,6 +3077,7 @@ const OpdBilling = () => {
         bankId: Number(payment?.bankId) || 0,
         refNo: String(payment?.refNo ?? ""),
         isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
+        isPatientAdvanceAmount: Number(payment?.isPatientAdvanceAmount ?? 0),
         plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
         transactionLogId: String(payment?.transactionLogId ?? ""),
       }));
@@ -3134,6 +3282,7 @@ const OpdBilling = () => {
     billingPaymentDetails,
     maxDiscountPercentage: data,
     creditCopayment,
+    isPaymentCollectionMode,
     showPaymentMode: isPaymentCollectionMode,
     hasDiscountApplied: hasBillingDiscount(),
     bookingDetails: isPaymentCollectionMode ? (bookingDetails ?? null) : null,
@@ -3254,6 +3403,7 @@ const OpdBilling = () => {
           {...billingSectionProps}
           creditCopayment={creditCopayment}
           isSeparateCollectionCounterEnabled={isSeparateCollectionCounterEnabled}
+          patientId={resolvedPatientId}
         />
       </div>
 

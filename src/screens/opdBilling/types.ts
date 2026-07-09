@@ -189,6 +189,8 @@ type ServiceBindingItem = {
   isUrgent?: number;
   isUnderPackage?: number;
   remarks?: string;
+  isDiscountLocked?: number;
+  isBookingServiceLocked?: number;
 };
 
 type CategoryItem = {
@@ -631,6 +633,7 @@ type ServiceBindingDataItem = {
   FieldTypeId: number;
 };
 type OpdBillingSectionProps = {
+  patientId: number | null;
   formResetKey: number;
   billingDetailsRef: RefObject<BillingDetailsHandle | null>;
   insuranceList: InsuranceItem[];
@@ -695,6 +698,20 @@ type OpdBillingSectionProps = {
   showPaymentMode?: boolean;
   hasDiscountApplied?: boolean;
   bookingDetails?: OpdBookingDetailsResponse | null;
+  isPaymentCollectionMode?: boolean;
+};
+
+type PatientAdvanceItem = {
+  LedgerId: number;
+  PatientId: number;
+  TotalCreditAmt: number;
+  TotalDebitAmt: number;
+  TotalNetAmt: number;
+  TotalRefunAmount: number;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,
@@ -718,6 +735,7 @@ export type {
   PackageItemsValue,
   PackagePayloadItem,
   PackagePopupProps,
+  PatientAdvanceItem,
   PatientReceiptItem,
   PaymentModeItem,
   ReferDoctorItem,

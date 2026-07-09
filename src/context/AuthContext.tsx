@@ -20,6 +20,7 @@ interface AuthContextType {
   user: User | null;
   isInitialized: boolean;
   login: (data: AuthData, rememberMe?: boolean) => void;
+  updateUser: (user: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -67,6 +68,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     otherStorage.removeItem("accessToken");
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setAuthData(prev => {
+      if (!prev.user) return prev;
+
+      const nextUser = { ...prev.user, ...updates };
+      const nextData = { ...prev, user: nextUser };
+
+      const localAuth = localStorage.getItem("auth");
+      const sessionAuth = sessionStorage.getItem("auth");
+
+      if (localAuth) {
+        localStorage.setItem("auth", JSON.stringify(nextData));
+      }
+      if (sessionAuth) {
+        sessionStorage.setItem("auth", JSON.stringify(nextData));
+      }
+
+      return nextData;
+    });
+  };
+
   const logout = () => {
     setAuthData({ token: null, user: null });
 
@@ -78,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ ...authData, isInitialized, login, logout }}>
+    <AuthContext.Provider value={{ ...authData, isInitialized, login, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

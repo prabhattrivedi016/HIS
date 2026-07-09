@@ -30,8 +30,8 @@ const ResendButton = ({ onResend }: ResendButtonProps) => {
   };
 
   return (
-    <div className="flex justify-end items-center m-2">
-      <span className="mr-2 text-gray-600">
+    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:items-center m-2">
+      <span className="text-sm text-gray-600 text-center sm:text-right">
         {isDisabled ? `Resend OTP in ${formatTime(timer)}` : ""}
       </span>
 
@@ -42,7 +42,7 @@ const ResendButton = ({ onResend }: ResendButtonProps) => {
           setIsDisabled(true);
         }}
         disabled={isDisabled}
-        className={`px-3 py-1 rounded-md transition ${
+        className={`w-full sm:w-auto min-h-[40px] px-3 py-2 rounded-md transition text-sm font-medium ${
           isDisabled
             ? "bg-gray-300 cursor-not-allowed"
             : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"

@@ -704,6 +704,18 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       clearExistingImagePreview();
     };
 
+    const onPayloadChangeRef = useRef(onPayloadChange);
+    onPayloadChangeRef.current = onPayloadChange;
+
+    const patientDoctorMetaRef = useRef<{ doctorId?: number; DoctorId?: number }>({});
+
+    const emitPatientPayload = (values: Record<string, unknown>) => {
+      onPayloadChangeRef.current?.({
+        ...values,
+        ...(patientDoctorMetaRef.current.doctorId ? patientDoctorMetaRef.current : {}),
+      });
+    };
+
     // edit mode
     const getEditPatientData = async (patientId: number) => {
       const resp = await fetchApi(
@@ -834,6 +846,14 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         setCorporateList([]);
         setSelectedCorporate(defaultCorporate);
       }
+
+      const resolvedDoctorId =
+        Number(data?.doctorId ?? (data as Record<string, unknown>)?.DoctorId ?? 0) || 0;
+      patientDoctorMetaRef.current = resolvedDoctorId
+        ? { doctorId: resolvedDoctorId, DoctorId: resolvedDoctorId }
+        : {};
+
+      emitPatientPayload(methods.getValues() as Record<string, unknown>);
     };
 
     useEffect(() => {
@@ -866,14 +886,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       onPatientLoaded?.("uhid");
     };
 
-    const onPayloadChangeRef = useRef(onPayloadChange);
-    onPayloadChangeRef.current = onPayloadChange;
-
     useEffect(() => {
-      onPayloadChangeRef.current?.(methods.getValues() as Record<string, unknown>);
+      emitPatientPayload(methods.getValues() as Record<string, unknown>);
 
       const subscription = methods.watch(values => {
-        onPayloadChangeRef.current?.(values as Record<string, unknown>);
+        emitPatientPayload(values as Record<string, unknown>);
       });
 
       return () => subscription.unsubscribe();
@@ -984,7 +1001,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         loadPatientById: async (patientId: number) => {
           if (patientId > 0) {
             await getEditPatientData(patientId);
-            onPayloadChangeRef.current?.(methods.getValues() as Record<string, unknown>);
           }
         },
         applyApiFieldErrors: (errors: Record<string, string[] | string>) => {

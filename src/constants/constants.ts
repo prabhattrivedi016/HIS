@@ -60,6 +60,11 @@ export enum BankMasterTabName {
   BANK_DETAILS = "Bank Details",
 }
 
+export enum PatientAdvanceTabName {
+  PATIENT_DETAILS = "Patient Details",
+  PATIENT_ADVANCE = "Patient Advance",
+}
+
 export enum BranchSettingsTabName {
   BRANCH_CORPORATE_RATE_LIST_MAPPING = "Branch Corporate Rate list Mapping",
   BRANCH_WISE_SERVICE_EXCLUDE = "Branch Wise Service Exclude",
@@ -492,6 +497,7 @@ export enum IPDAdmissionTabName {
 export enum PageType {
   OPD_BILLING = "OPDBilling",
   IPD_BILLING = "IPDBilling",
+  PATIENT_ADVANCE = "PatientAdvance",
 }
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",
