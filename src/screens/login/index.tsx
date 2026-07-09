@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Building2, Lock, LogIn, User } from "lucide-react";
+import { Building2, Eye, EyeOff, Lock, LogIn, User } from "lucide-react";
 import { FormEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../../../assets/logo.jpg";
@@ -12,8 +12,8 @@ import { ENDPOINTS } from "../../config/defaults/index";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { useAppDispatch } from "../../store/hooks";
-import { fetchAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { fetchUserRightAccess } from "../../store/slices/accessRightSlices";
+import { fetchAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import Signup from "../signup";
@@ -22,13 +22,16 @@ import VerifyOtp from "./components/VerifyOtp";
 
 import { RoleContext } from "@/context/RoleContext";
 import { getAuthStorage } from "../../utils/authStorage";
+import { getVerificationFlags, isAccountFullyVerified } from "../../utils/authVerification";
 import { InputError, PageItem, TabItem } from "./type";
 
 const Login = () => {
   const authContext = useContext(AuthContext);
   const roleContext = useContext(RoleContext);
   const loginFunc = authContext?.login;
-  const { loading, error, fetchApi } = useGlobalApi();
+  const updateUser = authContext?.updateUser;
+  const logoutFunc = authContext?.logout;
+  const { loading, fetchApi } = useGlobalApi();
   const { branchList } = useGetBranchList();
   const dispatch = useAppDispatch();
 
@@ -37,11 +40,13 @@ const Login = () => {
   const { setFavoriteRoles } = useFavoriteRoles();
 
   const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [selectedBranchId, setSelectedBranchId] = useState<number | "">("");
   const [rememberMe, setRememberMe] = useState(false);
 
   const [errors, setErrors] = useState<InputError>({});
+  const [errorMessage, setErrorMessage] = useState("");
   const [openSignup, setOpenSignup] = useState(false);
   const [openForgot, setOpenForgot] = useState(false);
   const [animateSignup, setAnimateSignup] = useState(false);
@@ -77,6 +82,29 @@ const Login = () => {
       setRememberMe(true);
     }
   }, []);
+
+  useEffect(() => {
+    const user = authContext?.user;
+    if (!authContext?.token || !user || isAccountFullyVerified(user)) return;
+
+    const { isContactVerified, isEmailVerified } = getVerificationFlags(user);
+
+    setUserId(Number(user.userId ?? 0) || null);
+    setUserName(String(user.userName ?? ""));
+    setEmail(String(user.email ?? ""));
+    setContact(String(user.contact ?? ""));
+    setIsContact(isContactVerified);
+    setIsEmail(isEmailVerified);
+    setShowOtpModal(true);
+  }, [authContext?.token, authContext?.user]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
   /* ----------------------------- handlers---------------------------------- */
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedBranchId(Number(e.target.value));
@@ -84,6 +112,8 @@ const Login = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    setErrorMessage("");
 
     const newErrors: InputError = {};
 
@@ -118,42 +148,64 @@ const Login = () => {
         rememberMe: rememberMe,
       });
 
-      if (!loginRes) return;
-
       console.log("loginRes", loginRes);
+
+      if (!loginRes?.result) {
+        setErrorMessage(loginRes?.message ?? "Failed to login");
+        return;
+      }
+
+      setErrorMessage("");
 
       const storage = rememberMe ? localStorage : sessionStorage;
       const { accessToken, branchId, userId } = loginRes.data;
 
-      // auth data saved in storage
-      if (loginFunc) {
-        loginFunc(
-          {
-            token: accessToken,
-            user: loginRes.data,
-          },
-          rememberMe
-        );
-      }
-
       storage.setItem("accessToken", accessToken);
+
+      const { isContactVerified: contactVerified, isEmailVerified: emailVerified } =
+        getVerificationFlags(loginRes.data);
+
       setUserName(loginRes.data.userName);
       setEmail(loginRes.data.email);
       setContact(loginRes.data.contact);
-      setIsContact(loginRes.data.isContactVerified);
-      setIsEmail(loginRes.data.isEmailVerified);
+      setIsContact(contactVerified);
+      setIsEmail(emailVerified);
       setUserId(userId);
+
+      const authenticateSession = () => {
+        if (loginFunc) {
+          loginFunc(
+            {
+              token: accessToken,
+              user: loginRes.data,
+            },
+            rememberMe
+          );
+        }
+      };
+
+      if (!contactVerified || !emailVerified) {
+        authenticateSession();
+        setSuccessMessage("");
+        setShowOtpModal(true);
+        return;
+      }
 
       const roleId = await fetchUserAssignedRoles(branchId);
       await dispatch(fetchUserRightAccess({ branchId, roleId })).unwrap();
       await dispatch(fetchAssignBranchRight({ branchId })).unwrap();
       await fetchAuthorizedPages(branchId, roleId);
 
-      if (loginRes.data.isContactVerified && loginRes.data.isEmailVerified) {
-        setSuccessMessage(loginRes.message);
-        timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
-      } else {
-        setShowOtpModal(true);
+      if (contactVerified && emailVerified) {
+        setSuccessMessage(loginRes.message ?? "User logged in successfully");
+        // Defer authentication so the success message stays visible on the
+        // login screen. Calling loginFunc immediately marks the account as
+        // fully verified, which makes the router redirect away instantly.
+        timerRef.current = setTimeout(() => {
+          authenticateSession();
+          navigate("/dashboard");
+        }, 1000);
+        return;
       }
     } catch (err) {
       console.error("Login failed", err);
@@ -183,7 +235,21 @@ const Login = () => {
 
   const onClose = useCallback(() => {
     setShowOtpModal(false);
-  }, []);
+    logoutFunc?.();
+    setUserId(null);
+    setIsContact(null);
+    setIsEmail(null);
+  }, [logoutFunc]);
+
+  const handleVerificationComplete = useCallback(() => {
+    updateUser?.({
+      isContactVerified: true,
+      isEmailVerified: true,
+    });
+    setShowOtpModal(false);
+    setSuccessMessage("Verification completed successfully.");
+    timerRef.current = setTimeout(() => navigate("/dashboard"), 1000);
+  }, [navigate, updateUser]);
 
   /*--------------------------user assign roles on page mount----------------------------------------- */
   const fetchUserAssignedRoles = async (branchId: number) => {
@@ -264,8 +330,9 @@ const Login = () => {
 
             <p className="welcome">!! Welcome Back !!</p>
           </div>
-          {error && <ErrorMessage text={error?.message} />}
+          {errorMessage && <ErrorMessage text={errorMessage} />}
           {successMessage && <SuccessMessage text={successMessage} />}
+
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="w-full">
               <div className="relative flex items-center border-2 rounded-lg transition border-gray-300 bg-white ">
@@ -315,12 +382,20 @@ const Login = () => {
                 </div>
 
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="login-input-field"
                 />
+                <button
+                  type="button"
+                  className="pr-3 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
               {errors.password && <p className="input-field-error">{errors.password}</p>}
@@ -414,6 +489,7 @@ const Login = () => {
           isContact={isContact}
           isEmail={isEmail}
           onClose={onClose}
+          onVerificationComplete={handleVerificationComplete}
         />
       ) : (
         <></>

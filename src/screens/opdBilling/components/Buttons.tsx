@@ -99,6 +99,19 @@ const Buttons = ({
         ) : (
           <></>
         )}
+
+        {pageType === PageType?.PATIENT_ADVANCE ? (
+          <>
+            <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+              Save
+            </button>
+            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );

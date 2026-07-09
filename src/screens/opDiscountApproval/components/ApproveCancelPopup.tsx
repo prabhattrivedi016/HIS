@@ -5,7 +5,6 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { showWarning } from "@/utils/alert";
-import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { OPDiscountItem } from "../types";
@@ -28,7 +27,6 @@ const ApproveCancelPopup = ({
   popupType: string;
   item: OPDiscountItem | null;
 }) => {
-  console.log("item", item);
   const { loading, fetchApi } = useGlobalApi();
   const [cancelFormData, setCancelFormData] = useState({
     bookingId: 0,
@@ -38,7 +36,7 @@ const ApproveCancelPopup = ({
   const [approveFormData, setApproveFormData] = useState({
     bookingId: 0,
     flag: 0,
-    approvedPer: 0,
+    approvedPer: "",
     approvalRemarks: "",
   });
 
@@ -61,14 +59,14 @@ const ApproveCancelPopup = ({
       setApproveFormData({
         bookingId: Number(item.BookingId ?? 0),
         flag: item?.FlagId ?? 0,
-        approvedPer: Number(item?.TotalDiscountPerOnBill ?? 0),
+        approvedPer: String(item?.TotalDiscountPerOnBill ?? 0),
         approvalRemarks: item?.ApprovalRemarks ?? "",
       });
     } else {
       setApproveFormData({
         bookingId: Number(item.BookingId ?? 0),
         flag: item?.FlagId ?? 0,
-        approvedPer: Number(item?.TotalApprovedDiscountPerOnBill ?? 0),
+        approvedPer: String(item?.TotalApprovedDiscountPerOnBill ?? 0),
         approvalRemarks: item?.ApprovalRemarks ?? "",
       });
     }
@@ -88,21 +86,24 @@ const ApproveCancelPopup = ({
   };
 
   const approveChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-
-    if (value !== "" && Number(value) > 100) {
-      showWarning("Discount must be less than or equal to 100%");
-      return;
+    const rawValue = e.target.value;
+    let value = rawValue.replace(/[^0-9.]/g, "");
+    const dotIndex = value.indexOf(".");
+    if (dotIndex !== -1) {
+      value = `${value.slice(0, dotIndex + 1)}${value.slice(dotIndex + 1).replace(/\./g, "")}`;
     }
 
-    if (value !== "" && requestedDiscountPer > 0 && Number(value) > requestedDiscountPer) {
+    const numericValue = Number(value);
+    const isValidNumber = value !== "" && value !== "." && Number.isFinite(numericValue);
+
+    if (isValidNumber && requestedDiscountPer > 0 && numericValue > requestedDiscountPer) {
       showWarning(`Approved discount cannot exceed requested discount (${requestedDiscountPer}%)`);
       return;
     }
 
     setApproveFormData(prev => ({
       ...prev,
-      approvedPer: Number(value),
+      approvedPer: String(value),
     }));
     setApproveError("");
     setErrorMessage("");
@@ -116,27 +117,16 @@ const ApproveCancelPopup = ({
   };
 
   const validateApproveForm = () => {
-    const approvedPer = Number(approveFormData.approvedPer);
-
     if (!String(approveFormData.approvedPer ?? "").trim()) {
       setApproveError("Please enter approve percentage");
       return false;
     }
 
-    if (!Number.isFinite(approvedPer) || approvedPer <= 0) {
+    if (
+      !Number.isFinite(Number(approveFormData.approvedPer)) ||
+      Number(approveFormData.approvedPer) <= 0
+    ) {
       setApproveError("Please enter a valid approve percentage");
-      return false;
-    }
-
-    if (approvedPer > 100) {
-      setApproveError("Discount must be less than or equal to 100%");
-      return false;
-    }
-
-    if (requestedDiscountPer > 0 && approvedPer > requestedDiscountPer) {
-      setApproveError(
-        `Approved discount cannot exceed requested discount (${requestedDiscountPer}%)`
-      );
       return false;
     }
 
@@ -253,7 +243,6 @@ const ApproveCancelPopup = ({
                   onChange={approveChangeHandler}
                   className="input-field"
                   value={approveFormData.approvedPer}
-                  onInput={allowOnlyNumbers}
                 />
                 {!!approveError && <p className="input-field-error">{approveError}</p>}
               </InputField>

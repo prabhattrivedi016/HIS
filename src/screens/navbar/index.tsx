@@ -4,6 +4,7 @@ import { useAppSelector } from "@/store/hooks";
 import { useContext } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
+import { isAccountFullyVerified } from "../../utils/authVerification";
 import { normalizeRouteKey } from "../../utils/route";
 import InvestigationResultEntry from "../InvestigationResultEntry";
 import Login from "../login";
@@ -18,7 +19,9 @@ const Navbar = () => {
   const { accessRights: response } = useAppSelector(state => state.accessRights);
 
   const isAuthInitialized = Boolean(authContext?.isInitialized);
-  const isAuthenticated = Boolean(authContext?.token || authContext?.user);
+  const hasAuthSession = Boolean(authContext?.token || authContext?.user);
+  const isFullyVerified = isAccountFullyVerified(authContext?.user);
+  const canAccessApp = hasAuthSession && isFullyVerified;
 
   if (!isAuthInitialized) {
     return null;
@@ -30,19 +33,19 @@ const Navbar = () => {
         {/* Public Route */}
         <Route
           path="/"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+          element={canAccessApp ? <Navigate to="/dashboard" replace /> : <Login />}
         />
 
         {/* Print Routes (Protected but no Sidebar layout) */}
         <Route
           path="/print-opd-receipt"
           element={
-            isAuthenticated ? <OpdDetailsBills printOnMount={true} /> : <Navigate to="/" replace />
+            canAccessApp ? <OpdDetailsBills printOnMount={true} /> : <Navigate to="/" replace />
           }
         />
 
         {/* Protected Layout */}
-        <Route element={isAuthenticated ? <Sidebar /> : <Navigate to="/" replace />}>
+        <Route element={canAccessApp ? <Sidebar /> : <Navigate to="/" replace />}>
           <Route path="/dashboard" element={authorizedRouteMap["dashboard"]} />
 
           <Route

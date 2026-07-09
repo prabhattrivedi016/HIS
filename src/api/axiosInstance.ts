@@ -30,7 +30,10 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    const requestUrl = String(error?.config?.url ?? "");
+    const isLoginRequest = requestUrl.includes("User/userLogin");
+
+    if (error.response?.status === 401 && !isLoginRequest) {
       const storage = getAuthStorage();
       storage.removeItem("auth");
       storage.removeItem("accessToken");

@@ -170,8 +170,28 @@ input::placeholder {
 }
 
 /* verify otp modal */
+.verify-otp-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto;
+}
+
 .verify-otp-modal {
-  @apply bg-white border border-gray-300 p-6 rounded-xl w-[500px] shadow-lg;
+  @apply bg-white border border-gray-300 rounded-xl shadow-lg w-full max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6 mx-auto my-auto;
+}
+
+.verify-otp-modal h2 {
+  @apply text-base sm:text-lg text-center sm:text-left leading-snug;
+}
+
+.verify-otp-section {
+  @apply border-b border-gray-200 pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0;
+}
+
+.verify-otp-actions {
+  @apply mt-4 sm:mt-6 flex justify-stretch sm:justify-end;
+}
+
+.verify-otp-actions .cancel-button {
+  @apply w-full sm:w-auto min-h-[44px];
 }
 
 /* Remove Chrome autofill blue background */
@@ -481,8 +501,25 @@ select:-webkit-autofill {
   @apply text-sm text-red-500;
 }
 
-.input-field-msg {
-  @apply text-sm text-gray-400;
+.billing-payment-cell {
+  @apply flex flex-col gap-0;
+}
+
+.billing-payment-cell .input-field,
+.billing-payment-cell select.input-field {
+  @apply !mt-0;
+}
+
+.billing-payment-cell .inline-block {
+  @apply !mt-0;
+}
+
+.billing-payment-cell-error {
+  @apply min-h-4 mt-0.5 text-xs leading-tight;
+}
+
+.billing-payment-rows td {
+  @apply py-0.5;
 }
 
 /* input field modal */
