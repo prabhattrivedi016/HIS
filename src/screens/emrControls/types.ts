@@ -67,10 +67,41 @@ type SectionScoreFieldItem = {
   formulaDefinition: string;
 };
 
+/** one row in a condition rule chain — mirrors a Salesforce Flow "Get Records" filter row
+ * (Field / Operator / Value). connector joins this row to the running result of every row
+ * before it ("AND"/"OR"); ignored on the first row. headerId points at the OTHER header
+ * being checked, e.g. for "B == 3", headerId is B's headerId. */
+type SectionConditionalRule = {
+  /** the row's real DB id (EMR/getEMRSectionAttributeCondition's "Id") — undefined for a
+   * row added in the UI that hasn't been saved yet, so there's nothing to delete on the backend */
+  id?: number;
+  headerId: number | null;
+  operator: "==" | "!=" | "isnull" | "in" | "notin" | "<" | "<=" | ">" | ">=";
+  value: string;
+  connector: "AND" | "OR";
+};
+
+/** one attribute's own visibility rule — e.g. attribute "A" only renders once
+ * "B == 3 AND C != test" resolves true (each attribute in a section can have a
+ * completely independent rule chain referencing any other attribute in the section) */
+type SectionAttributeCondition = {
+  targetHeaderId: number;
+  conditions: SectionConditionalRule[];
+};
+
+/** conditional visibility for an entire EMR Section — one independent rule chain per attribute
+ * that needs one; attributes with no entry here always render unconditionally */
+type SectionConditionalConfig = {
+  attributeConditions: SectionAttributeCondition[];
+};
+
 export type {
   EmrSectionItem,
   EmrSectionMappingTableItem,
   MasterHeaderItem,
+  SectionAttributeCondition,
+  SectionConditionalConfig,
+  SectionConditionalRule,
   SectionHeaderMapping,
   SectionHeaderMappingItem,
   SectionHeaderMappingRecord,

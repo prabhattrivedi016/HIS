@@ -54,6 +54,17 @@ const NumberControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) 
   />
 );
 
+const DateControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
+  <input
+    type="date"
+    className={mergeClass("input-field", schema)}
+    required={schema.props?.required}
+    value={(value as string) ?? ""}
+    onChange={e => onChange(e.target.value)}
+    onBlur={onBlur}
+  />
+);
+
 const CurrencyControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
   <div className="relative">
     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
@@ -69,13 +80,16 @@ const CurrencyControl = ({ schema, value, onChange, onBlur }: ControlRenderProps
   </div>
 );
 
+/** stores "true"/"false" as a string, not a boolean — every other control (and every
+ * conditional-visibility rule's Value field) is string-typed, so a real boolean here would
+ * silently fail `actual === rule.target` comparisons (true !== "true") */
 const SwitchControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
   <label className="flex items-center gap-2 cursor-pointer select-none h-10">
     <input
       type="checkbox"
       className={mergeClass("input-checkbox", schema)}
-      checked={Boolean(value)}
-      onChange={e => onChange(e.target.checked)}
+      checked={value === true || value === "true"}
+      onChange={e => onChange(e.target.checked ? "true" : "false")}
       onBlur={onBlur}
     />
   </label>
@@ -99,7 +113,10 @@ const DropdownControl = ({ schema, value, onChange, onBlur }: ControlRenderProps
 );
 
 const SearchDropdownControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => {
-  const options = (schema.options ?? []).map(opt => ({ label: opt.label, value: opt.value }));
+  const options = (schema.options ?? []).map(opt => ({
+    label: opt.label,
+    value: opt.value as string | number,
+  }));
   const selected = options.find(opt => opt.value === value) ?? null;
 
   return (
@@ -158,6 +175,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   textarea: TextareaControl,
   number: NumberControl,
   number2: NumberControl,
+  date: DateControl,
   currency: CurrencyControl,
   switch: SwitchControl,
   dropdown: DropdownControl,

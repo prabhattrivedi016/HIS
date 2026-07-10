@@ -1,4 +1,3 @@
-/** reads a dot-path (numeric segments treat the parent as an array index), e.g. "Risks.Properties.0.Address.City" */
 export const getByPath = (obj: unknown, path: string): unknown => {
   if (!path) return undefined;
   return path.split(".").reduce<unknown>((acc, part) => {
@@ -7,7 +6,6 @@ export const getByPath = (obj: unknown, path: string): unknown => {
   }, obj);
 };
 
-/** immutably writes a value at a dot-path, creating arrays/objects along the way as needed */
 export const setByPath = <T>(obj: T, path: string, value: unknown): T => {
   const parts = path.split(".");
   const root: any = Array.isArray(obj) ? [...(obj as any)] : { ...(obj as any) };

@@ -18,13 +18,13 @@ const EmrControlsPage = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">EMR Controls</h1>
+      <h1 className="page-heading">EMR Sections</h1>
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>EMR Controls</span>
+        <span>EMR Sections</span>
       </nav>
 
       <div className="tab-card rounded-lg">

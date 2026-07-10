@@ -340,7 +340,15 @@ const ENDPOINTS = {
 
   // emr controls — score formula per section (e.g. Braden Scale style scored assessments)
   GET_EMR_SECTION_SCORE_FORMULA: "EMR/getEMRSectionScoreFormula",
-  CREATE_UPDATE_EMR_SECTION_SCORE_FORMULA: "EMR/createUpdateEMRSectionScoreFormula",
+  CREATE_UPDATE_EMR_SECTION_SCORE_FORMULA: "EMR/saveEMRSectionScoreFormula",
+
+  // emr controls — per-attribute conditional visibility (each attribute can have its own rule chain)
+  GET_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/getEMRSectionAttributeCondition",
+  SAVE_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/saveEMRSectionAttributeCondition",
+  DELETE_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/deleteEMRSectionAttributeCondition",
+
+  // emr controls — runs a header's saved query (e.g. "Custom" control type) and returns its result rows
+  GET_EMR_HEADER_QUERY_RESULT: "EMR/getEMRHeaderQueryResult",
 
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",

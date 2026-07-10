@@ -508,3 +508,17 @@ export enum IpdOpdTypeName {
   OPD = "opd",
   IPD = "ipd",
 }
+
+/** every comparison operator a conditional-visibility rule can use (EMR Controls'
+ * Conditional Controls builder) — value must match ConditionalRule["exp"] in dynamicForm/types.ts */
+export const ConditionOperatorOptions = [
+  { value: "==", label: "Equals (==)" },
+  { value: "!=", label: "Does Not Equal (!=)" },
+  { value: "isnull", label: "Is Null" },
+  { value: "in", label: "In" },
+  { value: "notin", label: "Not In" },
+  { value: "<", label: "Less Than (<)" },
+  { value: "<=", label: "Less Than Equals To (<=)" },
+  { value: ">", label: "Greater Than (>)" },
+  { value: ">=", label: "Greater Than Equals To (>=)" },
+] as const;

@@ -1,11 +1,61 @@
 import { ConditionalRule } from "../types";
 import { getByPath } from "./path";
 
-/**
- * evaluates a chain of rules against the data object.
- * each rule's own `connector` says how it joins with whatever came before it
- * (matches the reference schema convention — the first rule's connector is ignored).
- */
+const isEmptyValue = (value: unknown): boolean =>
+  value === undefined || value === null || value === "";
+
+const toValueList = (target: unknown): string[] =>
+  String(target ?? "")
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+const compareNumeric = (
+  actual: unknown,
+  target: unknown,
+  exp: "<" | "<=" | ">" | ">="
+): boolean => {
+  const a = Number(actual);
+  const b = Number(target);
+  if (Number.isNaN(a) || Number.isNaN(b)) return false;
+
+  switch (exp) {
+    case "<":
+      return a < b;
+    case "<=":
+      return a <= b;
+    case ">":
+      return a > b;
+    case ">=":
+      return a >= b;
+  }
+};
+
+const evaluateRule = (rule: ConditionalRule, actual: unknown): boolean => {
+  switch (rule.exp) {
+    case "==":
+      return actual === rule.target;
+    case "!=":
+      return actual !== rule.target;
+    case "isnull": {
+      const empty = isEmptyValue(actual);
+      // target is "True"/"False" — "Is Null" = "True" means the field IS empty
+      return String(rule.target) === "True" ? empty : !empty;
+    }
+    case "in":
+      return toValueList(rule.target).includes(String(actual));
+    case "notin":
+      return !toValueList(rule.target).includes(String(actual));
+    case "<":
+    case "<=":
+    case ">":
+    case ">=":
+      return compareNumeric(actual, rule.target, rule.exp);
+    default:
+      return true;
+  }
+};
+
 export const evaluateConditionalDisplay = (
   rules: ConditionalRule[] | undefined,
   data: unknown
@@ -14,7 +64,7 @@ export const evaluateConditionalDisplay = (
 
   return rules.reduce((acc, rule, idx) => {
     const actual = getByPath(data, rule.src);
-    const passes = rule.exp === "==" ? actual === rule.target : actual !== rule.target;
+    const passes = evaluateRule(rule, actual);
 
     if (idx === 0) return passes;
     return rule.connector === "||" ? acc || passes : acc && passes;

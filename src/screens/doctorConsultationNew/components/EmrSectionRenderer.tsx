@@ -2,7 +2,8 @@ import DynamicFormRenderer from "@/components/dynamicForm/DynamicFormRenderer";
 import { CardSchema, ControlSchema, OptionSchema } from "@/components/dynamicForm/types";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
+import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
+import { groupAttributeConditionRows } from "@/screens/emrControls/utils/attributeConditionParsing";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -24,6 +25,7 @@ const mapControlType = (controlType: string): string => {
   const key = (controlType || "").trim().toLowerCase().replace(/[\s-_]/g, "");
   if (key.includes("rich")) return "richtext";
   if (key.includes("textarea")) return "textarea";
+  if (key.includes("date")) return "date";
   if (key.includes("number")) return "number";
   if (key.includes("currency")) return "currency";
   if (key.includes("check")) return "switch";
@@ -36,6 +38,10 @@ const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamic
 /** only CKEditor needs the full row — its toolbar+editor block doesn't fit a grid cell;
  * plain textareas (e.g. Doctor Progress Note) stay compact, same size as every other field */
 const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
+/** only a header named EXACTLY "Doctor" renders as a dropdown populated from the real Doctor
+ * Master (via EMR/getEMRSectionHeaderDoctorOptions) — an exact match, not a substring, so
+ * headers like "Doctor Progress Note" or "Referred Doctor" are left untouched */
+const isDoctorHeader = (headerName: string) => (headerName || "").trim().toLowerCase() === "doctor";
 
 /** given a sectionId, fetches every header mapped to that EMR Section (in sequence order),
  * resolves options for Radio/Dropdown controls, and renders all of them via the dynamicForm engine */
@@ -82,6 +88,27 @@ const EmrSectionRenderer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headers]);
 
+  /** each attribute can have its own independent condition chain (Field/Operator/Value rows,
+   * AND/OR joined) referencing any other attribute in the section — configured per-attribute
+   * via EMR Controls' "Conditional Controls" popup. EMR/getEMRSectionAttributeCondition returns
+   * one flat row per condition, grouped here by TargetHeaderId. */
+  const getConditionalConfig = async (): Promise<SectionAttributeCondition[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_EMR_SECTION_ATTRIBUTE_CONDITION,
+      {},
+      { params: { sectionId } },
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const rawRows: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    return groupAttributeConditionRows(rawRows);
+  };
+
+  const { data: attributeConditions = [] } = useQuery<SectionAttributeCondition[]>({
+    queryKey: ["emrSectionConditionalConfig", sectionId],
+    queryFn: getConditionalConfig,
+  });
+
   const getHeaderLovs = async (headerId: number): Promise<OptionSchema[]> => {
     const resp = await fetchApi(
       "GET",
@@ -94,8 +121,12 @@ const EmrSectionRenderer = ({
     return raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
   };
 
+  // "Doctor" headers get their options from the real Doctor Master (below), not this generic LOVs list
   const headerIdsNeedingOptions = useMemo(
-    () => headers.filter(h => needsOptions(mapControlType(h.controlType))).map(h => h.headerId),
+    () =>
+      headers
+        .filter(h => needsOptions(mapControlType(h.controlType)) && !isDoctorHeader(h.headerName))
+        .map(h => h.headerId),
     [headers]
   );
 
@@ -114,16 +145,87 @@ const EmrSectionRenderer = ({
     return map;
   }, [headerIdsNeedingOptions, lovsQueries]);
 
+  /** the "Doctor" header's dropdown is driven by running its saved query (same mechanism as
+   * the "Custom" control type's Query field in Header Master) — headerId is the only param */
+  const getDoctorOptionsForHeader = async (headerId: number): Promise<OptionSchema[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_EMR_HEADER_QUERY_RESULT,
+      {},
+      { params: { headerId } },
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    return raw.map(item => ({
+      value: item?.DoctorId ?? item?.doctorId ?? item?.Id ?? item?.id ?? item?.Value ?? item?.value,
+      label:
+        item?.CompleteName ??
+        item?.completeName ??
+        item?.DoctorName ??
+        item?.doctorName ??
+        item?.Name ??
+        item?.name ??
+        item?.Label ??
+        item?.label ??
+        "",
+    }));
+  };
+
+  const doctorHeaderIds = useMemo(
+    () => headers.filter(h => isDoctorHeader(h.headerName)).map(h => h.headerId),
+    [headers]
+  );
+
+  const doctorOptionsQueries = useQueries({
+    queries: doctorHeaderIds.map(headerId => ({
+      queryKey: ["emrHeaderQueryResult", headerId],
+      queryFn: () => getDoctorOptionsForHeader(headerId),
+    })),
+  });
+
+  const doctorOptionsByHeaderId = useMemo(() => {
+    const map: Record<number, OptionSchema[]> = {};
+    doctorHeaderIds.forEach((headerId, idx) => {
+      map[headerId] = doctorOptionsQueries[idx]?.data ?? [];
+    });
+    return map;
+  }, [doctorHeaderIds, doctorOptionsQueries]);
+
   const cardSchema: CardSchema = useMemo(() => {
+    const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
+
     const controls: ControlSchema[] = headers.map(h => {
-      const dynamicType = mapControlType(h.controlType);
+      const isDoctor = isDoctorHeader(h.headerName);
+      // a "Doctor" header always renders as a dropdown sourced from the real Doctor
+      // Master, regardless of whatever controlType was configured for it
+      const dynamicType = isDoctor ? "dropdown" : mapControlType(h.controlType);
+      const ownRules = rulesByHeaderId.get(h.headerId);
+
+      // translate this attribute's own Field/Operator/Value rows into the dynamicForm
+      // engine's ConditionalRule chain — each attribute has a fully independent chain
+      const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
+        ? ownRules.map(rule => ({
+            src: `section_${sectionId}.header_${rule.headerId}`,
+            exp: rule.operator,
+            target: rule.value,
+            connector: rule.connector === "OR" ? ("||" as const) : ("&&" as const),
+          }))
+        : undefined;
+
       return {
         key: `header_${h.headerId}`,
         label: h.displayName || h.headerName,
         type: dynamicType,
         dataPath: `section_${sectionId}.header_${h.headerId}`,
-        options: needsOptions(dynamicType) ? (lovsByHeaderId[h.headerId] ?? []) : undefined,
+        options: isDoctor
+          ? (doctorOptionsByHeaderId[h.headerId] ?? [])
+          : needsOptions(dynamicType)
+            ? (lovsByHeaderId[h.headerId] ?? [])
+            : undefined,
         colSpan: isFullWidth(dynamicType) ? 4 : dynamicType === "radio" ? 2 : 1,
+        // hidden until this attribute's own condition chain (configured in EMR Controls'
+        // "Conditional Controls" popup) resolves true; attributes with no chain always render
+        conditionalDisplay,
       };
     });
 
@@ -133,7 +235,15 @@ const EmrSectionRenderer = ({
       title: displayName || sectionName,
       controls,
     };
-  }, [headers, lovsByHeaderId, sectionId, sectionName, displayName]);
+  }, [
+    headers,
+    lovsByHeaderId,
+    doctorOptionsByHeaderId,
+    sectionId,
+    sectionName,
+    displayName,
+    attributeConditions,
+  ]);
 
   if (headersLoading) {
     return (

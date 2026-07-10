@@ -7,7 +7,7 @@ import { EmrSectionFormData, emrSectionSchema } from "@/validation/emrControlsSc
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Reorder, useDragControls } from "framer-motion";
-import { Calculator, Eye, GripVertical, Pencil, Search } from "lucide-react";
+import { Calculator, Eye, GripVertical, Pencil, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -17,6 +17,7 @@ import {
   SectionHeaderMappingItem,
   SectionHeaderMappingRecord,
 } from "../types";
+import SectionConditionalControls from "./SectionConditionalControls";
 import SectionScoreFormula from "./SectionScoreFormula";
 
 interface EmrSectionPayload extends EmrSectionFormData {
@@ -74,6 +75,7 @@ const EMRControls = () => {
   const [viewLoading, setViewLoading] = useState(false);
 
   const [scoreSection, setScoreSection] = useState<EmrSectionItem | null>(null);
+  const [conditionalSection, setConditionalSection] = useState<EmrSectionItem | null>(null);
 
   const {
     handleSubmit,
@@ -518,6 +520,14 @@ const EMRControls = () => {
                           >
                             <Calculator size={13} />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setConditionalSection(item)}
+                            className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-blue-50 text-blue-500 transition active:scale-90 ml-1"
+                            title="Conditional Controls"
+                          >
+                            <Plus size={13} />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -576,6 +586,13 @@ const EMRControls = () => {
 
       {scoreSection && (
         <SectionScoreFormula section={scoreSection} onClose={() => setScoreSection(null)} />
+      )}
+
+      {conditionalSection && (
+        <SectionConditionalControls
+          section={conditionalSection}
+          onClose={() => setConditionalSection(null)}
+        />
       )}
     </>
   );

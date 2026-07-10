@@ -13,14 +13,13 @@ interface SectionScoreFormulaProps {
 
 interface ScoreFormulaPayload {
   sectionId: number;
-  scoreFields: SectionScoreFieldItem[];
+  formulaItems: { headerId: number | null; referenceName: string; formulaDefinition: string }[];
 }
 
 /** not real headers — always offered so a score formula can report its result and its
  * risk-band reading, matching the legacy Braden-Scale-style "Total"/"Interpretation" rows */
 const COMPUTED_FIELD_OPTIONS: { headerId: number; headerName: string }[] = [
-  { headerId: -1, headerName: "Total" },
-  { headerId: -2, headerName: "Interpretation" },
+  { headerId: 0, headerName: "Total" },
 ];
 
 /** spreadsheet-style column naming for auto reference names — A, B, ... Z, AA, AB, ... */
@@ -39,7 +38,7 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
   const { loading, fetchApi } = useGlobalApi();
 
   const [availableFields, setAvailableFields] = useState<SectionHeaderMappingRecord[]>([]);
-  const [scoreFields, setScoreFields] = useState<SectionScoreFieldItem[]>([]);
+  const [formulaItems, setFormulaItems] = useState<SectionScoreFieldItem[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -76,7 +75,7 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
         { component: "SectionScoreFormula", silent: true }
       );
       const rawScoreFields: any[] = scoreResp?.data ?? [];
-      setScoreFields(
+      setFormulaItems(
         rawScoreFields.map(f => ({
           headerId: f.HeaderId ?? f.headerId,
           headerName: f.HeaderName ?? f.headerName,
@@ -92,7 +91,7 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
   }, [section.sectionId]);
 
   const addToListHandler = (field: { headerId: number; headerName: string }) => {
-    setScoreFields(prev => [
+    setFormulaItems(prev => [
       ...prev,
       {
         headerId: field.headerId,
@@ -104,34 +103,44 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
   };
 
   const removeHandler = (index: number) => {
-    setScoreFields(prev =>
-      prev.filter((_, i) => i !== index).map((f, i) => ({ ...f, referenceName: toReferenceName(i + 1) }))
+    setFormulaItems(prev =>
+      prev
+        .filter((_, i) => i !== index)
+        .map((f, i) => ({ ...f, referenceName: toReferenceName(i + 1) }))
     );
   };
 
   const formulaChangeHandler = (index: number, value: string) => {
-    setScoreFields(prev => prev.map((f, i) => (i === index ? { ...f, formulaDefinition: value } : f)));
+    setFormulaItems(prev =>
+      prev.map((f, i) => (i === index ? { ...f, formulaDefinition: value } : f))
+    );
   };
 
-  const addedHeaderIds = new Set(scoreFields.map(f => f.headerId));
+  const addedHeaderIds = new Set(formulaItems.map(f => f.headerId));
   const remainingFields = availableFields.filter(h => !addedHeaderIds.has(h.headerId));
-  const remainingComputedFields = COMPUTED_FIELD_OPTIONS.filter(c => !addedHeaderIds.has(c.headerId));
+  const remainingComputedFields = COMPUTED_FIELD_OPTIONS.filter(
+    c => !addedHeaderIds.has(c.headerId)
+  );
   const fieldListRows: { headerId: number; headerName: string }[] = [
     ...remainingComputedFields,
     ...remainingFields,
   ];
 
-  const isSaveDisabled = loading || scoreFields.length === 0;
+  const isSaveDisabled = loading || formulaItems.length === 0;
 
   const saveHandler = async () => {
-    if (scoreFields.length === 0) {
+    if (formulaItems.length === 0) {
       showWarning("Add at least one field to the score formula");
       return;
     }
 
     const payload: ScoreFormulaPayload = {
       sectionId: section.sectionId,
-      scoreFields,
+      formulaItems: formulaItems.map(({ headerId, referenceName, formulaDefinition }) => ({
+        headerId: headerId > 0 ? headerId : 0,
+        referenceName,
+        formulaDefinition,
+      })),
     };
 
     const resp = await fetchApi(
@@ -171,8 +180,8 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
             <p className="text-xs text-gray-500 mb-3">
               Formula Details [ Formula example: A*(B+C) ]
               <br />
-              Note: If Reference(s) &gt; 26 then manually define reference name like (AA-AZ), (BB-BZ)
-              and so on.
+              Note: If Reference(s) &gt; 26 then manually define reference name like (AA-AZ),
+              (BB-BZ) and so on.
             </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -191,13 +200,17 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
                         {fieldListRows.length === 0 ? (
                           <tr>
                             <td colSpan={2} className="table-empty">
-                              {availableFields.length === 0 ? "No controls in this section" : "All fields added"}
+                              {availableFields.length === 0
+                                ? "No controls in this section"
+                                : "All fields added"}
                             </td>
                           </tr>
                         ) : (
                           fieldListRows.map(field => (
                             <tr key={field.headerId} className="table-row">
-                              <td className="table-td font-medium text-gray-800">{field.headerName} :</td>
+                              <td className="table-td font-medium text-gray-800">
+                                {field.headerName} :
+                              </td>
                               <td className="table-td">
                                 <button
                                   type="button"
@@ -230,24 +243,28 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
                         </tr>
                       </thead>
                       <tbody>
-                        {scoreFields.length === 0 ? (
+                        {formulaItems.length === 0 ? (
                           <tr>
                             <td colSpan={4} className="table-empty">
                               No fields added yet
                             </td>
                           </tr>
                         ) : (
-                          scoreFields.map((field, idx) => (
+                          formulaItems.map((field, idx) => (
                             <tr key={field.headerId} className="table-row">
-                              <td className="table-td font-medium text-gray-800">{field.headerName} :</td>
+                              <td className="table-td font-medium text-gray-800">
+                                {field.headerName} :
+                              </td>
                               <td className="table-td">
                                 <input
                                   type="text"
                                   className="input-field !mb-0 !py-1 text-xs w-16"
                                   value={field.referenceName}
                                   onChange={e =>
-                                    setScoreFields(prev =>
-                                      prev.map((f, i) => (i === idx ? { ...f, referenceName: e.target.value } : f))
+                                    setFormulaItems(prev =>
+                                      prev.map((f, i) =>
+                                        i === idx ? { ...f, referenceName: e.target.value } : f
+                                      )
                                     )
                                   }
                                 />
@@ -284,7 +301,12 @@ const SectionScoreFormula = ({ section, onClose }: SectionScoreFormulaProps) => 
         )}
 
         <div className="form-actions-responsive mt-5">
-          <button type="button" className={isSaveDisabled ? "disabled-btn" : "save-btn"} onClick={saveHandler} disabled={isSaveDisabled}>
+          <button
+            type="button"
+            className={isSaveDisabled ? "disabled-btn" : "save-btn"}
+            onClick={saveHandler}
+            disabled={isSaveDisabled}
+          >
             {loading ? "Saving…" : "Save"}
           </button>
           <button type="button" className="cancel-button" onClick={onClose}>
