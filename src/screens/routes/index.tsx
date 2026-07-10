@@ -9,6 +9,7 @@ import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
+import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
@@ -16,6 +17,7 @@ import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import PatientDocumentMaster from "../documentMaster";
+import EmrControls from "../emrControls";
 import FormulaMaster from "../formulaMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import HistoReportMaster from "../histoReportMaster";
@@ -120,5 +122,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-payment-collection": <OPPaymentCollection />,
   "diagnosis-master": <DiagnosisMaster />,
   "procedure-master": <ProcedureMaster />,
+  "emr-controls": <EmrControls />,
+  "control-test": <ControlTest />,
   "patient-advance": <PatientAdvance />,
 };

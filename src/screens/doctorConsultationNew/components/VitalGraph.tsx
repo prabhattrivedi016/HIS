@@ -4,11 +4,24 @@ import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import * as am5exporting from "@amcharts/amcharts5/plugins/exporting";
 
+interface PatientVitalEntry {
+  VitalId: number;
+  VitalName: string;
+  VitalValue: string;
+  Id: number;
+  CreatedOn: string;
+}
+
+interface PatientVitalGroup {
+  vitalDateTime: string;
+  visitId: number;
+  vitals: PatientVitalEntry[];
+}
+
 interface VitalGraphProps {
   isOpen: boolean;
-  onClose: () => void;
-  patientId?: number;
   vitalsList: string[];
+  vitalRecords: PatientVitalGroup[];
 }
 
 const DATE_OPTIONS = [
@@ -27,24 +40,62 @@ const SERIES_COLORS = [
   "#64748b", "#a855f7",
 ];
 
-/* TODO: replace with real API call
- * GET /EMR/getPatientVitalHistory
- * params: { patientId, fromDate, toDate, vitals[] }
- * Response: [{ entryDate: "DD-MM-YYYY HH:MM", [vitalName]: number }]
- */
-const mockData = (vitals: string[]) => {
-  const base = new Date("2026-06-21");
-  return Array.from({ length: 18 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    const label = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
-    const entry: Record<string, string | number> = { entryDate: label };
-    vitals.forEach(v => { entry[v] = Math.floor(Math.random() * 40) + 70; });
-    return entry;
-  });
+const MONTHS: Record<string, number> = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
 };
 
-const VitalGraph = ({ isOpen, onClose, patientId: _patientId, vitalsList }: VitalGraphProps) => {
+/* vitalDateTime comes as "DD-Mon-YYYY HH:mm" e.g. "03-Jul-2026 00:00" */
+const parseVitalDateTime = (raw: string): Date | null => {
+  const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const monthIdx = MONTHS[m[2]];
+  if (monthIdx === undefined) return null;
+  return new Date(Number(m[3]), monthIdx, Number(m[1]), Number(m[4]), Number(m[5]));
+};
+
+const isWithinDateOption = (d: Date, option: string, fromDate: string, toDate: string): boolean => {
+  const now = new Date();
+  switch (option) {
+    case "Today":
+      return d.toDateString() === now.toDateString();
+    case "Last Week": {
+      const from = new Date(now);
+      from.setDate(now.getDate() - 7);
+      return d >= from && d <= now;
+    }
+    case "Last Month": {
+      const from = new Date(now);
+      from.setMonth(now.getMonth() - 1);
+      return d >= from && d <= now;
+    }
+    case "Last Six Months": {
+      const from = new Date(now);
+      from.setMonth(now.getMonth() - 6);
+      return d >= from && d <= now;
+    }
+    case "Last Year": {
+      const from = new Date(now);
+      from.setFullYear(now.getFullYear() - 1);
+      return d >= from && d <= now;
+    }
+    case "Date Range": {
+      if (!fromDate && !toDate) return true;
+      if (fromDate && d < new Date(fromDate)) return false;
+      if (toDate) {
+        const toEnd = new Date(toDate);
+        toEnd.setHours(23, 59, 59, 999);
+        if (d > toEnd) return false;
+      }
+      return true;
+    }
+    case "Select All":
+    default:
+      return true;
+  }
+};
+
+const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
   const [selectedVitals, setSelectedVitals] = useState<string[]>([]);
   const [showVitalDrop, setShowVitalDrop] = useState(false);
   const [chartType, setChartType] = useState("Line");
@@ -181,10 +232,29 @@ const VitalGraph = ({ isOpen, onClose, patientId: _patientId, vitalsList }: Vita
   const toggleVital = (v: string) =>
     setSelectedVitals(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
 
+  /* oldest → newest, left to right */
+  const buildChartData = (vitals: string[]) =>
+    vitalRecords
+      .filter(group => {
+        const d = parseVitalDateTime(group.vitalDateTime);
+        return d ? isWithinDateOption(d, dateOption, fromDate, toDate) : true;
+      })
+      .reverse()
+      .map(group => {
+        const entry: Record<string, string | number> = { entryDate: group.vitalDateTime };
+        vitals.forEach(vitalName => {
+          const raw = group.vitals.find(v => v.VitalName === vitalName)?.VitalValue;
+          if (raw !== undefined && raw !== "" && !Number.isNaN(Number(raw))) {
+            entry[vitalName] = Number(raw);
+          }
+        });
+        return entry;
+      });
+
   const handleFilter = () => {
     if (selectedVitals.length === 0) return;
     setActiveVitals([...selectedVitals]);
-    setChartData(mockData(selectedVitals));
+    setChartData(buildChartData(selectedVitals));
     setFiltered(true);
   };
 
@@ -203,20 +273,7 @@ const VitalGraph = ({ isOpen, onClose, patientId: _patientId, vitalsList }: Vita
 
   return (
     <>
-      <div className="fixed inset-0 z-[88] bg-black/30" onClick={onClose} />
-
-      <div className="fixed inset-0 z-[89] flex items-center justify-center p-4 pointer-events-none">
-        <div
-          className="bg-white w-full max-w-5xl rounded-xl shadow-2xl flex flex-col pointer-events-auto"
-          style={{ height: 620, maxHeight: "82vh" }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50 rounded-t-xl shrink-0">
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Vital Graph</h3>
-            <button className="close-drawer-btn" onClick={onClose}>&times;</button>
-          </div>
-
-          {/* Filter row — overflow visible so dropdowns aren't clipped */}
+      {/* Filter row — overflow visible so dropdowns aren't clipped */}
           <div className="px-5 py-3 border-b shrink-0" style={{ overflow: "visible", position: "relative", zIndex: 60 }}>
             <div className="flex flex-wrap items-center gap-4">
 
@@ -347,8 +404,6 @@ const VitalGraph = ({ isOpen, onClose, patientId: _patientId, vitalsList }: Vita
               </div>
             )}
           </div>
-        </div>
-      </div>
     </>
   );
 };

@@ -16,6 +16,8 @@ type HeaderMasterItem = {
   usedForPatientType: number;
   usedForPatientTypeName: string;
   isActive: number;
+  /** saved SQL/text query for control type "Custom" */
+  queries?: string;
 };
 
 type DoctorItem = {

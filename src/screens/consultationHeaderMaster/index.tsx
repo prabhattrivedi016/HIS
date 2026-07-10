@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ConsultationHeaderMasterTabName } from "../../constants/constants";
-import DoctorDepartmentHeaderMapping from "./components/DoctorDepartmentHeaderMapping";
 import HeaderMaster from "./components/HeaderMaster";
 
 const ConsultationHeaderMaster = () => {
@@ -15,20 +14,20 @@ const ConsultationHeaderMaster = () => {
     if (ConsultationHeaderMasterTabName?.HEADER_MASTER === tabName) {
       return <HeaderMaster />;
     }
-    if (ConsultationHeaderMasterTabName?.DOCTOR_DEPARTMENT_HEADER_MAPPING === tabName) {
-      return <DoctorDepartmentHeaderMapping />;
-    }
+    // if (ConsultationHeaderMasterTabName?.DOCTOR_DEPARTMENT_HEADER_MAPPING === tabName) {
+    //   return <DoctorDepartmentHeaderMapping />;
+    // }
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">Consultation Header Master</h1>
+      <h1 className="page-heading">EMR Controls</h1>
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>Consultation Header Master</span>
+        <span>EMR Controls</span>
       </nav>
 
       <div className="tab-card rounded-lg">
@@ -46,7 +45,7 @@ const ConsultationHeaderMaster = () => {
           {ConsultationHeaderMasterTabName?.HEADER_MASTER}
         </button>
 
-        <button
+        {/* <button
           type="button"
           onClick={() =>
             setActiveTab(ConsultationHeaderMasterTabName?.DOCTOR_DEPARTMENT_HEADER_MAPPING)
@@ -61,7 +60,7 @@ const ConsultationHeaderMaster = () => {
                       `}
         >
           {ConsultationHeaderMasterTabName?.DOCTOR_DEPARTMENT_HEADER_MAPPING}
-        </button>
+        </button> */}
       </div>
 
       {renderTabs(activeTab)}

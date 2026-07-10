@@ -329,8 +329,30 @@ const ENDPOINTS = {
   GET_DOCTOR_HEADER_MAPPING_FOR_MASTER: "Admin/getDoctorHeaderMappingForMaster",
   SAVE_DOCTOR_HEADER_DEPARTMENT_MAPPING: "Admin/saveDoctorHeaderDepartmentMapping",
 
+  // emr controls — sections built from existing Header Master controls
+  GET_ALL_EMR_SECTIONS: "EMR/getEMRSectionMaster",
+  CREATE_UPDATE_EMR_SECTION: "EMR/createUpdateEMRSectionMaster",
+  GET_EMR_SECTION_HEADER_MAPPING: "EMR/getEMRSectionHeaderMapping",
+
+  // emr controls — mapping EMR Sections to a doctor or department
+  GET_EMR_SECTION_DEPARTMENT_MAPPING: "EMR/getEMRSectionDepartmentMapping",
+  SAVE_EMR_SECTION_DEPARTMENT_MAPPING: "EMR/saveEMRSectionDepartmentMapping",
+
+  // emr controls — score formula per section (e.g. Braden Scale style scored assessments)
+  GET_EMR_SECTION_SCORE_FORMULA: "EMR/getEMRSectionScoreFormula",
+  CREATE_UPDATE_EMR_SECTION_SCORE_FORMULA: "EMR/saveEMRSectionScoreFormula",
+
+  // emr controls — per-attribute conditional visibility (each attribute can have its own rule chain)
+  GET_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/getEMRSectionAttributeCondition",
+  SAVE_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/saveEMRSectionAttributeCondition",
+  DELETE_EMR_SECTION_ATTRIBUTE_CONDITION: "EMR/deleteEMRSectionAttributeCondition",
+
+  // emr controls — runs a header's saved query (e.g. "Custom" control type) and returns its result rows
+  GET_EMR_HEADER_QUERY_RESULT: "EMR/getEMRHeaderQueryResult",
+
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
+  GET_PATIENT_VITAL: "Patient/getPatientVital",
 
   // service master
   GET_CATEGORY_TYPE_LIST: "Home/getCategoryTypeList",
@@ -382,6 +404,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_PATIENT_ALLERGY_DETAILS: "EMR/createUpdatePatientAllergyDetails",
   DELETE_PATIENT_ALLERGY: "EMR/deletePatientAllergy",
   DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
+  SAVE_CONSULTATION_EMR: "EMR/saveConsultationEmr",
 
   // diagnosis master
   GET_DIAGNOSIS_MASTER_LIST: "EMR/getDiagnosisMasterList",
