@@ -80,3 +80,25 @@ export const resolveMaritalStatus = (value: unknown) => {
     return "UN-MARRIED";
   return String(value ?? "");
 };
+
+export const normalizePatientGenderForApi = (value: unknown): string => {
+  const normalized = normalize(value);
+  if (!normalized) return "";
+
+  if (["male", "m", "man", "boy"].includes(normalized) || normalized.startsWith("mal")) {
+    return "Male";
+  }
+
+  if (["female", "f", "woman", "girl"].includes(normalized) || normalized.startsWith("fem")) {
+    return "Female";
+  }
+
+  if (
+    ["other", "o", "others", "transgender", "trans"].includes(normalized) ||
+    normalized.startsWith("oth")
+  ) {
+    return "Other";
+  }
+
+  return "";
+};

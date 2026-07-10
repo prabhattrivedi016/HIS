@@ -40,6 +40,7 @@ import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OPPaymentCollection from "../opPaymentCollection";
+import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
 import RateListMaster from "../rateListMaster";
@@ -123,4 +124,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "procedure-master": <ProcedureMaster />,
   "emr-controls": <EmrControls />,
   "control-test": <ControlTest />,
+  "patient-advance": <PatientAdvance />,
 };

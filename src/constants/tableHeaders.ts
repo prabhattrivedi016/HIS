@@ -630,13 +630,39 @@ export const BranchRightMappingTableHeader = ["#", "Branch Right Name", "Descrip
 
 export const OpDiscountApprovalTableHeader = [
   "#",
+  "Token No",
+  "UHID",
   "Patient Name",
   "Age",
   "Gender",
-  "Corporate",
+  "Corporate Name",
+  "Discount %",
+  "Discount Amount",
+  "Payable Amount",
   "Total Bill Amount",
-  "Payment Collected",
-  "Cancelled",
+  "View",
   "Approve",
   "Cancel",
+];
+
+export const OpPaymentCollectionTableHeader = [
+  "#",
+  "Token No",
+  "UHID",
+  "Patient Name",
+  "Age",
+  "Gender",
+  "Corporate Name",
+  "Discount %",
+  "Discount Amount",
+  "View",
+  "Collect Payment",
+  "Cancel",
+];
+export const OpDiscountApprovalLevelTableHeader = [
+  "Approval Level",
+  "Approver Names",
+  "Approved",
+  "Approved By",
+  "Approved On",
 ];

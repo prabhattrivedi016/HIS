@@ -1,5 +1,5 @@
 import { BillingDetailsHandle } from "@/components/BillingDetails";
-import { BillingFormValues } from "@/components/BillingDetails/types";
+import { BillingValuesItem, PaymentBillingSummary } from "@/components/BillingDetails/types";
 import { ChangeEvent, Dispatch, KeyboardEvent, RefObject, SetStateAction } from "react";
 import { SingleValue } from "react-select";
 import { InsuranceItem } from "../branchMaster/types";
@@ -189,6 +189,8 @@ type ServiceBindingItem = {
   isUrgent?: number;
   isUnderPackage?: number;
   remarks?: string;
+  isDiscountLocked?: number;
+  isBookingServiceLocked?: number;
 };
 
 type CategoryItem = {
@@ -320,7 +322,7 @@ type OpdBookingItemPayload = {
   serviceItemId: number;
   serviceName: string;
   subSubCategoryId: number;
-  // remarks: string;
+  remarks?: string;
   performingDoctorId?: number;
 };
 
@@ -330,6 +332,7 @@ type OpdBillingVisitDetailsPayload = {
   branchId: number;
   currentAge: string;
   insuranceCompanyId: number;
+  roleId: number;
   corporateId: number;
   referDoctorId: number;
   doctorId: number;
@@ -361,6 +364,9 @@ type buildVisitDetailsPayloadForOpdBooking = {
   branchId: number;
   cardHolder: string;
   corporateId: number;
+  discountApprovedID: number;
+  discountApprovedName: string;
+  discountReason: string;
   expiryDate: string;
   grossBillAmount: number;
   insuranceCompanyId: number;
@@ -372,10 +378,100 @@ type buildVisitDetailsPayloadForOpdBooking = {
   referalDate: string;
   referalNo: string;
   referDoctorId: number;
+  remark: string;
+  roleId: number;
   roundOff: number;
   totalDiscAmtOnBill: number;
   totalDiscPerOnBill: number;
-  remarks: string;
+};
+
+type OpdBookingItemResponse = {
+  ServiceItemId?: number;
+  serviceItemId?: number;
+  CategoryId?: number;
+  categoryId?: number;
+  SubCategoryId?: number;
+  subCategoryId?: number;
+  SubSubCategoryId?: number;
+  subSubCategoryId?: number;
+  ServiceName?: string;
+  serviceName?: string;
+  ServiceCode?: string;
+  serviceCode?: string;
+  code?: string;
+  DoctorId?: number;
+  doctorId?: number;
+  PerformingDoctorId?: number;
+  performingDoctorId?: number;
+  Remarks?: string;
+  remarks?: string;
+  Rate?: number;
+  rate?: number;
+  Qty?: number;
+  qty?: number;
+  GrossAmt?: number;
+  grossAmt?: number;
+  DiscPer?: number;
+  discPer?: number;
+  DiscAmt?: number;
+  discAmt?: number;
+  NetAmt?: number;
+  netAmt?: number;
+  RateListId?: number;
+  rateListId?: number;
+  IsUrgent?: number;
+  isUrgent?: number;
+};
+
+type OpdBookingDetailsResponse = {
+  BookingId?: number;
+  bookingId?: number;
+  TokenNo?: string;
+  tokenNo?: string;
+  BranchId?: number;
+  branchId?: number;
+  PatientId?: number;
+  patientId?: number;
+  UHID?: string;
+  uhid?: string;
+  CorporateId?: number;
+  corporateId?: number;
+  InsuranceCompanyId?: number;
+  insuranceCompanyId?: number;
+  ReferDoctorId?: number | null;
+  referDoctorId?: number | null;
+  TotalBillAmount?: number;
+  totalBillAmount?: number;
+  TotalDiscountPerOnBill?: number;
+  totalDiscountPerOnBill?: number;
+  TotalDiscountAmountOnBill?: number;
+  totalDiscountAmountOnBill?: number;
+  RoundOff?: number;
+  roundOff?: number;
+  TotalPatientPayableAmount?: number;
+  totalPatientPayableAmount?: number;
+  PolicyNo?: string | null;
+  policyNo?: string | null;
+  PolicyCardNo?: string | null;
+  policyCardNo?: string | null;
+  ExpiryDate?: string | null;
+  expiryDate?: string | null;
+  CardHolder?: string | null;
+  cardHolder?: string | null;
+  ReferalNo?: string | null;
+  referalNo?: string | null;
+  ReferalDate?: string | null;
+  referalDate?: string | null;
+  DiscountApprovedID?: number | null;
+  discountApprovedID?: number | null;
+  DiscountApprovedName?: string | null;
+  discountApprovedName?: string | null;
+  DiscountReason?: string | null;
+  discountReason?: string | null;
+  Remark?: string | null;
+  remark?: string | null;
+  bookingItems?: OpdBookingItemResponse[];
+  BookingItems?: OpdBookingItemResponse[];
 };
 
 type OpdBookingSavePayload = {
@@ -537,6 +633,7 @@ type ServiceBindingDataItem = {
   FieldTypeId: number;
 };
 type OpdBillingSectionProps = {
+  patientId: number | null;
   formResetKey: number;
   billingDetailsRef: RefObject<BillingDetailsHandle | null>;
   insuranceList: InsuranceItem[];
@@ -581,6 +678,7 @@ type OpdBillingSectionProps = {
   serviceValidationError: string;
   deleteHandler: (rowIndex: number) => void;
   rateChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
+  qtyChangeHandler: (rowIndex: number, nextQty: number | string) => void;
   discountPercentageChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   discountChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
   remarksChangeHandler: (e: ChangeEvent<HTMLInputElement>, idx: number) => void;
@@ -591,11 +689,29 @@ type OpdBillingSectionProps = {
   getPerformingDoctorOptions: (doctorDepartmentIds?: string) => OptionItem[];
   performingDoctorChangeHandler: (rowIndex: number, doctorId: number) => void | Promise<void>;
   setOpdBillingFormData: Dispatch<SetStateAction<OpdBillingFormData>>;
-  setBillingValues: Dispatch<SetStateAction<BillingFormValues>>;
-  billingValues: BillingFormValues;
-  billingPaymentDetails: Record<string, unknown>;
+  setBillingValues: Dispatch<SetStateAction<BillingValuesItem>>;
+  billingValues: BillingValuesItem;
+  billingPaymentDetails: PaymentBillingSummary;
   maxDiscountPercentage: number | undefined;
   creditCopayment: boolean;
+  isSeparateCollectionCounterEnabled: number;
+  showPaymentMode?: boolean;
+  hasDiscountApplied?: boolean;
+  bookingDetails?: OpdBookingDetailsResponse | null;
+  isPaymentCollectionMode?: boolean;
+};
+
+type PatientAdvanceItem = {
+  LedgerId: number;
+  PatientId: number;
+  TotalCreditAmt: number;
+  TotalDebitAmt: number;
+  TotalNetAmt: number;
+  TotalRefunAmount: number;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
 };
 export type {
   buildVisitDetailsPayloadForOpdBooking,
@@ -608,7 +724,9 @@ export type {
   OpdBillingSavePayload,
   OpdBillingSectionProps,
   OpdBillingVisitDetailsPayload,
+  OpdBookingDetailsResponse,
   OpdBookingItemPayload,
+  OpdBookingItemResponse,
   OpdBookingSavePayload,
   OpdCardDetailItem,
   OpdPatientDetails,
@@ -617,6 +735,7 @@ export type {
   PackageItemsValue,
   PackagePayloadItem,
   PackagePopupProps,
+  PatientAdvanceItem,
   PatientReceiptItem,
   PaymentModeItem,
   ReferDoctorItem,

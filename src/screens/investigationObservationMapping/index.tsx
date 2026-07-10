@@ -165,8 +165,8 @@ const InvestigationObservationMapping = () => {
       o => o?.observationId === selectedObservation?.value
     );
     setMappingToEdit(editableData!);
-    setOpenObservationMapping(true);
     setRenderObservationMapping(true);
+    setTimeout(() => setOpenObservationMapping(true), 0);
   };
 
   // add observation to table
@@ -245,17 +245,25 @@ const InvestigationObservationMapping = () => {
 
   const closeHandler = useCallback(() => {
     setOpenObservationMapping(false);
+    setTimeout(() => {
+      setRenderObservationMapping(false);
+      setMappingToEdit(null);
+    }, 300);
   }, []);
 
   // range handler
   const editRangesHandler = (item: observationTableDataItem) => {
     if (!item) return;
-    setOpenSetRange(true);
-    setRenderSetRange(true);
     setObservationToEdit(item);
+    setRenderSetRange(true);
+    setTimeout(() => setOpenSetRange(true), 0);
   };
   const closeRangeHandler = useCallback(() => {
     setOpenSetRange(false);
+    setTimeout(() => {
+      setRenderSetRange(false);
+      setObservationToEdit(null);
+    }, 300);
   }, []);
 
   // delete investigation

@@ -4,6 +4,7 @@ import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   opdMasterReferDoctorFormItem,
@@ -38,7 +39,7 @@ const ReferDoctorPopup = ({ isOpen, onClose, data, refreshDoctor }: ReferDoctorP
     resolver: yupResolver(opdMasterReferDoctorSchema),
     defaultValues: {
       referDoctorId: 0,
-      title: autoDoctorTitle,
+      title: "Dr.",
       name: "",
       doctorContacNo: "",
       clinicName: "",
@@ -49,15 +50,28 @@ const ReferDoctorPopup = ({ isOpen, onClose, data, refreshDoctor }: ReferDoctorP
   });
 
   useEffect(() => {
-    setValue("title", autoDoctorTitle, { shouldDirty: false, shouldValidate: true });
+    setValue("title", "Dr.", { shouldDirty: false, shouldValidate: true });
   }, [autoDoctorTitle, setValue]);
 
-  //   edit handler
   useEffect(() => {
-    if (data) {
-      getReferDoctor(Number(data?.value!));
+    if (!isOpen) return;
+
+    if (data?.value) {
+      void getReferDoctor(Number(data.value));
+      return;
     }
-  }, [data]);
+
+    reset({
+      referDoctorId: 0,
+      title: autoDoctorTitle,
+      name: "",
+      doctorContacNo: "",
+      clinicName: "",
+      address: "",
+      proId: 0,
+      active: 1,
+    });
+  }, [data, isOpen, reset]);
 
   const getReferDoctor = async (referDoctorId: number) => {
     const resp = await fetchApi(
@@ -100,11 +114,10 @@ const ReferDoctorPopup = ({ isOpen, onClose, data, refreshDoctor }: ReferDoctorP
     await refreshDoctor?.();
   };
 
-  //   cancel handler
   const cancelHandler = () => {
     reset({
       referDoctorId: 0,
-      title: autoDoctorTitle,
+      title: "Dr.",
       name: "",
       doctorContacNo: "",
       clinicName: "",
@@ -112,16 +125,19 @@ const ReferDoctorPopup = ({ isOpen, onClose, data, refreshDoctor }: ReferDoctorP
       proId: 0,
       active: 1,
     });
+    onClose();
   };
 
+  useScrollLock(isOpen);
+
   return createPortal(
-    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
+    <div className={`fixed inset-0 z-9999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div
         className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
 
       <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-140${isOpen ? "opacity-full" : ""}`}
+        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-180 ${isOpen ? "opacity-full" : ""}`}
       >
         <div className="popup-header">
           <h2 className="popup-helper-text">{buttonTitle} Refer Doctor</h2>

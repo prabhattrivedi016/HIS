@@ -103,15 +103,12 @@ const UhidGlobalSearch = ({
       <div className={`w-full flex justify-center ${className}`.trim()}>
         <InputField>
           <div className="relative w-64">
-            <Search
-              size={18}
-              className="absolute left-3 top-5 z-10 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
+            <Search size={18} className="input-search-icon input-search-icon-left" />
 
             <input
               type="text"
               value={searchUhid}
-              className="input-field w-full pl-10!"
+              className="input-field w-full input-field-search-left"
               placeholder={placeholder}
               onChange={uhidChangeHandler}
               onKeyDown={uhidKeyDownHandler}

@@ -22,7 +22,7 @@ const recalculateFromDiscountPercentage = (
   discountPerInput: number,
   rateInput?: number
 ) => {
-  const qty = toNumber(row?.qty) || 1;
+  const qty = normalizeQty(row?.qty);
   const rate = rateInput ?? toNumber(row?.rate);
   const grossAmt = qty * rate;
   const normalizedDiscountPer = Math.min(100, Math.max(0, discountPerInput));
@@ -41,7 +41,7 @@ const recalculateFromDiscountPercentage = (
 };
 
 const recalculateFromDiscountValue = (row: ServiceRow, discountValueInput: number) => {
-  const qty = toNumber(row?.qty) || 1;
+  const qty = normalizeQty(row?.qty);
   const rate = toNumber(row?.rate);
   const grossAmt = qty * rate;
   const normalizedDiscountValue = Math.min(grossAmt, Math.max(0, discountValueInput));
@@ -94,12 +94,45 @@ const applyDiscountPercentageChange = (
   });
 };
 
+const normalizeQty = (value: unknown) => Math.max(1, Math.floor(toNumber(value)) || 1);
+
+const sanitizeQtyDraft = (rawValue: string) => {
+  const digits = rawValue.replace(/\D/g, "");
+  if (!digits) return "";
+
+  const parsed = parseInt(digits, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return "";
+
+  return String(parsed);
+};
+
+const applyQtyChange = (
+  rows: ServiceBindingItem[],
+  rowIndex: number,
+  nextQtyInput: unknown
+) => {
+  const nextQty = normalizeQty(nextQtyInput);
+
+  return rows.map((service, index) => {
+    if (index !== rowIndex) return service;
+
+    return recalculateFromDiscountPercentage(
+      { ...service, qty: nextQty },
+      toNumber((service as ServiceRow)?.discountPer),
+      toNumber(service?.rate)
+    );
+  });
+};
+
 export {
   applyDiscountAmountChange,
   applyDiscountPercentageChange,
+  applyQtyChange,
   applyRateChange,
   getServiceRowRemarks,
+  normalizeQty,
   recalculateFromDiscountPercentage,
   recalculateFromDiscountValue,
+  sanitizeQtyDraft,
   toNumber,
 };

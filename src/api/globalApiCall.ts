@@ -2,31 +2,44 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 
 const getDoctorMaster = async (fetchApi: any, doctorId: number, component: string = "") => {
+  const resolvedDoctorId = Number(doctorId) || 0;
+  if (!resolvedDoctorId) return null;
+
   const resp = await fetchApi(
     "GET",
     ENDPOINTS.GET_DOCTOR_MASTER,
     {},
-    { params: { doctorId } },
+    { params: { doctorId: resolvedDoctorId } },
     { component: component }
   );
-  const doctorDetails = {
-    label: resp?.data?.[0]?.completeName,
-    value: resp?.data?.[0]?.doctorId,
+  const doctor = resp?.data?.[0];
+  if (!doctor) return null;
+
+  const resolvedValue = Number(doctor?.doctorId ?? doctor?.DoctorId ?? resolvedDoctorId) || 0;
+  const resolvedLabel = String(doctor?.completeName ?? doctor?.CompleteName ?? "").trim();
+
+  if (!resolvedValue || !resolvedLabel) return null;
+
+  return {
+    label: resolvedLabel,
+    value: resolvedValue,
   };
-  return doctorDetails;
 };
 
 // search patient by PatientId,
 const getPatientDataByPatientId = async (
   fetchApi: any,
-  PatientId?: number,
+  patientId?: number,
   component: string = ""
 ) => {
+  const resolvedPatientId = Number(patientId) || 0;
+  if (!resolvedPatientId) return {};
+
   const resp = await fetchApi(
     "GET",
     ENDPOINTS.GET_PATIENT_MASTER,
     {},
-    { params: { PatientId } },
+    { params: { patientId: resolvedPatientId } },
     { component: component }
   );
   return resp?.data?.[0] ?? {};

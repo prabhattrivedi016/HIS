@@ -1,105 +1,315 @@
-import CustomDateInput from "@/components/customDateInput";
-import InputField from "@/components/customInputField";
+import HideShowColumn from "@/components/buttonsPopup";
+import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
+import PageHeader from "@/components/pageHeader";
+import GridView from "@/components/profileCard";
+import ListView from "@/components/profileCard/components/ListView";
 import { ENDPOINTS } from "@/config/defaults";
-import { OpDiscountApprovalTableHeader } from "@/constants/tableHeaders";
+import { opPaymentConfig } from "@/config/masterConfig/opPaymentConfig";
+import { VIEWTYPE } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
+import { useConfigMaster } from "@/hooks/useConfigMaster";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { BranchItem } from "@/types";
-import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useCallback, useContext, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { ColumnVisibility } from "@/types";
+import { exportListViewData } from "@/utils/exportUtils";
+import { filteredData } from "@/utils/filteredData";
+import { transformDataWithConfig } from "@/utils/utilities";
+import {
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useNavigate } from "react-router-dom";
 import ApproveCancelPopup from "../opDiscountApproval/components/ApproveCancelPopup";
-import { OPPaymentItem } from "./types";
+import OpDiscountFilterModal, {
+  OpDiscountFilterValues,
+} from "../opDiscountApproval/components/OpDiscountFilterModal";
+import ViewDetailsPopup from "../opDiscountApproval/components/ViewDetailsPopup";
+import OpPaymentActionPopup from "./components/OpPaymentActionPopup";
+import { OPPaymentItem, OpPaymentGridCard, OpPaymentListCard } from "./types";
+import {
+  handleCancelPaymentButtonClick,
+  handleCollectPaymentButtonClick,
+  isCancelPaymentButtonDisabled,
+  isCollectPaymentButtonDisabled,
+  shouldShowCancelPaymentButton,
+  shouldShowCollectPaymentButton,
+} from "./utils/opPaymentActions";
+import {
+  getDefaultOpPaymentFilters,
+  opPaymentCollectionStateRef,
+  saveOpPaymentCollectionState,
+} from "./utils/opPaymentCollectionStateRef";
+
 const OPPaymentCollection = () => {
-  const { loading, fetchApi } = useGlobalApi();
+  const navigate = useNavigate();
+  const { loading, error, fetchApi } = useGlobalApi();
   const branchLists = useGetBranchList()?.branchList?.data ?? [];
-  const branchId = Number(useContext(AuthContext)?.user?.branchId) ?? 1;
-  const [selectedBranchId, setSelectedBranchId] = useState<number>(branchId);
+  const authBranchId = Number(useContext(AuthContext)?.user?.branchId) || 1;
   const today = new Date().toISOString().split("T")[0];
-  const [queryValue, setQueryValue] = useState({ branchId, fromDate: today, toDate: today });
-  const [popupType, setPopupType] = useState<string>("");
+
+  const { configDataValue: opPaymentConfigFromApi } = useConfigMaster("opPaymentCollection");
+  const activeConfig = opPaymentConfigFromApi || opPaymentConfig;
+  const defaultFilters = useMemo(
+    () => getDefaultOpPaymentFilters(authBranchId, today),
+    [authBranchId, today]
+  );
+  const cachedState = opPaymentCollectionStateRef.current;
+
+  const [queryValue, setQueryValue] = useState<OpDiscountFilterValues>(
+    () => cachedState?.queryValue ?? defaultFilters
+  );
+
+  const [opPaymentGridData, setOpPaymentGridData] = useState<OpPaymentGridCard[]>(
+    () => cachedState?.opPaymentGridData ?? []
+  );
+  const [opPaymentListData, setOpPaymentListData] = useState<OpPaymentListCard[]>(
+    () => cachedState?.opPaymentListData ?? []
+  );
+  const [gridFilteredData, setGridFilteredData] = useState<OpPaymentGridCard[]>(
+    () => cachedState?.gridFilteredData ?? []
+  );
+  const [listFilteredData, setListFilteredData] = useState<OpPaymentListCard[]>(
+    () => cachedState?.listFilteredData ?? []
+  );
+  const [rawItemMap, setRawItemMap] = useState<Record<number, OPPaymentItem>>(
+    () => cachedState?.rawItemMap ?? {}
+  );
+
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+  const [hasFetched, setHasFetched] = useState(() => cachedState?.hasFetched ?? false);
+  const [cardView, setCardView] = useState(() => cachedState?.cardView ?? VIEWTYPE.GRID);
+  const [, setSearchQuery] = useState("");
+
+  const [popupType, setPopupType] = useState("");
   const [selectedItem, setSelectedItem] = useState<OPPaymentItem | null>(null);
-  const [renderPopup, setRenderPopup] = useState<boolean>(false);
-  const [openPopup, setOpenPopup] = useState<boolean>(false);
+  const [renderPopup, setRenderPopup] = useState(false);
+  const [openPopup, setOpenPopup] = useState(false);
 
-  const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
-    setSelectedBranchId(value);
-    setQueryValue(prev => ({
-      ...prev,
-      branchId: value,
-    }));
-  };
+  const [viewItem, setViewItem] = useState<OPPaymentItem | null>(null);
+  const [renderViewPopup, setRenderViewPopup] = useState(false);
+  const [openViewPopup, setOpenViewPopup] = useState(false);
 
-  const fromDateChangeHandler = (value: string) => {
-    setQueryValue(prev => ({
-      ...prev,
-      fromDate: value,
-    }));
-  };
+  const [gridActionOpen, setGridActionOpen] = useState(false);
+  const [gridActionPopup, setGridActionPopup] = useState<DOMRect | null>(null);
+  const [gridActionBookingId, setGridActionBookingId] = useState<number | null>(null);
 
-  const toDateChangeHandler = (value: string) => {
-    setQueryValue(prev => ({
-      ...prev,
-      toDate: value,
-    }));
-  };
+  const [onDownload, setOnDownload] = useState(false);
+  const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
+  const [hideShowColumn, setHideShowColumn] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
-  const getOpDiscountList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION,
-      {},
-      { params: queryValue },
-      { component: "OPPaymentCollection" }
-    );
-    return resp?.data ?? [];
-  };
+  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
+  const downloadBtnRef = useRef<HTMLButtonElement>(null);
+  const hasInitializedRef = useRef(false);
+  const cardViewRef = useRef(cardView);
 
-  const { data: opDiscountList = [], refetch } = useQuery({
-    queryKey: ["getOpDiscountList"],
-    queryFn: getOpDiscountList,
-    enabled: !!queryValue.branchId,
-  });
+  useEffect(() => {
+    cardViewRef.current = cardView;
+  }, [cardView]);
 
-  const searchHandler = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    refetch?.();
-  };
+  const getOpPaymentList = useCallback(
+    async (params: OpDiscountFilterValues) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_OPD_BOOKING_DETAILS_FOR_PAYMENT_COLLECTION,
+        {},
+        { params },
+        { component: "OPPaymentCollection" }
+      );
 
-  //   //   approve type handler
-  //   const approveHandler = (item: OPPaymentItem, popupType: string) => {
-  //     if (!item) {
-  //       setSelectedItem(null);
-  //       setPopupType("");
-  //       setRenderPopup(false);
-  //       setOpenPopup(false);
-  //       return;
-  //     }
-  //     setSelectedItem(item);
-  //     setPopupType(popupType);
-  //     setRenderPopup(true);
-  //     setOpenPopup(true);
-  //   };
+      const rawData: OPPaymentItem[] = resp?.data ?? [];
+      const transformed = transformDataWithConfig(activeConfig, resp);
+      const nextRawItemMap = Object.fromEntries(
+        rawData.map(item => [Number(item.BookingId), item])
+      );
+      const nextGridData = transformed?.gridView ?? [];
+      const nextListData = transformed?.listView ?? [];
 
-  //   cancel type handler
-  const cancelHandler = (item: OPPaymentItem, popupType: string) => {
-    if (!item) {
-      setSelectedItem(null);
-      setPopupType("");
-      setRenderPopup(false);
-      setOpenPopup(false);
+      setRawItemMap(nextRawItemMap);
+      setOpPaymentGridData(nextGridData);
+      setOpPaymentListData(nextListData);
+      setGridFilteredData(nextGridData);
+      setListFilteredData(nextListData);
+      setHasFetched(true);
+
+      saveOpPaymentCollectionState({
+        queryValue: params,
+        opPaymentGridData: nextGridData,
+        opPaymentListData: nextListData,
+        gridFilteredData: nextGridData,
+        listFilteredData: nextListData,
+        rawItemMap: nextRawItemMap,
+        hasFetched: true,
+        cardView: cardViewRef.current,
+      });
+    },
+    [activeConfig]
+  );
+
+  useEffect(() => {
+    if (!activeConfig || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
+    const cached = opPaymentCollectionStateRef.current;
+    if (cached?.shouldRefreshOnReturn) {
+      setQueryValue(cached.queryValue);
+      setCardView(cached.cardView);
+      opPaymentCollectionStateRef.current = {
+        ...cached,
+        shouldRefreshOnReturn: false,
+      };
+      void getOpPaymentList(cached.queryValue);
       return;
     }
+
+    if (cached?.hasFetched) {
+      setQueryValue(cached.queryValue);
+      setOpPaymentGridData(cached.opPaymentGridData);
+      setOpPaymentListData(cached.opPaymentListData);
+      setGridFilteredData(cached.gridFilteredData);
+      setListFilteredData(cached.listFilteredData);
+      setRawItemMap(cached.rawItemMap);
+      setHasFetched(true);
+      setCardView(cached.cardView);
+      return;
+    }
+
+    void getOpPaymentList(defaultFilters);
+  }, [activeConfig, defaultFilters, getOpPaymentList]);
+
+  const handleCardView = (view: string) => {
+    setCardView(view);
+    if (opPaymentCollectionStateRef.current) {
+      opPaymentCollectionStateRef.current = {
+        ...opPaymentCollectionStateRef.current,
+        cardView: view,
+      };
+    }
+  };
+
+  const handleRefresh = useCallback(async () => {
+    await getOpPaymentList(queryValue);
+    setSearchQuery("");
+  }, [getOpPaymentList, queryValue]);
+
+  const searchHandler = useCallback(
+    (keyInput: string, selectedValue = "") => {
+      const value = keyInput?.toLowerCase()?.trim();
+      setSearchQuery(keyInput);
+
+      filteredData({
+        value,
+        selectedValue,
+        listData: opPaymentListData as never,
+        gridData: opPaymentGridData as never,
+        setListFilteredData: setListFilteredData as never,
+        setGridFilteredData: setGridFilteredData as never,
+      });
+    },
+    [opPaymentGridData, opPaymentListData]
+  );
+
+  useEffect(() => {
+    if (listFilteredData.length > 0) {
+      const visibility: Record<string, boolean> = {};
+      listFilteredData[0].columns.forEach(col => {
+        visibility[col.label] = true;
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [listFilteredData]);
+
+  const columnNames = useMemo(() => {
+    if (cardView === VIEWTYPE.LIST && listFilteredData.length > 0) {
+      return [
+        listFilteredData[0]?.listLeftButton?.[0]?.label || "Action",
+        ...(listFilteredData[0]?.columns?.map(col => col.label) || []),
+      ];
+    }
+    return [];
+  }, [cardView, listFilteredData]);
+
+  const downloadHandler = () => {
+    if (!downloadBtnRef.current) return;
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+    setOnDownload(prev => !prev);
+  };
+
+  const hideShowHandler = useCallback(() => {
+    if (hideShowBtnRef.current) {
+      const rect = hideShowBtnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.bottom + 5, left: rect.left });
+    }
+    setHideShowColumn(prev => !prev);
+  }, []);
+
+  const onFilterPaymentCollection = useCallback(() => {
+    setFilterModalOpen(true);
+  }, []);
+
+  const closeFilterModal = useCallback(() => {
+    setFilterModalOpen(false);
+  }, []);
+
+  const applyFilterHandler = useCallback(
+    async (params: OpDiscountFilterValues) => {
+      setQueryValue(params);
+      setSearchQuery("");
+      await getOpPaymentList(params);
+      setFilterModalOpen(false);
+    },
+    [getOpPaymentList]
+  );
+
+  const filterDropDown = opPaymentListData?.[0]?.columns;
+
+  const openCancelPopup = (item: OPPaymentItem) => {
     setSelectedItem(item);
-    setPopupType(popupType);
+    setPopupType("cancel");
     setRenderPopup(true);
     setOpenPopup(true);
   };
 
-  //   close handler
+  const viewHandler = (item: OPPaymentItem) => {
+    setViewItem(item);
+    setRenderViewPopup(true);
+    setOpenViewPopup(true);
+  };
+
+  const collectPaymentHandler = (item: OPPaymentItem) => {
+    saveOpPaymentCollectionState({
+      queryValue,
+      opPaymentGridData,
+      opPaymentListData,
+      gridFilteredData,
+      listFilteredData,
+      rawItemMap,
+      hasFetched,
+      cardView,
+    });
+
+    navigate("/opd-billing", {
+      state: {
+        bookingId: item.BookingId,
+        tokenNo: item.TokenNo,
+        uhid: item.UHID,
+        patientId: item.PatientId,
+        fromPaymentCollection: true,
+      },
+    });
+  };
+
   const closeHandler = useCallback(() => {
     setOpenPopup(false);
     setTimeout(() => {
@@ -109,137 +319,240 @@ const OPPaymentCollection = () => {
     }, 300);
   }, []);
 
+  const closeViewHandler = useCallback(() => {
+    setOpenViewPopup(false);
+    setTimeout(() => {
+      setRenderViewPopup(false);
+      setViewItem(null);
+    }, 300);
+  }, []);
+
   const popupSuccessHandler = useCallback(() => {
-    void refetch?.();
-  }, [refetch]);
+    void getOpPaymentList(queryValue);
+  }, [getOpPaymentList, queryValue]);
+
+  const gridActionHandler = (bookingId: number, rect: DOMRect) => {
+    if (gridActionOpen && gridActionBookingId === bookingId) {
+      setGridActionOpen(false);
+      return;
+    }
+
+    setGridActionPopup(rect);
+    setGridActionBookingId(bookingId);
+    setGridActionOpen(true);
+  };
+
+  const shouldShowGridButton = useCallback(
+    (action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (!item) return false;
+
+      if (action === "togglePaymentCollection") {
+        return shouldShowCollectPaymentButton(item);
+      }
+
+      if (action === "toggleCancelPayment") {
+        return shouldShowCancelPaymentButton(item);
+      }
+
+      return false;
+    },
+    [rawItemMap]
+  );
+
+  const isGridButtonDisabled = useCallback(
+    (action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (action === "togglePaymentCollection") return isCollectPaymentButtonDisabled(item);
+      if (action === "toggleCancelPayment") return isCancelPaymentButtonDisabled(item);
+      return false;
+    },
+    [rawItemMap]
+  );
+
+  const customButtonClickHandler = useCallback(
+    (action: string, bookingId: number) => {
+      const item = rawItemMap[bookingId];
+      if (!item) return;
+
+      if (action === "togglePaymentCollection") {
+        handleCollectPaymentButtonClick(item, collectPaymentHandler);
+        return;
+      }
+
+      if (action === "toggleCancelPayment") {
+        handleCancelPaymentButtonClick(item, openCancelPopup);
+      }
+    },
+    [rawItemMap]
+  );
+
+  const renderRowActionMenu = useCallback(
+    (rowData: { id: number }, closeMenu: () => void) => {
+      const item = rawItemMap[rowData.id];
+      if (!item) return null;
+
+      const runAction = (action: (selected: OPPaymentItem) => void) => {
+        action(item);
+        closeMenu();
+      };
+
+      return (
+        <ul className="text-sm">
+          <li>
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+              onClick={() => runAction(viewHandler)}
+            >
+              View
+            </button>
+          </li>
+          {shouldShowCollectPaymentButton(item) && (
+            <li>
+              <button
+                type="button"
+                aria-disabled={isCollectPaymentButtonDisabled(item)}
+                disabled={isCollectPaymentButtonDisabled(item)}
+                className={`w-full text-left px-3 py-2 text-gray-700 ${
+                  isCollectPaymentButtonDisabled(item)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-blue-50"
+                }`}
+                onClick={() =>
+                  handleCollectPaymentButtonClick(item, () => runAction(collectPaymentHandler))
+                }
+              >
+                Collect Payment
+              </button>
+            </li>
+          )}
+          {shouldShowCancelPaymentButton(item) && (
+            <li>
+              <button
+                type="button"
+                aria-disabled={isCancelPaymentButtonDisabled(item)}
+                className={`w-full text-left px-3 py-2 text-gray-700 ${
+                  isCancelPaymentButtonDisabled(item)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-blue-50"
+                }`}
+                onClick={() =>
+                  handleCancelPaymentButtonClick(item, () => runAction(openCancelPopup))
+                }
+              >
+                Cancel
+              </button>
+            </li>
+          )}
+        </ul>
+      );
+    },
+    [rawItemMap]
+  );
+
+  const renderComponent = (view: string) => {
+    if (!activeConfig || !hasFetched) {
+      return <div className="initial-message">Loading OP Payment Collection...</div>;
+    }
+
+    if (view === VIEWTYPE.GRID) {
+      if (!gridFilteredData.length) return <div className="no-data-message">No records found</div>;
+
+      return (
+        <div className="grid-card-page-layout">
+          {gridFilteredData.map(item => (
+            <GridView
+              key={item.id}
+              data={item}
+              cardRightTopBtn={gridActionHandler}
+              onCustomButtonClick={customButtonClickHandler}
+              shouldShowButton={shouldShowGridButton}
+              isButtonDisabled={isGridButtonDisabled}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (view === VIEWTYPE.LIST) {
+      if (!listFilteredData.length) return <div className="no-data-message">No records found</div>;
+
+      return (
+        <div className="list-view-page-layout">
+          <ListView
+            data={listFilteredData}
+            columnVisibility={columnVisibility}
+            renderRowActionMenu={renderRowActionMenu}
+          />
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
-    <div className="page-container">
-      <h1 className="page-heading">OP Payment Collection</h1>
+    <div className="master-page-size">
+      <PageHeader
+        title="OP Payment Collection"
+        view={cardView}
+        onCardView={handleCardView}
+        buttonTitle=""
+        showAddButton={false}
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
+        onAddNew={() => {}}
+        onDownload={downloadHandler}
+        onFilter={filterDropDown}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
+        downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
+        onFilterDiscountApproval={onFilterPaymentCollection}
+      />
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span>OP Payment Collection</span>
-      </nav>
+      <div className="w-full">{renderComponent(cardView)}</div>
 
-      {/* form  */}
-      <div className="card">
-        <form onSubmit={searchHandler}>
-          <div className="form-grid-4">
-            <InputField label="Branch" required>
-              <select
-                className="input-field"
-                value={selectedBranchId}
-                onChange={branchChangeHandler}
-                name="branchId"
-              >
-                <option>--Select--</option>
-                {branchLists.map((b: BranchItem) => (
-                  <option key={b?.branchId} value={b?.branchId}>
-                    {b?.branchName}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-            <InputField label="From Date">
-              <CustomDateInput value={queryValue?.fromDate} onChange={fromDateChangeHandler} />
-            </InputField>
-            <InputField label="To Date">
-              <CustomDateInput value={queryValue?.toDate} onChange={toDateChangeHandler} />
-            </InputField>
-          </div>
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef as RefObject<HTMLElement>}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
+      )}
 
-          <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {"Search"}
-            </button>
-          </div>
-        </form>
-      </div>
-      {/* table */}
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef as RefObject<HTMLElement>}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadPdf={() => {
+            exportListViewData(listFilteredData, "OpPaymentCollectionList", "pdf");
+            setOnDownload(false);
+          }}
+          onDownloadExcel={() => {
+            exportListViewData(listFilteredData, "OpPaymentCollectionList", "excel");
+            setOnDownload(false);
+          }}
+        />
+      )}
 
-      <div className="table-container mt-1 ">
-        <div className="table-scroll-wrapper ">
-          <div className="table-size lg:min-h-120">
-            <table className="base-table ">
-              <thead className="table-head">
-                <tr>
-                  {OpDiscountApprovalTableHeader.map((h, index) => (
-                    <th key={index} className="table-th ">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+      {gridActionOpen && gridActionBookingId ? (
+        <OpPaymentActionPopup
+          bookingId={gridActionBookingId}
+          rawItemMap={rawItemMap}
+          anchorRect={gridActionPopup}
+          onClose={() => setGridActionOpen(false)}
+          onView={viewHandler}
+          onCollectPayment={collectPaymentHandler}
+          onCancel={openCancelPopup}
+        />
+      ) : null}
 
-              <tbody>
-                {opDiscountList?.length === 0 && (
-                  <tr>
-                    <td colSpan={OpDiscountApprovalTableHeader.length} className="table-empty">
-                      No records found
-                    </td>
-                  </tr>
-                )}
-
-                {opDiscountList.map((item: OPPaymentItem, idx: number) => (
-                  <tr key={item?.BookingId} className="table-row">
-                    <td className="table-td">{idx + 1}</td>
-                    <td className="table-td">{item?.PatientName || "-"}</td>
-                    <td className="table-td">{item?.Age || "-"}</td>{" "}
-                    <td className="table-td">{item?.Gender || "-"}</td>
-                    {/* <td className="table-td">{item?.Gender || "-"}</td>{" "} */}
-                    <td className="table-td">{item?.CorporateName || "-"}</td>
-                    <td className="table-td">{item?.TotalBillAmount || "-"}</td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsPaymentCollected) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsPaymentCollected) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsCancel) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsCancel) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td
-                      className={`table-td ${
-                        Number(item?.IsDiscountApproved) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsDiscountApproved) === 1 ? "Yes" : "No"}
-                    </td>
-                    <td className="table-td">
-                      {item?.IsCancel === 0 ? (
-                        <button
-                          className="delete-btn"
-                          onClick={() => cancelHandler(item, "cancel")}
-                        >
-                          Cancel
-                        </button>
-                      ) : (
-                        <></>
-                      )}
-                    </td>
-                    {/*   <td className="table-td">{item?.lastModifiedBy || "-"}</td>
-                    <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                    <td className="table-td" onClick={() => editHandler(item)}>
-                      <i className="fa-solid fa-edit text-xl icon-color-button" />
-                    </td> */}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {!!renderPopup && (
+      {renderPopup && (
         <ApproveCancelPopup
           isOpen={openPopup}
           popupType={popupType}
@@ -249,7 +562,20 @@ const OPPaymentCollection = () => {
         />
       )}
 
-      {!!loading && <CustomLoader isLoading={loading} />}
+      {renderViewPopup && (
+        <ViewDetailsPopup isOpen={openViewPopup} item={viewItem} onClose={closeViewHandler} />
+      )}
+
+      <OpDiscountFilterModal
+        isOpen={filterModalOpen}
+        onClose={closeFilterModal}
+        onApply={applyFilterHandler}
+        initialValues={queryValue}
+        branchList={branchLists}
+        modalTitle="Filter OP Payment Collection"
+      />
+
+      {loading ? <CustomLoader isLoading={loading} /> : null}
     </div>
   );
 };
