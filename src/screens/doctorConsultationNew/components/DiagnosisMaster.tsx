@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
 import InputField from "@/components/customInputField";
 import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface SnomedItem {
   conceptId: string;
@@ -41,9 +41,16 @@ const DiagnosisMaster = () => {
   }, []);
 
   useEffect(() => {
-    if (skipSnomedRef.current) { skipSnomedRef.current = false; return; }
+    if (skipSnomedRef.current) {
+      skipSnomedRef.current = false;
+      return;
+    }
     const q = diagnosisName.trim();
-    if (!q || q.length < 2) { setSnomedResults([]); setShowSnomedDropdown(false); return; }
+    if (!q || q.length < 2) {
+      setSnomedResults([]);
+      setShowSnomedDropdown(false);
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setSnomedLoading(true);
@@ -85,17 +92,7 @@ const DiagnosisMaster = () => {
   const handleAdd = () => {
     if (!diagnosisName.trim() || !status || !startDateTime) return;
 
-    /*
-     * PAYLOAD — Save Diagnosis
-     * POST ENDPOINTS.SAVE_DIAGNOSIS (TODO: add endpoint)
-     * {
-     *   diagnosisName: diagnosisName.trim(),
-     *   snomedCode:    snomedCode || null,
-     *   status,
-     *   startDateTime,
-     * }
-     */
-    setRecords((prev) => [
+    setRecords(prev => [
       ...prev,
       {
         id: Date.now(),
@@ -109,8 +106,7 @@ const DiagnosisMaster = () => {
   };
 
   const handleDelete = (id: number) => {
-    /* TODO: DELETE API call */
-    setRecords((prev) => prev.filter((r) => r.id !== id));
+    setRecords(prev => prev.filter(r => r.id !== id));
   };
 
   const formatDateTime = (dt: string) => {
@@ -121,7 +117,6 @@ const DiagnosisMaster = () => {
   return (
     <div className="card">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-
         <InputField label="Diagnoses" required>
           <div className="relative" ref={snomedRef}>
             <input
@@ -129,7 +124,10 @@ const DiagnosisMaster = () => {
               className="input-field !mb-0"
               placeholder="Search diagnosis…"
               value={diagnosisName}
-              onChange={(e) => { setDiagnosisName(e.target.value); setSnomedCode(""); }}
+              onChange={e => {
+                setDiagnosisName(e.target.value);
+                setSnomedCode("");
+              }}
             />
             {(showSnomedDropdown || snomedLoading) && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
@@ -142,7 +140,7 @@ const DiagnosisMaster = () => {
                     <button
                       key={i}
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseDown={e => e.preventDefault()}
                       onClick={() => handleSnomedSelect(item)}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
                     >
@@ -157,14 +155,12 @@ const DiagnosisMaster = () => {
         </InputField>
 
         <InputField label="Status" required>
-          <select
-            className="input-field"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+          <select className="input-field" value={status} onChange={e => setStatus(e.target.value)}>
             <option value="">-- Select --</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {STATUS_OPTIONS.map(s => (
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         </InputField>
@@ -174,7 +170,7 @@ const DiagnosisMaster = () => {
             type="datetime-local"
             className="input-field"
             value={startDateTime}
-            onChange={(e) => setStartDateTime(e.target.value)}
+            onChange={e => setStartDateTime(e.target.value)}
           />
         </InputField>
 
@@ -199,10 +195,12 @@ const DiagnosisMaster = () => {
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="table-empty">No records found</td>
+                  <td colSpan={4} className="table-empty">
+                    No records found
+                  </td>
                 </tr>
               ) : (
-                records.map((rec) => (
+                records.map(rec => (
                   <tr key={rec.id} className="table-row">
                     <td className="table-td font-medium text-gray-800">{rec.diagnosisName}</td>
                     <td className="table-td text-orange-500 capitalize">{rec.status}</td>
