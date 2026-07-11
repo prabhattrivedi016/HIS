@@ -191,10 +191,10 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
 
     const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 28 });
     xRenderer.labels.template.setAll({
-      rotation: -90,
-      centerY: am5.p50,
+      rotation: -45,
+      centerY: am5.p100,
       centerX: am5.p100,
-      paddingRight: 10,
+      paddingRight: 15,
       fontSize: 9,
     });
 
