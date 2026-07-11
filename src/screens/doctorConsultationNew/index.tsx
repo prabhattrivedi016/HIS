@@ -248,6 +248,9 @@ const DoctorConsultationNew = () => {
   });
 
   const vitalsList = vitalMasterList.map((v: VitalMasterItem) => v.vitalName);
+  const vitalUnitsByName = Object.fromEntries(
+    vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
+  );
 
   const emrPayload: EmrConsultationPayload | null = useMemo(() => {
     if (!selectedPatient || !consultationId) return null;
@@ -827,6 +830,7 @@ const DoctorConsultationNew = () => {
         onClose={() => setShowVitalInsights(false)}
         patientId={selectedPatient?.PatientId}
         vitalsList={vitalsList}
+        vitalUnits={vitalUnitsByName}
       />
       <AllergyPanel
         isOpen={showAllergyPanel}

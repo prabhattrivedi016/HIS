@@ -25,11 +25,12 @@ interface VitalInsightsProps {
   onClose: () => void;
   patientId?: number;
   vitalsList: string[];
+  vitalUnits?: Record<string, string>;
 }
 
 type TabKey = "history" | "graph";
 
-const VitalInsights = ({ isOpen, onClose, patientId, vitalsList }: VitalInsightsProps) => {
+const VitalInsights = ({ isOpen, onClose, patientId, vitalsList, vitalUnits }: VitalInsightsProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("history");
   const { fetchApi } = useGlobalApi();
 
@@ -104,6 +105,7 @@ const VitalInsights = ({ isOpen, onClose, patientId, vitalsList }: VitalInsights
             isOpen={isOpen && activeTab === "history"}
             vitalsList={vitalsList}
             vitalRecords={vitalRecords}
+            vitalUnits={vitalUnits}
           />
           <VitalGraph
             isOpen={isOpen && activeTab === "graph"}

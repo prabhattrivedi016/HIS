@@ -18,6 +18,7 @@ interface VitalHistoryProps {
   isOpen: boolean;
   vitalsList: string[];
   vitalRecords: PatientVitalGroup[];
+  vitalUnits?: Record<string, string>;
 }
 
 interface VitalHistoryRow {
@@ -112,7 +113,7 @@ const isWithinDateOption = (d: Date, option: string, fromDate: string, toDate: s
   }
 };
 
-const VitalHistory = ({ isOpen, vitalsList, vitalRecords }: VitalHistoryProps) => {
+const VitalHistory = ({ isOpen, vitalsList, vitalRecords, vitalUnits }: VitalHistoryProps) => {
   const [dateOption, setDateOption] = useState("Select All");
   const [showDateDrop, setShowDateDrop] = useState(false);
   const [fromDate, setFromDate] = useState("");
@@ -350,6 +351,7 @@ const VitalHistory = ({ isOpen, vitalsList, vitalRecords }: VitalHistoryProps) =
                   {activeVitalColumns.map(c => (
                     <th key={c} className="table-th text-center whitespace-nowrap">
                       {c}
+                      {vitalUnits?.[c] ? `(${vitalUnits[c]})` : ""}
                     </th>
                   ))}
                 </tr>
