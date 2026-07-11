@@ -1,7 +1,10 @@
 import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { EmrSectionMappingTableItem, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
+import {
+  EmrSectionMappingTableItem,
+  SectionHeaderMappingRecord,
+} from "@/screens/emrControls/types";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClipboardList, Loader2 } from "lucide-react";
@@ -14,18 +17,28 @@ interface ConsultationEmrSectionsProps {
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
 }
 
-const dataPathFor = (sectionId: number, headerId: number) => `section_${sectionId}.header_${headerId}`;
+const dataPathFor = (sectionId: number, headerId: number) =>
+  `section_${sectionId}.header_${headerId}`;
 
-/* cycled per section since sections don't carry a color/icon of their own */
 const SECTION_STYLES = [
-  { grad: "from-blue-500 to-cyan-400", ring: "ring-blue-200", text: "text-blue-600", border: "border-blue-200" },
+  {
+    grad: "from-blue-500 to-cyan-400",
+    ring: "ring-blue-200",
+    text: "text-blue-600",
+    border: "border-blue-200",
+  },
   {
     grad: "from-purple-500 to-fuchsia-400",
     ring: "ring-purple-200",
     text: "text-purple-600",
     border: "border-purple-200",
   },
-  { grad: "from-rose-500 to-pink-400", ring: "ring-rose-200", text: "text-rose-600", border: "border-rose-200" },
+  {
+    grad: "from-rose-500 to-pink-400",
+    ring: "ring-rose-200",
+    text: "text-rose-600",
+    border: "border-rose-200",
+  },
   {
     grad: "from-emerald-500 to-teal-400",
     ring: "ring-emerald-200",
@@ -55,8 +68,6 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
     Record<number, SectionHeaderMappingRecord[]>
   >({});
 
-  /* renders every active EMR Section; attributes for the active one are fetched
-   * separately by sectionId via EmrSectionRenderer -> EMR/getEMRSectionHeaderMapping */
   const getAllEmrSections = async (): Promise<EmrSectionMappingTableItem[]> => {
     const resp = await fetchApi(
       "GET",
@@ -109,13 +120,14 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
       });
     });
     onSectionsChange(entries);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, mappedSections, headersBySection]);
 
   const isSectionAnswered = (sectionId: number) => {
     const sectionData = data[`section_${sectionId}`] as Record<string, unknown> | undefined;
     if (!sectionData) return false;
-    return Object.values(sectionData).some(v => v !== undefined && v !== null && String(v).trim() !== "");
+    return Object.values(sectionData).some(
+      v => v !== undefined && v !== null && String(v).trim() !== ""
+    );
   };
 
   const activeSection = mappedSections.find(s => s.sectionId === activeSectionId);
@@ -129,7 +141,9 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
   return (
     <div className="bg-white rounded-xl shadow mt-3 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b bg-gradient-to-r from-slate-50 to-white">
-        <h3 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide">EMR Sections</h3>
+        <h3 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide">
+          EMR Sections
+        </h3>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-medium text-gray-400">
             {answeredCount}/{mappedSections.length || 0} done
@@ -170,7 +184,6 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
       ) : (
         <div className="flex">
-          {/* icon rail */}
           <div className="flex flex-col items-center gap-2 py-4 px-2.5 border-r border-gray-100 bg-gray-50/60 shrink-0">
             {mappedSections.map((section, idx) => {
               const isActive = section.sectionId === activeSectionId;
@@ -198,8 +211,6 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
             })}
           </div>
 
-          {/* animated content panel — given the active sectionId, EmrSectionRenderer
-           * fetches and renders every attribute mapped to that section */}
           <div className="flex-1 min-w-0 p-5 min-h-64">
             <AnimatePresence mode="wait">
               {activeSection && (
@@ -211,7 +222,9 @@ const ConsultationEmrSections = ({ onSectionsChange }: ConsultationEmrSectionsPr
                   transition={{ duration: 0.18 }}
                 >
                   <div className="flex items-center gap-1.5 mb-2.5">
-                    <span className={`w-1.5 h-1.5 rounded-full bg-gradient-to-br ${activeStyle.grad}`} />
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full bg-gradient-to-br ${activeStyle.grad}`}
+                    />
                     <span
                       className={`text-[10px] font-semibold uppercase tracking-wider ${activeStyle.text}`}
                     >

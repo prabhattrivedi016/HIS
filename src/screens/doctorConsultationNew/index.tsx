@@ -22,7 +22,12 @@ import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import VitalInsights from "./components/VitalInsights";
-import { AllergySection, EmrConsultationPayload, EmrSectionAnswerEntry, PatientItem } from "./types";
+import {
+  AllergySection,
+  EmrConsultationPayload,
+  EmrSectionAnswerEntry,
+  PatientItem,
+} from "./types";
 
 interface VitalMasterItem {
   vitalId: number;
@@ -35,7 +40,6 @@ interface VitalMasterItem {
   IsActive: number;
 }
 
-/* cycled per vital row since the API doesn't provide a color */
 const VITAL_COLOR_PALETTE = [
   { color: "text-red-500", labelColor: "text-red-400", focusBorder: "focus:border-red-400" },
   { color: "text-green-600", labelColor: "text-green-500", focusBorder: "focus:border-green-500" },
@@ -55,7 +59,6 @@ const VITAL_COLOR_PALETTE = [
   { color: "text-pink-600", labelColor: "text-pink-500", focusBorder: "focus:border-pink-400" },
 ];
 
-/* ---------- format helper ---------- */
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -125,12 +128,10 @@ const DoctorConsultationNew = () => {
     queryFn: getPatientLists,
   });
 
-  /* reset tab when type changes */
   useEffect(() => {
     setActiveTab(selectedType === 1 ? "pending" : "admitted");
   }, [selectedType]);
 
-  /* tab + search filtering */
   const tabFilteredData = data.filter((p: PatientItem) => {
     if (selectedType === 1) {
       if (activeTab === "pending") return p.IsConsultationDone == 0 && p.IsOut == 0;
@@ -177,8 +178,6 @@ const DoctorConsultationNew = () => {
     setAppliedRange(prev => ({ ...prev, startDate: newDate, endDate: newDate }));
     setTempRange(prev => ({ ...prev, startDate: newDate, endDate: newDate }));
   };
-
-  /* ---------- handlers ---------- */
 
   const handleSelect = (ranges: any) => {
     setTempRange(ranges.selection);
@@ -250,8 +249,6 @@ const DoctorConsultationNew = () => {
 
   const vitalsList = vitalMasterList.map((v: VitalMasterItem) => v.vitalName);
 
-  /* one consolidated, extensible payload for the whole consultation —
-   * see EmrConsultationPayload in ./types for the section-key skeleton */
   const emrPayload: EmrConsultationPayload | null = useMemo(() => {
     if (!selectedPatient || !consultationId) return null;
 

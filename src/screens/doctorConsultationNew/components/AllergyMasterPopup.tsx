@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
 import InputField from "@/components/customInputField";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
 import { showSuccess } from "@/utils/alert";
+import { useEffect, useRef, useState } from "react";
 
 interface SnomedItem {
   conceptId: string;
@@ -75,9 +75,16 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
   }, []);
 
   useEffect(() => {
-    if (skipSnomedRef.current) { skipSnomedRef.current = false; return; }
+    if (skipSnomedRef.current) {
+      skipSnomedRef.current = false;
+      return;
+    }
     const q = allergyName.trim();
-    if (!q || q.length < 2) { setSnomedResults([]); setShowSnomedDropdown(false); return; }
+    if (!q || q.length < 2) {
+      setSnomedResults([]);
+      setShowSnomedDropdown(false);
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setSnomedLoading(true);
@@ -122,7 +129,7 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
     const payload = {
       allergyId: editId,
       allergyTypeId: selectedTypeId,
-      allergyType: allergyTypes.find((t) => t.id === selectedTypeId)?.allergyTypeName ?? "",
+      allergyType: allergyTypes.find(t => t.id === selectedTypeId)?.allergyTypeName ?? "",
       allergyName: allergyName.trim(),
       snomedCode: snomedCode || null,
       active: status,
@@ -161,11 +168,11 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
       { component: "AllergyMasterPopup" }
     );
     if (resp?.result) {
-      setAllergyList((prev) => prev.filter((i) => i.AllergyId !== id));
+      setAllergyList(prev => prev.filter(i => i.AllergyId !== id));
     }
   };
 
-  const visibleList = allergyList.filter((a) => a.AllergyTypeId === selectedTypeId);
+  const visibleList = allergyList.filter(a => a.AllergyTypeId === selectedTypeId);
 
   return (
     <>
@@ -173,31 +180,32 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
 
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none">
         <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl flex flex-col pointer-events-auto max-h-[92vh]">
-
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50 rounded-t-xl shrink-0">
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Allergy Master</h3>
-            <button className="close-drawer-btn" onClick={onClose}>&times;</button>
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+              Allergy Master
+            </h3>
+            <button className="close-drawer-btn" onClick={onClose}>
+              &times;
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
-
             <InputField label="Allergy Type">
               <select
                 className="input-field"
                 value={selectedTypeId}
-                onChange={(e) => setSelectedTypeId(Number(e.target.value))}
+                onChange={e => setSelectedTypeId(Number(e.target.value))}
               >
-                {allergyTypes.length === 0 && (
-                  <option value={0}>Loading…</option>
-                )}
-                {allergyTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.allergyTypeName}</option>
+                {allergyTypes.length === 0 && <option value={0}>Loading…</option>}
+                {allergyTypes.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.allergyTypeName}
+                  </option>
                 ))}
               </select>
             </InputField>
 
             <div className="border rounded-lg p-4 bg-gray-50 grid grid-cols-1 sm:grid-cols-2 gap-3">
-
               <InputField label="Allergy Name" required>
                 <div className="relative" ref={snomedRef}>
                   <input
@@ -205,7 +213,10 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                     className="input-field !mb-0"
                     placeholder="Type to search SNOMED or enter name…"
                     value={allergyName}
-                    onChange={(e) => { setAllergyName(e.target.value); setSnomedCode(""); }}
+                    onChange={e => {
+                      setAllergyName(e.target.value);
+                      setSnomedCode("");
+                    }}
                   />
 
                   {(showSnomedDropdown || snomedLoading) && (
@@ -219,7 +230,7 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                           <button
                             key={i}
                             type="button"
-                            onMouseDown={(e) => e.preventDefault()}
+                            onMouseDown={e => e.preventDefault()}
                             onClick={() => handleSnomedSelect(item)}
                             className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
                           >
@@ -239,7 +250,7 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                   className="input-field"
                   placeholder="Auto-filled or enter code directly"
                   value={snomedCode}
-                  onChange={(e) => setSnomedCode(e.target.value)}
+                  onChange={e => setSnomedCode(e.target.value)}
                 />
               </InputField>
 
@@ -247,7 +258,7 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                 <select
                   className="input-field"
                   value={status}
-                  onChange={(e) => setStatus(Number(e.target.value))}
+                  onChange={e => setStatus(Number(e.target.value))}
                 >
                   <option value={1}>Active</option>
                   <option value={0}>Inactive</option>
@@ -286,16 +297,22 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                   <tbody>
                     {visibleList.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="table-empty">No records found</td>
+                        <td colSpan={5} className="table-empty">
+                          No records found
+                        </td>
                       </tr>
                     ) : (
                       visibleList.map((item, i) => (
                         <tr key={item.AllergyId} className="table-row">
                           <td className="table-td">{i + 1}</td>
                           <td className="table-td font-medium text-gray-800">{item.AllergyName}</td>
-                          <td className="table-td text-xs text-gray-500">{item.SnomedCode || "—"}</td>
+                          <td className="table-td text-xs text-gray-500">
+                            {item.SnomedCode || "—"}
+                          </td>
                           <td className="table-td">
-                            <span className={`card-status ${item.IsActive === 1 ? "active" : "inactive"}`}>
+                            <span
+                              className={`card-status ${item.IsActive === 1 ? "active" : "inactive"}`}
+                            >
                               {item.IsActive === 1 ? "Active" : "Inactive"}
                             </span>
                           </td>
@@ -322,7 +339,6 @@ const AllergyMasterPopup = ({ onClose }: { onClose: () => void }) => {
                 </table>
               </div>
             </div>
-
           </div>
         </div>
       </div>

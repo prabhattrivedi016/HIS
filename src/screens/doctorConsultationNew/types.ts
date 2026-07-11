@@ -33,13 +33,6 @@ type PatientItem = {
   OPDConsultationTypeId: number;
 };
 
-/**
- * EMR consultation payload.
- * Root carries fixed identity/context fields (always present, flat).
- * Every clinical attribute (Allergy, Vitals, Diagnosis, Medications, ...)
- * is its own optional top-level key holding that attribute's own data —
- * add a new key here when a new section ships; nothing else changes.
- */
 type VitalEntry = {
   vitalId: number;
   vitalName: string;
@@ -47,7 +40,6 @@ type VitalEntry = {
   unitName?: string;
 };
 
-/** mirrors the exact payload AllergyPanel already sends to CREATE_UPDATE_PATIENT_ALLERGY_DETAILS */
 type AllergyRecordEntry = {
   id: number;
   allergyId: number;
@@ -69,7 +61,6 @@ type AllergySection = {
   records: AllergyRecordEntry[];
 };
 
-/** one answered control within an EMR Section built via the Section Builder (emrControls) */
 type EmrSectionAnswerEntry = {
   sectionId: number;
   sectionName: string;
@@ -79,7 +70,6 @@ type EmrSectionAnswerEntry = {
   value: unknown;
 };
 
-/** who created/last touched this payload, and when — populated from AuthContext at build time */
 type EmrAudit = {
   createdBy: number;
   createdByName: string;
@@ -90,11 +80,9 @@ type EmrAudit = {
 };
 
 type EmrConsultationPayload = {
-  // ── document identity ──
-  id: string; // stable per-consultation GUID, generated once per patient selection
+  id: string;
   version: string;
 
-  // ── root: basic identity, always present ──
   patientId: number;
   patientName: string;
   doctorId: number;
@@ -105,13 +93,10 @@ type EmrConsultationPayload = {
   uhid: string;
   appointmentNo: number;
 
-  // ── sections: one optional key per EMR attribute ──
   allergy?: AllergySection;
   vitals?: VitalEntry[];
   emrSections?: EmrSectionAnswerEntry[];
 
-  // future sections — give each a real type when it's actually built;
-  // until then it can still be sent as a plain object
   chiefComplaints?: Record<string, unknown>;
   diagnosis?: Record<string, unknown>;
   procedure?: Record<string, unknown>;
@@ -120,7 +105,6 @@ type EmrConsultationPayload = {
   followUp?: Record<string, unknown>;
   familyHistory?: Record<string, unknown>;
 
-  // ── audit trail ──
   audit: EmrAudit;
 };
 

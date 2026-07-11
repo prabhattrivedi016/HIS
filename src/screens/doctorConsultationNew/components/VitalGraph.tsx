@@ -1,8 +1,8 @@
-import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import * as am5 from "@amcharts/amcharts5";
+import * as am5exporting from "@amcharts/amcharts5/plugins/exporting";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import * as am5xy from "@amcharts/amcharts5/xy";
-import * as am5exporting from "@amcharts/amcharts5/plugins/exporting";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface PatientVitalEntry {
   VitalId: number;
@@ -35,17 +35,35 @@ const DATE_OPTIONS = [
 ];
 
 const SERIES_COLORS = [
-  "#22c55e", "#ef4444", "#f59e0b", "#3b82f6", "#8b5cf6",
-  "#06b6d4", "#ec4899", "#84cc16", "#14b8a6", "#f97316",
-  "#64748b", "#a855f7",
+  "#22c55e",
+  "#ef4444",
+  "#f59e0b",
+  "#3b82f6",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+  "#14b8a6",
+  "#f97316",
+  "#64748b",
+  "#a855f7",
 ];
 
 const MONTHS: Record<string, number> = {
-  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
 };
 
-/* vitalDateTime comes as "DD-Mon-YYYY HH:mm" e.g. "03-Jul-2026 00:00" */
 const parseVitalDateTime = (raw: string): Date | null => {
   const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
   if (!m) return null;
@@ -125,7 +143,10 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
       setActiveVitals([]);
       setChartData([]);
       setFiltered(false);
-      if (rootRef.current) { rootRef.current.dispose(); rootRef.current = null; }
+      if (rootRef.current) {
+        rootRef.current.dispose();
+        rootRef.current = null;
+      }
     }
   }, [isOpen]);
 
@@ -143,7 +164,10 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
   useLayoutEffect(() => {
     if (!chartDivRef.current || !filtered) return;
 
-    if (rootRef.current) { rootRef.current.dispose(); rootRef.current = null; }
+    if (rootRef.current) {
+      rootRef.current.dispose();
+      rootRef.current = null;
+    }
     if (activeVitals.length === 0 || chartData.length === 0) return;
 
     const root = am5.Root.new(chartDivRef.current);
@@ -166,7 +190,13 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
     cursor.lineY.set("visible", false);
 
     const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 28 });
-    xRenderer.labels.template.setAll({ rotation: -90, centerY: am5.p50, centerX: am5.p100, paddingRight: 10, fontSize: 9 });
+    xRenderer.labels.template.setAll({
+      rotation: -90,
+      centerY: am5.p50,
+      centerX: am5.p100,
+      paddingRight: 10,
+      fontSize: 9,
+    });
 
     const xAxis = chart.xAxes.push(
       am5xy.CategoryAxis.new(root, {
@@ -188,28 +218,43 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
       if (chartType === "Line") {
         const series = chart.series.push(
           am5xy.LineSeries.new(root, {
-            name: vital, xAxis, yAxis,
-            valueYField: vital, categoryXField: "entryDate",
-            stroke: color, fill: color,
+            name: vital,
+            xAxis,
+            yAxis,
+            valueYField: vital,
+            categoryXField: "entryDate",
+            stroke: color,
+            fill: color,
             tooltip: am5.Tooltip.new(root, { labelText: "{valueY}" }),
           })
         );
         series.strokes.template.setAll({ strokeWidth: 2 });
         series.bullets.push(() =>
-          am5.Bullet.new(root, { sprite: am5.Circle.new(root, { radius: 3, fill: color, stroke: color }) })
+          am5.Bullet.new(root, {
+            sprite: am5.Circle.new(root, { radius: 3, fill: color, stroke: color }),
+          })
         );
         series.data.setAll(chartData);
         series.appear(1000);
       } else {
         const series = chart.series.push(
           am5xy.ColumnSeries.new(root, {
-            name: vital, xAxis, yAxis,
-            valueYField: vital, categoryXField: "entryDate",
-            fill: color, stroke: color,
+            name: vital,
+            xAxis,
+            yAxis,
+            valueYField: vital,
+            categoryXField: "entryDate",
+            fill: color,
+            stroke: color,
             tooltip: am5.Tooltip.new(root, { labelText: "{valueY}" }),
           })
         );
-        series.columns.template.setAll({ cornerRadiusTL: 3, cornerRadiusTR: 3, strokeOpacity: 0, width: am5.percent(60) });
+        series.columns.template.setAll({
+          cornerRadiusTL: 3,
+          cornerRadiusTR: 3,
+          strokeOpacity: 0,
+          width: am5.percent(60),
+        });
         series.data.setAll(chartData);
         series.appear(1000);
       }
@@ -226,13 +271,16 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
       printOptions: { printMethod: "css" },
     });
 
-    return () => { root.dispose(); rootRef.current = null; exportingRef.current = null; };
+    return () => {
+      root.dispose();
+      rootRef.current = null;
+      exportingRef.current = null;
+    };
   }, [activeVitals, chartData, chartType, filtered]);
 
   const toggleVital = (v: string) =>
-    setSelectedVitals(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
+    setSelectedVitals(prev => (prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]));
 
-  /* oldest → newest, left to right */
   const buildChartData = (vitals: string[]) =>
     vitalRecords
       .filter(group => {
@@ -259,9 +307,11 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
   };
 
   const vitalLabel =
-    selectedVitals.length === 0 ? "Select Vital" :
-    selectedVitals.length === 1 ? selectedVitals[0] :
-    `${selectedVitals.length} items checked`;
+    selectedVitals.length === 0
+      ? "Select Vital"
+      : selectedVitals.length === 1
+        ? selectedVitals[0]
+        : `${selectedVitals.length} items checked`;
 
   const chartTitle = activeVitals.length > 0 ? `EntryDate,  ${activeVitals.join(",  ")}` : "";
 
@@ -273,137 +323,168 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
 
   return (
     <>
-      {/* Filter row — overflow visible so dropdowns aren't clipped */}
-          <div className="px-5 py-3 border-b shrink-0" style={{ overflow: "visible", position: "relative", zIndex: 60 }}>
-            <div className="flex flex-wrap items-center gap-4">
-
-              {/* Vital multi-select */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">Vital</span>
-                <div className="relative" ref={vitalDropRef} style={{ zIndex: 70 }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowVitalDrop(p => !p)}
-                    className="input-field !mb-0 !py-1.5 min-w-[160px] flex items-center justify-between gap-2 text-xs cursor-pointer"
-                  >
-                    <span className="truncate">{vitalLabel}</span>
-                    <span className="text-gray-400 text-[10px] shrink-0">▾</span>
-                  </button>
-                  {showVitalDrop && (
-                    <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto" style={{ zIndex: 999 }}>
-                      <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b text-xs font-semibold text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={selectedVitals.length === vitalsList.length && vitalsList.length > 0}
-                          onChange={e => setSelectedVitals(e.target.checked ? [...vitalsList] : [])}
-                          className="accent-blue-600"
-                        />
-                        Check All
-                      </label>
-                      {vitalsList.map(v => (
-                        <label key={v} className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-xs text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={selectedVitals.includes(v)}
-                            onChange={() => toggleVital(v)}
-                            className="accent-blue-600"
-                          />
-                          {v}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Chart type */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">Chart</span>
-                <select
-                  className="input-field !mb-0 !py-1.5 text-xs min-w-[90px]"
-                  value={chartType}
-                  onChange={e => setChartType(e.target.value)}
+      <div
+        className="px-5 py-3 border-b shrink-0"
+        style={{ overflow: "visible", position: "relative", zIndex: 60 }}
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+              Vital
+            </span>
+            <div className="relative" ref={vitalDropRef} style={{ zIndex: 70 }}>
+              <button
+                type="button"
+                onClick={() => setShowVitalDrop(p => !p)}
+                className="input-field !mb-0 !py-1.5 min-w-[160px] flex items-center justify-between gap-2 text-xs cursor-pointer"
+              >
+                <span className="truncate">{vitalLabel}</span>
+                <span className="text-gray-400 text-[10px] shrink-0">▾</span>
+              </button>
+              {showVitalDrop && (
+                <div
+                  className="absolute top-full left-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+                  style={{ zIndex: 999 }}
                 >
-                  <option value="Line">Line</option>
-                  <option value="Bar">Bar</option>
-                </select>
-              </div>
-
-              {/* Date */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">Date</span>
-                <div className="relative" ref={dateDropRef} style={{ zIndex: 70 }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowDateDrop(p => !p)}
-                    className="input-field !mb-0 !py-1.5 min-w-[120px] flex items-center justify-between gap-2 text-xs cursor-pointer"
-                  >
-                    <span>{dateOption}</span>
-                    <span className="text-gray-400 text-[10px] shrink-0">▾</span>
-                  </button>
-                  {showDateDrop && (
-                    <div className="absolute top-full left-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-xl" style={{ zIndex: 999 }}>
-                      {DATE_OPTIONS.map(opt => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => { setDateOption(opt); setShowDateDrop(false); }}
-                          className={`w-full text-left px-3 py-2 text-xs transition ${
-                            dateOption === opt ? "bg-blue-50 text-blue-600 font-semibold" : "text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b text-xs font-semibold text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedVitals.length === vitalsList.length && vitalsList.length > 0}
+                      onChange={e => setSelectedVitals(e.target.checked ? [...vitalsList] : [])}
+                      className="accent-blue-600"
+                    />
+                    Check All
+                  </label>
+                  {vitalsList.map(v => (
+                    <label
+                      key={v}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-xs text-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedVitals.includes(v)}
+                        onChange={() => toggleVital(v)}
+                        className="accent-blue-600"
+                      />
+                      {v}
+                    </label>
+                  ))}
                 </div>
-                {dateOption === "Date Range" && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-gray-500 font-medium">From</span>
-                    <input type="date" className="input-field !mb-0 !py-1 text-xs w-36" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-                    <span className="text-xs text-gray-500 font-medium">To</span>
-                    <input type="date" className="input-field !mb-0 !py-1 text-xs w-36" value={toDate} onChange={e => setToDate(e.target.value)} />
-                  </div>
-                )}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex items-center gap-2 ml-auto">
-                <button type="button" className="save-btn !py-1.5 !px-5 text-xs" onClick={handleFilter}>
-                  Filter
-                </button>
-                <button
-                  type="button"
-                  className={filtered ? "cancel-button !py-1.5 !px-5 text-xs" : "disabled-btn !py-1.5 !px-5 text-xs"}
-                  disabled={!filtered}
-                  onClick={handlePrint}
-                >
-                  Print Chart
-                </button>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Chart area */}
-          <div className="flex flex-col flex-1 px-5 py-3 overflow-hidden min-h-0">
-            {chartTitle && (
-              <p className="text-xs font-semibold text-gray-700 mb-2 shrink-0">{chartTitle}</p>
-            )}
-            {!filtered ? (
-              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-                Select vitals and click <span className="font-semibold mx-1 text-blue-600">Filter</span> to view the chart
-              </div>
-            ) : activeVitals.length === 0 || chartData.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-red-500 text-sm font-medium">
-                There is no or empty series
-              </div>
-            ) : (
-              <div className="flex-1 min-h-0" style={{ height: 0 }}>
-                <div ref={chartDivRef} style={{ width: "100%", height: "100%" }} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+              Chart
+            </span>
+            <select
+              className="input-field !mb-0 !py-1.5 text-xs min-w-[90px]"
+              value={chartType}
+              onChange={e => setChartType(e.target.value)}
+            >
+              <option value="Line">Line</option>
+              <option value="Bar">Bar</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+              Date
+            </span>
+            <div className="relative" ref={dateDropRef} style={{ zIndex: 70 }}>
+              <button
+                type="button"
+                onClick={() => setShowDateDrop(p => !p)}
+                className="input-field !mb-0 !py-1.5 min-w-[120px] flex items-center justify-between gap-2 text-xs cursor-pointer"
+              >
+                <span>{dateOption}</span>
+                <span className="text-gray-400 text-[10px] shrink-0">▾</span>
+              </button>
+              {showDateDrop && (
+                <div
+                  className="absolute top-full left-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-xl"
+                  style={{ zIndex: 999 }}
+                >
+                  {DATE_OPTIONS.map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setDateOption(opt);
+                        setShowDateDrop(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs transition ${
+                        dateOption === opt
+                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {dateOption === "Date Range" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-500 font-medium">From</span>
+                <input
+                  type="date"
+                  className="input-field !mb-0 !py-1 text-xs w-36"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                />
+                <span className="text-xs text-gray-500 font-medium">To</span>
+                <input
+                  type="date"
+                  className="input-field !mb-0 !py-1 text-xs w-36"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                />
               </div>
             )}
           </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button type="button" className="save-btn !py-1.5 !px-5 text-xs" onClick={handleFilter}>
+              Filter
+            </button>
+            <button
+              type="button"
+              className={
+                filtered
+                  ? "cancel-button !py-1.5 !px-5 text-xs"
+                  : "disabled-btn !py-1.5 !px-5 text-xs"
+              }
+              disabled={!filtered}
+              onClick={handlePrint}
+            >
+              Print Chart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col flex-1 px-5 py-3 overflow-hidden min-h-0">
+        {chartTitle && (
+          <p className="text-xs font-semibold text-gray-700 mb-2 shrink-0">{chartTitle}</p>
+        )}
+        {!filtered ? (
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+            Select vitals and click <span className="font-semibold mx-1 text-blue-600">Filter</span>{" "}
+            to view the chart
+          </div>
+        ) : activeVitals.length === 0 || chartData.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-red-500 text-sm font-medium">
+            There is no or empty series
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0" style={{ height: 0 }}>
+            <div ref={chartDivRef} style={{ width: "100%", height: "100%" }} />
+          </div>
+        )}
+      </div>
     </>
   );
 };
