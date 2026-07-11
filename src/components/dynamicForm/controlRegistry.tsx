@@ -12,7 +12,6 @@ export interface ControlRenderProps {
   onBlur?: () => void;
 }
 
-/** merges a base class list with the optional `props.class` override from the JSON schema */
 const mergeClass = (base: string, schema: ControlSchema) =>
   schema.props?.class ? `${base} ${schema.props.class}` : base;
 
@@ -80,9 +79,6 @@ const CurrencyControl = ({ schema, value, onChange, onBlur }: ControlRenderProps
   </div>
 );
 
-/** stores "true"/"false" as a string, not a boolean — every other control (and every
- * conditional-visibility rule's Value field) is string-typed, so a real boolean here would
- * silently fail `actual === rule.target` comparisons (true !== "true") */
 const SwitchControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
   <label className="flex items-center gap-2 cursor-pointer select-none h-10">
     <input
