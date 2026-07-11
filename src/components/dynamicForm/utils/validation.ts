@@ -11,7 +11,6 @@ export const isControlInvalid = (schema: ControlSchema, data: unknown): boolean 
   return isEmptyValue(getByPath(data, schema.dataPath));
 };
 
-/** walks every visible, required control across all visible cards */
 export const isFormValid = (blob: CardSchema[], data: unknown): boolean =>
   blob.every(card => {
     if (!evaluateConditionalDisplay(card.conditionalDisplay, data)) return true;

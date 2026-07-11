@@ -448,7 +448,7 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
 
           <div className="flex items-center gap-2 ml-auto">
             <button type="button" className="save-btn !py-1.5 !px-5 text-xs" onClick={handleFilter}>
-              Filter
+              Apply Filter
             </button>
             <button
               type="button"

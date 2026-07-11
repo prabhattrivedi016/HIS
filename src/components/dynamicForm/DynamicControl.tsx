@@ -5,7 +5,6 @@ import { evaluateConditionalDisplay } from "./utils/conditional";
 import { getByPath } from "./utils/path";
 import { isEmptyValue } from "./utils/validation";
 
-/** literal classes only (not string-built) so Tailwind's scanner picks them up */
 const COL_SPAN_CLASSES: Record<number, string> = {
   1: "",
   2: "sm:col-span-2",
@@ -20,7 +19,6 @@ interface DynamicControlProps {
   touched?: boolean;
   showAllErrors?: boolean;
   onFieldBlur?: (dataPath: string) => void;
-  /** replaces schema.options — set by DynamicFormRenderer when another control's optionsRules target this one */
   optionsOverride?: OptionSchema[];
 }
 
@@ -60,7 +58,12 @@ const DynamicControl = ({
     return (
       <div className={wrapperClass}>
         <div className="flex items-center gap-2">
-          <Renderer schema={effectiveSchema} value={value} onChange={handleChange} onBlur={handleBlur} />
+          <Renderer
+            schema={effectiveSchema}
+            value={value}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
           <span className="text-sm text-gray-700 font-medium">{schema.label}</span>
         </div>
         {showError && <p className="input-field-error">{schema.errorMessage}</p>}
@@ -75,7 +78,12 @@ const DynamicControl = ({
       className={wrapperClass}
       layout={schema.labelPosition === "row" ? "row" : "column"}
     >
-      <Renderer schema={effectiveSchema} value={value} onChange={handleChange} onBlur={handleBlur} />
+      <Renderer
+        schema={effectiveSchema}
+        value={value}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
       {showError && <p className="input-field-error">{schema.errorMessage}</p>}
     </InputField>
   );

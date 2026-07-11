@@ -334,7 +334,7 @@ const VitalHistory = ({ isOpen, vitalsList, vitalRecords }: VitalHistoryProps) =
             className="save-btn !py-1.5 !px-5 text-xs ml-auto"
             onClick={handleFilter}
           >
-            Filter
+            Apply Filter
           </button>
         </div>
       </div>

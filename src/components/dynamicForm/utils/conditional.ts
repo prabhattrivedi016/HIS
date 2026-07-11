@@ -39,7 +39,6 @@ const evaluateRule = (rule: ConditionalRule, actual: unknown): boolean => {
       return actual !== rule.target;
     case "isnull": {
       const empty = isEmptyValue(actual);
-      // target is "True"/"False" — "Is Null" = "True" means the field IS empty
       return String(rule.target) === "True" ? empty : !empty;
     }
     case "in":

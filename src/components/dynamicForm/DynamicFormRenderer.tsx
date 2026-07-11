@@ -6,7 +6,6 @@ import { setByPath } from "./utils/path";
 import { isFormValid } from "./utils/validation";
 
 export interface DynamicFormRendererHandle {
-  /** marks every required field as touched (so errors show) and returns whether the form is currently valid */
   validate: () => boolean;
 }
 
@@ -21,8 +20,7 @@ interface DynamicFormRendererProps<T> {
   blob: CardSchema[];
   data: T;
   onDataChange: (data: T) => void;
-  /** fires on every field change — use it to run your own switch(cardKey)/switch(controlKey)
-   * logic and mutate your own `blob` state (e.g. another control's `options`) as needed */
+
   onControlChange?: (event: FieldChangeEvent) => void;
 }
 
