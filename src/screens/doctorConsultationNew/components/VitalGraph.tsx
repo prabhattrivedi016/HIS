@@ -72,6 +72,16 @@ const parseVitalDateTime = (raw: string): Date | null => {
   return new Date(Number(m[3]), monthIdx, Number(m[1]), Number(m[4]), Number(m[5]));
 };
 
+const formatVitalDateTime = (raw: string): string => {
+  const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
+  if (!m) return raw;
+  const [, day, mon, year, hh, mm] = m;
+  const hour24 = Number(hh);
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${day}-${mon}-${year} ${String(hour12).padStart(2, "0")}:${mm} ${period}`;
+};
+
 const isWithinDateOption = (d: Date, option: string, fromDate: string, toDate: string): boolean => {
   const now = new Date();
   switch (option) {
@@ -289,7 +299,9 @@ const VitalGraph = ({ isOpen, vitalsList, vitalRecords }: VitalGraphProps) => {
       })
       .reverse()
       .map(group => {
-        const entry: Record<string, string | number> = { entryDate: group.vitalDateTime };
+        const entry: Record<string, string | number> = {
+          entryDate: formatVitalDateTime(group.vitalDateTime),
+        };
         vitals.forEach(vitalName => {
           const raw = group.vitals.find(v => v.VitalName === vitalName)?.VitalValue;
           if (raw !== undefined && raw !== "" && !Number.isNaN(Number(raw))) {
