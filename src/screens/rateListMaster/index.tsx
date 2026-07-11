@@ -1,4 +1,3 @@
-import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
@@ -8,18 +7,17 @@ import { showSuccess, showWarning } from "@/utils/alert";
 import { formatDisplayDate, formatToDDMMYYYY, formatToYYYYMMDD } from "@/utils/dateConvertHandler";
 import { RateListMasterFormData, rateListMasterSchema } from "@/validation/rateListMaster";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Minus, Plus } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import { RateListTableItem } from "./types";
 
 // Reset function
-const resetFormData = () => ({
+const resetFormData = (today: string) => ({
   rateListId: 0,
   rateListName: "",
-  applicableDate: "",
-  expiryDate: "",
+  applicableDate: today,
+  expiryDate: today,
   isActive: 1,
   importFromRateListId: 0,
 });
@@ -30,8 +28,6 @@ const RateListMaster = () => {
 
   const [rateListData, setRateListData] = useState<RateListTableItem[]>([]);
 
-  const [showDetails, setShowDetails] = useState<boolean>(false);
-
   const {
     handleSubmit,
     reset,
@@ -40,7 +36,7 @@ const RateListMaster = () => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(rateListMasterSchema),
-    defaultValues: resetFormData(),
+    defaultValues: resetFormData(today),
   });
 
   //   get rate master list
@@ -57,10 +53,8 @@ const RateListMaster = () => {
   };
 
   useEffect(() => {
-    if (showDetails) {
-      getRateList();
-    }
-  }, [showDetails]);
+    getRateList();
+  }, []);
 
   const isEdit = Boolean(watch("rateListId"));
   const buttonTitle = isEdit ? "Update" : "Create";
@@ -85,11 +79,8 @@ const RateListMaster = () => {
     }
     showSuccess(resp?.message ?? "Data saved successfully");
     await getRateList();
-    reset(resetFormData());
-  };
 
-  const tablePopupHandler = () => {
-    setShowDetails(p => !p);
+    reset(resetFormData(today));
   };
 
   //   edit handler
@@ -119,28 +110,6 @@ const RateListMaster = () => {
       <div className="card mb-1">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
-            {!isEdit && (
-              <InputField label="Import From Rate List" required>
-                <select
-                  className="input-field"
-                  {...register("importFromRateListId", {
-                    valueAsNumber: true,
-                  })}
-                >
-                  <option value={0}>--Select--</option>
-                  {rateListData.map(r => (
-                    <option key={r.rateListId} value={r.rateListId}>
-                      {r.rateListName}
-                    </option>
-                  ))}
-                </select>
-
-                {errors.importFromRateListId && (
-                  <p className="input-field-error">{errors.importFromRateListId.message}</p>
-                )}
-              </InputField>
-            )}
-
             <InputField label="Rate List Name" required>
               <input
                 type="text"
@@ -186,6 +155,24 @@ const RateListMaster = () => {
               </select>
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
+
+            {!isEdit && (
+              <InputField label="Import From Rate List">
+                <select
+                  className="input-field"
+                  {...register("importFromRateListId", {
+                    valueAsNumber: true,
+                  })}
+                >
+                  <option value={0}>--Select--</option>
+                  {rateListData.map(r => (
+                    <option key={r.rateListId} value={r.rateListId}>
+                      {r.rateListName}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+            )}
           </div>
 
           <div className="form-actions-responsive mt-5">
@@ -193,7 +180,11 @@ const RateListMaster = () => {
               {buttonTitle}
             </button>
 
-            <button type="button" className="cancel-button" onClick={() => reset(resetFormData())}>
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={() => reset(resetFormData(today))}
+            >
               Cancel
             </button>
           </div>
@@ -204,64 +195,59 @@ const RateListMaster = () => {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Rate List Master List</h2>
-          <button onClick={tablePopupHandler}>
-            {showDetails ? <Minus size={30} /> : <Plus size={30} />}
-          </button>
         </div>
 
-        <Animation isOpen={showDetails}>
-          <div className="overflow-hidden">
-            <div className="table-container">
-              <div className="table-scroll-wrapper">
-                <div className="table-size lg:min-h-80 lg:max-h-80">
-                  <table className="base-table">
-                    <thead className="table-head">
-                      <tr>
-                        {RateListMasterTableHeader.map((h, i) => (
-                          <th key={i} className="table-th">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {rateListData.length === 0 && (
-                        <tr>
-                          <td colSpan={RateListMasterTableHeader.length} className="table-empty">
-                            No records found
-                          </td>
-                        </tr>
-                      )}
-
-                      {rateListData.map((item, idx) => (
-                        <tr key={idx} className="table-row">
-                          <td className="table-td">{idx + 1}</td>
-                          <td className="table-td  wrap-break-word max-w-1 ">
-                            {item?.rateListName || "-"}
-                          </td>
-                          <td className="table-td">
-                            {formatDisplayDate(item?.applicableDate) || "-"}
-                          </td>
-                          <td className="table-td">{formatDisplayDate(item?.expiryDate) || "-"}</td>
-                          <td
-                            className={`table-td ${Number(item.isActive) === 1 ? "active-text" : "inactive-text"}`}
-                          >
-                            {Number(item.isActive) === 1 ? "Active" : "Inactive"}
-                          </td>
-
-                          <td className="table-td" onClick={() => editHandler(item)}>
-                            <i className="fa-solid fa-edit icon-color-button " />
-                          </td>
-                        </tr>
+        <div className="overflow-hidden">
+          <div className="table-container">
+            <div className="table-scroll-wrapper">
+              <div className="table-size lg:min-h-80 lg:max-h-80">
+                <table className="base-table">
+                  <thead className="table-head">
+                    <tr>
+                      {RateListMasterTableHeader.map((h, i) => (
+                        <th key={i} className="table-th">
+                          {h}
+                        </th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {rateListData.length === 0 && (
+                      <tr>
+                        <td colSpan={RateListMasterTableHeader.length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {rateListData.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td  wrap-break-word max-w-1 ">
+                          {item?.rateListName || "-"}
+                        </td>
+                        <td className="table-td">
+                          {formatDisplayDate(item?.applicableDate) || "-"}
+                        </td>
+                        <td className="table-td">{formatDisplayDate(item?.expiryDate) || "-"}</td>
+                        <td
+                          className={`table-td ${Number(item.isActive) === 1 ? "active-text" : "inactive-text"}`}
+                        >
+                          {Number(item.isActive) === 1 ? "Active" : "Inactive"}
+                        </td>
+
+                        <td className="table-td" onClick={() => editHandler(item)}>
+                          <i className="fa-solid fa-edit icon-color-button " />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-        </Animation>
+        </div>
 
         {!!loading && <CustomLoader isLoading />}
       </div>

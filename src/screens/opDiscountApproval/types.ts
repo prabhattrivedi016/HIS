@@ -1,6 +1,6 @@
 type OPDiscountItem = {
   BookingId: number;
-  TokenNo: number;
+  TokenNo: string;
   BranchId: number;
   PatientId: number;
   UHID: string;
@@ -10,12 +10,12 @@ type OPDiscountItem = {
   CorporateId: number;
   CorporateName: string;
   InsuranceCompanyId: number;
-  ReferDoctorId: number;
+  ReferDoctorId?: number | null;
   TotalBillAmount: number;
   TotalDiscountPerOnBill: number;
   TotalDiscountAmountOnBill: number;
   RoundOff: number;
-  TotalPatientPayableAmount: 100;
+  TotalPatientPayableAmount: number;
   PolicyNo: string;
   PolicyCardNo: string;
   ExpiryDate: string;
@@ -25,19 +25,23 @@ type OPDiscountItem = {
   IsPaymentCollected: number;
   IsDiscountApprovalRequired: number;
   IsDiscountApproved: number;
-  IsLevel1Approve: string;
-  Level1ApproveId: number;
-  Level1ApproveOn: string;
-  IsLevel2Approve: string;
-  Level2ApproveId: number;
-  Level2ApproveOn: string;
-  IsLevel3Approve: string;
-  Level3ApproveId: number;
-  Level3ApproveOn: string;
-  IsLevel4Approve: string;
-  Level4ApproveId: number;
-  Level4ApproveOn: string;
+  TotalApprovedDiscountPerOnBill: number | null;
+  ApprovalRemarks: string | null;
+  IsLevel1Approve: number | null;
+  Level1ApproveId: number | null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: number | null;
+  Level2ApproveId: number | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
   IsCancel: number;
+  Status: string;
+  StatusId: number;
   CancelBy: string;
   CancelOn: string;
   CancelReason: string;
@@ -45,6 +49,158 @@ type OPDiscountItem = {
   CreatedOn: string;
   LastModifiedBy: string;
   LastModifiedOn: string;
+  FlagId: number;
+  CanApprove: number;
+  DiscountApprovedID: number | null;
+  DiscountApprovedName: string | null;
+  DiscountReason: string | null;
+  Remark: string | null;
 };
 
-export type { OPDiscountItem };
+type OPDiscountApprovalDetail = {
+  BookingId: number;
+  TokenNo: "Admin000012";
+  BranchId: number;
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  CorporateId: number;
+  CorporateName: string;
+  InsuranceCompanyId: number;
+  ReferDoctorId: number | null;
+  TotalBillAmount: number;
+  TotalDiscountPerOnBill: number;
+  TotalDiscountAmountOnBill: number;
+  RoundOff: number;
+  TotalPatientPayableAmount: number;
+  PolicyNo: string | undefined | null;
+  PolicyCardNo: string | undefined | null;
+  ExpiryDate: string | undefined | null;
+  CardHolder: string | null;
+  ReferalNo: string | undefined | undefined | null;
+  ReferalDate: string | null;
+  IsPaymentCollected: number;
+  IsDiscountApprovalRequired: number;
+  IsDiscountApproved: number;
+  TotalApprovedDiscountPerOnBill: number;
+  ApprovalRemarks: string;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number;
+  Level2ApproveId: number;
+  Level2ApproveOn: string;
+  IsLevel3Approve: number | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: null;
+  IsLevel4Approve: number | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  Status: string;
+  StatusId: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+  FlagId: number;
+  CanApprove: number;
+  DiscountApprovedID: number;
+  DiscountApprovedName: string;
+  DiscountReason: string;
+  Remark: string;
+};
+
+type OpDiscountGridCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  cardLeftTop: { label: string; value: string | number | null }[];
+  cardRightTop: { label: string; action: string }[];
+  cardAvatar: string | null;
+  cardId: { label: string; value: string | number | null }[];
+  cardTitle: { label: string; value: string | number | null }[];
+  cardFooter: { label: string; value: string | number | null }[];
+  buttonSection: { label: string; action: string }[];
+};
+
+type OpDiscountListCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  listLeftButton: { label: string; action: string }[];
+  columns: {
+    label: string;
+    keyFromApi: string;
+    value: string | number | null;
+    isSortable?: boolean;
+    isSearchable?: boolean;
+    allowColumnFilter?: boolean;
+    isMasked?: boolean;
+  }[];
+};
+
+type OPPaymentCollectionPatientDetails = {
+  BookingId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  CorporateId: number;
+  CorporateName: string;
+  TotalBillAmount: number;
+  TotalDiscountAmountOnBill: number;
+  BillDiscountPercentage: number;
+  ApprovedPercentage: number | null;
+  TotalPatientPayableAmount: number;
+  StatusId: number;
+  Status: string;
+  IsDiscountApprovalRequired: number;
+  IsDiscountApproved: number;
+  ApprovalFlowId: number;
+  ApprovalFlow: string;
+  IsAllApprovalRequired: number;
+  ApprovalLevelId: number;
+  ApprovalLevel: string;
+  Level1ApproverNames: string;
+  Level2ApproverNames: string;
+  Level3ApproverNames: string | null;
+  Level4ApproverNames: string | null;
+  IsLevel1Approve: number | null;
+  Level1ApprovedByName: string | null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: number | null;
+  Level2ApprovedByName: string | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApprovedByName: string | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApprovedByName: string | null;
+  Level4ApproveOn: string | null;
+  NextApprovalName: string;
+  NextApprovalLevel: number;
+  ApprovalRemarks: string;
+  DiscountApprovedID: number;
+  DiscountApprovedName: string;
+  DiscountReason: string;
+  Remark: string;
+};
+
+export type {
+  OPDiscountApprovalDetail,
+  OpDiscountGridCard,
+  OPDiscountItem,
+  OpDiscountListCard,
+  OPPaymentCollectionPatientDetails,
+};

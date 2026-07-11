@@ -1,17 +1,16 @@
 import {
   ArrowDownWideNarrow,
   Download,
+  FilterIcon,
   Grid,
   List,
   Plus,
   RefreshCcw,
-  Search,
   UserPlus,
 } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
-import InputField from "../customInputField";
 import { PageHeaderProps } from "./types";
 
 const PageHeader = ({
@@ -29,6 +28,8 @@ const PageHeader = ({
   downloadBtnRef,
   unitButton,
   onAddUnit,
+  showAddButton = true,
+  onFilterDiscountApproval,
 }: PageHeaderProps) => {
   const [selectDropDown, setSelectDropDown] = useState<string>("");
 
@@ -40,21 +41,13 @@ const PageHeader = ({
   // handle search
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
-    onSearch(text, selectDropDown);
+    onSearch?.(text, selectDropDown);
   };
 
   return (
     <header className="px-4 py-6 bg-gray-50 mx-2 -mt-8">
       <div
-        className="
-          flex
-          flex-col
-          md:flex-row
-          items-start
-          md:items-center
-          justify-between
-          w-full
-          gap-4
+        className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4
         "
       >
         {/* Title Section */}
@@ -69,51 +62,19 @@ const PageHeader = ({
           </nav>
         </div>
 
-        <div
-          className="
-            flex
-            flex-wrap
-            items-center
-            justify-start
-            gap-2
-            w-full
-            md:w-auto
-          "
-        >
+        <div className=" flex flex-wrap items-center  justify-start gap-2 w-full  md:w-auto">
           {/* filter Icon*/}
 
-          {view === VIEWTYPE.LIST && (
-            <span
-              className="p-1.5 rounded border border-gray-200 bg-white text-gray-700 hover:bg-gray-200 "
-              title="filter"
+          {onFilterDiscountApproval && (
+            <button
+              type="button"
+              className="p-2.5 ph-button-theme"
+              title="Filter Data"
+              onClick={onFilterDiscountApproval}
             >
-              <InputField>
-                <select onChange={selectHandler}>
-                  <option value="">Select</option>
-                  {onFilter?.map((col, index) => (
-                    <option key={index} value={col.label}>
-                      {col.label}
-                    </option>
-                  ))}
-                </select>
-              </InputField>
-            </span>
+              <FilterIcon size={18} />
+            </button>
           )}
-
-          {/* Search Input */}
-          <div className="relative w-full sm:w-64 ">
-            <InputField className="ph-search-theme">
-              <input
-                type="text"
-                placeholder="Search"
-                className="w-full py-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400 active:scale-95 placeholder:opacity-40 "
-                onChange={handleSearch}
-              />
-            </InputField>
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
-              <Search size={16} />
-            </span>
-          </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
@@ -159,15 +120,17 @@ const PageHeader = ({
               </button>
             )}
 
-            <button
-              className="addNew-btn "
-              type="submit"
-              onClick={() => {
-                onAddNew?.();
-              }}
-            >
-              <UserPlus size={16} /> {buttonTitle}
-            </button>
+            {showAddButton && (
+              <button
+                className="addNew-btn "
+                type="submit"
+                onClick={() => {
+                  onAddNew(null);
+                }}
+              >
+                <UserPlus size={16} /> {buttonTitle}
+              </button>
+            )}
 
             {unitButton ? (
               <button

@@ -50,6 +50,7 @@ type VerifyOtpProps = {
   setIsEmail: Dispatch<SetStateAction<boolean | null>>;
 
   onClose: () => void;
+  onVerificationComplete: () => void;
 };
 
 type EmailProps = {

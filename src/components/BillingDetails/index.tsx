@@ -2,6 +2,20 @@ import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
 import { BillingPaymentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { shouldShowOpdPaymentMode } from "@/screens/opdBilling/utils/billingUiRules";
+import {
+  getBookingDiscountPrefillFromDetails,
+  hasBookingDiscountPrefillData,
+} from "@/screens/opdBilling/utils/bookingDiscountPrefill";
+import {
+  buildPatientAdvancePaymentEntry,
+  getDefaultPatientAdvanceUsed,
+  getMaxPatientAdvanceUsable,
+  getRegularPaymentsTotal,
+  getTotalCollectedAmount,
+  roundPaymentAmount,
+} from "@/screens/opdBilling/utils/patientAdvancePayment";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
@@ -10,10 +24,12 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import InputField from "../customInputField";
+import CustomLoader from "../customLoader";
 import {
   BankItems,
   BillingDetailsHandle,
@@ -32,10 +48,33 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       paymentBilling,
       maxDiscountPercentage,
       creditCopayment = false,
+      showPaymentMode = false,
+      hasDiscountApplied = false,
+      bookingDetails = null,
+      hideBillingSection = false,
+      relaxPaymentAmountLimit = false,
+      maxPaymentAmount = null,
+      paymentAmountExceededMessage,
+      patientAdvanceEnabled = false,
+      patientAdvanceAmount = 0,
+      disableDiscountEditing = false,
     },
     ref
   ) => {
-    const { fetchApi } = useGlobalApi();
+    const { loading, fetchApi } = useGlobalApi();
+    const availablePatientAdvance = Math.max(0, Number(patientAdvanceAmount) || 0);
+    const showPatientAdvanceRow = patientAdvanceEnabled && availablePatientAdvance > 0;
+    const [patientAdvanceUsed, setPatientAdvanceUsed] = useState(0);
+    const bookingDiscountPrefill = useMemo(
+      () => getBookingDiscountPrefillFromDetails(bookingDetails),
+      [bookingDetails]
+    );
+    const isPaymentCollectionPrefill = hasBookingDiscountPrefillData(bookingDiscountPrefill);
+    const { rights: branchRights } = useAssignBranchRight();
+    const isSeparateCollectionCounterEnabled =
+      Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
+    const isDiscountApprovalRequired =
+      Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
 
     const [paymentList, setPaymentList] = useState<PaymentItems[]>([]);
     const [bankList, setBankList] = useState<BankItems[]>([]);
@@ -73,23 +112,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       },
     ]);
 
-    useEffect(() => {
-      if (paymentList.length > 0) {
-        const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
-
-        if (cash) {
-          setRows([
-            {
-              paymentModeId: cash?.paymentModeId,
-              amount: "0",
-              bankId: null,
-              refNo: "",
-              isCopaymentReceipt: 0,
-            },
-          ]);
-        }
-      }
-    }, [paymentList]);
+    const shouldShowPaymentMode = shouldShowOpdPaymentMode({
+      showPaymentMode,
+      isSeparateCollectionCounterEnabled,
+      isDiscountApprovalRequired,
+      hasDiscountApplied,
+    });
 
     const getPaymentModeById = (paymentModeId: number | null) =>
       paymentList.find(p => p.paymentModeId === paymentModeId);
@@ -158,14 +186,23 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       setRowErrors(nextRowErrors);
 
-      const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
-      const maxPaymentAmount = getMaxPaymentAmount();
-      if (totalPaid > maxPaymentAmount) {
-        if (creditCopayment && toNumber(copaymentAmount) > 0) {
-          showWarning("Total paid amount cannot exceed Co-payment amount");
-        } else if (!creditCopayment || toNumber(copaymentAmount) <= 0) {
-          showError("Total paid amount cannot exceed Net Amount");
-        }
+      const regularTotal = getRegularPaymentsTotal(rows);
+      const advanceUsed = showPatientAdvanceRow ? patientAdvanceUsed : 0;
+      const totalCollected = getTotalCollectedAmount(regularTotal, advanceUsed);
+      const maxAllowedPayment = getCollectibleTargetAmount();
+
+      if (showPatientAdvanceRow && patientAdvanceUsed < 0) {
+        showWarning("Patient advance amount cannot be negative.");
+        return false;
+      }
+
+      if (showPatientAdvanceRow && patientAdvanceUsed > availablePatientAdvance) {
+        showWarning("Advance amount cannot be greater than available patient advance.");
+        return false;
+      }
+
+      if (totalCollected > maxAllowedPayment) {
+        showPaymentAmountExceededWarning();
         return false;
       }
 
@@ -228,15 +265,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       const updatedRows = [...rows];
       updatedRows[index] = { ...updatedRows[index], [key]: value };
 
-      const totalPaid = updatedRows.reduce((sum, r) => sum + toNumber(r.amount), 0);
-      const maxPaymentAmount = getMaxPaymentAmount();
+      const regularTotal = getRegularPaymentsTotal(updatedRows);
+      const advanceUsed = showPatientAdvanceRow ? patientAdvanceUsed : 0;
+      const totalCollected = getTotalCollectedAmount(regularTotal, advanceUsed);
 
-      if (totalPaid > maxPaymentAmount) {
-        if (creditCopayment && toNumber(copaymentAmount) > 0) {
-          showWarning("Total paid amount cannot exceed Co-payment amount");
-        } else if (!creditCopayment || toNumber(copaymentAmount) <= 0) {
-          showError("Total paid amount cannot exceed Net Amount");
-        }
+      if (totalCollected > getCollectibleTargetAmount()) {
+        showPaymentAmountExceededWarning();
         return;
       }
 
@@ -262,11 +296,34 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       netAmount: 0,
       balanceAmount: 0,
       discApprovedById: 0,
+      discApprovedName: "",
       discountReason: "",
       remarks: "",
     };
 
     const billingValues = initialBillingValues || defaultBillingValues;
+
+    useEffect(() => {
+      if (!showPatientAdvanceRow) {
+        setPatientAdvanceUsed(0);
+        return;
+      }
+
+      const netAmount = toNumber(billingValues?.netAmount);
+      const regularTotal = getRegularPaymentsTotal(rows);
+      const maxUsable = getMaxPatientAdvanceUsable(
+        netAmount,
+        availablePatientAdvance,
+        regularTotal
+      );
+
+      setPatientAdvanceUsed(prev => {
+        if (prev < 0) {
+          return getDefaultPatientAdvanceUsed(netAmount, availablePatientAdvance);
+        }
+        return roundPaymentAmount(Math.min(prev, maxUsable));
+      });
+    }, [availablePatientAdvance, billingValues?.netAmount, rows, showPatientAdvanceRow]);
 
     const [discountApproveList, setDiscountApproveList] = useState<DiscountApproveItem[]>([]);
 
@@ -276,35 +333,149 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       return Number.isFinite(parsed) ? parsed : 0;
     };
 
-    const getMaxPaymentAmount = useCallback(() => {
+    const getCollectibleTargetAmount = useCallback(() => {
+      if (maxPaymentAmount != null) {
+        return Math.max(0, Number(maxPaymentAmount));
+      }
+      if (relaxPaymentAmountLimit) {
+        return Number.MAX_SAFE_INTEGER;
+      }
       if (creditCopayment && toNumber(copaymentAmount) > 0) {
         return toNumber(copaymentAmount);
       }
       return toNumber(billingValues?.netAmount);
-    }, [billingValues?.netAmount, copaymentAmount, creditCopayment]);
+    }, [
+      billingValues?.netAmount,
+      copaymentAmount,
+      creditCopayment,
+      maxPaymentAmount,
+      relaxPaymentAmountLimit,
+    ]);
 
-    const isServiceDiscountApplied = paymentBilling && paymentBilling.totalDiscAmtOnBill > 0;
+    useEffect(() => {
+      if (!paymentList.length) return;
+
+      const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
+      if (!cash) return;
+
+      const collectibleTarget = getCollectibleTargetAmount();
+      const targetAmount =
+        shouldShowPaymentMode && collectibleTarget > 0
+          ? String(Math.max(0, collectibleTarget))
+          : "0";
+
+      setRows(prev => {
+        if (!prev.length || (prev.length === 1 && prev[0].paymentModeId === null)) {
+          return [
+            {
+              paymentModeId: cash.paymentModeId,
+              amount: targetAmount,
+              bankId: null,
+              refNo: "",
+              isCopaymentReceipt: 0,
+            },
+          ];
+        }
+
+        if (prev.length === 1 && prev[0].paymentModeId === cash.paymentModeId) {
+          if (prev[0].amount === targetAmount) {
+            return prev;
+          }
+
+          return [{ ...prev[0], amount: targetAmount }];
+        }
+
+        return prev;
+      });
+    }, [
+      getCollectibleTargetAmount,
+      paymentList,
+      shouldShowPaymentMode,
+      showPatientAdvanceRow,
+    ]);
+
+    const getMaxPaymentAmount = getCollectibleTargetAmount;
+
+    const showPaymentAmountExceededWarning = useCallback(() => {
+      if (paymentAmountExceededMessage) {
+        showWarning(paymentAmountExceededMessage);
+        return;
+      }
+
+      if (creditCopayment && toNumber(copaymentAmount) > 0) {
+        showWarning("Total paid amount cannot exceed Co-payment amount");
+        return;
+      }
+
+      showError("Total paid amount cannot exceed Net Amount");
+    }, [copaymentAmount, creditCopayment, paymentAmountExceededMessage]);
+
+    const isServiceDiscountApplied =
+      !!paymentBilling && toNumber(paymentBilling.totalDiscAmtOnBill) > 0;
 
     const wasServiceDiscountAppliedRef = useRef(false);
+
+    const roundToTwo = (value: number) => Number(value.toFixed(2));
+
+    const syncToOpdBilling = useCallback(
+      (nextValues: Partial<BillingValuesItem>) => {
+        if (!setOpdBilling) return;
+        setOpdBilling(prev => ({ ...prev, ...nextValues }));
+      },
+      [setOpdBilling]
+    );
+
+    const setBillingState = useCallback(
+      (nextValues: Partial<BillingValuesItem>) => {
+        const sanitized = Object.fromEntries(
+          Object.entries(nextValues).filter(([, value]) => value !== undefined)
+        ) as Partial<BillingValuesItem>;
+
+        if (setBillingValues) {
+          setBillingValues((prev: BillingValuesItem) => ({ ...prev, ...sanitized }));
+        }
+        syncToOpdBilling(sanitized);
+      },
+      [setBillingValues, syncToOpdBilling]
+    );
+
+    const calculateFromAmount = useCallback((gross: number, discountAmtInput: unknown) => {
+      const normalizedGross = Math.max(0, gross);
+      const discountAmt = roundToTwo(
+        Math.min(normalizedGross, Math.max(0, toNumber(discountAmtInput)))
+      );
+      const discountPer =
+        normalizedGross > 0 ? roundToTwo((discountAmt / normalizedGross) * 100) : 0;
+      const rawNet = normalizedGross - discountAmt;
+      const netAmount = Math.round(rawNet);
+      const roundOff = roundToTwo(netAmount - rawNet);
+
+      return { discountPer, discountAmt, netAmount, roundOff };
+    }, []);
+
+    const calculateFromAmountWithRoundOff = calculateFromAmount;
 
     // payment
     useEffect(() => {
       if (paymentBilling && Object.keys(paymentBilling).length > 0) {
-        if (paymentBilling.totalDiscAmtOnBill > 0) {
+        const gross = toNumber(paymentBilling.grossBillAmount);
+        const discAmt = toNumber(paymentBilling.totalDiscAmtOnBill);
+        const discPer = toNumber(paymentBilling.totalDiscPerOnBill);
+
+        if (discAmt > 0) {
           wasServiceDiscountAppliedRef.current = true;
-          const rawNet = paymentBilling.grossBillAmount - paymentBilling.totalDiscAmtOnBill;
+          const rawNet = gross - discAmt;
           const netAmount = Math.round(rawNet);
           const roundOff = roundToTwo(netAmount - rawNet);
 
           setBillingState({
-            grossBillAmount: paymentBilling.grossBillAmount,
-            totalDiscAmtOnBill: paymentBilling.totalDiscAmtOnBill,
-            totalDiscPerOnBill: paymentBilling.totalDiscPerOnBill,
+            grossBillAmount: gross,
+            totalDiscAmtOnBill: discAmt,
+            totalDiscPerOnBill: discPer,
             netAmount: netAmount,
             roundOff: roundOff,
           });
         } else {
-          const gross = paymentBilling.grossBillAmount;
           let discOverride = billingValues?.totalDiscAmtOnBill ?? 0;
           if (wasServiceDiscountAppliedRef.current) {
             discOverride = 0;
@@ -324,13 +495,34 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           });
         }
       }
-    }, [paymentBilling]);
+    }, [
+      billingValues?.totalDiscAmtOnBill,
+      calculateFromAmountWithRoundOff,
+      paymentBilling,
+      setBillingState,
+    ]);
 
-    const roundToTwo = (value: number) => Number(value.toFixed(2));
+    useEffect(() => {
+      if (!isPaymentCollectionPrefill || !bookingDiscountPrefill) return;
+
+      setBillingState({
+        grossBillAmount: Number(bookingDiscountPrefill.grossBillAmount ?? 0),
+        totalDiscPerOnBill: Number(bookingDiscountPrefill.totalDiscPerOnBill ?? 0),
+        totalDiscAmtOnBill: Number(bookingDiscountPrefill.totalDiscAmtOnBill ?? 0),
+        roundOff: Number(bookingDiscountPrefill.roundOff ?? 0),
+        netAmount: Number(bookingDiscountPrefill.netAmount ?? 0),
+        discApprovedById: Number(bookingDiscountPrefill.discApprovedById ?? 0),
+        discApprovedName: String(bookingDiscountPrefill.discApprovedName ?? ""),
+        discountReason: String(bookingDiscountPrefill.discountReason ?? ""),
+        remarks: String(bookingDiscountPrefill.remarks ?? ""),
+      });
+    }, [bookingDiscountPrefill, isPaymentCollectionPrefill, setBillingState]);
+
     const hasAnyDiscount =
       toNumber(billingValues?.totalDiscAmtOnBill) > 0 ||
       toNumber(billingValues?.totalDiscPerOnBill) > 0 ||
-      toNumber(paymentBilling?.totalDiscAmtOnBill) > 0;
+      toNumber(paymentBilling?.totalDiscAmtOnBill) > 0 ||
+      toNumber(paymentBilling?.totalDiscPerOnBill) > 0;
 
     const validateDiscountFields = () => {
       if (!hasAnyDiscount) {
@@ -361,18 +553,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       setBillingFieldErrors({});
     };
 
-    const syncToOpdBilling = (nextValues: Partial<BillingValuesItem>) => {
-      if (!setOpdBilling) return;
-      setOpdBilling((prev: BillingValuesItem) => ({ ...prev, ...nextValues }));
-    };
-
-    const setBillingState = (nextValues: Partial<BillingValuesItem>) => {
-      if (setBillingValues) {
-        setBillingValues((prev: BillingValuesItem) => ({ ...prev, ...nextValues }));
-      }
-      syncToOpdBilling(nextValues);
-    };
-
     const calculateFromPercentage = (gross: number, discountPerInput: unknown) => {
       const normalizedGross = Math.max(0, gross);
       const discountPer = roundToTwo(Math.min(100, Math.max(0, toNumber(discountPerInput))));
@@ -383,22 +563,6 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       return { discountPer, discountAmt, netAmount, roundOff };
     };
-
-    const calculateFromAmount = (gross: number, discountAmtInput: unknown) => {
-      const normalizedGross = Math.max(0, gross);
-      const discountAmt = roundToTwo(
-        Math.min(normalizedGross, Math.max(0, toNumber(discountAmtInput)))
-      );
-      const discountPer =
-        normalizedGross > 0 ? roundToTwo((discountAmt / normalizedGross) * 100) : 0;
-      const rawNet = normalizedGross - discountAmt;
-      const netAmount = Math.round(rawNet);
-      const roundOff = roundToTwo(netAmount - rawNet);
-
-      return { discountPer, discountAmt, netAmount, roundOff };
-    };
-
-    const calculateFromAmountWithRoundOff = calculateFromAmount;
 
     // discount approved by
     const getDiscountApprovedBy = async () => {
@@ -416,6 +580,30 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     useEffect(() => {
       getDiscountApprovedBy();
     }, []);
+
+    useEffect(() => {
+      const approvedById = Number(billingValues?.discApprovedById ?? 0);
+      const approvedByName = String(billingValues?.discApprovedName ?? "").trim();
+      if (!approvedById || !approvedByName) return;
+
+      setDiscountApproveList(prev => {
+        if (prev.some(item => Number(item.id) === approvedById)) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          {
+            id: approvedById,
+            name: approvedByName,
+            isActive: 1,
+            discountType: "",
+            branchName: "",
+            firstName: approvedByName,
+          },
+        ];
+      });
+    }, [billingValues?.discApprovedById, billingValues?.discApprovedName]);
 
     // payment methods
     const getPaymentMethod = useCallback(async () => {
@@ -501,7 +689,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     };
     const discountApprovedHandler = (e: ChangeEvent<HTMLSelectElement>) => {
       const value = Number(e.target.value) || 0;
-      setBillingState({ discApprovedById: value });
+      const selectedApprover = discountApproveList?.find(item => Number(item?.id) === value);
+      setBillingState({
+        discApprovedById: value,
+        discApprovedName: selectedApprover?.name ?? "",
+      });
       setBillingFieldErrors(prev => ({ ...prev, discApprovedById: undefined }));
     };
 
@@ -518,7 +710,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     const getPaymentPayload = useCallback(() => {
       const isCopaymentReceipt = toNumber(copaymentAmount) > 0 ? 1 : 0;
 
-      return rows
+      const regularPayments = rows
         .filter(r => Number(r.amount) > 0 && !!r.paymentModeId)
         .map(r => {
           const selectedMode = paymentList.find(p => p.paymentModeId === r.paymentModeId);
@@ -531,17 +723,38 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             bankId: Number(r.bankId) || 0,
             refNo: String(r.refNo ?? ""),
             isCopaymentReceipt,
+            isPatientAdvanceAmount: 0,
             plutusTransactionReferenceID: "",
             transactionLogId: "",
           };
         });
-    }, [copaymentAmount, paymentList, rows]);
+
+      if (showPatientAdvanceRow && patientAdvanceUsed > 0) {
+        return [...regularPayments, buildPatientAdvancePaymentEntry(patientAdvanceUsed)];
+      }
+
+      return regularPayments;
+    }, [copaymentAmount, paymentList, patientAdvanceUsed, rows, showPatientAdvanceRow]);
 
     useEffect(() => {
-      const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
-      const balanceAmount = roundToTwo(toNumber(billingValues?.netAmount) - totalPaid);
+      const regularTotal = getRegularPaymentsTotal(rows);
+      const advanceUsed = showPatientAdvanceRow ? patientAdvanceUsed : 0;
+      const totalCollected = getTotalCollectedAmount(regularTotal, advanceUsed);
+      const balanceAmount = roundToTwo(toNumber(billingValues?.netAmount) - totalCollected);
+
+      if (roundToTwo(toNumber(billingValues?.balanceAmount)) === balanceAmount) {
+        return;
+      }
+
       setBillingState({ balanceAmount });
-    }, [rows, billingValues?.netAmount]);
+    }, [
+      billingValues?.balanceAmount,
+      billingValues?.netAmount,
+      patientAdvanceUsed,
+      rows,
+      showPatientAdvanceRow,
+      setBillingState,
+    ]);
 
     useImperativeHandle(
       ref,
@@ -571,6 +784,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           // setPaymentValidationError("");
           setRowErrors({});
           setCopaymentAmount(0);
+          setPatientAdvanceUsed(0);
           setBillingState({
             grossBillAmount: 0,
             totalDiscPerOnBill: 0,
@@ -579,6 +793,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
             netAmount: 0,
             balanceAmount: 0,
             discApprovedById: 0,
+            discApprovedName: "",
             discountReason: "",
             remarks: "",
           });
@@ -590,267 +805,371 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         creditCopayment,
         getPaymentPayload,
         getMaxPaymentAmount,
+        patientAdvanceUsed,
         paymentList,
         rows,
+        showPatientAdvanceRow,
         hasAnyDiscount,
       ]
     );
 
+    const advanceAmountChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+      const nextValue = toNumber(e.target.value);
+
+      if (nextValue < 0) {
+        showWarning("Amount cannot be negative.");
+        return;
+      }
+
+      const netAmount = toNumber(billingValues?.netAmount);
+      const isSingleCashRow =
+        rows.length === 1 && rows[0]?.paymentModeId !== null && isCashMode(rows[0].paymentModeId);
+      const regularTotal = isSingleCashRow ? 0 : getRegularPaymentsTotal(rows);
+      const maxAdvance = getMaxPatientAdvanceUsable(
+        netAmount,
+        availablePatientAdvance,
+        regularTotal
+      );
+
+      if (nextValue > availablePatientAdvance) {
+        showWarning("Advance amount cannot be greater than available patient advance.");
+        return;
+      }
+
+      if (nextValue > maxAdvance) {
+        showWarning("Advance amount cannot exceed remaining net amount.");
+        return;
+      }
+
+      setPatientAdvanceUsed(roundPaymentAmount(nextValue));
+    };
+
+    const useSplitBillingLayout = !hideBillingSection;
+    const paymentRowCount = rows.length + (showPatientAdvanceRow ? 1 : 0);
+    const paymentTableSizeClass =
+      paymentRowCount > 1 || showPatientAdvanceRow ? "lg:min-h-56" : "lg:min-h-48";
+
+    const renderPaymentCellError = (message?: string) => (
+      <p className={`input-field-error billing-payment-cell-error ${message ? "" : "invisible"}`}>
+        {message || " "}
+      </p>
+    );
+
     return (
-      <div className="flex flex-col lg:flex-row mt-3 gap-3 w-full">
-        <div className="billing details w-full lg:w-1/2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <InputField label="Gross Bill Amount">
-              <input
-                className="disabled-input-field w-full"
-                disabled={true}
-                value={billingValues?.grossBillAmount ?? 0}
-                readOnly
-              />
-            </InputField>
-
-            <InputField label="Bill Disc(%)">
-              <input
-                type="text"
-                className={
-                  isServiceDiscountApplied ? "disabled-input-field w-full" : "input-field w-full"
-                }
-                value={billingValues?.totalDiscPerOnBill ?? 0}
-                onInput={allowOnlyNumbers}
-                onChange={discountPercentageChangeHandler}
-                disabled={isServiceDiscountApplied}
-              />
-            </InputField>
-
-            <InputField label="Bill Disc Amount">
-              <input
-                type="text"
-                className={
-                  isServiceDiscountApplied ? "disabled-input-field w-full" : "input-field w-full"
-                }
-                value={billingValues?.totalDiscAmtOnBill ?? 0}
-                onInput={allowOnlyNumbers}
-                onChange={discountAmountChangeHandler}
-                disabled={isServiceDiscountApplied}
-              />
-            </InputField>
-
-            <InputField label="Round Off">
-              <input
-                type="text"
-                className="disabled-input-field"
-                value={billingValues?.roundOff ?? 0}
-                disabled={true}
-                readOnly
-              />
-            </InputField>
-
-            <InputField label="Net Amount">
-              <input
-                className="disabled-input-field  text-red-500 font-bold"
-                value={billingValues?.netAmount ?? 0}
-                disabled={true}
-                readOnly
-              />
-            </InputField>
-
-            <InputField label="Balance Amount">
-              <input
-                className="disabled-input-field "
-                value={billingValues?.balanceAmount ?? 0}
-                readOnly
-                disabled={true}
-              />
-            </InputField>
-
-            {creditCopayment && (
-              <InputField label="Co-payment">
+      <div className="flex flex-col lg:flex-row  gap-3 w-full">
+        {!hideBillingSection && (
+          <div
+            className={`billing details w-full min-w-0 ${useSplitBillingLayout ? "lg:w-1/2" : ""}`}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <InputField label="Gross Bill Amount">
                 <input
-                  className="input-field"
-                  value={copaymentAmount}
-                  onInput={allowOnlyNumbers}
-                  onChange={e => {
-                    const nextCopaymentAmount = Number(e.target.value);
-                    const totalPaid = rows.reduce((sum, r) => sum + toNumber(r.amount), 0);
-                    if (nextCopaymentAmount > 0 && totalPaid > nextCopaymentAmount) {
-                      showWarning("Total paid amount cannot exceed Co-payment amount");
-                      return;
-                    }
-                    setCopaymentAmount(nextCopaymentAmount);
-                  }}
+                  className="disabled-input-field w-full"
+                  disabled={true}
+                  value={billingValues?.grossBillAmount ?? 0}
+                  readOnly
                 />
               </InputField>
-            )}
 
-            <InputField label="Discount Approved By">
-              <select
-                className="input-field"
-                onChange={discountApprovedHandler}
-                value={billingValues?.discApprovedById || ""}
-              >
-                <option value="">Select</option>
-                {discountApproveList?.map(b => (
-                  <option key={b?.id} value={b?.id}>
-                    {b?.name}
-                  </option>
-                ))}
-              </select>
-              {!!billingFieldErrors.discApprovedById && (
-                <p className="input-field-error">{billingFieldErrors.discApprovedById}</p>
-              )}
-            </InputField>
+              <InputField label="Bill Disc(%)">
+                <input
+                  type="text"
+                  className={
+                    isServiceDiscountApplied || disableDiscountEditing
+                      ? "disabled-input-field w-full"
+                      : "input-field w-full"
+                  }
+                  value={billingValues?.totalDiscPerOnBill ?? 0}
+                  onInput={allowOnlyNumbers}
+                  onChange={discountPercentageChangeHandler}
+                  disabled={isServiceDiscountApplied || disableDiscountEditing}
+                />
+              </InputField>
 
-            <InputField label="Discount Reason">
-              <input
-                className="input-field"
-                type="text"
-                placeholder="Enter discount reason"
-                value={billingValues?.discountReason ?? ""}
-                onChange={discountChangeHandler}
-              />
-              {!!billingFieldErrors.discountReason && (
-                <p className="input-field-error">{billingFieldErrors.discountReason}</p>
-              )}
-            </InputField>
+              <InputField label="Bill Disc Amount">
+                <input
+                  type="text"
+                  className={
+                    isServiceDiscountApplied || disableDiscountEditing
+                      ? "disabled-input-field w-full"
+                      : "input-field w-full"
+                  }
+                  value={billingValues?.totalDiscAmtOnBill ?? 0}
+                  onInput={allowOnlyNumbers}
+                  onChange={discountAmountChangeHandler}
+                  disabled={isServiceDiscountApplied || disableDiscountEditing}
+                />
+              </InputField>
 
-            <InputField label="Remark">
-              <input
-                className="input-field"
-                type="text"
-                placeholder="Enter remarks"
-                value={billingValues?.remarks ?? ""}
-                onChange={remarkChangeHandler}
-              />
-              {!!billingFieldErrors.remarks && (
-                <p className="input-field-error">{billingFieldErrors.remarks}</p>
+              <InputField label="Round Off">
+                <input
+                  type="text"
+                  className="disabled-input-field"
+                  value={billingValues?.roundOff ?? 0}
+                  disabled={true}
+                  readOnly
+                />
+              </InputField>
+
+              <InputField label="Net Amount">
+                <input
+                  className="disabled-input-field  text-red-500 font-bold"
+                  value={billingValues?.netAmount ?? 0}
+                  disabled={true}
+                  readOnly
+                />
+              </InputField>
+
+              <InputField label="Balance Amount">
+                <input
+                  className="disabled-input-field "
+                  value={billingValues?.balanceAmount ?? 0}
+                  readOnly
+                  disabled={true}
+                />
+              </InputField>
+
+              {creditCopayment && (
+                <InputField label="Co-payment">
+                  <input
+                    className="input-field"
+                    value={copaymentAmount}
+                    onInput={allowOnlyNumbers}
+                    onChange={e => {
+                      const nextCopaymentAmount = Number(e.target.value);
+                      const regularTotal = getRegularPaymentsTotal(rows);
+                      const advanceUsed = showPatientAdvanceRow ? patientAdvanceUsed : 0;
+                      const totalCollected = getTotalCollectedAmount(regularTotal, advanceUsed);
+                      if (nextCopaymentAmount > 0 && totalCollected > nextCopaymentAmount) {
+                        showWarning("Total paid amount cannot exceed Co-payment amount");
+                        return;
+                      }
+                      setCopaymentAmount(nextCopaymentAmount);
+                    }}
+                  />
+                </InputField>
               )}
-            </InputField>
+
+              <InputField label="Discount Approved By">
+                <select
+                  className="input-field"
+                  onChange={discountApprovedHandler}
+                  value={billingValues?.discApprovedById || ""}
+                >
+                  <option value="">Select</option>
+                  {discountApproveList?.map(b => (
+                    <option key={b?.id} value={b?.id}>
+                      {b?.name}
+                    </option>
+                  ))}
+                </select>
+                {!!billingFieldErrors.discApprovedById && (
+                  <p className="input-field-error">{billingFieldErrors.discApprovedById}</p>
+                )}
+              </InputField>
+
+              <InputField label="Discount Reason">
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="Enter discount reason"
+                  value={billingValues?.discountReason ?? ""}
+                  onChange={discountChangeHandler}
+                />
+                {!!billingFieldErrors.discountReason && (
+                  <p className="input-field-error">{billingFieldErrors.discountReason}</p>
+                )}
+              </InputField>
+
+              <InputField label="Remark">
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="Enter remarks"
+                  value={billingValues?.remarks ?? ""}
+                  onChange={remarkChangeHandler}
+                />
+                {!!billingFieldErrors.remarks && (
+                  <p className="input-field-error">{billingFieldErrors.remarks}</p>
+                )}
+              </InputField>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="payment details w-full lg:w-1/2">
-          <div className="overflow-x-auto w-full">
-            <div className="table-container">
-              <div className="table-scroll-wrapper">
-                <div className="table-size w-full lg:min-h-60 lg:max-h-60">
-                  <table className="base-table w-full">
-                    <thead className="table-head">
-                      <tr>
-                        {BillingPaymentTableHeader.map((h, i) => (
-                          <th key={i} className="table-th">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {rows.map((row, index) => (
-                        <tr key={index}>
-                          <td>
-                            <select
-                              className="input-field max-w-40 mt-2 ml-1"
-                              value={row.paymentModeId ?? ""}
-                              onChange={e => handlePaymentChange(index, Number(e.target.value))}
-                            >
-                              <option value="">Select</option>
-
-                              {getAvailablePaymentModes(index).map(p => (
-                                <option key={p.paymentModeId} value={p.paymentModeId}>
-                                  {p.paymentModeName}
-                                </option>
-                              ))}
-                            </select>
-                            {!!rowErrors[index]?.paymentModeId && (
-                              <p className="input-field-error">{rowErrors[index]?.paymentModeId}</p>
-                            )}
-                          </td>
-
-                          <td>
-                            <input
-                              className="input-field max-w-30"
-                              placeholder="Amount"
-                              value={row.amount}
-                              onInput={allowOnlyNumbers}
-                              onChange={e => handleRowValueChange(index, "amount", e.target.value)}
-                            />
-                            {!!rowErrors[index]?.amount && (
-                              <p className="input-field-error">{rowErrors[index]?.amount}</p>
-                            )}
-                          </td>
-
-                          <td>
-                            {isCardMode(row.paymentModeId) ? (
-                              <select
-                                className="input-field max-w-30 m-1"
-                                value={row.bankId ?? ""}
-                                onChange={e =>
-                                  handleRowValueChange(
-                                    index,
-                                    "bankId",
-                                    Number(e.target.value) || null
-                                  )
-                                }
-                              >
-                                <option value="">Select</option>
-                                {bankList.map(bank => (
-                                  <option key={bank.bankId} value={bank.bankId}>
-                                    {bank.bankName}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span>-</span>
-                            )}
-                            {!!rowErrors[index]?.bankId && (
-                              <p className="input-field-error">{rowErrors[index]?.bankId}</p>
-                            )}
-                          </td>
-
-                          <td>
-                            {!isCashMode(row.paymentModeId) ? (
-                              <input
-                                className="input-field max-w-40 ml-2"
-                                placeholder="Reference Number "
-                                value={row.refNo}
-                                onChange={e => handleRowValueChange(index, "refNo", e.target.value)}
-                              />
-                            ) : (
-                              <span>-</span>
-                            )}
-                            {!!rowErrors[index]?.refNo && (
-                              <p className="input-field-error">{rowErrors[index]?.refNo}</p>
-                            )}
-                          </td>
-
-                          <td className="table-td text-center">
-                            {index > 0 ? (
-                              <button
-                                type="button"
-                                title="Remove payment row"
-                                onClick={() => handleRemoveRow(index)}
-                              >
-                                <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
-                              </button>
-                            ) : (
-                              <span>-</span>
-                            )}
-                          </td>
+        {shouldShowPaymentMode && (
+          <div
+            className={`payment details w-full min-w-0 ${
+              useSplitBillingLayout ? "lg:w-1/2" : ""
+            }`}
+          >
+            <div className="overflow-x-auto w-full">
+              <div className="table-container">
+                <div className="table-scroll-wrapper">
+                  <div className={`table-size w-full ${paymentTableSizeClass}`}>
+                    <table className="base-table w-full">
+                      <thead className="table-head">
+                        <tr>
+                          {BillingPaymentTableHeader.map((h, i) => (
+                            <th key={i} className="table-th">
+                              {h}
+                            </th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                      </thead>
 
-              <div className="w-full text-right">
-                <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
-                  Add Row
-                </button>
+                      <tbody className="billing-payment-rows">
+                        {showPatientAdvanceRow && (
+                          <tr>
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                <input
+                                  className="input-field max-w-40 font-semibold mt-2 ml-1"
+                                  value="Patient Advance"
+                                  readOnly
+                                  disabled
+                                />
+                                {renderPaymentCellError()}
+                              </div>
+                            </td>
+
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                <input
+                                  type="text"
+                                  className="input-field max-w-30 mt-2"
+                                  value={patientAdvanceUsed}
+                                  onInput={allowOnlyNumbers}
+                                  onChange={advanceAmountChangeHandler}
+                                />
+                                {renderPaymentCellError()}
+                              </div>
+                            </td>
+
+                            <td className="text-center align-top">-</td>
+
+                            <td className="text-center align-top">-</td>
+
+                            <td className="text-center align-top">-</td>
+                          </tr>
+                        )}
+                        {rows.map((row, index) => (
+                          <tr key={index}>
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                <select
+                                  className="input-field max-w-40 mt-2 ml-1"
+                                  value={row.paymentModeId ?? ""}
+                                  onChange={e => handlePaymentChange(index, Number(e.target.value))}
+                                >
+                                  <option value="">Select</option>
+
+                                  {getAvailablePaymentModes(index).map(p => (
+                                    <option key={p.paymentModeId} value={p.paymentModeId}>
+                                      {p.paymentModeName}
+                                    </option>
+                                  ))}
+                                </select>
+                                {renderPaymentCellError(rowErrors[index]?.paymentModeId)}
+                              </div>
+                            </td>
+
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                <input
+                                  className="input-field max-w-30 mt-2"
+                                  placeholder="Amount"
+                                  value={row.amount}
+                                  onInput={allowOnlyNumbers}
+                                  onChange={e =>
+                                    handleRowValueChange(index, "amount", e.target.value)
+                                  }
+                                />
+                                {renderPaymentCellError(rowErrors[index]?.amount)}
+                              </div>
+                            </td>
+
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                {isCardMode(row.paymentModeId) ? (
+                                  <select
+                                    className="input-field max-w-30 mt-2 ml-1"
+                                    value={row.bankId ?? ""}
+                                    onChange={e =>
+                                      handleRowValueChange(
+                                        index,
+                                        "bankId",
+                                        Number(e.target.value) || null
+                                      )
+                                    }
+                                  >
+                                    <option value="">Select</option>
+                                    {bankList.map(bank => (
+                                      <option key={bank.bankId} value={bank.bankId}>
+                                        {bank.bankName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="inline-block mt-2 ml-1">-</span>
+                                )}
+                                {renderPaymentCellError(rowErrors[index]?.bankId)}
+                              </div>
+                            </td>
+
+                            <td className="align-top">
+                              <div className="billing-payment-cell">
+                                {!isCashMode(row.paymentModeId) ? (
+                                  <input
+                                    className="input-field max-w-40 mt-2 ml-2"
+                                    placeholder="Reference Number "
+                                    value={row.refNo}
+                                    onChange={e =>
+                                      handleRowValueChange(index, "refNo", e.target.value)
+                                    }
+                                  />
+                                ) : (
+                                  <span className="inline-block mt-2 ml-2">-</span>
+                                )}
+                                {renderPaymentCellError(rowErrors[index]?.refNo)}
+                              </div>
+                            </td>
+
+                            <td className="table-td text-center">
+                              {index > 0 ? (
+                                <button
+                                  type="button"
+                                  title="Remove payment row"
+                                  onClick={() => handleRemoveRow(index)}
+                                >
+                                  <i className="fa-solid fa-trash icon-color-delete cursor-pointer" />
+                                </button>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="w-full text-right">
+                  <button type="button" className="save-btn mt-2" onClick={handleAddRow}>
+                    Add Row
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {useSplitBillingLayout && !shouldShowPaymentMode && (
+          <div className="payment details hidden lg:block lg:w-1/2 min-w-0" aria-hidden="true" />
+        )}
+
+        {loading && <CustomLoader isLoading={loading} />}
       </div>
     );
   }

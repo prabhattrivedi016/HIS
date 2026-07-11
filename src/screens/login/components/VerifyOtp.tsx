@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { ModalHeader } from "../../../components/infoText";
+import { isVerifiedFlag } from "../../../utils/authVerification";
 import { VerifyOtpProps } from "../type";
 import EmailSection from "./EmailSection";
 import MobileSection from "./MobileSection";
@@ -11,46 +11,48 @@ const VerifyOtp = ({
   contact,
   email,
   onClose,
+  onVerificationComplete,
   setIsContact,
   setIsEmail,
   isEmail,
   isContact,
 }: VerifyOtpProps) => {
-  const navigate = useNavigate();
-
   useEffect(() => {
-    if (isContact && isEmail) {
-      setTimeout(() => {
-        onClose();
-        navigate("/dashboard");
-      }, 1000);
+    if (isVerifiedFlag(isContact) && isVerifiedFlag(isEmail)) {
+      onVerificationComplete();
     }
-  }, [isContact, isEmail, navigate, onClose]);
+  }, [isContact, isEmail, onVerificationComplete]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="verify-otp-overlay">
       <div className="verify-otp-modal">
         <ModalHeader text="Verify Mobile & Email OTP" />
 
-        <MobileSection
-          userId={userId}
-          userName={userName}
-          contact={contact}
-          onVerified={() => setIsContact(true)}
-          isContact={isContact}
-        />
+        <div className="verify-otp-section">
+          <MobileSection
+            userId={userId}
+            userName={userName}
+            contact={contact}
+            onVerified={() => setIsContact(true)}
+            isContact={isContact}
+          />
+        </div>
 
-        <EmailSection
-          userId={userId}
-          userName={userName}
-          email={email}
-          onVerified={() => setIsEmail(true)}
-          isEmail={isEmail}
-        />
+        <div className="verify-otp-section">
+          <EmailSection
+            userId={userId}
+            userName={userName}
+            email={email}
+            onVerified={() => setIsEmail(true)}
+            isEmail={isEmail}
+          />
+        </div>
 
-        <button onClick={onClose} className="cancel-button">
-          Cancel
-        </button>
+        <div className="verify-otp-actions">
+          <button type="button" onClick={onClose} className="cancel-button">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

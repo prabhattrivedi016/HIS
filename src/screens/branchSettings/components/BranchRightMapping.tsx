@@ -19,8 +19,6 @@ const BranchRightMapping = () => {
   const branches = useGetBranchList()?.branchList?.data ?? [];
   const [updatedTable, setUpdatedTable] = useState<BranchTableItem[]>([]);
 
-  console.log("refetchAssignBranchRight", refetchAssignBranchRight);
-
   const branchSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
     setSelectedBranch(value);
