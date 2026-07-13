@@ -97,7 +97,7 @@ export const AllergySubTypeMasterList = [
 ];
 
 const AllergyMaster = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
 
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const {

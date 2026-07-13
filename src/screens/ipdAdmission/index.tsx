@@ -107,7 +107,7 @@ const IPDAdmission = () => {
       // result: false => patient is not admitted — allow bind
       return { isAdmitted: false };
     },
-    [fetchApi]
+    []
   );
 
   const bindPatientToRegistration = useCallback(async (patientId: number) => {

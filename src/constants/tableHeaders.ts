@@ -457,6 +457,26 @@ export const OpdBillingServiceTableHeader = [
   "Urgent",
 ];
 
+export const OpdRefundMultipleBillTableHeader = [
+  "UHID",
+  "Bill No",
+  "Bill Date",
+  "Bill Amount",
+  "Paid Amount",
+];
+
+export const OpdRefundServiceTableHeader = [
+  "#",
+  "Service Name",
+  "Doctor",
+  "Rate",
+  "Disc (%)",
+  "QTY",
+  "Refund QTY",
+  "Disc Amt",
+  "Net Amt",
+];
+
 export const BillingPaymentTableHeader = ["Payment Mode", "Amount", "Bank", "Ref No.", "Action"];
 
 export const TestPackageTableHeader = ["#", "Category", "Name", "QTY"];

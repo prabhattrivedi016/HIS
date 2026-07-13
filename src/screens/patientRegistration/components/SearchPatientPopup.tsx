@@ -65,7 +65,9 @@ const SearchPatientPopup = ({
     setShowTable(false);
   }, [isOpen, setShowTable]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     const trimmedValue = value.trim();
     setFormData(prevData => ({ ...prevData, [name]: trimmedValue }));
@@ -79,9 +81,9 @@ const SearchPatientPopup = ({
     e.preventDefault();
     const searchParams = {
       ...formData,
-      dob: formData.dob ? formatToDDMMYYYY(formData.dob) : "",
-      registrationDate: formData.registrationDate
-        ? formatToDDMMYYYY(formData.registrationDate)
+      dob: formData?.dob ? formatToDDMMYYYY(formData?.dob) : "",
+      registrationDate: formData?.registrationDate
+        ? formatToDDMMYYYY(formData?.registrationDate)
         : "",
     };
 
@@ -123,9 +125,9 @@ const SearchPatientPopup = ({
   const getAllPatientData = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_PATIENT_MASTER,
+      ENDPOINTS.SEARCH_PATIENT_MASTER,
       {},
-      {},
+      { params: { branchId: formData?.branchId } },
       { component: "SearchPatientPopupOfRegistration" }
     );
     setSearchPatientDataList(resp?.data.slice(0, 99) ?? []);

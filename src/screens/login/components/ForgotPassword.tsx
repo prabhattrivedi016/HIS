@@ -1,3 +1,9 @@
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
+import {
+  otpSchema,
+  resetPasswordSchema,
+  userNameAndMobileSchema,
+} from "@/validation/forgotPasswordSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -7,11 +13,6 @@ import { ErrorMessage, SuccessMessage } from "../../../components/infoText/index
 import { ENDPOINTS } from "../../../config/defaults/index";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { stopPropagationHandler } from "../../../utils/utilities";
-import {
-  otpSchema,
-  resetPasswordSchema,
-  userNameAndMobileSchema,
-} from "../../../validation/forgotPasswordSchema";
 import { ForgotPasswordProps } from "../type";
 
 const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
@@ -24,6 +25,7 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
   const [verifiedOtp, setVerifiedOtp] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   // const [contactHint, setContactHint] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   let contactHint = "";
 
   // 1) SEND OTP FORM
@@ -64,12 +66,14 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
       userName: data?.userName,
       contact: data?.contact,
     });
-    if (!response) {
+    if (!response?.result) {
+      setErrorMessage(response?.message ?? "Failed to send OTP");
       return;
     }
+    setErrorMessage("");
     setOtpSent(true);
     setUserId(response?.data?.userId);
-    setHintMessage(response?.message);
+    setHintMessage(response?.message ?? "OTP sent successfully");
   };
 
   // verify otp
@@ -80,12 +84,12 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
       userId: userId,
     });
 
-    if (!response) {
-      setOtpVerified(false);
-      setSuccessMessage("");
+    if (!response?.result) {
+      setErrorMessage(response?.message ?? "Failed to verify OTP");
       return;
     }
-    setSuccessMessage(response?.message);
+    setErrorMessage("");
+    setSuccessMessage(response?.message ?? "OTP verified successfully");
     setOtpVerified(true);
     setVerifiedOtp(response?.data?.otp);
   };
@@ -98,8 +102,12 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
       newPassword: data?.newPassword,
       confirmPassword: data?.confirmPassword,
     });
-    setSuccessMessage(response?.message);
-
+    if (!response?.result) {
+      setErrorMessage(response?.message ?? "Failed to reset password");
+      return;
+    }
+    setSuccessMessage(response?.message ?? "Password reset successfully");
+    setErrorMessage("");
     setTimeout(() => {
       onClose();
     }, 2000);
@@ -119,7 +127,7 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
       >
         <h1 className="text-2xl font-bold text-center mb-6">Forgot Password</h1>
 
-        <div className="mb-4">
+        <div className="mb-2">
           {successMessage && <SuccessMessage text={successMessage} />}
 
           {error && <ErrorMessage text={error?.message} />}
@@ -142,6 +150,8 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
                 <input
                   type="tel"
                   maxLength={10}
+                  minLength={10}
+                  onInput={allowOnlyNumbers}
                   {...registerSendOtp("contact")}
                   className="w-full px-4 py-2 border rounded-lg"
                 />
@@ -170,27 +180,35 @@ const ForgotPassword = ({ onClose }: ForgotPasswordProps) => {
         )}
 
         {otpSent && !otpVerified && (
-          <form onSubmit={handleVerifyOtpSubmit(verifyOtp)} className="space-y-4">
-            <InputField label="Enter OTP" required={true}>
-              <input {...registerVerifyOtp("otp")} className="w-full px-4 py-2 border rounded-lg" />
-            </InputField>
+          <>
+            <form onSubmit={handleVerifyOtpSubmit(verifyOtp)} className="space-y-4">
+              <InputField label="Enter OTP" required={true}>
+                <input
+                  {...registerVerifyOtp("otp")}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  minLength={6}
+                  maxLength={6}
+                  onInput={allowOnlyNumbers}
+                />
+              </InputField>
 
-            {verifyOtpErrors.otp && (
-              <p className="input-field-error">{verifyOtpErrors.otp.message}</p>
-            )}
-
-            {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
-            <button type="submit" className="w-full save-btn flex items-center justify-center">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Spinner />
-                  <span>Verifying OTP...</span>
-                </div>
-              ) : (
-                "Verify OTP"
+              {verifyOtpErrors.otp && (
+                <p className="input-field-error">{verifyOtpErrors.otp.message}</p>
               )}
-            </button>
-          </form>
+
+              {hintMessage && <p className="text-sm text-gray-600">{hintMessage}</p>}
+              <button type="submit" className="w-full save-btn flex items-center justify-center">
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner />
+                    <span>Verifying OTP...</span>
+                  </div>
+                ) : (
+                  "Verify OTP"
+                )}
+              </button>
+            </form>
+          </>
         )}
 
         {otpSent && otpVerified && (

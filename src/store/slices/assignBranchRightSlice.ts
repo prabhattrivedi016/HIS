@@ -7,6 +7,7 @@ export type AssignBranchRight = {
   IsOPDBillingDiscountApprovalRequired: number;
   IsOutstandingAllowedForCashCorporate: number;
   IsSeparateCollectionCounterEnabled: number;
+  IsOPDRefundApprovalRequired: number;
 };
 
 type FetchAssignBranchRightPayload = {

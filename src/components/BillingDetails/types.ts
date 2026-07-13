@@ -110,6 +110,19 @@ type BillingDetailsProps = {
   patientAdvanceEnabled?: boolean;
   patientAdvanceAmount?: number;
   disableDiscountEditing?: boolean;
+  approvalFieldLabels?: {
+    approvedBy?: string;
+    approvedReason?: string;
+    remark?: string;
+  };
+  approvalValidationMessages?: {
+    approvedByRequired?: string;
+    approvedReasonRequired?: string;
+    remarkRequired?: string;
+  };
+  requireApprovalFields?: boolean;
+  corporateId?: number;
+  isRefundPaymentModes?: number;
 };
 
 export type {

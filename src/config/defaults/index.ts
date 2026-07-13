@@ -454,6 +454,14 @@ const ENDPOINTS = {
   SAVE_PATIENT_ADVANCE: "Patient/savePatientAdvance",
   GET_PATIENT_LEDGER_RECEIPT_DETAILS: "Patient/getPatientLedgerReceiptDetails",
   GET_PATIENT_ADVANCE_RECEIPT_LIST: "Patient/getPatientAdvanceReceiptList",
+
+  // opd refund
+  GET_BILL_TO_REFUND: "Patient/getBillToRefund",
+  GET_BILL_DETAILS_TO_REFUND: "Patient/getBillDetailsToRefund",
+  GET_OPD_PACKAGE_SERVICES_FOR_REFUND: "Patient/getOPDPackageServicesForRefund",
+  SAVE_OPD_REFUND_BILLING: "Patient/saveOpdRefundBilling",
+  SAVE_OPD_REFUND_REQUEST_APPROVAL: "Patient/saveOPDRefundRequestApproval",
+  GET_CORPORATE_PAYMENT_MODES: "Home/getCorporatePaymentModes",
 };
 
 export { ENDPOINTS };

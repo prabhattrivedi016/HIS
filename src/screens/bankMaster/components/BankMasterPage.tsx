@@ -1,6 +1,9 @@
 import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import CancelButton from "@/components/globalButtons/CancelButton";
+import EditIconButton from "@/components/globalButtons/EditIconButton";
+import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { BankMasterTableHeader } from "@/constants/constants";
 import { showError, showSuccess } from "@/utils/alert";
 import { bankMasterSchema } from "@/validation/bankMasterSchema";
@@ -15,7 +18,7 @@ import { BankItem } from "../types";
 type BankMasterFormItem = InferType<typeof bankMasterSchema>;
 
 const BankMasterPage = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
 
   const [bankLists, setBankLists] = useState<BankItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
@@ -48,7 +51,7 @@ const BankMasterPage = () => {
       ENDPOINTS.GET_BANK_LIST,
       {},
       {},
-      { component: "BankMasterPage", silent: true }
+      { component: "BankMasterPage" }
     );
     setBankLists(resp?.data ?? []);
   };
@@ -69,12 +72,12 @@ const BankMasterPage = () => {
       {},
       { component: "BankMasterPage" }
     );
-    if (!resp) {
-      showError(error?.message ?? "Something went wrong!");
+    if (!resp?.result) {
+      showError(resp?.message ?? "Failed to save data");
       return;
     }
 
-    showSuccess(resp?.message ?? "Data saved successfully");
+    showSuccess(resp?.message ?? "Bank master details saved successfully");
 
     reset({
       bankId: 0,
@@ -140,12 +143,18 @@ const BankMasterPage = () => {
             </InputField>
           </div>
           <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {buttonTitle}
-            </button>
-            <button type="button" className="cancel-button " onClick={cancelHandler}>
-              Cancel
-            </button>
+            <SubmitButton
+              label={buttonTitle}
+              className="save-btn-color"
+              type="submit"
+              onClick={handleSubmit(onSubmit)}
+            />
+            <CancelButton
+              label="Cancel"
+              className="cancel-btn-color"
+              type="button"
+              onClick={cancelHandler}
+            />
           </div>
         </form>
       </div>
@@ -203,8 +212,8 @@ const BankMasterPage = () => {
                         <td className="table-td">{item?.lastModifiedBy || "-"}</td>
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
 
-                        <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl icon-color-button" />
+                        <td className="table-td">
+                          <EditIconButton onClick={() => editHandler(item)} />
                         </td>
                       </tr>
                     ))}

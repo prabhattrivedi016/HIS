@@ -393,27 +393,24 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle>((_, ref) => {
 
   const selectedPro = proOptions.find(item => item.value === Number(currentProId)) ?? null;
 
-  const validateBedStatus = useCallback(
-    async (bedId: number) => {
-      if (!bedId) return true;
+  const validateBedStatus = useCallback(async (bedId: number) => {
+    if (!bedId) return true;
 
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.CHECK_BED_STATUS,
-        {},
-        { params: { bedId } },
-        { component: "IpdAdmission", silent: true }
-      );
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.CHECK_BED_STATUS,
+      {},
+      { params: { bedId } },
+      { component: "IpdAdmission", silent: true }
+    );
 
-      if (!isBedAvailable(resp?.data)) {
-        showWarning("This bed is already occupied");
-        return false;
-      }
+    if (!isBedAvailable(resp?.data)) {
+      showWarning("This bed is already occupied");
+      return false;
+    }
 
-      return true;
-    },
-    [fetchApi]
-  );
+    return true;
+  }, []);
 
   useImperativeHandle(ref, () => ({
     validateForm: () => trigger(),
