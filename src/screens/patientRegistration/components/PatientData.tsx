@@ -905,20 +905,17 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     };
 
     // button click handler
-    const fetchDocumentMapping = useCallback(
-      async (patientId: number) => {
-        const resp = await fetchApi(
-          "GET",
-          ENDPOINTS.GET_PATIENT_DOCUMENT_MAPPING,
-          {},
-          { params: { patientId: patientId || 0 } },
-          { component: "PatientDataDocumentValidation" }
-        );
+    const fetchDocumentMapping = useCallback(async (patientId: number) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_PATIENT_DOCUMENT_MAPPING,
+        {},
+        { params: { patientId: patientId || 0 } },
+        { component: "PatientDataDocumentValidation" }
+      );
 
-        return (resp?.data ?? []) as DOcumentListItem[];
-      },
-      [fetchApi]
-    );
+      return (resp?.data ?? []) as DOcumentListItem[];
+    }, []);
 
     const openDocumentPopupWithErrors = useCallback((errors: Record<number, string>) => {
       setDocumentValidationErrors(errors);

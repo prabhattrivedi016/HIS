@@ -96,7 +96,7 @@ const AddServiceMaster = ({
       { component: "AddServiceMaster", silent: true }
     );
     return resp?.data ?? [];
-  }, [fetchApi]);
+  }, []);
 
   const { data: doctorDepartmentList = [] } = useQuery({
     queryKey: ["getDoctorDepartmentList"],

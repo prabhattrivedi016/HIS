@@ -58,9 +58,32 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       patientAdvanceEnabled = false,
       patientAdvanceAmount = 0,
       disableDiscountEditing = false,
+      approvalFieldLabels,
+      approvalValidationMessages,
+      requireApprovalFields = false,
+      corporateId = 0,
+      isRefundPaymentModes = 0,
     },
     ref
   ) => {
+    const resolvedApprovalLabels = {
+      approvedBy: approvalFieldLabels?.approvedBy ?? "Discount Approved By",
+      approvedReason: approvalFieldLabels?.approvedReason ?? "Discount Reason",
+      remark: approvalFieldLabels?.remark ?? "Remark",
+    };
+
+    const resolvedApprovalMessages = {
+      approvedByRequired:
+        approvalValidationMessages?.approvedByRequired ??
+        `${resolvedApprovalLabels.approvedBy} is required`,
+      approvedReasonRequired:
+        approvalValidationMessages?.approvedReasonRequired ??
+        `${resolvedApprovalLabels.approvedReason} is required`,
+      remarkRequired:
+        approvalValidationMessages?.remarkRequired ??
+        `${resolvedApprovalLabels.remark} is required`,
+    };
+
     const { loading, fetchApi } = useGlobalApi();
     const availablePatientAdvance = Math.max(0, Number(patientAdvanceAmount) || 0);
     const showPatientAdvanceRow = patientAdvanceEnabled && availablePatientAdvance > 0;
@@ -387,12 +410,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
         return prev;
       });
-    }, [
-      getCollectibleTargetAmount,
-      paymentList,
-      shouldShowPaymentMode,
-      showPatientAdvanceRow,
-    ]);
+    }, [getCollectibleTargetAmount, paymentList, shouldShowPaymentMode, showPatientAdvanceRow]);
 
     const getMaxPaymentAmount = getCollectibleTargetAmount;
 
@@ -525,7 +543,9 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       toNumber(paymentBilling?.totalDiscPerOnBill) > 0;
 
     const validateDiscountFields = () => {
-      if (!hasAnyDiscount) {
+      const shouldValidateApproval = requireApprovalFields || hasAnyDiscount;
+
+      if (!shouldValidateApproval) {
         setBillingFieldErrors({});
         return true;
       }
@@ -534,15 +554,15 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         {};
 
       if (!Number(billingValues?.discApprovedById)) {
-        nextErrors.discApprovedById = "Discount Approved By is required";
+        nextErrors.discApprovedById = resolvedApprovalMessages.approvedByRequired;
       }
 
       if (!String(billingValues?.discountReason ?? "").trim()) {
-        nextErrors.discountReason = "Discount Reason is required";
+        nextErrors.discountReason = resolvedApprovalMessages.approvedReasonRequired;
       }
 
       if (!String(billingValues?.remarks ?? "").trim()) {
-        nextErrors.remarks = "Remark is required";
+        nextErrors.remarks = resolvedApprovalMessages.remarkRequired;
       }
 
       setBillingFieldErrors(nextErrors);
@@ -605,32 +625,61 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       });
     }, [billingValues?.discApprovedById, billingValues?.discApprovedName]);
 
-    // payment methods
-    const getPaymentMethod = useCallback(async () => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_PAYMENT_MODE_MASTER_LIST,
-        {},
-        { params: { isActive: Status?.ACTIVE } }
-      );
-      setPaymentList(resp?.data ?? []);
-    }, []);
+    // payment methods & bank list
+    useEffect(() => {
+      const getBankList = async () => {
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_BANK_LIST,
+          {},
+          { params: { isActive: Status?.ACTIVE } }
+        );
+        setBankList(resp?.data ?? []);
+      };
 
-    // bank list
-    const getBankList = useCallback(async () => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_BANK_LIST,
-        {},
-        { params: { isActive: Status?.ACTIVE } }
-      );
-      setBankList(resp?.data ?? []);
+      void getBankList();
     }, []);
 
     useEffect(() => {
-      getPaymentMethod();
-      getBankList();
-    }, [getBankList, getPaymentMethod]);
+      const getPaymentMethod = async () => {
+        if (corporateId) {
+          const resp = await fetchApi(
+            "GET",
+            ENDPOINTS.GET_CORPORATE_PAYMENT_MODES,
+            {},
+            { params: { corporateId, isRefundPaymentModes } },
+            { component: "BillingDetails" }
+          );
+          setPaymentList(resp?.data ?? []);
+          return;
+        }
+
+        const resp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_PAYMENT_MODE_MASTER_LIST,
+          {},
+          { params: { isActive: Status?.ACTIVE } }
+        );
+        setPaymentList(resp?.data ?? []);
+      };
+
+      void getPaymentMethod();
+    }, [corporateId, isRefundPaymentModes]);
+
+    useEffect(() => {
+      if (!corporateId) return;
+
+      setRows([
+        {
+          paymentModeId: null,
+          amount: "0",
+          bankId: null,
+          refNo: "",
+          isCopaymentReceipt: 0,
+        },
+      ]);
+      setRowErrors({});
+    }, [corporateId]);
 
     // discount % validation
 
@@ -950,7 +999,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                 </InputField>
               )}
 
-              <InputField label="Discount Approved By">
+              <InputField label={resolvedApprovalLabels.approvedBy}>
                 <select
                   className="input-field"
                   onChange={discountApprovedHandler}
@@ -968,11 +1017,11 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                 )}
               </InputField>
 
-              <InputField label="Discount Reason">
+              <InputField label={resolvedApprovalLabels.approvedReason}>
                 <input
                   className="input-field"
                   type="text"
-                  placeholder="Enter discount reason"
+                  placeholder={`Enter ${resolvedApprovalLabels.approvedReason.toLowerCase()}`}
                   value={billingValues?.discountReason ?? ""}
                   onChange={discountChangeHandler}
                 />
@@ -981,7 +1030,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                 )}
               </InputField>
 
-              <InputField label="Remark">
+              <InputField label={resolvedApprovalLabels.remark}>
                 <input
                   className="input-field"
                   type="text"
@@ -999,9 +1048,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
         {shouldShowPaymentMode && (
           <div
-            className={`payment details w-full min-w-0 ${
-              useSplitBillingLayout ? "lg:w-1/2" : ""
-            }`}
+            className={`payment details w-full min-w-0 ${useSplitBillingLayout ? "lg:w-1/2" : ""}`}
           >
             <div className="overflow-x-auto w-full">
               <div className="table-container">

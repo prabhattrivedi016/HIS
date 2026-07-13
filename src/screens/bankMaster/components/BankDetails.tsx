@@ -1,4 +1,7 @@
 import Animation from "@/components/animation";
+import CancelButton from "@/components/globalButtons/CancelButton";
+import EditIconButton from "@/components/globalButtons/EditIconButton";
+import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { BankDetailsTableHeader } from "@/constants/constants";
 import { showError, showSuccess } from "@/utils/alert";
 import { bankDetailsSchema } from "@/validation/bankMasterSchema";
@@ -15,7 +18,7 @@ import { BankDetailsListItem } from "../types";
 type BankDetailsFormItem = InferType<typeof bankDetailsSchema>;
 
 const BankDetails = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [bankDetailsList, setBankDetailsList] = useState<BankDetailsListItem[]>([]);
 
@@ -108,11 +111,11 @@ const BankDetails = () => {
       {},
       { component: "BankDetails" }
     );
-    if (!resp) {
-      showError(error?.message ?? "Something went wrong!");
+    if (!resp?.result) {
+      showError(resp?.message ?? "Failed to save data");
       return;
     }
-    showSuccess(resp?.message ?? "Data saved successfully");
+    showSuccess(resp?.message ?? "Bank details saved successfully");
     reset({
       bankId: 0,
       payeeName: "",
@@ -239,13 +242,21 @@ const BankDetails = () => {
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
           </div>
+
           <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {buttonTitle}
-            </button>
-            <button type="button" className="cancel-button" onClick={cancelHandler}>
-              Cancel
-            </button>
+            <SubmitButton
+              label={buttonTitle}
+              className="save-btn-color"
+              type="submit"
+              onClick={handleSubmit(onSubmit)}
+            />
+
+            <CancelButton
+              label="Cancel"
+              className="cancel-btn-color"
+              type="button"
+              onClick={cancelHandler}
+            />
           </div>
         </form>
       </div>
@@ -294,10 +305,10 @@ const BankDetails = () => {
                         >
                           {Number(item?.isActive) === 1 ? "Active" : "Inactive"}
                         </td>
-                        <td className="table-td">{item?.panNumber || "-"}</td>{" "}
-                        <td className="table-td">{item?.bankName || "-"}</td>{" "}
-                        <td className="table-td">{item?.bankAccountNumber || "-"}</td>{" "}
-                        <td className="table-td">{item?.bankAddress || "-"}</td>{" "}
+                        <td className="table-td">{item?.panNumber || "-"}</td>
+                        <td className="table-td">{item?.bankName || "-"}</td>
+                        <td className="table-td">{item?.bankAccountNumber || "-"}</td>
+                        <td className="table-td">{item?.bankAddress || "-"}</td>
                         <td className="table-td">{item?.ifscCode || "-"}</td>
                         <td className="table-td">{item?.pinCode || "-"}</td>
                         <td className="table-td">{item?.tinNumber || "-"}</td>
@@ -305,8 +316,8 @@ const BankDetails = () => {
                         <td className="table-td">{item?.createdOn || "-"}</td>
                         <td className="table-td">{item?.lastModifiedBy || "-"}</td>
                         <td className="table-td">{item?.lastModifiedOn || "-"}</td>
-                        <td className="table-td" onClick={() => editHandler(item)}>
-                          <i className="fa-solid fa-edit text-xl icon-color-button" />
+                        <td className="table-td">
+                          <EditIconButton onClick={() => editHandler(item)} />
                         </td>
                       </tr>
                     ))}

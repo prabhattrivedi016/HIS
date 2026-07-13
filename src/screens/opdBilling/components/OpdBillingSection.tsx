@@ -8,13 +8,13 @@ import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
+import { useEffect, useState } from "react";
+import Select, { StylesConfig } from "react-select";
+import { InsuranceItem } from "../../branchMaster/types";
 import {
   getDefaultAdvanceLedgerDetails,
   normalizeAdvanceLedgerDetails,
 } from "../../patientAdvance/utils/patientAdvanceUtils";
-import { useEffect, useState } from "react";
-import Select, { StylesConfig } from "react-select";
-import { InsuranceItem } from "../../branchMaster/types";
 import {
   CategoryItem,
   OpdBillingSectionProps,
@@ -452,7 +452,8 @@ const OpdBillingSection = ({
                               <div className="flex items-center justify-between ">
                                 <span>{item?.serviceName || "-"}</span>
 
-                                {item?.reportTypeId === 1 ? (
+                                {item?.categoryTypeId === 11 ||
+                                (item?.reportTypeId === 1 && item?.categoryTypeId === 3) ? (
                                   <i
                                     className="fa-solid fa-magnifying-glass icon-color-button cursor-pointer -ml-20"
                                     title={
@@ -639,6 +640,8 @@ const OpdBillingSection = ({
           patientAdvanceEnabled={patientAdvanceChecked && patientAdvanceAmount > 0}
           patientAdvanceAmount={patientAdvanceAmount}
           disableDiscountEditing={isPaymentCollectionMode}
+          corporateId={Number(selectedCorporate?.value ?? 0)}
+          isRefundPaymentModes={0}
         />
       </div>
       {loading && <CustomLoader isLoading={loading} />}

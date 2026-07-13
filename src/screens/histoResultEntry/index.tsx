@@ -198,9 +198,11 @@ const HistoResultEntry = () => {
             <input
               type="date"
               className="input-field"
-              placeholder="Enter contact number "
-              value={currentDate}
+              name="fromDate"
+              // value={fromDate}
               max={currentDate}
+              // onChange={e => setFromDate(e.target.value)}
+              readOnly
             />
           </InputField>
 
@@ -208,9 +210,11 @@ const HistoResultEntry = () => {
             <input
               type="date"
               className="input-field"
-              placeholder="Enter contact number "
+              name="toDate"
               max={currentDate}
-              value={currentDate}
+              // value={toDate}
+              // onChange={e => setToDate(e.target.value)}
+              readOnly
             />
           </InputField>
 
@@ -305,7 +309,7 @@ const HistoResultEntry = () => {
         `}
             >
               <BriefcaseMedical size={20} />
-              <span>{b} : 10</span>
+              <span>{b.level} : 10</span>
             </button>
           );
         })}

@@ -39,6 +39,7 @@ import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
+import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
@@ -125,4 +126,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "emr-controls": <EmrControls />,
   "control-test": <ControlTest />,
   "patient-advance": <PatientAdvance />,
+  "opd-refund": <OpdRefund />,
 };
