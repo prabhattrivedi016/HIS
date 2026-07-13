@@ -1,11 +1,12 @@
 import DynamicFormRenderer from "@/components/dynamicForm/DynamicFormRenderer";
 import { CardSchema, ControlSchema, OptionSchema } from "@/components/dynamicForm/types";
+import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { groupAttributeConditionRows } from "@/screens/emrControls/utils/attributeConditionParsing";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 interface EmrSectionRendererProps {
@@ -35,10 +36,10 @@ const mapControlType = (controlType: string): string => {
 };
 
 const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamicType === "dropdown";
-
 const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
-
 const isDoctorHeader = (headerName: string) => (headerName || "").trim().toLowerCase() === "doctor";
+const isMedicineHeader = (headerName: string) =>
+  (headerName || "").trim().toLowerCase().includes("medicine");
 
 const EmrSectionRenderer = ({
   sectionId,
@@ -114,7 +115,12 @@ const EmrSectionRenderer = ({
   const headerIdsNeedingOptions = useMemo(
     () =>
       headers
-        .filter(h => needsOptions(mapControlType(h.controlType)) && !isDoctorHeader(h.headerName))
+        .filter(
+          h =>
+            needsOptions(mapControlType(h.controlType)) &&
+            !isDoctorHeader(h.headerName) &&
+            !isMedicineHeader(h.headerName)
+        )
         .map(h => h.headerId),
     [headers]
   );
@@ -144,17 +150,19 @@ const EmrSectionRenderer = ({
     );
     const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
     return raw.map(item => ({
-      value: item?.DoctorId ?? item?.doctorId ?? item?.Id ?? item?.id ?? item?.Value ?? item?.value,
-      label:
-        item?.CompleteName ??
-        item?.completeName ??
-        item?.DoctorName ??
-        item?.doctorName ??
-        item?.Name ??
-        item?.name ??
-        item?.Label ??
-        item?.label ??
-        "",
+      // value: item?.DoctorId ?? item?.doctorId ?? item?.Id ?? item?.id ?? item?.Value ?? item?.value,
+      // label:
+      //   item?.CompleteName ??
+      //   item?.completeName ??
+      //   item?.DoctorName ??
+      //   item?.doctorName ??
+      //   item?.Name ??
+      //   item?.name ??
+      //   item?.Label ??
+      //   item?.label ??
+      //   "",
+      value: item?.Value,
+      label: item?.name,
     }));
   };
 
@@ -178,13 +186,45 @@ const EmrSectionRenderer = ({
     return map;
   }, [doctorHeaderIds, doctorOptionsQueries]);
 
+  const getMedicineOptions = async (): Promise<OptionSchema[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      { params: { categoryTypeId: 6, serviceName: "medicine", isActive: 1 } },
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    return raw.map(item => ({ value: item?.serviceItemId, label: item?.name ?? "" }));
+  };
+
+  const medicineHeaderIds = useMemo(
+    () => headers.filter(h => isMedicineHeader(h.headerName)).map(h => h.headerId),
+    [headers]
+  );
+
+  const medicineOptionsQueries = useQueries({
+    queries: medicineHeaderIds.map(headerId => ({
+      queryKey: ["emrHeaderMedicineOptions", headerId],
+      queryFn: getMedicineOptions,
+    })),
+  });
+
+  const medicineOptionsByHeaderId = useMemo(() => {
+    const map: Record<number, OptionSchema[]> = {};
+    medicineHeaderIds.forEach((headerId, idx) => {
+      map[headerId] = medicineOptionsQueries[idx]?.data ?? [];
+    });
+    return map;
+  }, [medicineHeaderIds, medicineOptionsQueries]);
+
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
 
     const controls: ControlSchema[] = headers.map(h => {
       const isDoctor = isDoctorHeader(h.headerName);
-
-      const dynamicType = isDoctor ? "dropdown" : mapControlType(h.controlType);
+      const isMedicine = isMedicineHeader(h.headerName);
+      const dynamicType = isDoctor || isMedicine ? "dropdown" : mapControlType(h.controlType);
       const ownRules = rulesByHeaderId.get(h.headerId);
 
       const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
@@ -203,9 +243,11 @@ const EmrSectionRenderer = ({
         dataPath: `section_${sectionId}.header_${h.headerId}`,
         options: isDoctor
           ? (doctorOptionsByHeaderId[h.headerId] ?? [])
-          : needsOptions(dynamicType)
-            ? (lovsByHeaderId[h.headerId] ?? [])
-            : undefined,
+          : isMedicine
+            ? (medicineOptionsByHeaderId[h.headerId] ?? [])
+            : needsOptions(dynamicType)
+              ? (lovsByHeaderId[h.headerId] ?? [])
+              : undefined,
         colSpan: isFullWidth(dynamicType) ? 4 : dynamicType === "radio" ? 2 : 1,
         conditionalDisplay,
       };
@@ -221,11 +263,23 @@ const EmrSectionRenderer = ({
     headers,
     lovsByHeaderId,
     doctorOptionsByHeaderId,
+    medicineOptionsByHeaderId,
     sectionId,
     sectionName,
     displayName,
     attributeConditions,
   ]);
+
+  const totalFields = headers.length;
+  const filledFields = useMemo(
+    () =>
+      headers.filter(h => {
+        const value = getByPath(data, `section_${sectionId}.header_${h.headerId}`);
+        return value !== undefined && value !== null && String(value).trim() !== "";
+      }).length,
+    [headers, data, sectionId]
+  );
+  const sectionPercent = totalFields ? Math.round((filledFields / totalFields) * 100) : 0;
 
   if (headersLoading) {
     return (
@@ -243,15 +297,46 @@ const EmrSectionRenderer = ({
   }
 
   return (
-    <div
-      className="[&_.card]:border-0 [&_.card]:shadow-none [&_.card]:p-0 [&_.card]:rounded-none
-      [&_.card-title]:text-[13px] [&_.card-title]:font-bold [&_.card-title]:text-gray-800 [&_.card-title]:mt-0 [&_.card-title]:mb-2
-      [&_.input-label]:text-[11px] [&_.input-label]:font-medium [&_.input-label]:text-gray-500 [&_.input-label]:uppercase [&_.input-label]:tracking-wide
-      [&_.input-field]:text-[13px] [&_.input-field]:py-1.5
-      [&_.input-field-error]:text-[11px]
-      [&_.dynamic-form-grid]:grid-cols-2 sm:[&_.dynamic-form-grid]:grid-cols-3 lg:[&_.dynamic-form-grid]:grid-cols-4 [&_.dynamic-form-grid]:gap-x-4 [&_.dynamic-form-grid]:gap-y-3"
-    >
-      <DynamicFormRenderer blob={[cardSchema]} data={data} onDataChange={onDataChange} />
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <h2 className="text-[14px] font-semibold text-slate-800 truncate min-w-0">
+          {displayName || sectionName}
+        </h2>
+
+        <span
+          className={`shrink-0 flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+            sectionPercent === 100
+              ? "text-emerald-600 bg-emerald-50"
+              : "text-slate-500 bg-slate-100"
+          }`}
+        >
+          {sectionPercent === 100 && <CheckCircle2 size={10} />}
+          {filledFields}/{totalFields} · {sectionPercent}%
+        </span>
+      </div>
+
+      <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden mb-4">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${
+            sectionPercent === 100 ? "bg-emerald-400" : "bg-red-300"
+          }`}
+          style={{ width: `${sectionPercent}%` }}
+        />
+      </div>
+
+      <div
+        className="[&_.card]:!bg-transparent [&_.card]:!border-0 [&_.card]:!shadow-none [&_.card]:!p-0 [&_.card]:!rounded-none
+        [&_.card-title]:hidden
+        [&_.input-label]:text-[10.5px] [&_.input-label]:font-semibold [&_.input-label]:text-slate-500 [&_.input-label]:uppercase [&_.input-label]:tracking-wide [&_.input-label]:mb-1
+        [&_.input-field]:!shadow-none [&_.input-field]:text-[13.5px] [&_.input-field]:py-2 [&_.input-field]:px-3 [&_.input-field]:rounded-lg [&_.input-field]:border-slate-200 [&_.input-field]:bg-white
+        [&_.input-field]:transition-colors [&_.input-field]:duration-150
+        hover:[&_.input-field]:border-slate-300
+        focus-within:[&_.input-field]:!ring-2 focus-within:[&_.input-field]:ring-indigo-100 focus-within:[&_.input-field]:!border-indigo-400
+        [&_.input-field-error]:text-[11px]
+        [&_.dynamic-form-grid]:grid-cols-2 sm:[&_.dynamic-form-grid]:grid-cols-3 lg:[&_.dynamic-form-grid]:grid-cols-4 [&_.dynamic-form-grid]:gap-x-4 [&_.dynamic-form-grid]:gap-y-4"
+      >
+        <DynamicFormRenderer blob={[cardSchema]} data={data} onDataChange={onDataChange} />
+      </div>
     </div>
   );
 };
