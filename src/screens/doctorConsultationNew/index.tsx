@@ -818,6 +818,12 @@ const DoctorConsultationNew = () => {
 
               <ConsultationEmrSections
                 doctorId={selectedPatient?.DoctorId}
+                patient={{
+                  name: selectedPatient.PatientName,
+                  age: selectedPatient.Age,
+                  gender: selectedPatient.Gender,
+                  uhid: selectedPatient.UHID,
+                }}
                 onSectionsChange={setEmrSectionsData}
               />
             </>

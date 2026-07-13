@@ -63,13 +63,22 @@ const MONTHS: Record<string, number> = {
   Dec: 11,
 };
 
-/* vitalDateTime comes as "DD-Mon-YYYY HH:mm" e.g. "03-Jul-2026 00:00" */
 const parseVitalDateTime = (raw: string): Date | null => {
   const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
   if (!m) return null;
   const monthIdx = MONTHS[m[2]];
   if (monthIdx === undefined) return null;
   return new Date(Number(m[3]), monthIdx, Number(m[1]), Number(m[4]), Number(m[5]));
+};
+
+const formatVitalDateTime = (raw: string): string => {
+  const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
+  if (!m) return raw;
+  const [, day, mon, year, hh, mm] = m;
+  const hour24 = Number(hh);
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${day}-${mon}-${year} ${String(hour12).padStart(2, "0")}:${mm} ${period}`;
 };
 
 const isWithinDateOption = (d: Date, option: string, fromDate: string, toDate: string): boolean => {
@@ -367,7 +376,7 @@ const VitalHistory = ({ isOpen, vitalsList, vitalRecords, vitalUnits }: VitalHis
                   pagedRows.map(row => (
                     <tr key={row.id} className="table-row hover:bg-blue-50/50 transition-colors">
                       <td className="table-td whitespace-nowrap font-medium text-gray-700">
-                        {row.vitalDate}
+                        {formatVitalDateTime(row.vitalDate)}
                       </td>
                       {activeVitalColumns.map(c => {
                         const val = row.values[c] ?? "";
