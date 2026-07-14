@@ -7,6 +7,7 @@ export interface PageHeaderProps {
   buttonTitle: string;
   onRefresh: () => Promise<void>;
   onSearch?: (keyInput: string, selectedValue?: string) => void;
+  searchValue?: string;
   onAddNew: (id: number | null) => void;
   onDownload?: () => void;
   onFilter?: { label: string; keyFromApi?: string }[];
