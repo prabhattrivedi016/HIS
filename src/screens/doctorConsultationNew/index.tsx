@@ -24,6 +24,7 @@ import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
+  AttributeBuilder,
   EmrConsultationPayload,
   EmrSectionAnswerEntry,
   PatientItem,
@@ -252,6 +253,61 @@ const DoctorConsultationNew = () => {
     vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
   );
 
+  const buildVitalAttributes: AttributeBuilder = () => {
+    const filled = vitalMasterList.filter(
+      (v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== ""
+    );
+    if (filled.length === 0) return [];
+
+    return [
+      {
+        attributeType: "vital",
+        attributeCode: "Vital",
+        label: "Vital",
+        value: filled.map((v: VitalMasterItem) => ({
+          vitalId: v.vitalId,
+          vitalName: v.vitalName,
+          value: vitalsData[v.vitalId],
+          unitName: v.unitName,
+        })),
+      },
+    ];
+  };
+
+  const buildAllergyAttributes: AttributeBuilder = () =>
+    allergySection
+      ? [{ attributeType: "allergy", attributeCode: "allergy", label: "Allergy", value: allergySection }]
+      : [];
+
+  const buildEmrSectionAttributes: AttributeBuilder = () => {
+    const bySectionId = new Map<number, { sectionName: string; entries: EmrSectionAnswerEntry[] }>();
+    emrSectionsData.forEach(e => {
+      const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
+      bucket.entries.push(e);
+      bySectionId.set(e.sectionId, bucket);
+    });
+
+    return Array.from(bySectionId.values()).map(({ sectionName, entries }) => ({
+      attributeType: "emrSection",
+      attributeCode: sectionName.replace(/[^a-zA-Z0-9]/g, ""),
+      label: sectionName,
+      value: entries.map(e => ({
+        headerId: e.headerId,
+        headerName: e.headerName,
+        controlType: e.controlType,
+        value: e.value,
+      })),
+    }));
+  };
+
+  // Register a new builder here to add another attribute to the save payload —
+  // the payload shape itself never has to change.
+  const attributeBuilders: AttributeBuilder[] = [
+    buildVitalAttributes,
+    buildAllergyAttributes,
+    buildEmrSectionAttributes,
+  ];
+
   const emrPayload: EmrConsultationPayload | null = useMemo(() => {
     if (!selectedPatient || !consultationId) return null;
 
@@ -271,16 +327,7 @@ const DoctorConsultationNew = () => {
       uhid: selectedPatient.UHID,
       appointmentNo: selectedPatient.AppointmentNo,
 
-      allergy: allergySection ?? { summary: null, notKnownAllergy: false, records: [] },
-      vitals: vitalMasterList
-        .filter((v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== "")
-        .map((v: VitalMasterItem) => ({
-          vitalId: v.vitalId,
-          vitalName: v.vitalName,
-          value: vitalsData[v.vitalId],
-          unitName: v.unitName,
-        })),
-      emrSections: emrSectionsData,
+      attributes: attributeBuilders.flatMap(build => build()),
 
       audit: {
         createdBy: authUser?.userId ?? 0,

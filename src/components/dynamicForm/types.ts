@@ -37,6 +37,8 @@ export interface ControlSchema {
   value?: string;
   conditionalDisplay?: ConditionalRule[];
   optionsRules?: OptionsRule[];
+  /** for "multiselect-search" controls: resolves the dropdown options for a typed query */
+  asyncSearch?: (query: string) => Promise<OptionSchema[]>;
 }
 
 export interface CardSchema {

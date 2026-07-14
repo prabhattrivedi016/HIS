@@ -31,7 +31,36 @@ const compareNumeric = (
   }
 };
 
+const singleValue = (v: unknown): unknown =>
+  v && typeof v === "object" && "value" in (v as Record<string, unknown>)
+    ? (v as Record<string, unknown>).value
+    : v;
+
 const evaluateRule = (rule: ConditionalRule, actual: unknown): boolean => {
+  if (Array.isArray(actual)) {
+    const values = actual.map(singleValue);
+    switch (rule.exp) {
+      case "==":
+        return values.some(v => String(v) === String(rule.target));
+      case "!=":
+        return !values.some(v => String(v) === String(rule.target));
+      case "isnull": {
+        const empty = isEmptyValue(actual) || actual.length === 0;
+        return String(rule.target) === "True" ? empty : !empty;
+      }
+      case "in": {
+        const list = toValueList(rule.target);
+        return values.some(v => list.includes(String(v)));
+      }
+      case "notin": {
+        const list = toValueList(rule.target);
+        return !values.some(v => list.includes(String(v)));
+      }
+      default:
+        return true;
+    }
+  }
+
   switch (rule.exp) {
     case "==":
       return actual === rule.target;

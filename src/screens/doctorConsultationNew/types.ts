@@ -70,6 +70,23 @@ type EmrSectionAnswerEntry = {
   value: unknown;
 };
 
+/** one entry in the save payload's dynamic attribute list — every attribute the consultation
+ * captures (vital, allergy, an EMR section header, or anything added later) is normalized to
+ * this same shape, so the payload never needs a new named field when a new attribute is added */
+type ConsultationAttributeEntry = {
+  /** groups entries by kind, e.g. "vital" | "allergy" | "emrSection" */
+  attributeType: string;
+  /** stable unique key within attributeType, e.g. `vital_12`, `emrSection_3_45` */
+  attributeCode: string;
+  label: string;
+  value: unknown;
+};
+
+/** produces the ConsultationAttributeEntry[] for one attribute kind — add a new function of
+ * this shape and register it in DoctorConsultationNew's attributeBuilders list to add a new
+ * attribute to the save payload without touching the payload shape itself */
+type AttributeBuilder = () => ConsultationAttributeEntry[];
+
 type EmrAudit = {
   createdBy: number;
   createdByName: string;
@@ -93,17 +110,7 @@ type EmrConsultationPayload = {
   uhid: string;
   appointmentNo: number;
 
-  allergy?: AllergySection;
-  vitals?: VitalEntry[];
-  emrSections?: EmrSectionAnswerEntry[];
-
-  chiefComplaints?: Record<string, unknown>;
-  diagnosis?: Record<string, unknown>;
-  procedure?: Record<string, unknown>;
-  medications?: Record<string, unknown>;
-  investigations?: Record<string, unknown>;
-  followUp?: Record<string, unknown>;
-  familyHistory?: Record<string, unknown>;
+  attributes: ConsultationAttributeEntry[];
 
   audit: EmrAudit;
 };
@@ -111,6 +118,8 @@ type EmrConsultationPayload = {
 export type {
   AllergyRecordEntry,
   AllergySection,
+  AttributeBuilder,
+  ConsultationAttributeEntry,
   EmrAudit,
   EmrConsultationPayload,
   EmrSectionAnswerEntry,
