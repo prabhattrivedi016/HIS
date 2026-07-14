@@ -4,9 +4,18 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Droplet,
   Edit,
+  Gauge,
+  HeartPulse,
+  LucideIcon,
+  Ruler,
+  Save,
+  Scale,
   Stethoscope,
+  Thermometer,
   User,
+  Wind,
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
@@ -16,6 +25,7 @@ import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
@@ -24,6 +34,7 @@ import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
+  AttributeBuilder,
   EmrConsultationPayload,
   EmrSectionAnswerEntry,
   PatientItem,
@@ -40,24 +51,63 @@ interface VitalMasterItem {
   IsActive: number;
 }
 
-const VITAL_COLOR_PALETTE = [
-  { color: "text-red-500", labelColor: "text-red-400", focusBorder: "focus:border-red-400" },
-  { color: "text-green-600", labelColor: "text-green-500", focusBorder: "focus:border-green-500" },
-  { color: "text-slate-600", labelColor: "text-slate-500", focusBorder: "focus:border-slate-400" },
-  { color: "text-blue-600", labelColor: "text-blue-500", focusBorder: "focus:border-blue-400" },
+const VITAL_ACCENTS = [
+  { text: "text-red-600", bg: "bg-red-50", ring: "ring-red-100", grad: "from-red-500 to-rose-400" },
   {
-    color: "text-orange-500",
-    labelColor: "text-orange-400",
-    focusBorder: "focus:border-orange-400",
+    text: "text-emerald-600",
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-100",
+    grad: "from-emerald-500 to-teal-400",
   },
   {
-    color: "text-purple-600",
-    labelColor: "text-purple-500",
-    focusBorder: "focus:border-purple-400",
+    text: "text-slate-600",
+    bg: "bg-slate-50",
+    ring: "ring-slate-100",
+    grad: "from-slate-500 to-slate-400",
   },
-  { color: "text-teal-600", labelColor: "text-teal-500", focusBorder: "focus:border-teal-400" },
-  { color: "text-pink-600", labelColor: "text-pink-500", focusBorder: "focus:border-pink-400" },
+  {
+    text: "text-blue-600",
+    bg: "bg-blue-50",
+    ring: "ring-blue-100",
+    grad: "from-blue-500 to-cyan-400",
+  },
+  {
+    text: "text-orange-600",
+    bg: "bg-orange-50",
+    ring: "ring-orange-100",
+    grad: "from-orange-500 to-amber-400",
+  },
+  {
+    text: "text-purple-600",
+    bg: "bg-purple-50",
+    ring: "ring-purple-100",
+    grad: "from-purple-500 to-fuchsia-400",
+  },
+  {
+    text: "text-teal-600",
+    bg: "bg-teal-50",
+    ring: "ring-teal-100",
+    grad: "from-teal-500 to-emerald-400",
+  },
+  {
+    text: "text-pink-600",
+    bg: "bg-pink-50",
+    ring: "ring-pink-100",
+    grad: "from-pink-500 to-rose-400",
+  },
 ];
+
+const iconForVital = (name: string): LucideIcon => {
+  const key = (name || "").toLowerCase();
+  if (key.includes("pulse") || key.includes("heart")) return HeartPulse;
+  if (key.includes("temp")) return Thermometer;
+  if (key.includes("rate") || key.includes("resp")) return Wind;
+  if (key.includes("spo2") || key.includes("oxygen")) return Droplet;
+  if (key.includes("weight")) return Scale;
+  if (key.includes("height")) return Ruler;
+  if (key.includes("systolic") || key.includes("bp") || key.includes("pressure")) return Gauge;
+  return Activity;
+};
 
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en-GB", {
@@ -252,6 +302,61 @@ const DoctorConsultationNew = () => {
     vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
   );
 
+  const buildVitalAttributes: AttributeBuilder = () => {
+    const filled = vitalMasterList.filter(
+      (v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== ""
+    );
+    if (filled.length === 0) return [];
+
+    return [
+      {
+        attributeType: "vital",
+        attributeCode: "Vital",
+        label: "Vital",
+        value: filled.map((v: VitalMasterItem) => ({
+          vitalId: v.vitalId,
+          vitalName: v.vitalName,
+          value: vitalsData[v.vitalId],
+          unitName: v.unitName,
+        })),
+      },
+    ];
+  };
+
+  const buildAllergyAttributes: AttributeBuilder = () =>
+    allergySection
+      ? [{ attributeType: "allergy", attributeCode: "allergy", label: "Allergy", value: allergySection }]
+      : [];
+
+  const buildEmrSectionAttributes: AttributeBuilder = () => {
+    const bySectionId = new Map<number, { sectionName: string; entries: EmrSectionAnswerEntry[] }>();
+    emrSectionsData.forEach(e => {
+      const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
+      bucket.entries.push(e);
+      bySectionId.set(e.sectionId, bucket);
+    });
+
+    return Array.from(bySectionId.values()).map(({ sectionName, entries }) => ({
+      attributeType: "emrSection",
+      attributeCode: sectionName.replace(/[^a-zA-Z0-9]/g, ""),
+      label: sectionName,
+      value: entries.map(e => ({
+        headerId: e.headerId,
+        headerName: e.headerName,
+        controlType: e.controlType,
+        value: e.value,
+      })),
+    }));
+  };
+
+  // Register a new builder here to add another attribute to the save payload —
+  // the payload shape itself never has to change.
+  const attributeBuilders: AttributeBuilder[] = [
+    buildVitalAttributes,
+    buildAllergyAttributes,
+    buildEmrSectionAttributes,
+  ];
+
   const emrPayload: EmrConsultationPayload | null = useMemo(() => {
     if (!selectedPatient || !consultationId) return null;
 
@@ -271,16 +376,7 @@ const DoctorConsultationNew = () => {
       uhid: selectedPatient.UHID,
       appointmentNo: selectedPatient.AppointmentNo,
 
-      allergy: allergySection ?? { summary: null, notKnownAllergy: false, records: [] },
-      vitals: vitalMasterList
-        .filter((v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== "")
-        .map((v: VitalMasterItem) => ({
-          vitalId: v.vitalId,
-          vitalName: v.vitalName,
-          value: vitalsData[v.vitalId],
-          unitName: v.unitName,
-        })),
-      emrSections: emrSectionsData,
+      attributes: attributeBuilders.flatMap(build => build()),
 
       audit: {
         createdBy: authUser?.userId ?? 0,
@@ -312,6 +408,13 @@ const DoctorConsultationNew = () => {
     );
     if (resp?.result) {
       showSuccess("Consultation saved successfully");
+      confetti({
+        particleCount: 90,
+        spread: 75,
+        startVelocity: 32,
+        origin: { y: 0.35 },
+        colors: ["#6366f1", "#a855f7", "#ec4899", "#10b981", "#06b6d4"],
+      });
     }
   };
 
@@ -650,7 +753,8 @@ const DoctorConsultationNew = () => {
                   key: vm.vitalId,
                   value: vitalsData[vm.vitalId] ?? "",
                   unit: vm.unitName,
-                  ...VITAL_COLOR_PALETTE[i % VITAL_COLOR_PALETTE.length],
+                  Icon: iconForVital(vm.vitalName),
+                  ...VITAL_ACCENTS[i % VITAL_ACCENTS.length],
                 }));
 
                 const visitFields = [
@@ -664,15 +768,17 @@ const DoctorConsultationNew = () => {
                   { label: "DOCTOR", value: selectedPatient.DoctorName, highlight: true },
                 ];
                 return (
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-3 overflow-hidden">
+                  <div className="relative bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mb-3 overflow-hidden">
+                    <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
                     {/* ── Section 1: Name / badges / actions ── */}
                     <div className="flex items-start justify-between gap-4 px-4 py-3">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
-                        <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+                        <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0 shadow-md ring-2 ring-white">
                           <span className="text-white font-bold text-base tracking-wide">
                             {initials}
                           </span>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-white" />
                         </div>
                         <div className="flex flex-col gap-1">
                           {/* Name + age + allergy */}
@@ -753,17 +859,21 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={handleFinalSave}
-                          className="text-sm font-medium bg-slate-800 text-white rounded-lg px-4 py-1.5 hover:bg-slate-900 active:scale-95 transition-all flex items-center gap-1.5"
+                          className="text-sm font-semibold text-white rounded-lg px-4 py-1.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 shadow-md shadow-violet-200 hover:shadow-lg hover:brightness-105 active:scale-95 transition-all flex items-center gap-1.5"
                         >
-                          Save <ChevronDown size={13} />
+                          <Save size={14} />
+                          Save
                         </button>
                       </div>
                     </div>
 
-                    {/* ── Section 2: Visit info strip (gray bg) ── */}
-                    <div className="bg-gray-50 border-t border-b border-gray-100 px-4 py-2.5 flex flex-wrap gap-x-8 gap-y-1">
+                    {/* ── Section 2: Visit info strip ── */}
+                    <div className="bg-slate-50/70 border-t border-b border-slate-100 px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-2">
                       {visitFields.map(f => (
-                        <div key={f.label} className="flex flex-col">
+                        <div
+                          key={f.label}
+                          className={`flex flex-col px-2.5 py-1 rounded-lg ${f.highlight ? "bg-teal-50 ring-1 ring-teal-100" : ""}`}
+                        >
                           <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
                             {f.label}
                           </span>
@@ -776,30 +886,40 @@ const DoctorConsultationNew = () => {
                       ))}
                     </div>
 
-                    {/* ── Section 3: Vitals strip — full width, editable ── */}
-                    <div className="flex items-center w-full px-4 py-3">
-                      <div className="flex items-start divide-x divide-gray-100 flex-1">
+                    {/* ── Section 3: Vitals strip — icon stat chips, editable ── */}
+                    <div className="flex items-center gap-2 w-full px-4 py-3">
+                      <div className="flex items-center gap-2 flex-1 flex-wrap">
                         {vitals.map(v => (
-                          <div key={v.key} className="flex-1 flex flex-col items-center px-1">
+                          <div
+                            key={v.key}
+                            className={`group flex items-center gap-2 rounded-xl px-2.5 py-1.5 ring-1 flex-1 basis-32 min-w-[110px] transition-all ${
+                              v.value ? `${v.bg} ${v.ring}` : "bg-slate-50 ring-slate-100 hover:ring-slate-200"
+                            }`}
+                          >
                             <span
-                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${v.value ? v.labelColor : "text-black-300"}`}
+                              className={`flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br ${v.grad} shrink-0 shadow-sm`}
                             >
-                              {v.label}
+                              <v.Icon size={13} className="text-white" strokeWidth={2.25} />
                             </span>
-                            <input
-                              type="text"
-                              value={v.value}
-                              onChange={e => updateVital(v.key, e.target.value)}
-                              placeholder="--"
-                              className={`border-b-2 border-dashed focus:border-solid focus:outline-none bg-transparent text-base font-bold leading-none pb-0.5 text-center transition-colors w-full max-w-[56px] placeholder:text-gray-200 ${
-                                v.value ? v.color : "text-gray-300"
-                              } border-gray-200 ${v.focusBorder}`}
-                            />
-                            <span
-                              className={`text-[9px] mt-0.5 leading-none ${v.value ? "text-gray-400" : "text-black-300"}`}
-                            >
-                              {v.unit}
-                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5 whitespace-nowrap">
+                                {v.label}
+                              </span>
+                              <div className="flex items-baseline gap-1">
+                                <input
+                                  type="text"
+                                  value={v.value}
+                                  onChange={e => updateVital(v.key, e.target.value)}
+                                  placeholder="--"
+                                  className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 ${
+                                    v.value ? v.text : "text-slate-300"
+                                  }`}
+                                />
+                                <span className="text-[9px] text-slate-400 leading-none whitespace-nowrap">
+                                  {v.unit}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -807,7 +927,7 @@ const DoctorConsultationNew = () => {
                         type="button"
                         onClick={() => setShowVitalInsights(true)}
                         title="View vitals insights"
-                        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shrink-0 ml-4 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
+                        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shrink-0 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
                       >
                         <Activity size={16} />
                       </button>

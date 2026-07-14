@@ -353,6 +353,8 @@ const ENDPOINTS = {
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
   GET_PATIENT_VITAL: "Patient/getPatientVital",
+  GET_DOCTOR_FAVOURITE_EMR_SECTIONS: "EMR/getDoctorFavouriteEMRSections",
+  SAVE_DOCTOR_FAVOURITE_EMR_SECTIONS: "EMR/saveDoctorFavouriteEMRSections",
 
   // service master
   GET_CATEGORY_TYPE_LIST: "Home/getCategoryTypeList",

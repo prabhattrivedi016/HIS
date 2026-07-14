@@ -40,6 +40,8 @@ const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
 const isDoctorHeader = (headerName: string) => (headerName || "").trim().toLowerCase() === "doctor";
 const isMedicineHeader = (headerName: string) =>
   (headerName || "").trim().toLowerCase().includes("medicine");
+const isInvestigationHeader = (headerName: string) =>
+  (headerName || "").trim().toLowerCase().includes("investigation");
 
 const EmrSectionRenderer = ({
   sectionId,
@@ -218,13 +220,33 @@ const EmrSectionRenderer = ({
     return map;
   }, [medicineHeaderIds, medicineOptionsQueries]);
 
+  const searchInvestigationOptions = async (query: string): Promise<OptionSchema[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
+      {},
+      { params: { categoryTypeId: 3, serviceName: query, isActive: 1 } },
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    return raw.map(item => ({
+      value: item?.shortName || item?.name || "",
+      label: item?.shortName ? `${item.shortName} (${item.name})` : (item?.name ?? ""),
+    }));
+  };
+
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
 
     const controls: ControlSchema[] = headers.map(h => {
       const isDoctor = isDoctorHeader(h.headerName);
       const isMedicine = isMedicineHeader(h.headerName);
-      const dynamicType = isDoctor || isMedicine ? "dropdown" : mapControlType(h.controlType);
+      const isInvestigation = isInvestigationHeader(h.headerName);
+      const dynamicType = isDoctor || isMedicine
+        ? "dropdown"
+        : isInvestigation
+          ? "multiselect-search"
+          : mapControlType(h.controlType);
       const ownRules = rulesByHeaderId.get(h.headerId);
 
       const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
@@ -250,6 +272,7 @@ const EmrSectionRenderer = ({
               : undefined,
         colSpan: isFullWidth(dynamicType) ? 4 : dynamicType === "radio" ? 2 : 1,
         conditionalDisplay,
+        asyncSearch: isInvestigation ? searchInvestigationOptions : undefined,
       };
     });
 
