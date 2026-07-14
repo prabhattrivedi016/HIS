@@ -462,6 +462,14 @@ const ENDPOINTS = {
   SAVE_OPD_REFUND_BILLING: "Patient/saveOpdRefundBilling",
   SAVE_OPD_REFUND_REQUEST_APPROVAL: "Patient/saveOPDRefundRequestApproval",
   GET_CORPORATE_PAYMENT_MODES: "Home/getCorporatePaymentModes",
+
+  // op refund approval
+  GET_OPD_REFUND_REQUEST_LIST_FOR_APPROVAL: "Patient/getOPDRefundRequestListForApproval",
+  GET_OPD_REFUND_REQUEST_APPROVAL_DETAILS: "Patient/getOPDRefundRequestApprovalDetails",
+  GET_OPD_REFUND_REQUEST_DETAILS_BY_REFUND_ID: "Patient/getOPDRefundRequestDetailsByRefundId",
+  PAYMENT_COLLECTED_FOR_OPD_REFUND_REQUEST: "Patient/paymentCollectedForOPDRefundRequest",
+  CANCEL_OPD_REFUND_REQUEST: "Patient/cancelOPDRefundRequest",
+  APPROVE_OPD_REFUND_REQUEST: "Patient/approveOPDRefundRequest",
 };
 
 export { ENDPOINTS };

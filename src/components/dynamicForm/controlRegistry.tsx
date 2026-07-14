@@ -10,6 +10,8 @@ export interface ControlRenderProps {
   value: unknown;
   onChange: (value: unknown) => void;
   onBlur?: () => void;
+  rows?: number;
+  isMulti?: boolean;
 }
 
 const mergeClass = (base: string, schema: ControlSchema) =>
@@ -28,10 +30,10 @@ const TextControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) =>
   />
 );
 
-const TextareaControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
+const TextareaControl = ({ schema, value, onChange, onBlur, rows }: ControlRenderProps) => (
   <textarea
     className={mergeClass("input-field resize-y min-h-[38px]", schema)}
-    rows={1}
+    rows={rows ?? 1}
     placeholder={(schema.props?.placeholder as string) || "Type here…"}
     required={schema.props?.required}
     value={(value as string) ?? ""}
@@ -108,7 +110,13 @@ const DropdownControl = ({ schema, value, onChange, onBlur }: ControlRenderProps
   </select>
 );
 
-const SearchDropdownControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => {
+const SearchDropdownControl = ({
+  schema,
+  value,
+  onChange,
+  onBlur,
+  isMulti,
+}: ControlRenderProps) => {
   const options = (schema.options ?? []).map(opt => ({
     label: opt.label,
     value: opt.value as string | number,
@@ -121,6 +129,7 @@ const SearchDropdownControl = ({ schema, value, onChange, onBlur }: ControlRende
       options={options}
       placeholder={schema.props?.placeholder as string}
       isSearchable
+      isMulti={isMulti}
       isClearable
       onChange={opt => onChange((opt as { value: unknown } | null)?.value ?? null)}
       onBlur={onBlur}

@@ -6,11 +6,13 @@ import {
   List,
   Plus,
   RefreshCcw,
+  Search,
   UserPlus,
 } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { VIEWTYPE } from "../../constants/constants";
+import InputField from "../customInputField";
 import { PageHeaderProps } from "./types";
 
 const PageHeader = ({
@@ -19,6 +21,7 @@ const PageHeader = ({
   buttonTitle,
   onRefresh,
   onSearch,
+  searchValue = "",
   onAddNew,
   onDownload,
   onFilter,
@@ -33,12 +36,12 @@ const PageHeader = ({
 }: PageHeaderProps) => {
   const [selectDropDown, setSelectDropDown] = useState<string>("");
 
-  // dropdown select handler
   const selectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSelectDropDown(e.target.value);
+    const value = e.target.value;
+    setSelectDropDown(value);
+    onSearch?.(searchValue, value);
   };
 
-  // handle search
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     onSearch?.(text, selectDropDown);
@@ -68,12 +71,48 @@ const PageHeader = ({
           {onFilterDiscountApproval && (
             <button
               type="button"
-              className="p-2.5 ph-button-theme"
+              className="p-2.5 mt-1 ph-button-theme"
               title="Filter Data"
               onClick={onFilterDiscountApproval}
             >
               <FilterIcon size={18} />
             </button>
+          )}
+
+          {view === VIEWTYPE.LIST && onFilter && onFilter.length > 0 && (
+            <span className="p-1.5  text-gray-700 " title="Filter by column">
+              <InputField>
+                <select
+                  className=" py-2 pl-9 border border-gray-300 bg-white text-gray-600  placeholder:opacity-40"
+                  value={selectDropDown}
+                  onChange={selectHandler}
+                >
+                  <option value="">All Columns</option>
+                  {onFilter.map((col, index) => (
+                    <option key={index} value={col.label}>
+                      {col.label}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+            </span>
+          )}
+
+          {view === VIEWTYPE.LIST && onSearch && (
+            <div className="relative w-full sm:w-64">
+              <InputField className="ph-search-theme">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchValue}
+                  className="w-full py-2 pl-9 border border-gray-300 bg-white text-gray-600 rounded focus:outline-none focus:border-gray-400  placeholder:opacity-40"
+                  onChange={handleSearch}
+                />
+              </InputField>
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
+                <Search size={16} />
+              </span>
+            </div>
           )}
 
           {/* Action Buttons */}

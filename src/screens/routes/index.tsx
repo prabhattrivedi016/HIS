@@ -1,7 +1,7 @@
 import React from "react";
 import AllergyMaster from "../allergyMaster";
 import AllergyResultEntry from "../allergyResultEntry";
-import ApprovalAuthorityMaster from "../approvalAuthorityMaster/index,";
+import ApprovalAuthorityMaster from "../approvalAuthorityMaster";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
@@ -41,6 +41,7 @@ import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
+import OpRefundApproval from "../opRefundApproval";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
@@ -127,4 +128,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "control-test": <ControlTest />,
   "patient-advance": <PatientAdvance />,
   "opd-refund": <OpdRefund />,
+  "op-refund-approval": <OpRefundApproval />,
 };

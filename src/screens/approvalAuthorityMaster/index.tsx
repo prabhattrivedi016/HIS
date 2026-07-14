@@ -15,6 +15,7 @@ import {
   AMOUNT_REQUIRED_APPROVAL_TYPE_IDS,
   ApprovalAuthorityMasterFormItem,
   approvalAuthorityMasterSchema,
+  DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS,
 } from "@/validation/approvalAuthorityMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,8 @@ const APPROVAL_FLOW_OPTIONS: OptionItem[] = [
   { value: 1, label: "Sequential" },
   { value: 2, label: "Parallel" },
 ];
+
+const ALL_DEPARTMENT_OPTION: OptionItem = { value: 0, label: "All" };
 
 const EMPTY_LEVEL_VISIBILITY: LevelVisibility = {
   level1: false,
@@ -100,10 +103,9 @@ const ApprovalAuthorityMaster = () => {
   const [selectedApprovalType, setSelectedApprovalType] = useState<SingleValue<OptionItem> | null>(
     null
   );
-  const [selectedDepartment, setSelectedDepartment] = useState<SingleValue<OptionItem> | null>({
-    value: 0,
-    label: "All",
-  });
+  const [selectedDepartment, setSelectedDepartment] = useState<SingleValue<OptionItem> | null>(
+    ALL_DEPARTMENT_OPTION
+  );
   const [selectedApprovalLevel, setSelectedApprovalLevel] =
     useState<SingleValue<OptionItem> | null>(null);
   const [selectedApprovalFlow, setSelectedApprovalFlow] = useState<SingleValue<OptionItem> | null>(
@@ -139,6 +141,7 @@ const ApprovalAuthorityMaster = () => {
   const isEdit = Boolean(watch("id"));
   const buttonTitle = isEdit ? "Update" : "Create";
   const showAmountUpTo = AMOUNT_REQUIRED_APPROVAL_TYPE_IDS.includes(watchedApprovalTypeId);
+  const isDepartmentLocked = DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS.includes(watchedApprovalTypeId);
 
   const approvalTypeOptions = useMemo<OptionItem[]>(
     () =>
@@ -210,7 +213,7 @@ const ApprovalAuthorityMaster = () => {
 
   const departmentOptions = useMemo<OptionItem[]>(
     () => [
-      { value: 0, label: "All" },
+      ALL_DEPARTMENT_OPTION,
       ...roleLists.map((role: RoleItem) => ({
         value: role.roleId,
         label: role.roleName,
@@ -238,7 +241,7 @@ const ApprovalAuthorityMaster = () => {
       setApprovalTypeId(0);
     }
 
-    setSelectedDepartment({ value: 0, label: "All" });
+    setSelectedDepartment(ALL_DEPARTMENT_OPTION);
     setSelectedApprovalLevel(null);
     setSelectedApprovalFlow(APPROVAL_FLOW_OPTIONS[0]);
     setSelectedLevel1Users([]);
@@ -267,6 +270,8 @@ const ApprovalAuthorityMaster = () => {
       setValue("amountUpTo", undefined, { shouldDirty: false });
       clearErrors("amountUpTo");
     }
+
+    applyDepartmentLockForApprovalType(currentApprovalTypeId);
   };
 
   const cancelHandler = () => {
@@ -281,6 +286,14 @@ const ApprovalAuthorityMaster = () => {
     clearErrors("approvalLevelId");
   };
 
+  const applyDepartmentLockForApprovalType = (typeId: number) => {
+    if (!DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS.includes(typeId)) return;
+
+    setSelectedDepartment(ALL_DEPARTMENT_OPTION);
+    setValue("roleId", 0, { shouldValidate: true, shouldDirty: true });
+    clearErrors("roleId");
+  };
+
   const approvalTypeSelectHandler = (option: SingleValue<OptionItem>) => {
     setSelectedApprovalType(option);
     const value = Number(option?.value ?? 0);
@@ -288,6 +301,7 @@ const ApprovalAuthorityMaster = () => {
     setValue("approvalType", option?.label ?? "", { shouldDirty: true });
     setApprovalTypeId(value);
     clearErrors("approvalTypeId");
+    applyDepartmentLockForApprovalType(value);
 
     if (!AMOUNT_REQUIRED_APPROVAL_TYPE_IDS.includes(value)) {
       setValue("amountUpTo", undefined, { shouldDirty: true });
@@ -380,7 +394,9 @@ const ApprovalAuthorityMaster = () => {
       approvalFlowId: Number(formData.approvalFlowId),
       isAllApprovalRequired: isSequentialFlow ? 1 : Number(formData.isAllApprovalRequired),
       approvalTypeId: Number(formData.approvalTypeId),
-      roleId: Number(formData.roleId ?? 0),
+      roleId: DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS.includes(Number(formData.approvalTypeId))
+        ? 0
+        : Number(formData.roleId ?? 0),
       approvalLevelId: Number(formData.approvalLevelId),
       amountUpTo: showAmountUpTo ? Number(formData.amountUpTo) : 0,
       isActive: Number(formData.isActive ?? 1),
@@ -411,9 +427,10 @@ const ApprovalAuthorityMaster = () => {
   const editHandler = (item: ApprovalTableItem) => {
     const approvalTypeOption =
       approvalTypeOptions.find(option => Number(option.value) === item.ApprovalTypeId) ?? null;
-    const departmentOption =
-      departmentOptions.find(option => Number(option.value) === Number(item.RoleId ?? 0)) ??
-      departmentOptions[0];
+    const departmentOption = DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS.includes(item.ApprovalTypeId)
+      ? ALL_DEPARTMENT_OPTION
+      : (departmentOptions.find(option => Number(option.value) === Number(item.RoleId ?? 0)) ??
+        ALL_DEPARTMENT_OPTION);
     const approvalLevelOption =
       approvalLevelOptions.find(option => Number(option.value) === item.ApprovalLevelId) ?? null;
     const approvalFlowOption =
@@ -444,7 +461,9 @@ const ApprovalAuthorityMaster = () => {
       isAllApprovalRequired: item.IsAllApprovalRequired,
       approvalTypeId: item.ApprovalTypeId,
       approvalType: item.ApprovalType ?? approvalTypeOption?.label ?? "",
-      roleId: Number(item.RoleId ?? 0),
+      roleId: DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS.includes(item.ApprovalTypeId)
+        ? 0
+        : Number(item.RoleId ?? 0),
       approvalLevelId: item.ApprovalLevelId,
       approvalLevel: item.ApprovalLevel ?? approvalLevelOption?.label ?? "",
       level1UserId: item.Level1UserId ?? "",
@@ -517,8 +536,9 @@ const ApprovalAuthorityMaster = () => {
                 value={selectedDepartment}
                 options={departmentOptions}
                 placeholder="Select department"
-                isSearchable
-                isClearable
+                isSearchable={!isDepartmentLocked}
+                isClearable={!isDepartmentLocked}
+                isDisabled={isDepartmentLocked}
                 onChange={departmentSelectHandler}
                 styles={SelectStyles as StylesConfig<OptionItem, false>}
                 menuPortalTarget={document.body}
