@@ -1,4 +1,5 @@
 import { getByPath } from "@/components/dynamicForm/utils/path";
+import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import {
@@ -21,7 +22,6 @@ import {
   MoreHorizontal,
   NotebookPen,
   Pill,
-  Save,
   Sparkles,
   Star,
   Stethoscope,
@@ -491,24 +491,13 @@ const ConsultationEmrSections = ({
             )}
 
             {doctorId != null && (
-              <button
+              <SubmitButton
                 type="button"
+                label={isSavingFavorites ? "Saving…" : hasUnsavedFavorites ? "Save favourites" : "Saved"}
                 onClick={handleSaveFavorites}
                 disabled={!hasUnsavedFavorites || isSavingFavorites}
-                title={hasUnsavedFavorites ? "Save favourite sections" : "Favourite sections saved"}
-                className={`flex items-center gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold shrink-0 ml-auto transition-colors ${
-                  hasUnsavedFavorites
-                    ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sm"
-                    : "bg-slate-100 text-slate-400 cursor-default"
-                }`}
-              >
-                {isSavingFavorites ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Save size={13} />
-                )}
-                {hasUnsavedFavorites ? "Save favourites" : "Saved"}
-              </button>
+                className="!h-9 !w-auto !px-3 !py-0 !text-[12px] !rounded-full shrink-0 ml-auto bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-500"
+              />
             )}
           </div>
 
