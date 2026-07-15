@@ -640,7 +640,7 @@ const OpdBillingSection = ({
           patientAdvanceEnabled={patientAdvanceChecked && patientAdvanceAmount > 0}
           patientAdvanceAmount={patientAdvanceAmount}
           disableDiscountEditing={isPaymentCollectionMode}
-          corporateId={Number(selectedCorporate?.value ?? 0)}
+          corporateId={Number(selectedCorporate?.value ?? 1) || 1}
           isRefundPaymentModes={0}
         />
       </div>

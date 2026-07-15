@@ -42,6 +42,7 @@ import OPDiscountApproval from "../opDiscountApproval";
 import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
+import OPRefundPayment from "../opRefundPayment";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
@@ -129,4 +130,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "patient-advance": <PatientAdvance />,
   "opd-refund": <OpdRefund />,
   "op-refund-approval": <OpRefundApproval />,
+  "op-refund-payment": <OPRefundPayment />,
 };

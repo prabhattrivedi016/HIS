@@ -114,7 +114,9 @@ const GlobalFooterButtons = ({
           <></>
         )} */}
 
-        {pageType === PageType?.OPD_REFUND && isOPDRefundApprovalRequired === 1 ? (
+        {pageType === PageType?.OPD_REFUND &&
+        isOPDRefundApprovalRequired === 1 &&
+        !paymentCollectionMode ? (
           <>
             <button
               type="button"
