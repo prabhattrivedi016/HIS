@@ -459,6 +459,7 @@ export const OpdBillingServiceTableHeader = [
 
 export const OpdRefundMultipleBillTableHeader = [
   "UHID",
+  "Patient Name",
   "Bill No",
   "Bill Date",
   "Bill Amount",

@@ -324,17 +324,19 @@ export const buildVisitDetailsPayload = ({
   billingValues,
   branchId,
   roleId,
+  currentAgeFallback = "",
 }: {
   headerItem: BillDetailsToRefundItem | null;
   billingValues: BillingValuesItem;
   branchId: number;
   roleId: number;
+  currentAgeFallback?: string;
 }): OpdRefundVisitDetailsPayload => ({
   patientId: toNumber(headerItem?.PatientId),
   uhid: headerItem?.UHID ?? "",
   branchId,
   roleId,
-  currentAge: resolveCurrentAge(headerItem ?? undefined),
+  currentAge: resolveCurrentAge(headerItem ?? undefined) || String(currentAgeFallback).trim(),
   insuranceCompanyId: toNumber(headerItem?.InsuranceCompanyId),
   corporateId: toNumber(headerItem?.CorporateId),
   doctorId: toNumber(headerItem?.DoctorId),
@@ -388,12 +390,14 @@ export const buildOpdRefundSavePayload = async ({
   branchId,
   roleId,
   fetchPackageServices,
+  currentAgeFallback = "",
 }: BuildOpdRefundSavePayloadArgs): Promise<OpdRefundSavePayload> => ({
   visitDetails: buildVisitDetailsPayload({
     headerItem,
     billingValues,
     branchId,
     roleId,
+    currentAgeFallback,
   }),
   refundItems: await buildRefundItemsPayload({
     refundRows,
@@ -431,3 +435,146 @@ export const buildOpdRefundRequestApprovalPayload = ({
       refundQty: toNumber(item.RefundQty),
     })),
 });
+
+export const mapRefundRequestDetailsToBillRows = (data: unknown): BillDetailsToRefundItem[] => {
+  const wrapper =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+
+  const headerSource =
+    wrapper ??
+    (Array.isArray(data) && data[0] && typeof data[0] === "object"
+      ? (data[0] as Record<string, unknown>)
+      : null);
+
+  const headerCorporateId = headerSource
+    ? toNumber(pickValue(headerSource, "CorporateId", "corporateId"))
+    : 0;
+
+  const headerDefaults = {
+    VisitId: headerSource ? toNumber(pickValue(headerSource, "VisitId", "visitId")) : 0,
+    UHID: headerSource ? String(pickValue(headerSource, "UHID", "uhid") ?? "") : "",
+    PatientName: headerSource
+      ? String(pickValue(headerSource, "PatientName", "patientName") ?? "")
+      : "",
+    PatientId: headerSource ? toNumber(pickValue(headerSource, "PatientId", "patientId")) : 0,
+    DOB: headerSource ? String(pickValue(headerSource, "DOB", "dob") ?? "") : "",
+    Age: headerSource
+      ? String(pickValue(headerSource, "Age", "age", "CurrentAge", "currentAge") ?? "")
+      : "",
+    CorporateName: headerSource
+      ? String(pickValue(headerSource, "CorporateName", "corporateName") ?? "")
+      : "",
+    BillNo: headerSource ? String(pickValue(headerSource, "BillNo", "billNo") ?? "") : "",
+    BillDate: headerSource ? String(pickValue(headerSource, "BillDate", "billDate") ?? "") : "",
+    CorporateId: headerCorporateId || 1,
+  };
+
+  const rows = Array.isArray(data)
+    ? data
+    : Array.isArray(wrapper?.items)
+      ? (wrapper?.items as unknown[])
+      : Array.isArray(wrapper?.billingItems)
+        ? (wrapper?.billingItems as unknown[])
+        : Array.isArray(wrapper?.refundItems)
+          ? (wrapper?.refundItems as unknown[])
+          : Array.isArray(wrapper?.serviceItems)
+            ? (wrapper?.serviceItems as unknown[])
+            : data
+              ? [data]
+              : [];
+
+  return rows.map((row: unknown) => {
+    const source = (row ?? {}) as Record<string, unknown>;
+
+    return {
+      VisitId: toNumber(pickValue(source, "VisitId", "visitId")) || headerDefaults.VisitId,
+      UHID: String(pickValue(source, "UHID", "uhid") ?? "") || headerDefaults.UHID,
+      PatientName:
+        String(pickValue(source, "PatientName", "patientName") ?? "") || headerDefaults.PatientName,
+      PatientId:
+        toNumber(pickValue(source, "PatientId", "patientId")) || headerDefaults.PatientId,
+      DOB: String(pickValue(source, "DOB", "dob") ?? "") || headerDefaults.DOB,
+      Age:
+        String(pickValue(source, "Age", "age", "CurrentAge", "currentAge") ?? "") ||
+        headerDefaults.Age,
+      ReferDoctorId: toNumber(pickValue(source, "ReferDoctorId", "referDoctorId"), 0) || null,
+      CorporateName:
+        String(pickValue(source, "CorporateName", "corporateName") ?? "") ||
+        headerDefaults.CorporateName,
+      DoctorName: String(pickValue(source, "DoctorName", "doctorName") ?? ""),
+      BillNo: String(pickValue(source, "BillNo", "billNo") ?? "") || headerDefaults.BillNo,
+      BillDate: String(pickValue(source, "BillDate", "billDate") ?? "") || headerDefaults.BillDate,
+      TotalBillAmount: toNumber(pickValue(source, "TotalBillAmount", "totalBillAmount")),
+      TotalPaidAmount: toNumber(pickValue(source, "TotalPaidAmount", "totalPaidAmount")),
+      ServiceName: String(pickValue(source, "ServiceName", "serviceName") ?? ""),
+      ServiceCode: String(pickValue(source, "ServiceCode", "serviceCode", "Code", "code") ?? ""),
+      FTDId: toNumber(pickValue(source, "FTDId", "ftdId")),
+      ServiceItemId: toNumber(pickValue(source, "ServiceItemId", "serviceItemId")),
+      SubSubCategoryId: toNumber(pickValue(source, "SubSubCategoryId", "subSubCategoryId")),
+      SubCategoryId: toNumber(pickValue(source, "SubCategoryId", "subCategoryId")),
+      CorporateAlias: String(pickValue(source, "CorporateAlias", "corporateAlias") ?? ""),
+      CorporateCode: String(pickValue(source, "CorporateCode", "corporateCode") ?? ""),
+      DoctorId: toNumber(pickValue(source, "DoctorId", "doctorId")),
+      CorporateId:
+        toNumber(pickValue(source, "CorporateId", "corporateId")) || headerDefaults.CorporateId,
+      InsuranceCompanyId: toNumber(pickValue(source, "InsuranceCompanyId", "insuranceCompanyId")),
+      Rate: toNumber(pickValue(source, "Rate", "rate")),
+      Qty: toNumber(pickValue(source, "Qty", "qty")),
+      DiscPer: toNumber(pickValue(source, "DiscPer", "discPer")),
+      CategoryId: toNumber(pickValue(source, "CategoryId", "categoryId")),
+      CategoryTypeId: toNumber(pickValue(source, "CategoryTypeId", "categoryTypeId")),
+      RefundQty: toNumber(
+        pickValue(source, "RefundQty", "refundQty", "RefundQuantity", "refundQuantity")
+      ),
+      IsUnderPackage: toNumber(pickValue(source, "IsUnderPackage", "isUnderPackage")),
+    } as BillDetailsToRefundItem;
+  });
+};
+
+export const mergeRefundQtyOntoBillDetails = (
+  billRows: BillDetailsToRefundItem[],
+  refundRows: BillDetailsToRefundItem[]
+): BillDetailsToRefundItem[] => {
+  const refundQtyByKey = new Map<string, number>();
+
+  refundRows.forEach(item => {
+    const ftdKey = Number(item.FTDId) > 0 ? `ftd:${item.FTDId}` : "";
+    const serviceKey = Number(item.ServiceItemId) > 0 ? `svc:${item.ServiceItemId}` : "";
+    const qty = toNumber(item.RefundQty);
+
+    if (ftdKey) refundQtyByKey.set(ftdKey, qty);
+    if (serviceKey) refundQtyByKey.set(serviceKey, qty);
+  });
+
+  return billRows.map(item => {
+    const ftdKey = Number(item.FTDId) > 0 ? `ftd:${item.FTDId}` : "";
+    const serviceKey = Number(item.ServiceItemId) > 0 ? `svc:${item.ServiceItemId}` : "";
+    const refundQty =
+      (ftdKey ? refundQtyByKey.get(ftdKey) : undefined) ??
+      (serviceKey ? refundQtyByKey.get(serviceKey) : undefined) ??
+      item.RefundQty ??
+      0;
+
+    const matchedRefund =
+      refundRows.find(
+        row =>
+          (Number(item.FTDId) > 0 && Number(row.FTDId) === Number(item.FTDId)) ||
+          (Number(item.ServiceItemId) > 0 && Number(row.ServiceItemId) === Number(item.ServiceItemId))
+      ) ?? refundRows[0];
+
+    return {
+      ...item,
+      Age: item.Age || matchedRefund?.Age || "",
+      DOB: item.DOB || matchedRefund?.DOB || "",
+      PatientName: item.PatientName || matchedRefund?.PatientName || "",
+      UHID: item.UHID || matchedRefund?.UHID || "",
+      CorporateName: item.CorporateName || matchedRefund?.CorporateName || "",
+      BillNo: item.BillNo || matchedRefund?.BillNo || "",
+      BillDate: item.BillDate || matchedRefund?.BillDate || "",
+      RefundQty: refundQty,
+    };
+  });
+};
+

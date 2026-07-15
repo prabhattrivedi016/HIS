@@ -5,6 +5,7 @@ import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { OpRefundApprovalCancelItem, OpRefundApprovalItem } from "../types";
 
@@ -40,11 +41,13 @@ const ApproveCancelPopup = ({
     refundId: 0,
     flag: 0,
     approvalRemarks: "",
+    totalRefundAmount: "",
   });
 
   const [cancelError, setCancelError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [totalRefundAmountError, setTotalRefundAmountError] = useState("");
 
   const displayItem = useMemo(
     () => ({
@@ -95,9 +98,11 @@ const ApproveCancelPopup = ({
       refundId: Number(item.RefundId ?? 0),
       flag: Number(item.FlagId ?? 0),
       approvalRemarks: item.ApprovalRemarks ?? "",
+      totalRefundAmount: String(item.TotalRefundAmount ?? 0),
     });
 
     setCancelError("");
+    setTotalRefundAmountError("");
     setSuccessMessage("");
     setErrorMessage("");
   }, [isOpen, item]);
@@ -119,6 +124,16 @@ const ApproveCancelPopup = ({
     setErrorMessage("");
   };
 
+  const onTotalRefundAmountChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setApproveFormData(prev => ({
+      ...prev,
+      totalRefundAmount: value,
+    }));
+    setTotalRefundAmountError("");
+    setErrorMessage("");
+  };
+
   const validateCancelForm = () => {
     if (!String(cancelFormData.cancelReason ?? "").trim()) {
       setCancelError("Cancel reason is required");
@@ -129,10 +144,26 @@ const ApproveCancelPopup = ({
     return true;
   };
 
+  const validateApproveForm = () => {
+    const amount = String(approveFormData.totalRefundAmount ?? "").trim();
+
+    if (amount === "" || Number(amount) <= 0) {
+      setTotalRefundAmountError("Total refund amount is required and must be greater than 0");
+      return false;
+    }
+
+    setTotalRefundAmountError("");
+    return true;
+  };
+
   const approveSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+
+    if (!validateApproveForm()) {
+      return;
+    }
 
     try {
       const resp = await fetchApi(
@@ -142,6 +173,7 @@ const ApproveCancelPopup = ({
           refundId: Number(approveFormData.refundId),
           flag: Number(approveFormData.flag),
           approvalRemarks: String(approveFormData.approvalRemarks).trim(),
+          totalRefundAmount: Number(approveFormData.totalRefundAmount),
         },
         {},
         { component: "OpRefundApproveCancelPopup" }
@@ -206,23 +238,27 @@ const ApproveCancelPopup = ({
         return (
           <form onSubmit={approveSubmitHandler}>
             <div className="form-grid-2 mt-1">
-              <InputField label="Total Refund Amount">
+              <InputField label="Total Refund Amount" required>
                 <input
                   type="text"
-                  className="disabled-input-field cursor-not-allowed max-w-60"
-                  value={formatValue(displayItem?.TotalRefundAmount)}
-                  disabled
-                  readOnly
+                  placeholder="Enter total refund amount"
+                  className="input-field"
+                  value={approveFormData.totalRefundAmount}
+                  onChange={onTotalRefundAmountChangeHandler}
+                  onInput={allowOnlyNumbers}
                 />
+                {!!totalRefundAmountError && (
+                  <p className="input-field-error">{totalRefundAmountError}</p>
+                )}
               </InputField>
 
               <InputField label="Approval Remark">
                 <input
                   type="text"
                   placeholder="Enter approval remark"
-                  onChange={approvalRemarksChangeHandler}
                   className="input-field"
                   value={approveFormData.approvalRemarks}
+                  onChange={approvalRemarksChangeHandler}
                 />
               </InputField>
             </div>
