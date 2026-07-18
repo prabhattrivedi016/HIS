@@ -1,7 +1,6 @@
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
 import "react-toastify/dist/ReactToastify.css";
@@ -36,22 +35,20 @@ window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <Provider store={store}>
-          <AuthProvider>
-            <BillingAmountProvider>
-              <RoleProvider>
-                <PatientProvider>
-                  <App />
-                </PatientProvider>
-              </RoleProvider>
-            </BillingAmountProvider>
-          </AuthProvider>
-        </Provider>
-        {/* React Query Devtools */}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <AuthProvider>
+          <BillingAmountProvider>
+            <RoleProvider>
+              <PatientProvider>
+                <App />
+              </PatientProvider>
+            </RoleProvider>
+          </BillingAmountProvider>
+        </AuthProvider>
+      </Provider>
+      {/* React Query Devtools */}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }

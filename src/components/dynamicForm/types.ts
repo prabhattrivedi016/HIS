@@ -83,7 +83,7 @@ export interface ControlSchema {
 
 export interface CardSchema {
   key: string;
-  type: "Card";
+  type?: string;
   title?: string;
   subtitle?: string;
   controls: ControlSchema[];

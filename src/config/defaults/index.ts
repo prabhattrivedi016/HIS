@@ -488,6 +488,13 @@ const ENDPOINTS = {
   CANCEL_OPD_REFUND_REQUEST: "Patient/cancelOPDRefundRequest",
   APPROVE_OPD_REFUND_REQUEST: "Patient/approveOPDRefundRequest",
   PAYMENT_OPD_REFUND_REQUEST: "Patient/paymentOPDRefundRequest",
+  // bill receipt reprint
+  GET_BILL_RECEIPT_PRINT_DETAILS: "Patient/getBillReceiptReprintDetails",
+
+  // credit note
+  GET_BILL_FOR_CREDIT_NOTE: "Patient/getBillForCreditNote",
+  GET_BILL_DETAILS_FOR_CREDIT_NOTE: "Patient/getBillDetailsForCreditNote",
+  SAVE_CREDIT_NOTE_REQUEST_APPROVAL: "Patient/saveCreditNoteRequestApproval",
 };
 
 export { ENDPOINTS };
