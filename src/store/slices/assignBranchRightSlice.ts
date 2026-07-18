@@ -8,6 +8,8 @@ export type AssignBranchRight = {
   IsOutstandingAllowedForCashCorporate: number;
   IsSeparateCollectionCounterEnabled: number;
   IsOPDRefundApprovalRequired: number;
+  IsCreditNoteApprovalRequired: number;
+  IsWriteOffApprovalRequired: number;
 };
 
 type FetchAssignBranchRightPayload = {

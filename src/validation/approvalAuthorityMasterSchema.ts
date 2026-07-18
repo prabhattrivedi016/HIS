@@ -1,8 +1,8 @@
 import * as yup from "yup";
 
-export const AMOUNT_REQUIRED_APPROVAL_TYPE_IDS = [9, 10];
+export const AMOUNT_REQUIRED_APPROVAL_TYPE_IDS = [7, 8, 9, 10];
 
-export const DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS = [9, 10];
+export const DEPARTMENT_LOCKED_APPROVAL_TYPE_IDS = [7, 8, 9, 10];
 
 const requiredLevelUsers = (level: number, message: string) =>
   yup.string().when("approvalLevelId", {

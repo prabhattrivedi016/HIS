@@ -687,3 +687,42 @@ export const OpDiscountApprovalLevelTableHeader = [
   "Approved By",
   "Approved On",
 ];
+
+export const billReceiptReprintTableHeader = [
+  "#",
+  "Type",
+  "Date",
+  "Receipt No",
+  "Bill No",
+  "UHID",
+  "Patient Name",
+  "Age",
+  "Net Amount",
+  "Status",
+  "Re-Print",
+  "Card Print",
+];
+
+export const creditNoteTableHeader = [
+  "#",
+  "Service Name",
+  "Rate",
+  "Qty",
+  "Gross Amount",
+  "Disc (%)",
+  "Disc Amount",
+  "Net Amount",
+  "Credit Note (%)",
+  "Credit (Amt)",
+];
+
+export const filterBillTableHeader = [
+  "VisitId",
+  "Patient Name",
+  "UHID",
+  "Bill No.",
+  "Bill Date",
+  "Bill Amount",
+  "Paid Amount",
+  "Type",
+];

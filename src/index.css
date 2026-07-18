@@ -207,46 +207,6 @@ input::placeholder {
   @apply w-full sm:w-auto min-h-[44px];
 }
 
-/* Remove Chrome autofill blue background */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-textarea:-webkit-autofill,
-select:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
-  -webkit-text-fill-color: #1f2937 !important; /* gray-800 */
-  transition: background-color 9999s ease-in-out 0s;
-}
-
-/* Scrollable but scrollbar fully hidden (still scrolls via wheel/touch/drag) */
-.scrollbar-none {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge legacy */
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Edge */
-}
-
-/* Hide scrollbar arrow buttons inside sidebar hover popup; keep normal scrolling */
-.hover-popup-scroll::-webkit-scrollbar-button {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
-.hover-popup-scroll::-webkit-scrollbar-button:single-button {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
-.hover-popup-scroll::-webkit-scrollbar-button:start:decrement,
-.hover-popup-scroll::-webkit-scrollbar-button:end:increment {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
 /* ------------------------------page header------------------------------------------- */
 .addNew-btn {
   @apply px-2  py-2 flex flex-row gap-1 items-center rounded-lg font-semibold transition-all bg-[#0b5394] text-white cursor-pointer active:scale-95;
@@ -506,18 +466,6 @@ select:-webkit-autofill {
   @apply bg-[#9CA3AF]  hover:bg-[#6B7280] text-white rounded-lg px-3 py-2 text-base font-medium transition active:scale-90;
 }
 
-/* normal pages */
-
-.page-container {
-  @apply bg-gray-50 flex-1 px-3 py-4 -mt-6;
-}
-.page-heading {
-  @apply text-2xl font-bold text-gray-900;
-}
-.helper-text {
-  @apply text-sm text-gray-500 flex gap-2 mt-1;
-}
-
 /* texts */
 .input-field-error {
   @apply text-sm text-red-500;
@@ -558,4 +506,57 @@ select:-webkit-autofill {
 /* input field style of all pages  */
 .input-field-warning {
   @apply !border !border-red-500;
+}
+
+/* Remove Chrome autofill blue background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  -webkit-text-fill-color: #1f2937 !important; /* gray-800 */
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Scrollable but scrollbar fully hidden (still scrolls via wheel/touch/drag) */
+.scrollbar-none {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+  width: 0;
+  height: 0;
+}
+
+/* Sidebar nav panel — never show scrollbar while opening/closing tabs */
+.sidebar-nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-nav-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbar arrow buttons inside sidebar hover popup; keep normal scrolling */
+.hover-popup-scroll::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.hover-popup-scroll::-webkit-scrollbar-button:single-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.hover-popup-scroll::-webkit-scrollbar-button:start:decrement,
+.hover-popup-scroll::-webkit-scrollbar-button:end:increment {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }

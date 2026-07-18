@@ -5,12 +5,14 @@ import ApprovalAuthorityMaster from "../approvalAuthorityMaster";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
+import BillReceiptReprint from "../billReceiptReprint";
 import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
+import CreditNoteWriteOff from "../creditNoteWriteOff";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
 import DiscountApprovalMaster from "../discountApprovalMaster";
@@ -133,4 +135,6 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-refund-approval": <OpRefundApproval />,
   "gravity-master": <GravityMaster />,
   "op-refund-payment": <OPRefundPayment />,
+  "bill-receipt-reprint": <BillReceiptReprint />,
+  "credit-note": <CreditNoteWriteOff />,
 };

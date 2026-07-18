@@ -25,7 +25,7 @@ import { ControlSchema, OptionSchema } from "./types";
 
 export interface ControlRenderProps {
   schema: ControlSchema;
-  value: unknown;
+  value: unknown | string;
   onChange: (value: unknown) => void;
   onBlur?: () => void;
   rows?: number;
@@ -216,7 +216,11 @@ const MultiSelectSearchControl = ({ schema, value, onChange, onBlur }: ControlRe
     const updateRect = () => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
-        setMenuRect({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+        setMenuRect({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
       }
     };
 
@@ -360,7 +364,9 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     const rowIndex = focusRowIndexRef.current;
     focusRowIndexRef.current = null;
     containerRef.current
-      ?.querySelector<HTMLElement>(`tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`)
+      ?.querySelector<HTMLElement>(
+        `tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`
+      )
       ?.focus();
   }, [rows.length]);
 
@@ -386,8 +392,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     focusRowIndexRef.current = rows.length;
     onChange([...rows, {}]);
   };
-  const handleRemoveRow = (rowIndex: number) =>
-    onChange(rows.filter((_, idx) => idx !== rowIndex));
+  const handleRemoveRow = (rowIndex: number) => onChange(rows.filter((_, idx) => idx !== rowIndex));
   const handleToggleFavorite = (rowIndex: number) => {
     const row = rows[rowIndex];
     const isFavoriting = !row.__favorite;
@@ -417,18 +422,22 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     onChange([...rows, ...newRows]);
   };
 
-  const handleCellKeyDown =
-    (rowIndex: number) => (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== "Enter" || e.currentTarget.tagName === "TEXTAREA") return;
-      e.preventDefault();
-      if (rowIndex === rows.length - 1) handleAddRow();
-    };
+  const handleCellKeyDown = (rowIndex: number) => (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || e.currentTarget.tagName === "TEXTAREA") return;
+    e.preventDefault();
+    if (rowIndex === rows.length - 1) handleAddRow();
+  };
 
   const indexedRows = rows.map((row, originalIndex) => ({ row, originalIndex }));
   const query = searchText.trim().toLowerCase();
   const displayRows = indexedRows.filter(
     ({ row }) =>
-      !query || columns.some(col => String(row[col.key] ?? "").toLowerCase().includes(query))
+      !query ||
+      columns.some(col =>
+        String(row[col.key] ?? "")
+          .toLowerCase()
+          .includes(query)
+      )
   );
   if (recentFirst) displayRows.reverse();
 
@@ -635,7 +644,8 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
           isOpen={isAddDrawerOpen}
           onClose={() => {
             setIsAddDrawerOpen(false);
-            if (headerId) queryClient.invalidateQueries({ queryKey: ["emrHeaderTableColumns", headerId] });
+            if (headerId)
+              queryClient.invalidateQueries({ queryKey: ["emrHeaderTableColumns", headerId] });
           }}
           title={`Add ${schema.label ?? "Entry"}`}
           nameLabel={columns[0]?.label ?? "Name"}
