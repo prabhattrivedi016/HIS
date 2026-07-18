@@ -413,6 +413,21 @@ const ENDPOINTS = {
   CREATE_UPDATE_DIAGNOSIS_MASTER: "EMR/createUpdateDiagnosisMaster",
   DELETE_DIAGNOSIS_MASTER: "EMR/deleteDiagnosisMaster",
 
+  // gravity master
+  CREATE_UPDATE_GRAVITY_MASTER: "EMR/createUpdateGravityMaster",
+
+  // chief complaint master
+  GET_CHIEF_COMPLAINT_MASTER_LIST: "EMR/getChiefComplaintMasterList",
+  CREATE_UPDATE_CHIEF_COMPLAINT_MASTER: "EMR/createUpdateChiefComplaintMaster",
+
+  // doctor-wise favourite entries for any table-type EMR header
+  GET_DOCTOR_FAVOURITE_TABLE_ENTRIES: "EMR/getDoctorFavouriteTableEntries",
+  SAVE_DOCTOR_FAVOURITE_TABLE_ENTRIES: "EMR/saveDoctorFavouriteTableEntries",
+
+  // order sets (named groups of table rows a doctor can bulk-add at once, e.g. investigation panels)
+  GET_INVESTIGATION_ORDER_SET_LIST: "EMR/getInvestigationOrderSetList",
+  CREATE_UPDATE_INVESTIGATION_ORDER_SET: "EMR/createUpdateInvestigationOrderSet",
+
   // procedure master
   GET_PROCEDURE_MASTER_LIST: "EMR/getProcedureMasterList",
   CREATE_UPDATE_PROCEDURE_MASTER: "EMR/createUpdateProcedureMaster",

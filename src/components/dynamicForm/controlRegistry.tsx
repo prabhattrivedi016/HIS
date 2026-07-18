@@ -1,10 +1,26 @@
 import TextEditor from "@/components/ckEditor";
 import { SelectStyles } from "@/components/customSelect";
+import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
+import { useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
-import { Check, X } from "lucide-react";
+import {
+  BookmarkCheck,
+  Check,
+  History,
+  Layers,
+  Plus,
+  Search as SearchIcon,
+  Settings,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
+import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
+import OrderSetDrawer from "./OrderSetDrawer";
+import { TableFieldInput } from "./TableFieldInput";
 import { ControlSchema, OptionSchema } from "./types";
 
 export interface ControlRenderProps {
@@ -321,6 +337,331 @@ const MultiSelectSearchControl = ({ schema, value, onChange, onBlur }: ControlRe
   );
 };
 
+const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
+  const columns = schema.columns ?? [];
+  const rows: Record<string, unknown>[] = Array.isArray(value) ? (value as any) : [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const focusRowIndexRef = useRef<number | null>(null);
+  const headerId = Number(schema.key.replace(/^header_/, "")) || undefined;
+  const queryClient = useQueryClient();
+
+  const [searchText, setSearchText] = useState("");
+  const [showFavorites, setShowFavorites] = useState(true);
+  const [recentFirst, setRecentFirst] = useState(false);
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [orderSetMode, setOrderSetMode] = useState<"all" | "favourites" | null>(null);
+  const { favorites: doctorFavorites, setFavorite: setDoctorFavorite } = useDoctorFavourites(
+    schema.doctorId,
+    headerId
+  );
+
+  useEffect(() => {
+    if (focusRowIndexRef.current === null) return;
+    const rowIndex = focusRowIndexRef.current;
+    focusRowIndexRef.current = null;
+    containerRef.current
+      ?.querySelector<HTMLElement>(`tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`)
+      ?.focus();
+  }, [rows.length]);
+
+  const handleCellChange = (rowIndex: number, columnKey: string, cellValue: unknown) => {
+    // dropdown options may carry a backend id in `key` (e.g. ComplaintId) — stash it
+    // alongside the picked value so it can be used to update the right master record later
+    const matchedOption = columns
+      .find(col => col.key === columnKey)
+      ?.options?.find(opt => opt.value === cellValue);
+    const idKey = `__${columnKey}Id`;
+
+    const nextRows = rows.map((row, idx) => {
+      if (idx !== rowIndex) return row;
+      const updated = { ...row, [columnKey]: cellValue };
+      if (matchedOption?.key) updated[idKey] = matchedOption.key;
+      else delete updated[idKey];
+      return updated;
+    });
+    onChange(nextRows);
+  };
+
+  const handleAddRow = () => {
+    focusRowIndexRef.current = rows.length;
+    onChange([...rows, {}]);
+  };
+  const handleRemoveRow = (rowIndex: number) =>
+    onChange(rows.filter((_, idx) => idx !== rowIndex));
+  const handleToggleFavorite = (rowIndex: number) => {
+    const row = rows[rowIndex];
+    const isFavoriting = !row.__favorite;
+    onChange(rows.map((r, idx) => (idx === rowIndex ? { ...r, __favorite: isFavoriting } : r)));
+
+    const entry: Record<string, unknown> = {};
+    Object.keys(row).forEach(key => {
+      if (key !== "__favorite") entry[key] = row[key];
+    });
+    const recordId = schema.masterEntryConfig ? row[schema.masterEntryConfig.idField] : undefined;
+    setDoctorFavorite(entry, isFavoriting, recordId);
+  };
+  const handleAddFromFavorite = (favoriteRow: Record<string, unknown>) => {
+    focusRowIndexRef.current = rows.length;
+    onChange([...rows, favoriteRow]);
+  };
+  const handleRemoveDoctorFavorite = (entry: Record<string, unknown>) =>
+    setDoctorFavorite(
+      entry,
+      false,
+      schema.masterEntryConfig ? entry[schema.masterEntryConfig.idField] : undefined
+    );
+  const handleSaveFromDrawer = (entry: Record<string, unknown>) => {
+    onChange([...rows, entry]);
+  };
+  const handleApplyOrderSet = (newRows: Record<string, unknown>[]) => {
+    onChange([...rows, ...newRows]);
+  };
+
+  const handleCellKeyDown =
+    (rowIndex: number) => (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== "Enter" || e.currentTarget.tagName === "TEXTAREA") return;
+      e.preventDefault();
+      if (rowIndex === rows.length - 1) handleAddRow();
+    };
+
+  const indexedRows = rows.map((row, originalIndex) => ({ row, originalIndex }));
+  const query = searchText.trim().toLowerCase();
+  const displayRows = indexedRows.filter(
+    ({ row }) =>
+      !query || columns.some(col => String(row[col.key] ?? "").toLowerCase().includes(query))
+  );
+  if (recentFirst) displayRows.reverse();
+
+  if (columns.length === 0) {
+    return <p className="text-sm text-gray-400">No columns configured</p>;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className={mergeClass("rounded-xl border border-slate-200 bg-white overflow-hidden", schema)}
+    >
+      {/* toolbar */}
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => (schema.masterEntryConfig ? setIsAddDrawerOpen(true) : handleAddRow())}
+          title={schema.masterEntryConfig ? "Add entry (search SNOMED)" : "Add row"}
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white shadow-sm hover:bg-slate-700 active:scale-95 transition-all shrink-0"
+        >
+          <Plus size={15} />
+        </button>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleAddRow}
+            title="Add a blank row to fill in directly"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+          >
+            <Plus size={14} />
+          </button>
+
+          <div className="relative">
+            <SearchIcon
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              placeholder="Search Favourite"
+              className="w-40 sm:w-52 bg-white border border-slate-200 rounded-full pl-7 pr-2.5 py-1.5 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearchText("");
+              setRecentFirst(false);
+            }}
+            title="Reset filters"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+          >
+            <Settings size={13} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowFavorites(v => !v)}
+            title={showFavorites ? "Hide favourites" : "Show favourites"}
+            className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+              showFavorites
+                ? "bg-amber-50 border-amber-200 text-amber-500"
+                : "bg-white border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200"
+            }`}
+          >
+            <Star size={13} className={showFavorites ? "fill-amber-400" : ""} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRecentFirst(v => !v)}
+            title={recentFirst ? "Show default order" : "Show most recent first"}
+            className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+              recentFirst
+                ? "bg-blue-50 border-blue-200 text-blue-500"
+                : "bg-white border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
+            }`}
+          >
+            <History size={13} />
+          </button>
+
+          {schema.orderSetConfig && (
+            <>
+              <button
+                type="button"
+                onClick={() => setOrderSetMode("all")}
+                title="Order set"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
+              >
+                <Layers size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderSetMode("favourites")}
+                title="Favourite order set"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
+              >
+                <BookmarkCheck size={13} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {showFavorites && (
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-3 py-2 border-b border-slate-100 bg-amber-50/30">
+          {doctorFavorites.length === 0 ? (
+            <span className="text-[12px] text-slate-400">No favourites saved yet</span>
+          ) : (
+            doctorFavorites.map((entry, idx) => {
+              const label = columns
+                .map(col => entry[col.key])
+                .find(v => v !== undefined && v !== null && String(v).trim() !== "");
+              return (
+                <span
+                  key={idx}
+                  className="flex items-center gap-1.5 shrink-0 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 text-[12px] font-medium rounded-full pl-1 pr-1.5 py-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleAddFromFavorite(entry)}
+                    title="Add as new row"
+                    className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full hover:bg-blue-100"
+                  >
+                    <Plus size={11} />
+                    {String(label ?? `Favourite ${idx + 1}`)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDoctorFavorite(entry)}
+                    title="Remove from favourites"
+                    className="flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:text-blue-700 hover:bg-blue-100"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      <div className="table-scroll-wrapper shadow-none border-0 rounded-none [&_.table-head]:!bg-white [&_.table-head]:!border-slate-200 [&_.table-row]:hover:!bg-transparent">
+        <table className="base-table table-size">
+          <thead className="table-head">
+            <tr>
+              {columns.map(col => (
+                <th key={col.key} className="table-th">
+                  {col.label}
+                </th>
+              ))}
+              <th className="table-th w-16 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayRows.map(({ row, originalIndex }) => (
+              <tr key={originalIndex} data-row-index={originalIndex} className="table-row">
+                {columns.map(col => (
+                  <td key={col.key} className="table-td">
+                    <TableFieldInput
+                      column={col}
+                      value={row[col.key]}
+                      onChange={v => handleCellChange(originalIndex, col.key, v)}
+                      onKeyDown={handleCellKeyDown(originalIndex)}
+                    />
+                  </td>
+                ))}
+                <td className="table-td table-action">
+                  <div className="flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => handleToggleFavorite(originalIndex)}>
+                      <Star
+                        size={14}
+                        className={
+                          row.__favorite
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-gray-300 hover:text-amber-400"
+                        }
+                      />
+                    </button>
+                    <button type="button" onClick={() => handleRemoveRow(originalIndex)}>
+                      <Trash2 size={14} className="text-gray-400 hover:text-gray-600" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {displayRows.length === 0 && (
+              <tr>
+                <td className="table-empty" colSpan={columns.length + 1}>
+                  {rows.length === 0 ? "No rows added" : "No matching rows"}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {schema.masterEntryConfig && (
+        <AddMasterEntryDrawer
+          isOpen={isAddDrawerOpen}
+          onClose={() => {
+            setIsAddDrawerOpen(false);
+            if (headerId) queryClient.invalidateQueries({ queryKey: ["emrHeaderTableColumns", headerId] });
+          }}
+          title={`Add ${schema.label ?? "Entry"}`}
+          nameLabel={columns[0]?.label ?? "Name"}
+          nameKey={columns[0]?.key ?? "name"}
+          extraColumns={[]}
+          masterEntryConfig={schema.masterEntryConfig}
+          onSave={handleSaveFromDrawer}
+        />
+      )}
+
+      {schema.orderSetConfig && (
+        <OrderSetDrawer
+          isOpen={orderSetMode !== null}
+          onClose={() => setOrderSetMode(null)}
+          title={`${schema.label ?? "Entry"} Order Sets`}
+          nameKey={columns[0]?.key ?? "name"}
+          doctorId={schema.doctorId}
+          initialFavouritesOnly={orderSetMode === "favourites"}
+          config={schema.orderSetConfig}
+          onApply={handleApplyOrderSet}
+        />
+      )}
+    </div>
+  );
+};
+
 const RichTextControl = ({ value, onChange }: ControlRenderProps) => (
   <TextEditor value={(value as string) ?? ""} onChange={onChange} />
 );
@@ -346,6 +687,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   richtext: RichTextControl,
   dynamicContent: DynamicContentControl,
   "multiselect-search": MultiSelectSearchControl,
+  table: TableControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

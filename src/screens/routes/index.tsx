@@ -19,6 +19,7 @@ import DoctorMaster from "../doctorMaster";
 import PatientDocumentMaster from "../documentMaster";
 import EmrControls from "../emrControls";
 import FormulaMaster from "../formulaMaster";
+import GravityMaster from "../gravityMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
 import HistoReportMaster from "../histoReportMaster";
 import HistoResultEntry from "../histoResultEntry";
@@ -129,4 +130,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "patient-advance": <PatientAdvance />,
   "opd-refund": <OpdRefund />,
   "op-refund-approval": <OpRefundApproval />,
+  "gravity-master": <GravityMaster />,
 };

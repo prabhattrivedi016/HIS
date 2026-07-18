@@ -740,7 +740,7 @@ const DoctorConsultationNew = () => {
               </p>
             </div>
           ) : (
-            <>
+            <div className="max-h-[calc(100vh-150px)] overflow-y-auto scrollbar-none pr-0.5">
               {/* Patient Header */}
               {(() => {
                 const initials = selectedPatient.PatientName.split(" ")
@@ -768,13 +768,13 @@ const DoctorConsultationNew = () => {
                   { label: "DOCTOR", value: selectedPatient.DoctorName, highlight: true },
                 ];
                 return (
-                  <div className="relative bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mb-3 overflow-hidden">
-                    <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
+                  <div className="sticky top-0 z-40 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mb-3 overflow-hidden">
+                    <div className="h-1 w-full bg-[#0B5394]" />
                     {/* ── Section 1: Name / badges / actions ── */}
                     <div className="flex items-start justify-between gap-4 px-4 py-3">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
-                        <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0 shadow-md ring-2 ring-white">
+                        <div className="relative w-12 h-12 rounded-xl bg-[#0B5394] flex items-center justify-center shrink-0 shadow-md ring-2 ring-white">
                           <span className="text-white font-bold text-base tracking-wide">
                             {initials}
                           </span>
@@ -859,7 +859,7 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={handleFinalSave}
-                          className="text-sm font-semibold text-white rounded-lg px-4 py-1.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 shadow-md shadow-violet-200 hover:shadow-lg hover:brightness-105 active:scale-95 transition-all flex items-center gap-1.5"
+                          className="save-btn !px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
                         >
                           <Save size={14} />
                           Save
@@ -938,15 +938,9 @@ const DoctorConsultationNew = () => {
 
               <ConsultationEmrSections
                 doctorId={selectedPatient?.DoctorId}
-                patient={{
-                  name: selectedPatient.PatientName,
-                  age: selectedPatient.Age,
-                  gender: selectedPatient.Gender,
-                  uhid: selectedPatient.UHID,
-                }}
                 onSectionsChange={setEmrSectionsData}
               />
-            </>
+            </div>
           )}
         </div>
       </div>

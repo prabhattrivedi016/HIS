@@ -6,6 +6,7 @@ import {
   EmrSectionMappingTableItem,
   SectionHeaderMappingRecord,
 } from "@/screens/emrControls/types";
+import { useEmrSectionLayout } from "@/store/useEmrSectionLayout";
 import { showError, showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -21,6 +22,8 @@ import {
   LucideIcon,
   MoreHorizontal,
   NotebookPen,
+  PanelLeft,
+  PanelTop,
   Pill,
   Sparkles,
   Star,
@@ -31,16 +34,8 @@ import { EmrSectionAnswerEntry } from "../types";
 import CircularProgress from "./CircularProgress";
 import EmrSectionRenderer from "./EmrSectionRenderer";
 
-interface ConsultationEmrSectionsPatient {
-  name: string;
-  age?: string | number;
-  gender?: string;
-  uhid?: string;
-}
-
 interface ConsultationEmrSectionsProps {
   doctorId?: number;
-  patient?: ConsultationEmrSectionsPatient;
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
 }
 
@@ -63,12 +58,42 @@ const getSectionIcon = (name: string): LucideIcon => {
 const VISIBLE_TAB_LIMIT = 5;
 
 const SECTION_ACCENTS = [
-  { grad: "from-blue-500 to-cyan-400", ring: "text-blue-500", text: "text-blue-700", soft: "bg-blue-50" },
-  { grad: "from-violet-500 to-fuchsia-400", ring: "text-violet-500", text: "text-violet-700", soft: "bg-violet-50" },
-  { grad: "from-rose-500 to-orange-400", ring: "text-rose-500", text: "text-rose-700", soft: "bg-rose-50" },
-  { grad: "from-emerald-500 to-teal-400", ring: "text-emerald-500", text: "text-emerald-700", soft: "bg-emerald-50" },
-  { grad: "from-amber-500 to-yellow-400", ring: "text-amber-500", text: "text-amber-700", soft: "bg-amber-50" },
-  { grad: "from-indigo-500 to-blue-400", ring: "text-indigo-500", text: "text-indigo-700", soft: "bg-indigo-50" },
+  {
+    grad: "from-blue-500 to-cyan-400",
+    ring: "text-blue-500",
+    text: "text-blue-700",
+    soft: "bg-blue-50",
+  },
+  {
+    grad: "from-violet-500 to-fuchsia-400",
+    ring: "text-violet-500",
+    text: "text-violet-700",
+    soft: "bg-violet-50",
+  },
+  {
+    grad: "from-rose-500 to-orange-400",
+    ring: "text-rose-500",
+    text: "text-rose-700",
+    soft: "bg-rose-50",
+  },
+  {
+    grad: "from-emerald-500 to-teal-400",
+    ring: "text-emerald-500",
+    text: "text-emerald-700",
+    soft: "bg-emerald-50",
+  },
+  {
+    grad: "from-amber-500 to-yellow-400",
+    ring: "text-amber-500",
+    text: "text-amber-700",
+    soft: "bg-amber-50",
+  },
+  {
+    grad: "from-indigo-500 to-blue-400",
+    ring: "text-indigo-500",
+    text: "text-indigo-700",
+    soft: "bg-indigo-50",
+  },
 ];
 
 interface SectionPillProps {
@@ -79,6 +104,7 @@ interface SectionPillProps {
   isFavorite: boolean;
   onSelect: () => void;
   onToggleFavorite: (e: ReactMouseEvent) => void;
+  fullWidth?: boolean;
 }
 
 const SectionPill = ({
@@ -89,6 +115,7 @@ const SectionPill = ({
   isFavorite,
   onSelect,
   onToggleFavorite,
+  fullWidth,
 }: SectionPillProps) => {
   const Icon = getSectionIcon(section.displayName || section.sectionName);
   return (
@@ -96,9 +123,9 @@ const SectionPill = ({
       type="button"
       onClick={onSelect}
       whileTap={{ scale: 0.96 }}
-      className={`group relative shrink-0 flex items-center gap-1.5 h-9 rounded-full pl-1.5 pr-2.5 text-[12.5px] font-semibold transition-colors ${
-        isActive ? "text-white" : "text-slate-600 hover:bg-white hover:shadow-sm"
-      }`}
+      className={`group relative flex items-center gap-1.5 h-9 rounded-full pl-1.5 pr-2.5 text-[12.5px] font-semibold transition-colors ${
+        fullWidth ? "w-full" : "shrink-0"
+      } ${isActive ? "text-white" : "text-slate-600 hover:bg-white hover:shadow-sm"}`}
     >
       {isActive && (
         <motion.span
@@ -116,7 +143,9 @@ const SectionPill = ({
         <Icon size={12} className={isActive ? "text-white" : accent.text} strokeWidth={2.25} />
       </span>
 
-      <span className="relative z-10 whitespace-nowrap">
+      <span
+        className={`relative z-10 ${fullWidth ? "flex-1 min-w-0 text-left truncate" : "whitespace-nowrap"}`}
+      >
         {section.displayName || section.sectionName}
       </span>
 
@@ -152,12 +181,9 @@ const SectionPill = ({
   );
 };
 
-const ConsultationEmrSections = ({
-  doctorId,
-  patient,
-  onSectionsChange,
-}: ConsultationEmrSectionsProps) => {
+const ConsultationEmrSections = ({ doctorId, onSectionsChange }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
+  const { layout, toggleLayout } = useEmrSectionLayout();
 
   const [activeSectionId, setActiveSectionId] = useState<number | null>(null);
   const [data, setData] = useState<Record<string, unknown>>({});
@@ -181,7 +207,7 @@ const ConsultationEmrSections = ({
 
     let cancelled = false;
     (async () => {
-      const resp = await fetchApi<{ data?: Array<{ sectionId?: number } | number> }>(
+      const resp = await fetchApi<{ data?: Array<{ DoctorId: number; SectionId: number }> }>(
         "GET",
         ENDPOINTS.GET_DOCTOR_FAVOURITE_EMR_SECTIONS,
         {},
@@ -190,9 +216,7 @@ const ConsultationEmrSections = ({
       );
       if (cancelled) return;
       const raw = resp?.data ?? [];
-      const ids = raw
-        .map(s => Number(typeof s === "number" ? s : s?.sectionId))
-        .filter(id => !Number.isNaN(id));
+      const ids = raw.map(s => Number(s.SectionId)).filter(id => !Number.isNaN(id));
       setFavoriteSectionIds(ids);
       setSavedFavoriteSectionIds(ids);
     })();
@@ -234,15 +258,6 @@ const ConsultationEmrSections = ({
       setIsSavingFavorites(false);
     }
   };
-
-  const patientInitials = patient?.name
-    ? patient.name
-        .split(" ")
-        .slice(0, 2)
-        .map(w => w[0])
-        .join("")
-        .toUpperCase()
-    : "";
 
   const getAllEmrSections = async (): Promise<EmrSectionMappingTableItem[]> => {
     const resp = await fetchApi(
@@ -323,7 +338,9 @@ const ConsultationEmrSections = ({
 
   const accentBySectionId = useMemo(() => {
     const map = new Map<number, (typeof SECTION_ACCENTS)[number]>();
-    mappedSections.forEach((s, idx) => map.set(s.sectionId, SECTION_ACCENTS[idx % SECTION_ACCENTS.length]));
+    mappedSections.forEach((s, idx) =>
+      map.set(s.sectionId, SECTION_ACCENTS[idx % SECTION_ACCENTS.length])
+    );
     return map;
   }, [mappedSections]);
 
@@ -352,7 +369,7 @@ const ConsultationEmrSections = ({
   return (
     <div className="relative rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mt-3 overflow-hidden bg-white">
       {/* ── glow header ── */}
-      <div className="relative flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
+      <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
             <Sparkles size={13} className="text-white" />
@@ -376,6 +393,15 @@ const ConsultationEmrSections = ({
           <span className="text-[11px] font-semibold text-slate-500">
             {answeredCount}/{mappedSections.length || 0} done
           </span>
+
+          <button
+            type="button"
+            onClick={toggleLayout}
+            title={layout === "horizontal" ? "Switch to side tabs" : "Switch to top tabs"}
+            className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700 hover:border-slate-300 transition-colors"
+          >
+            {layout === "horizontal" ? <PanelLeft size={14} /> : <PanelTop size={14} />}
+          </button>
         </div>
       </div>
 
@@ -386,10 +412,72 @@ const ConsultationEmrSections = ({
         </div>
       ) : mappedSections.length === 0 ? (
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
+      ) : layout === "vertical" ? (
+        <div className="flex">
+          <div className="flex flex-col gap-1 w-64 shrink-0 border-r border-slate-100 bg-slate-50/40 p-2.5 max-h-[560px] overflow-y-auto scrollbar-none">
+            {orderedSections.map(section => {
+              const isActive = section.sectionId === activeSectionId;
+              const isComplete = getSectionPercent(section.sectionId) >= 100;
+              const accent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
+
+              return (
+                <SectionPill
+                  key={section.sectionId}
+                  section={section}
+                  accent={accent}
+                  isActive={isActive}
+                  isComplete={isComplete}
+                  isFavorite={favoriteSectionIds.includes(section.sectionId)}
+                  onSelect={() => setActiveSectionId(section.sectionId)}
+                  onToggleFavorite={e => toggleFavorite(section.sectionId, e)}
+                  fullWidth
+                />
+              );
+            })}
+
+            {doctorId != null && (
+              <SubmitButton
+                type="button"
+                label={
+                  isSavingFavorites ? "Saving…" : hasUnsavedFavorites ? "Save favourites" : "Saved"
+                }
+                onClick={handleSaveFavorites}
+                disabled={!hasUnsavedFavorites || isSavingFavorites}
+                className="!h-9 !w-full !px-3 !py-0 !text-[12px] !rounded-full mt-1 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-500"
+              />
+            )}
+          </div>
+
+          {/* ── active section panel ── */}
+          <div className="flex-1 min-w-0 px-4 pt-3 pb-4 min-h-72 max-h-[560px] overflow-y-auto scrollbar-none">
+            <AnimatePresence mode="wait">
+              {activeSection && (
+                <motion.div
+                  key={activeSection.sectionId}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
+                  <EmrSectionRenderer
+                    sectionId={activeSection.sectionId}
+                    sectionName={activeSection.sectionName}
+                    displayName={activeSection.displayName}
+                    data={data}
+                    onDataChange={setData}
+                    onHeadersLoaded={headers =>
+                      setHeadersBySection(prev => ({ ...prev, [activeSection.sectionId]: headers }))
+                    }
+                    doctorId={doctorId}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col">
-          {/* ── horizontal pill tabs (no scrolling — overflow collapses into a "more" menu) ── */}
-          <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-b border-slate-100 bg-slate-50/40">
+          <div className="relative flex items-center gap-1.5 px-3 py-1.5 border-b border-slate-100 bg-slate-50/40">
             {visibleSections.map(section => {
               const isActive = section.sectionId === activeSectionId;
               const isComplete = getSectionPercent(section.sectionId) >= 100;
@@ -437,7 +525,8 @@ const ConsultationEmrSections = ({
                         const isActive = section.sectionId === activeSectionId;
                         const isComplete = getSectionPercent(section.sectionId) >= 100;
                         const isFavorite = favoriteSectionIds.includes(section.sectionId);
-                        const accent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
+                        const accent =
+                          accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
                         const Icon = getSectionIcon(section.displayName || section.sectionName);
 
                         return (
@@ -459,7 +548,9 @@ const ConsultationEmrSections = ({
                             </span>
                             <span
                               className={`flex-1 min-w-0 text-[12.5px] truncate ${
-                                isActive ? "font-bold text-slate-900" : "font-semibold text-slate-700"
+                                isActive
+                                  ? "font-bold text-slate-900"
+                                  : "font-semibold text-slate-700"
                               }`}
                             >
                               {section.displayName || section.sectionName}
@@ -478,7 +569,9 @@ const ConsultationEmrSections = ({
                             >
                               <Star
                                 size={12}
-                                className={isFavorite ? "fill-sky-500 text-sky-500" : "text-slate-300"}
+                                className={
+                                  isFavorite ? "fill-sky-500 text-sky-500" : "text-slate-300"
+                                }
                               />
                             </span>
                           </button>
@@ -493,7 +586,9 @@ const ConsultationEmrSections = ({
             {doctorId != null && (
               <SubmitButton
                 type="button"
-                label={isSavingFavorites ? "Saving…" : hasUnsavedFavorites ? "Save favourites" : "Saved"}
+                label={
+                  isSavingFavorites ? "Saving…" : hasUnsavedFavorites ? "Save favourites" : "Saved"
+                }
                 onClick={handleSaveFavorites}
                 disabled={!hasUnsavedFavorites || isSavingFavorites}
                 className="!h-9 !w-auto !px-3 !py-0 !text-[12px] !rounded-full shrink-0 ml-auto bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-500"
@@ -501,28 +596,8 @@ const ConsultationEmrSections = ({
             )}
           </div>
 
-          {/* ── patient strip ── */}
-          {patient?.name && (
-            <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-50 via-violet-50 to-fuchsia-50 border-b border-slate-100">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-white ring-1 ring-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-700">
-                {patientInitials}
-              </span>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[12px] font-bold text-slate-700 truncate">{patient.name}</span>
-                <span className="text-[11px] text-slate-500 shrink-0">
-                  {[patient.age, patient.gender].filter(Boolean).join(" · ")}
-                </span>
-                {patient.uhid && (
-                  <span className="text-[10px] font-semibold text-slate-600 bg-white rounded-full px-2 py-0.5 shrink-0 ring-1 ring-slate-200">
-                    {patient.uhid}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* ── active section panel ── */}
-          <div className="p-5 min-h-72 max-h-[520px] overflow-y-auto scrollbar-none">
+          <div className="px-4 pt-3 pb-4 min-h-72 max-h-[520px] overflow-y-auto scrollbar-none">
             <AnimatePresence mode="wait">
               {activeSection && (
                 <motion.div
@@ -541,6 +616,7 @@ const ConsultationEmrSections = ({
                     onHeadersLoaded={headers =>
                       setHeadersBySection(prev => ({ ...prev, [activeSection.sectionId]: headers }))
                     }
+                    doctorId={doctorId}
                   />
                 </motion.div>
               )}

@@ -1,5 +1,10 @@
 import DynamicFormRenderer from "@/components/dynamicForm/DynamicFormRenderer";
-import { CardSchema, ControlSchema, OptionSchema } from "@/components/dynamicForm/types";
+import {
+  CardSchema,
+  ControlSchema,
+  OptionSchema,
+  TableColumnSchema,
+} from "@/components/dynamicForm/types";
 import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -16,6 +21,7 @@ interface EmrSectionRendererProps {
   data: Record<string, unknown>;
   onDataChange: (data: Record<string, unknown>) => void;
   onHeadersLoaded?: (headers: SectionHeaderMappingRecord[]) => void;
+  doctorId?: number;
 }
 
 const mapControlType = (controlType: string): string => {
@@ -24,6 +30,7 @@ const mapControlType = (controlType: string): string => {
     .toLowerCase()
     .replace(/[\s-_]/g, "");
   if (key.includes("rich")) return "richtext";
+  if (key.includes("table")) return "table";
   if (key.includes("textarea")) return "textarea";
   if (key.includes("date")) return "date";
   if (key.includes("number")) return "number";
@@ -42,6 +49,13 @@ const isMedicineHeader = (headerName: string) =>
   (headerName || "").trim().toLowerCase().includes("medicine");
 const isInvestigationHeader = (headerName: string) =>
   (headerName || "").trim().toLowerCase().includes("investigation");
+const isChiefComplaintHeader = (headerName: string) =>
+  (headerName || "").trim().toLowerCase().includes("complaint");
+
+const SEVERITY_OPTIONS: OptionSchema[] = ["Mild", "Moderate", "Severe"].map(v => ({
+  label: v,
+  value: v,
+}));
 
 const EmrSectionRenderer = ({
   sectionId,
@@ -50,6 +64,7 @@ const EmrSectionRenderer = ({
   data,
   onDataChange,
   onHeadersLoaded,
+  doctorId,
 }: EmrSectionRendererProps) => {
   const { fetchApi } = useGlobalApi();
 
@@ -141,6 +156,91 @@ const EmrSectionRenderer = ({
     });
     return map;
   }, [headerIdsNeedingOptions, lovsQueries]);
+
+  const getChiefComplaintOptions = async (): Promise<OptionSchema[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CHIEF_COMPLAINT_MASTER_LIST,
+      {},
+      {},
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    return raw
+      .filter(item => Number(item?.isActive) === 1)
+      .map(item => ({
+        label: item?.complaintName ?? "",
+        value: item?.complaintName ?? "",
+        key: String(item?.ComplaintId ?? item?.complaintId ?? ""),
+      }));
+  };
+
+  const getTableColumns = async (
+    headerId: number,
+    headerName: string
+  ): Promise<TableColumnSchema[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_HEARDER_LOVS,
+      {},
+      { params: { headerId } },
+      { component: "EmrSectionRenderer", silent: true }
+    );
+    const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
+    const columns = raw.map((item, idx) => {
+      const label = item?.headerName ?? "";
+      const key = label ? String(label) : `col_${idx}`;
+
+      if (/duration/i.test(label)) return { key, label, dataTypeId: 1 };
+      if (/severity/i.test(label)) return { key, label, dataTypeId: 5, options: SEVERITY_OPTIONS };
+
+      return {
+        key,
+        label,
+        dataTypeId: Number(item?.dataTypeId) || 1,
+        options: String(item?.options ?? "")
+          .split("##")
+          .map((opt: string) => opt.trim())
+          .filter(Boolean)
+          .map((opt: string) => ({ label: opt, value: opt })),
+      };
+    });
+
+    if (isChiefComplaintHeader(headerName)) {
+      const complaintOptions = await getChiefComplaintOptions();
+      const complaintColIdx = columns.findIndex(c => /complaint/i.test(c.label));
+      if (complaintColIdx !== -1) {
+        columns[complaintColIdx] = {
+          ...columns[complaintColIdx],
+          dataTypeId: 5,
+          options: complaintOptions,
+        };
+      }
+    }
+
+    return columns;
+  };
+
+  const tableHeaderIds = useMemo(
+    () => headers.filter(h => mapControlType(h.controlType) === "table").map(h => h.headerId),
+    [headers]
+  );
+
+  const tableColumnsQueries = useQueries({
+    queries: tableHeaderIds.map(headerId => ({
+      queryKey: ["emrHeaderTableColumns", headerId],
+      queryFn: () =>
+        getTableColumns(headerId, headers.find(h => h.headerId === headerId)?.headerName ?? ""),
+    })),
+  });
+
+  const tableColumnsByHeaderId = useMemo(() => {
+    const map: Record<number, TableColumnSchema[]> = {};
+    tableHeaderIds.forEach((headerId, idx) => {
+      map[headerId] = tableColumnsQueries[idx]?.data ?? [];
+    });
+    return map;
+  }, [tableHeaderIds, tableColumnsQueries]);
 
   const getDoctorOptionsForHeader = async (headerId: number): Promise<OptionSchema[]> => {
     const resp = await fetchApi(
@@ -242,11 +342,17 @@ const EmrSectionRenderer = ({
       const isDoctor = isDoctorHeader(h.headerName);
       const isMedicine = isMedicineHeader(h.headerName);
       const isInvestigation = isInvestigationHeader(h.headerName);
-      const dynamicType = isDoctor || isMedicine
-        ? "dropdown"
-        : isInvestigation
-          ? "multiselect-search"
-          : mapControlType(h.controlType);
+      const mappedType = mapControlType(h.controlType);
+      // a header explicitly configured as "Table" always renders as a table —
+      // the name-based overrides below are only for plain fields, not to hijack a real table
+      const dynamicType =
+        mappedType === "table"
+          ? "table"
+          : isDoctor || isMedicine
+            ? "dropdown"
+            : isInvestigation
+              ? "multiselect-search"
+              : mappedType;
       const ownRules = rulesByHeaderId.get(h.headerId);
 
       const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
@@ -270,27 +376,66 @@ const EmrSectionRenderer = ({
             : needsOptions(dynamicType)
               ? (lovsByHeaderId[h.headerId] ?? [])
               : undefined,
-        colSpan: isFullWidth(dynamicType) ? 4 : dynamicType === "radio" ? 2 : 1,
+        colSpan: isFullWidth(dynamicType)
+          ? 4
+          : dynamicType === "table"
+            ? tableHeaderIds.length <= 1
+              ? 4
+              : 2
+            : dynamicType === "radio"
+              ? 2
+              : 1,
         conditionalDisplay,
         asyncSearch: isInvestigation ? searchInvestigationOptions : undefined,
+        columns: dynamicType === "table" ? (tableColumnsByHeaderId[h.headerId] ?? []) : undefined,
+        masterEntryConfig:
+          dynamicType === "table" && isChiefComplaintHeader(h.headerName)
+            ? {
+                saveEndpoint: ENDPOINTS.CREATE_UPDATE_CHIEF_COMPLAINT_MASTER,
+                listEndpoint: ENDPOINTS.GET_CHIEF_COMPLAINT_MASTER_LIST,
+                idField: "complaintId",
+                nameField: "complaintName",
+              }
+            : undefined,
+        orderSetConfig:
+          dynamicType === "table" && isInvestigationHeader(h.headerName)
+            ? {
+                listEndpoint: ENDPOINTS.GET_INVESTIGATION_ORDER_SET_LIST,
+                saveEndpoint: ENDPOINTS.CREATE_UPDATE_INVESTIGATION_ORDER_SET,
+                itemSearchEndpoint: ENDPOINTS.GET_INVESTIGATION_SERVICE_ITEM_LIST,
+                itemSearchParams: { categoryTypeId: 3, isActive: 1 },
+                idField: "orderSetId",
+                nameField: "orderSetName",
+                itemsField: "items",
+              }
+            : undefined,
+        doctorId,
       };
     });
+
+    const orderedControls = [
+      ...controls.filter(c => c.type === "table"),
+      ...controls.filter(c => c.type !== "table"),
+    ];
 
     return {
       key: `section_${sectionId}`,
       type: "Card",
       title: displayName || sectionName,
-      controls,
+      controls: orderedControls,
     };
   }, [
     headers,
     lovsByHeaderId,
     doctorOptionsByHeaderId,
     medicineOptionsByHeaderId,
+    tableColumnsByHeaderId,
+    tableHeaderIds,
     sectionId,
     sectionName,
     displayName,
     attributeConditions,
+    doctorId,
   ]);
 
   const totalFields = headers.length;
@@ -321,7 +466,7 @@ const EmrSectionRenderer = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2 mb-2.5">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <h2 className="text-[14px] font-semibold text-slate-800 truncate min-w-0">
           {displayName || sectionName}
         </h2>
@@ -338,7 +483,7 @@ const EmrSectionRenderer = ({
         </span>
       </div>
 
-      <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden mb-4">
+      <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden mb-3">
         <div
           className={`h-full rounded-full transition-all duration-500 ease-out ${
             sectionPercent === 100 ? "bg-emerald-400" : "bg-red-300"
@@ -356,7 +501,7 @@ const EmrSectionRenderer = ({
         hover:[&_.input-field]:border-slate-300
         focus-within:[&_.input-field]:!ring-2 focus-within:[&_.input-field]:ring-indigo-100 focus-within:[&_.input-field]:!border-indigo-400
         [&_.input-field-error]:text-[11px]
-        [&_.dynamic-form-grid]:grid-cols-2 sm:[&_.dynamic-form-grid]:grid-cols-3 lg:[&_.dynamic-form-grid]:grid-cols-4 [&_.dynamic-form-grid]:gap-x-4 [&_.dynamic-form-grid]:gap-y-4"
+        [&_.dynamic-form-grid]:grid-cols-2 sm:[&_.dynamic-form-grid]:grid-cols-3 lg:[&_.dynamic-form-grid]:grid-cols-4 [&_.dynamic-form-grid]:gap-x-4 [&_.dynamic-form-grid]:gap-y-3"
       >
         <DynamicFormRenderer blob={[cardSchema]} data={data} onDataChange={onDataChange} />
       </div>
