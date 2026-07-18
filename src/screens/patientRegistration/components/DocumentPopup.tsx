@@ -1,3 +1,4 @@
+import CentralPopup from "@/components/centralPopup";
 import CustomLoader from "@/components/customLoader";
 import { ErrorMessage } from "@/components/infoText";
 import ImageDownload from "@/components/SingledrawerAndPopup/components/ImageDownload";
@@ -6,7 +7,6 @@ import { ENDPOINTS } from "@/config/defaults";
 import { PatientDocumentTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { DOcumentListItem, PatientDocumentPayloadItem } from "../types";
 
 const DocumentPopup = ({
@@ -85,24 +85,15 @@ const DocumentPopup = ({
     });
   };
 
-  return createPortal(
-    <div className={`fixed inset-0 z-9999 ${isOpen ? "" : "pointer-events-none"}`}>
-      <div
-        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      />
-
-      <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw]  lg:min-w-250 ${isOpen ? "opacity-full" : ""}`}
+  return (
+    <>
+      <CentralPopup
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Patient Documents"
+        className="lg:min-w-200"
       >
-        <div className="popup-header">
-          <h2 className="popup-helper-text">Patient Documents</h2>
-          <button onClick={onClose} className="close-drawer-btn">
-            ×
-          </button>
-        </div>
-
         {!!documentError && <ErrorMessage text={documentError} />}
-
         <div className="table-container">
           <div className="table-scroll-wrapper">
             <div className="table-size">
@@ -173,11 +164,9 @@ const DocumentPopup = ({
             </div>
           </div>
         </div>
-      </div>
-
+      </CentralPopup>
       {loading && <CustomLoader isLoading={loading} />}
-    </div>,
-    document.body
+    </>
   );
 };
 
