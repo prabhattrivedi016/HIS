@@ -54,6 +54,19 @@ const DynamicControl = ({
     return <Renderer schema={schema} value={value} onChange={handleChange} />;
   }
 
+  if (schema.type === "table") {
+    return (
+      <div className={wrapperClass}>
+        <Renderer
+          schema={effectiveSchema}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+      </div>
+    );
+  }
+
   if (schema.type === "switch") {
     return (
       <div className={wrapperClass}>
