@@ -187,7 +187,7 @@ const EmrSectionRenderer = ({
       { component: "EmrSectionRenderer", silent: true }
     );
     const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
-    const columns = raw.map((item, idx) => {
+    const columns: TableColumnSchema[] = raw.map((item, idx) => {
       const label = item?.headerName ?? "";
       const key = label ? String(label) : `col_${idx}`;
 
@@ -214,6 +214,16 @@ const EmrSectionRenderer = ({
           ...columns[complaintColIdx],
           dataTypeId: 5,
           options: complaintOptions,
+        };
+      }
+    }
+
+    if (isInvestigationHeader(headerName)) {
+      const serviceNameColIdx = columns.findIndex(c => /service\s*name/i.test(c.label));
+      if (serviceNameColIdx !== -1) {
+        columns[serviceNameColIdx] = {
+          ...columns[serviceNameColIdx],
+          asyncSearch: searchInvestigationOptions,
         };
       }
     }
@@ -395,6 +405,7 @@ const EmrSectionRenderer = ({
                 listEndpoint: ENDPOINTS.GET_CHIEF_COMPLAINT_MASTER_LIST,
                 idField: "complaintId",
                 nameField: "complaintName",
+                tableName: "ChiefComplaintMaster",
               }
             : undefined,
         orderSetConfig:

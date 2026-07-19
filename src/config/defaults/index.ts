@@ -422,7 +422,11 @@ const ENDPOINTS = {
 
   // doctor-wise favourite entries for any table-type EMR header
   GET_DOCTOR_FAVOURITE_TABLE_ENTRIES: "EMR/getDoctorFavouriteTableEntries",
-  SAVE_DOCTOR_FAVOURITE_TABLE_ENTRIES: "EMR/saveDoctorFavouriteTableEntries",
+  SAVE_DOCTOR_FAVOURITE_TABLE_ENTRY: "EMR/saveDoctorFavouriteTableEntry",
+  DELETE_DOCTOR_FAVOURITE_TABLE_ENTRY: "EMR/deleteDoctorFavouriteTableEntry",
+
+  // generic delete of a single record from any named master table
+  DELETE_RECORD_BY_TABLE_NAME: "EMR/deleteRecordByTableName",
 
   // order sets (named groups of table rows a doctor can bulk-add at once, e.g. investigation panels)
   GET_INVESTIGATION_ORDER_SET_LIST: "EMR/getInvestigationOrderSetList",

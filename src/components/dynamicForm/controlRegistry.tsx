@@ -1,6 +1,7 @@
 import TextEditor from "@/components/ckEditor";
 import { SelectStyles } from "@/components/customSelect";
 import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
+import { showWarning } from "@/utils/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
@@ -382,6 +383,42 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     onChange(nextRows);
   };
 
+  // the record id (e.g. complaintId) can live either directly under masterEntryConfig.idField
+  // (rows added via the "Add entry" drawer) or under `__<nameColumnKey>Id` (rows where the
+  // name column's dropdown was picked inline — see handleCellChange)
+  const resolveRecordId = (row: Record<string, unknown>) => {
+    if (!schema.masterEntryConfig) return undefined;
+    const direct = row[schema.masterEntryConfig.idField];
+    if (direct !== undefined) return direct;
+    const nameColKey = columns[0]?.key;
+    return nameColKey ? row[`__${nameColKey}Id`] : undefined;
+  };
+
+  // duplicate check against the name column (e.g. "Complaints") only — Duration/Severity etc.
+  // can legitimately differ between two entries of the same name, so only the name matters here
+  const nameColumnKey = columns[0]?.key;
+  const isDuplicateName = (value: unknown) => {
+    if (!nameColumnKey) return false;
+    const candidate = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!candidate) return false;
+    return rows.some(row => String(row[nameColumnKey] ?? "").trim().toLowerCase() === candidate);
+  };
+
+  // same-name check against the doctor's existing favourites (not just the current rows) so a
+  // second row with the same name can't be favourited as a duplicate entry
+  const isDuplicateFavorite = (value: unknown) => {
+    if (!nameColumnKey) return false;
+    const candidate = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!candidate) return false;
+    return doctorFavorites.some(
+      f => String(f[nameColumnKey] ?? "").trim().toLowerCase() === candidate
+    );
+  };
+
   const handleAddRow = () => {
     focusRowIndexRef.current = rows.length;
     onChange([...rows, {}]);
@@ -391,30 +428,59 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
   const handleToggleFavorite = (rowIndex: number) => {
     const row = rows[rowIndex];
     const isFavoriting = !row.__favorite;
+
+    if (isFavoriting && isDuplicateFavorite(row[nameColumnKey ?? ""])) {
+      showWarning(`${columns[0]?.label ?? "This entry"} is already in favourites`);
+      return;
+    }
+
     onChange(rows.map((r, idx) => (idx === rowIndex ? { ...r, __favorite: isFavoriting } : r)));
 
     const entry: Record<string, unknown> = {};
     Object.keys(row).forEach(key => {
       if (key !== "__favorite") entry[key] = row[key];
     });
-    const recordId = schema.masterEntryConfig ? row[schema.masterEntryConfig.idField] : undefined;
-    setDoctorFavorite(entry, isFavoriting, recordId);
+    setDoctorFavorite(entry, isFavoriting, resolveRecordId(row));
   };
   const handleAddFromFavorite = (favoriteRow: Record<string, unknown>) => {
+    if (isDuplicateName(favoriteRow[nameColumnKey ?? ""])) {
+      showWarning(`${columns[0]?.label ?? "This entry"} is already added`);
+      return;
+    }
+    // __recordId is favourites-list bookkeeping (see useDoctorFavourites) — strip it so it
+    // doesn't leak into the row and get re-saved if this row is favourited again later
+    const row: Record<string, unknown> = {};
+    Object.keys(favoriteRow).forEach(key => {
+      if (key !== "__recordId") row[key] = favoriteRow[key];
+    });
     focusRowIndexRef.current = rows.length;
-    onChange([...rows, favoriteRow]);
+    onChange([...rows, row]);
   };
   const handleRemoveDoctorFavorite = (entry: Record<string, unknown>) =>
-    setDoctorFavorite(
-      entry,
-      false,
-      schema.masterEntryConfig ? entry[schema.masterEntryConfig.idField] : undefined
-    );
+    setDoctorFavorite(entry, false, entry.__recordId);
+
   const handleSaveFromDrawer = (entry: Record<string, unknown>) => {
+    if (isDuplicateName(entry[nameColumnKey ?? ""])) {
+      showWarning(`${columns[0]?.label ?? "This entry"} is already added`);
+      return;
+    }
     onChange([...rows, entry]);
   };
   const handleApplyOrderSet = (newRows: Record<string, unknown>[]) => {
-    onChange([...rows, ...newRows]);
+    const seen = new Set<string>();
+    const toAdd = newRows.filter(row => {
+      const value = String(row[nameColumnKey ?? ""] ?? "")
+        .trim()
+        .toLowerCase();
+      if (!value || isDuplicateName(value) || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+
+    if (toAdd.length < newRows.length) {
+      showWarning("Some items were already in the list and were skipped");
+    }
+    if (toAdd.length > 0) onChange([...rows, ...toAdd]);
   };
 
   const handleCellKeyDown =

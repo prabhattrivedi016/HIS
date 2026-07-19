@@ -25,6 +25,8 @@ export interface TableColumnSchema {
   /** 1: Text Box, 2: Number, 3: Date Picker, 4: Text Area, 5: Dropdown */
   dataTypeId: number;
   options?: OptionSchema[];
+  /** when set, renders as a search-as-you-type text input instead of the dataTypeId default */
+  asyncSearch?: (query: string) => Promise<OptionSchema[]>;
 }
 
 export interface TableMasterEntryConfig {
@@ -36,6 +38,8 @@ export interface TableMasterEntryConfig {
   idField: string;
   /** backend field name for the entity's name, e.g. "complaintName" */
   nameField: string;
+  /** backend table name, passed to DELETE_RECORD_BY_TABLE_NAME to delete a row from this master */
+  tableName: string;
 }
 
 export interface TableOrderSetConfig {
