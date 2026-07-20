@@ -495,6 +495,9 @@ const ENDPOINTS = {
   GET_BILL_FOR_CREDIT_NOTE: "Patient/getBillForCreditNote",
   GET_BILL_DETAILS_FOR_CREDIT_NOTE: "Patient/getBillDetailsForCreditNote",
   SAVE_CREDIT_NOTE_REQUEST_APPROVAL: "Patient/saveCreditNoteRequestApproval",
+  GET_BILL_FOR_WRITE_OFF: "Patient/getBillForWriteOff",
+  GET_BILL_DETAILS_FOR_WRITE_OFF: "Patient/getBillDetailsForWriteOff",
+  SAVE_WRITE_OFF_REQUEST_APPROVAL: "Patient/saveWriteOffRequestApproval",
 };
 
 export { ENDPOINTS };
