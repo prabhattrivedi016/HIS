@@ -67,6 +67,7 @@ import UserMaster from "../userMaster";
 import UserWiseDiscountMaster from "../userWiseDiscountMaster";
 import VendorMaster from "../vendorMaster";
 import VitalMaster from "../vitalmaster";
+import WriteOff from "../writeOff";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
@@ -137,4 +138,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-refund-payment": <OPRefundPayment />,
   "bill-receipt-reprint": <BillReceiptReprint />,
   "credit-note": <CreditNoteWriteOff />,
+  "write-off": <WriteOff />,
 };

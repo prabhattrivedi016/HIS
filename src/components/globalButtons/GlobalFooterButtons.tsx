@@ -23,6 +23,8 @@ const GlobalFooterButtons = ({
   const isCreditNoteApprovalRequired =
     Number(branchRights?.IsCreditNoteApprovalRequired) === 1 ? 1 : 0;
 
+  const isWiteOffApprovalRequired = Number(branchRights?.IsWriteOffApprovalRequired) === 1 ? 1 : 0;
+
   // "Save As Draft" is only applicable to OPD Billing; IPD admission always uses the plain "Save".
   //   const showSaveAsDraft =
   //     (pageType === PageType?.OPD_BILLING &&
@@ -77,6 +79,7 @@ const GlobalFooterButtons = ({
           <></>
         )}
 
+        {/* credit note */}
         {pageType === PageType?.CREDIT_NOTE && isCreditNoteApprovalRequired ? (
           <button
             type="button"
@@ -86,6 +89,24 @@ const GlobalFooterButtons = ({
             Send For Approval
           </button>
         ) : pageType === PageType?.CREDIT_NOTE ? (
+          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+            Save
+          </button>
+        ) : (
+          <></>
+        )}
+
+        {/* write off isWiteOffApprovalRequired */}
+
+        {pageType === PageType?.WRITE_OFF && isWiteOffApprovalRequired ? (
+          <button
+            type="button"
+            className="save-btn"
+            onClick={() => onButtonClick("sendForApproval")}
+          >
+            Send For Approval
+          </button>
+        ) : pageType === PageType?.WRITE_OFF ? (
           <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
             Save
           </button>
