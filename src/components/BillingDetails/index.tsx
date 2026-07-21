@@ -322,9 +322,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
       return paymentList.filter(
         p =>
-          Number(p.isExcludedFromPaymentList) !== 1 &&
-          (!selectedIds.includes(p.paymentModeId) ||
-            rows[currentIndex].paymentModeId === p.paymentModeId)
+          !selectedIds.includes(p.paymentModeId) ||
+          rows[currentIndex].paymentModeId === p.paymentModeId
       );
     };
 
@@ -725,10 +724,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
               ),
             };
           })
-          .filter(
-            mode =>
-              mode.paymentModeId > 0 && mode.paymentModeName && mode.isExcludedFromPaymentList !== 1
-          );
+          .filter(mode => mode.paymentModeId > 0 && mode.paymentModeName);
       };
 
       const getPaymentMethod = async () => {

@@ -106,6 +106,8 @@ export const handleButtonClick = ({
       break;
     }
 
+    case "toggleApproveCreditNote":
+    case "toggleCancelCreditNote":
     case "toggleApproveDiscount":
     case "toggleCancelDiscount":
     case "togglePaymentCollection":
@@ -114,6 +116,9 @@ export const handleButtonClick = ({
     }
 
     default:
+      if (onCustomButtonClick) {
+        return onCustomButtonClick(btnAction, id);
+      }
       break;
   }
 };

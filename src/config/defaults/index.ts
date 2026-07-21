@@ -495,9 +495,23 @@ const ENDPOINTS = {
   GET_BILL_FOR_CREDIT_NOTE: "Patient/getBillForCreditNote",
   GET_BILL_DETAILS_FOR_CREDIT_NOTE: "Patient/getBillDetailsForCreditNote",
   SAVE_CREDIT_NOTE_REQUEST_APPROVAL: "Patient/saveCreditNoteRequestApproval",
+  APPROVE_CREDIT_NOTE_REQUEST: "Patient/approveCreditNoteRequest",
+  CANCEL_CREDIT_NOTE_REQUEST: "Patient/cancelCreditNoteRequest",
+  COLLECT_CREDIT_NOTE_REQUEST: "Patient/collectCreditNoteRequest",
+  GET_CREDIT_NOTE_REQUEST_LIST_FOR_APPROVAL: "Patient/getCreditNoteRequestListForApproval",
+  GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID:
+    "Patient/getCreditNoteRequestDetailsByCreditNoteId",
+  GET_CREDIT_NOTE_REQUEST_APPROVAL_DETAILS: "Patient/getCreditNoteRequestApprovalDetails",
+  // write off
   GET_BILL_FOR_WRITE_OFF: "Patient/getBillForWriteOff",
   GET_BILL_DETAILS_FOR_WRITE_OFF: "Patient/getBillDetailsForWriteOff",
   SAVE_WRITE_OFF_REQUEST_APPROVAL: "Patient/saveWriteOffRequestApproval",
+  APPROVE_WRITE_OFF_REQUEST: "Patient/approveWriteOffRequest",
+  CANCEL_WRITE_OFF_REQUEST: "Patient/cancelWriteOffRequest",
+  COLLECT_WRITE_OFF_REQUEST: "Patient/collectWriteOffRequest",
+  GET_WRITE_OFF_REQUEST_LIST_FOR_APPROVAL: "Patient/getWriteOffRequestListForApproval",
+  GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID: "Patient/getWriteOffRequestDetailsByWriteOffId",
+  GET_WRITE_OFF_REQUEST_APPROVAL_DETAILS: "Patient/getWriteOffRequestApprovalDetails",
 };
 
 export { ENDPOINTS };
