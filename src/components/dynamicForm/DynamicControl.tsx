@@ -84,6 +84,22 @@ const DynamicControl = ({
     );
   }
 
+  // a schema with no label (e.g. the sole control in a section, whose section title already
+  // says the same thing) skips the label row entirely instead of rendering an empty one
+  if (!schema.label) {
+    return (
+      <div className={wrapperClass}>
+        <Renderer
+          schema={effectiveSchema}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+        {showError && <p className="input-field-error">{schema.errorMessage}</p>}
+      </div>
+    );
+  }
+
   return (
     <InputField
       label={schema.label}

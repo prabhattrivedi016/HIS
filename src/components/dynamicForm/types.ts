@@ -83,6 +83,13 @@ export interface ControlSchema {
   orderSetConfig?: TableOrderSetConfig;
   /** logged-in doctor, used by "table" controls to load/save doctor-wise favourite entries */
   doctorId?: number;
+  /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */
+  favouritesEnabled?: boolean;
+  /** "textarea"/"richtext" controls only — default false. Set true to show the "save as favourite" bar */
+  textFavouritesEnabled?: boolean;
+  /** "textarea" controls only — default false. Set true for a large, auto-growing textarea
+   * instead of the normal fixed-height one */
+  textLarge?: boolean;
 }
 
 export interface CardSchema {

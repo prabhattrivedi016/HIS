@@ -9,6 +9,7 @@ import {
   Check,
   History,
   Layers,
+  Pencil,
   Plus,
   Search as SearchIcon,
   Settings,
@@ -49,17 +50,189 @@ const TextControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) =>
   />
 );
 
-const TextareaControl = ({ schema, value, onChange, onBlur, rows }: ControlRenderProps) => (
-  <textarea
-    className={mergeClass("input-field resize-y min-h-[38px]", schema)}
-    rows={rows ?? 1}
-    placeholder={(schema.props?.placeholder as string) || "Type here…"}
-    required={schema.props?.required}
-    value={(value as string) ?? ""}
-    onChange={e => onChange(e.target.value)}
-    onBlur={onBlur}
-  />
-);
+/**
+ * Doctor-wise favourites for a long-text control (Textarea/RichText) — same generic
+ * useDoctorFavourites hook the "table" control already uses for row favourites, storing
+ * { text } entries instead of row data. Lets a doctor save a frequently-typed paragraph
+ * (e.g. a HOPI narrative) and re-insert it later instead of retyping it.
+ */
+const FavouriteTextBar = ({
+  schema,
+  value,
+  onChange,
+  isHtml,
+}: {
+  schema: ControlSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  isHtml?: boolean;
+}) => {
+  const headerId = Number(schema.key.replace(/^header_/, "")) || undefined;
+  const { favorites, setFavorite } = useDoctorFavourites(schema.doctorId, headerId);
+  const [showFavorites, setShowFavorites] = useState(true);
+  // the favourite currently being edited — re-saving updates this one in place instead of
+  // piling up a new favourite for every revision; cleared once the field is emptied out
+  const [activeFavouriteId, setActiveFavouriteId] = useState<unknown>(null);
+  const currentText = typeof value === "string" ? value : "";
+  const stripHtml = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  useEffect(() => {
+    if (!currentText.trim()) setActiveFavouriteId(null);
+  }, [currentText]);
+
+  const handleSaveFavourite = () => {
+    const trimmed = currentText.trim();
+    if (!trimmed) return;
+
+    const activeEntry = favorites.find(f => f.__recordId === activeFavouriteId);
+    if (activeEntry) {
+      // update the favourite this text came from instead of adding another one
+      setFavorite(activeEntry, false, activeEntry.__recordId);
+      setFavorite({ text: currentText }, true, activeEntry.__recordId);
+      return;
+    }
+
+    const isDuplicate = favorites.some(entry => String(entry.text ?? "").trim() === trimmed);
+    if (isDuplicate) {
+      showWarning("This text is already added to favourites");
+      return;
+    }
+    const newId = Date.now();
+    setFavorite({ text: currentText }, true, newId);
+    setActiveFavouriteId(newId);
+  };
+
+  const handleUseFavourite = (entry: Record<string, unknown>) => {
+    const favText = String(entry.text ?? "");
+    if (!favText) return;
+    const plainFavText = isHtml ? stripHtml(favText) : favText;
+    if (plainFavText && (isHtml ? stripHtml(currentText) : currentText).includes(plainFavText)) {
+      showWarning("This text is already in the note");
+      return;
+    }
+    const next = currentText.trim()
+      ? isHtml
+        ? `${currentText}${favText}`
+        : `${currentText}\n${favText}`
+      : favText;
+    onChange(next);
+    setActiveFavouriteId(entry.__recordId);
+  };
+
+  const handleRemoveFavourite = (entry: Record<string, unknown>) => {
+    setFavorite(entry, false, entry.__recordId);
+    if (entry.__recordId === activeFavouriteId) setActiveFavouriteId(null);
+  };
+
+  if (!schema.doctorId) return null;
+
+  return (
+    <div className="mb-1.5">
+      {/* toolbar — same circular icon-button style as the "table" control's favourites toggle */}
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={handleSaveFavourite}
+          title="Save current text as a favourite"
+          disabled={!currentText.trim()}
+          className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Plus size={14} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowFavorites(v => !v)}
+          title={showFavorites ? "Hide favourites" : "Show favourites"}
+          className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+            showFavorites
+              ? "bg-amber-50 border-amber-200 text-amber-500"
+              : "bg-white border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200"
+          }`}
+        >
+          <Star size={13} className={showFavorites ? "fill-amber-400" : ""} />
+        </button>
+      </div>
+
+      {/* favourites bar — same pill-chip layout/colors as the "table" control's favourites bar */}
+      {showFavorites && (
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-3 py-2 mt-1.5 rounded-lg border border-slate-100 bg-amber-50/30">
+          {favorites.length === 0 ? (
+            <span className="text-[12px] text-slate-400">No favourites saved yet</span>
+          ) : (
+            favorites.map((entry, idx) => {
+              const text = String(entry.text ?? "");
+              const preview = isHtml ? stripHtml(text) : text;
+              const label = preview.length > 40 ? `${preview.slice(0, 40)}…` : preview;
+              return (
+                <span
+                  key={idx}
+                  title={preview}
+                  className="flex items-center gap-1.5 shrink-0 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 text-[12px] font-medium rounded-full pl-1 pr-1.5 py-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleUseFavourite(entry)}
+                    className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full hover:bg-blue-100"
+                  >
+                    <Plus size={11} />
+                    {label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFavourite(entry)}
+                    className="flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:text-blue-700 hover:bg-blue-100"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TextareaControl = ({ schema, value, onChange, onBlur, rows }: ControlRenderProps) => {
+  const isLarge = schema.textLarge ?? false;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // large textareas grow with content instead of scrolling internally — resize-y is dropped
+  // since it would otherwise fight this on every keystroke. everything else stays a normal,
+  // fixed-height field like its sibling inputs, manually resizable if needed
+  useEffect(() => {
+    if (!isLarge) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value, isLarge]);
+
+  return (
+    <div>
+      {schema.textFavouritesEnabled && (
+        <FavouriteTextBar schema={schema} value={value} onChange={onChange} />
+      )}
+      <textarea
+        ref={textareaRef}
+        className={mergeClass(
+          isLarge
+            ? "input-field min-h-[160px] overflow-hidden !text-base"
+            : "input-field resize-y min-h-[38px]",
+          schema
+        )}
+        rows={rows ?? (isLarge ? 6 : 1)}
+        placeholder={(schema.props?.placeholder as string) || "Type here…"}
+        required={schema.props?.required}
+        value={(value as string) ?? ""}
+        onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+      />
+    </div>
+  );
+};
 
 const NumberControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => (
   <input
@@ -351,8 +524,15 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
   const [recentFirst, setRecentFirst] = useState(false);
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [orderSetMode, setOrderSetMode] = useState<"all" | "favourites" | null>(null);
+  // existing rows render read-only (plain text) until hovered/focused, so a long table of
+  // already-filled rows doesn't look like a wall of active inputs — a row just added always
+  // starts editable (forceEditableRowIndex) since there's nothing to "read" yet
+  const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
+  const [forceEditableRowIndex, setForceEditableRowIndex] = useState<number | null>(null);
+  const favouritesEnabled = schema.favouritesEnabled !== false;
   const { favorites: doctorFavorites, setFavorite: setDoctorFavorite } = useDoctorFavourites(
-    schema.doctorId,
+    favouritesEnabled ? schema.doctorId : undefined,
     headerId
   );
 
@@ -363,6 +543,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     containerRef.current
       ?.querySelector<HTMLElement>(`tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`)
       ?.focus();
+    setForceEditableRowIndex(null);
   }, [rows.length]);
 
   const handleCellChange = (rowIndex: number, columnKey: string, cellValue: unknown) => {
@@ -421,6 +602,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
 
   const handleAddRow = () => {
     focusRowIndexRef.current = rows.length;
+    setForceEditableRowIndex(rows.length);
     onChange([...rows, {}]);
   };
   const handleRemoveRow = (rowIndex: number) =>
@@ -454,6 +636,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
       if (key !== "__recordId") row[key] = favoriteRow[key];
     });
     focusRowIndexRef.current = rows.length;
+    setForceEditableRowIndex(rows.length);
     onChange([...rows, row]);
   };
   const handleRemoveDoctorFavorite = (entry: Record<string, unknown>) =>
@@ -505,10 +688,10 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
   return (
     <div
       ref={containerRef}
-      className={mergeClass("rounded-xl border border-slate-200 bg-white overflow-hidden", schema)}
+      className={mergeClass("rounded-xl border border-slate-200 bg-white/55 overflow-hidden", schema)}
     >
       {/* toolbar */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-3 gap-y-2 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
         <button
           type="button"
           onClick={() => (schema.masterEntryConfig ? setIsAddDrawerOpen(true) : handleAddRow())}
@@ -518,7 +701,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
           <Plus size={15} />
         </button>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={handleAddRow}
@@ -554,18 +737,20 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
             <Settings size={13} />
           </button>
 
-          <button
-            type="button"
-            onClick={() => setShowFavorites(v => !v)}
-            title={showFavorites ? "Hide favourites" : "Show favourites"}
-            className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
-              showFavorites
-                ? "bg-amber-50 border-amber-200 text-amber-500"
-                : "bg-white border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200"
-            }`}
-          >
-            <Star size={13} className={showFavorites ? "fill-amber-400" : ""} />
-          </button>
+          {favouritesEnabled && (
+            <button
+              type="button"
+              onClick={() => setShowFavorites(v => !v)}
+              title={showFavorites ? "Hide favourites" : "Show favourites"}
+              className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+                showFavorites
+                  ? "bg-amber-50 border-amber-200 text-amber-500"
+                  : "bg-white border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200"
+              }`}
+            >
+              <Star size={13} className={showFavorites ? "fill-amber-400" : ""} />
+            </button>
+          )}
 
           <button
             type="button"
@@ -603,7 +788,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
         </div>
       </div>
 
-      {showFavorites && (
+      {favouritesEnabled && showFavorites && (
         <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-3 py-2 border-b border-slate-100 bg-amber-50/30">
           {doctorFavorites.length === 0 ? (
             <span className="text-[12px] text-slate-400">No favourites saved yet</span>
@@ -654,37 +839,65 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map(({ row, originalIndex }) => (
-              <tr key={originalIndex} data-row-index={originalIndex} className="table-row">
-                {columns.map(col => (
-                  <td key={col.key} className="table-td">
-                    <TableFieldInput
-                      column={col}
-                      value={row[col.key]}
-                      onChange={v => handleCellChange(originalIndex, col.key, v)}
-                      onKeyDown={handleCellKeyDown(originalIndex)}
-                    />
+            {displayRows.map(({ row, originalIndex }) => {
+              const isEditable =
+                originalIndex === hoveredRowIndex ||
+                originalIndex === focusedRowIndex ||
+                originalIndex === forceEditableRowIndex;
+
+              return (
+                <tr
+                  key={originalIndex}
+                  data-row-index={originalIndex}
+                  className={`table-row ${isEditable ? "bg-blue-50/40" : ""}`}
+                  onMouseEnter={() => setHoveredRowIndex(originalIndex)}
+                  onMouseLeave={() =>
+                    setHoveredRowIndex(prev => (prev === originalIndex ? null : prev))
+                  }
+                  onFocus={() => setFocusedRowIndex(originalIndex)}
+                  onBlur={e => {
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                    setFocusedRowIndex(prev => (prev === originalIndex ? null : prev));
+                  }}
+                >
+                  {columns.map(col =>
+                    isEditable ? (
+                      <td key={col.key} className="table-td">
+                        <TableFieldInput
+                          column={col}
+                          value={row[col.key]}
+                          onChange={v => handleCellChange(originalIndex, col.key, v)}
+                          onKeyDown={handleCellKeyDown(originalIndex)}
+                        />
+                      </td>
+                    ) : (
+                      <td key={col.key} className="table-td text-gray-700">
+                        {String(row[col.key] ?? "").trim() || "—"}
+                      </td>
+                    )
+                  )}
+                  <td className="table-td table-action">
+                    <div className="flex items-center justify-center gap-2">
+                      {favouritesEnabled && (
+                        <button type="button" onClick={() => handleToggleFavorite(originalIndex)}>
+                          <Star
+                            size={14}
+                            className={
+                              row.__favorite
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-gray-300 hover:text-amber-400"
+                            }
+                          />
+                        </button>
+                      )}
+                      <button type="button" onClick={() => handleRemoveRow(originalIndex)}>
+                        <Trash2 size={14} className="text-gray-400 hover:text-gray-600" />
+                      </button>
+                    </div>
                   </td>
-                ))}
-                <td className="table-td table-action">
-                  <div className="flex items-center justify-center gap-2">
-                    <button type="button" onClick={() => handleToggleFavorite(originalIndex)}>
-                      <Star
-                        size={14}
-                        className={
-                          row.__favorite
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-gray-300 hover:text-amber-400"
-                        }
-                      />
-                    </button>
-                    <button type="button" onClick={() => handleRemoveRow(originalIndex)}>
-                      <Trash2 size={14} className="text-gray-400 hover:text-gray-600" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
             {displayRows.length === 0 && (
               <tr>
                 <td className="table-empty" colSpan={columns.length + 1}>
@@ -728,8 +941,13 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
   );
 };
 
-const RichTextControl = ({ value, onChange }: ControlRenderProps) => (
-  <TextEditor value={(value as string) ?? ""} onChange={onChange} />
+const RichTextControl = ({ schema, value, onChange }: ControlRenderProps) => (
+  <div>
+    {schema.textFavouritesEnabled && (
+      <FavouriteTextBar schema={schema} value={value} onChange={onChange} isHtml />
+    )}
+    <TextEditor value={(value as string) ?? ""} onChange={onChange} />
+  </div>
 );
 
 const DynamicContentControl = ({ schema }: ControlRenderProps) => (
@@ -738,6 +956,145 @@ const DynamicContentControl = ({ schema }: ControlRenderProps) => (
     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(schema.value ?? "") }}
   />
 );
+
+/**
+ * A section whose attributes are several plain (non-table) headers describing one repeatable
+ * record — e.g. Family History (Condition/Relationship/Sex/...). One shared entry form up top
+ * builds each entry; "+ Add Entry" turns the current form into a card below, then clears the
+ * form for the next one. Each card can be edited (reloads it into the form) or deleted.
+ */
+const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
+  const columns = schema.columns ?? [];
+  const entries: Record<string, unknown>[] = Array.isArray(value) ? (value as any) : [];
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const nameColumnKey = columns[0]?.key;
+
+  const resetForm = () => {
+    setFormValues({});
+    setEditingIndex(null);
+  };
+
+  const handleSave = () => {
+    if (nameColumnKey && !String(formValues[nameColumnKey] ?? "").trim()) {
+      showWarning(`${columns[0]?.label ?? "This field"} is required`);
+      return;
+    }
+    if (editingIndex === null) {
+      onChange([...entries, formValues]);
+    } else {
+      onChange(entries.map((entry, idx) => (idx === editingIndex ? formValues : entry)));
+    }
+    resetForm();
+  };
+
+  const handleEdit = (idx: number) => {
+    setFormValues(entries[idx]);
+    setEditingIndex(idx);
+  };
+
+  const handleDelete = (idx: number) => {
+    onChange(entries.filter((_, i) => i !== idx));
+    if (editingIndex === idx) resetForm();
+  };
+
+  if (columns.length === 0) {
+    return <p className="text-sm text-gray-400">No columns configured</p>;
+  }
+
+  return (
+    <div className={mergeClass("rounded-xl border border-slate-200 bg-white/55 overflow-hidden", schema)}>
+      {/* shared entry form — fills one record at a time */}
+      <div className="p-4 bg-white/40 border-b border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {columns.map(col => (
+            <div key={col.key}>
+              <label className="input-label">{col.label}</label>
+              <TableFieldInput
+                column={col}
+                value={formValues[col.key]}
+                onChange={v => setFormValues(prev => ({ ...prev, [col.key]: v }))}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <button type="button" onClick={handleSave} className="save-btn !w-auto !px-4 !py-2 !text-xs">
+            {editingIndex === null ? "+ Add Entry" : "Update Entry"}
+          </button>
+          {editingIndex !== null && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="cancel-button !w-auto !px-4 !py-2 !text-xs"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* saved entries — one card per record */}
+      {entries.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-6">No entries added yet</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+          {entries.map((entry, idx) => (
+            // deliberately not the shared ".card" class — EmrSectionRenderer strips ".card"
+            // styling (bg/border/shadow/padding) for the outer per-section wrapper, and that
+            // override would otherwise reach these nested entry cards too
+            <div
+              key={idx}
+              className={`relative w-full bg-white border rounded-xl shadow-sm hover:shadow-md overflow-hidden transition-all ${
+                editingIndex === idx ? "border-indigo-300 ring-2 ring-indigo-100" : "border-slate-200"
+              }`}
+            >
+              <div className="h-1 bg-gradient-to-r from-indigo-500 to-blue-400" />
+              <div className="p-3.5">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h4 className="text-[13px] font-bold text-slate-800 truncate">
+                    {String(entry[nameColumnKey ?? ""] ?? `Entry ${idx + 1}`)}
+                  </h4>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(idx)}
+                      title="Edit entry"
+                      className="flex items-center justify-center w-6 h-6 rounded-full text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(idx)}
+                      title="Delete entry"
+                      className="flex items-center justify-center w-6 h-6 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+                <dl className="flex flex-col gap-1">
+                  {columns.slice(1).map(col => {
+                    const v = entry[col.key];
+                    if (v === undefined || v === null || String(v).trim() === "") return null;
+                    return (
+                      <div key={col.key} className="flex items-baseline gap-1.5 text-[12px] leading-snug">
+                        <dt className="text-slate-400 font-medium shrink-0">{col.label}:</dt>
+                        <dd className="text-slate-700 truncate">{String(v)}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   text: TextControl,
@@ -754,6 +1111,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   dynamicContent: DynamicContentControl,
   "multiselect-search": MultiSelectSearchControl,
   table: TableControl,
+  "card-group": CardGroupControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;
