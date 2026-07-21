@@ -111,13 +111,19 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
     const getPaymentModeById = (paymentModeId: number | null) =>
       paymentList.find(item => Number(item.paymentModeId) === Number(paymentModeId));
 
-    const isCashMode = (paymentModeId: number | null) =>
-      getPaymentModeById(paymentModeId)?.paymentModeName?.toLowerCase() === "cash";
-
-    const isCardMode = (paymentModeId: number | null) => {
-      const modeName = getPaymentModeById(paymentModeId)?.paymentModeName?.toLowerCase() ?? "";
-      return modeName.includes("credit") || modeName.includes("debit");
+    const isCashMode = (paymentModeId: number | null) => {
+      const mode = getPaymentModeById(paymentModeId);
+      return (
+        mode?.paymentModeName?.toLowerCase() === "cash" ||
+        mode?.payModeType?.toLowerCase() === "cash"
+      );
     };
+
+    const shouldShowBankField = (paymentModeId: number | null) =>
+      Number(getPaymentModeById(paymentModeId)?.showBankField) === 1;
+
+    const shouldShowReferenceField = (paymentModeId: number | null) =>
+      Number(getPaymentModeById(paymentModeId)?.showReferenceNumberField) === 1;
 
     const showPaymentAmountExceededWarning = useCallback(() => {
       showError("Total refund payment amount cannot exceed Net Amount");
@@ -162,9 +168,21 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
       updatedRows[index] = {
         ...updatedRows[index],
         paymentModeId: value || null,
-        bankId: null,
-        refNo: value && isCashMode(value) ? "" : updatedRows[index].refNo,
+        bankId: value && shouldShowBankField(value) ? updatedRows[index].bankId : null,
+        refNo: value && shouldShowReferenceField(value) ? updatedRows[index].refNo : "",
       };
+
+      if (value && toNumber(updatedRows[index].amount) === 0) {
+        const otherTotal = updatedRows.reduce(
+          (sum, row, rowIndex) => (rowIndex === index ? sum : sum + toNumber(row.amount)),
+          0
+        );
+        const remaining = Math.max(0, toNumber(billingValues.netAmount) - otherTotal);
+        if (remaining > 0) {
+          updatedRows[index] = { ...updatedRows[index], amount: String(remaining) };
+        }
+      }
+
       setRows(updatedRows);
     };
 
@@ -173,8 +191,9 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
 
       return paymentList.filter(
         mode =>
-          !selectedIds.includes(mode.paymentModeId) ||
-          rows[currentIndex].paymentModeId === mode.paymentModeId
+          Number(mode.isExcludedFromPaymentList) !== 1 &&
+          (!selectedIds.includes(mode.paymentModeId) ||
+            rows[currentIndex].paymentModeId === mode.paymentModeId)
       );
     };
 
@@ -226,12 +245,12 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
           hasError = true;
         }
 
-        if (!isCashMode(row.paymentModeId) && !String(row.refNo).trim()) {
+        if (shouldShowReferenceField(row.paymentModeId) && !String(row.refNo).trim()) {
           errors.refNo = "Reference no. required";
           hasError = true;
         }
 
-        if (isCardMode(row.paymentModeId) && !row.bankId) {
+        if (shouldShowBankField(row.paymentModeId) && !row.bankId) {
           errors.bankId = "Bank required for card";
           hasError = true;
         }
@@ -290,17 +309,19 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
     const getPaymentPayload = useCallback(
       () =>
         rows
-          .filter(row => Number(row.amount) > 0 && !!row.paymentModeId)
+          .filter(row => {
+            if (!(Number(row.amount) > 0 && !!row.paymentModeId)) return false;
+            const selectedMode = paymentList.find(p => p.paymentModeId === row.paymentModeId);
+            return Number(selectedMode?.isExcludedFromPaymentList) !== 1;
+          })
           .map(row => {
             const selectedMode = paymentList.find(p => p.paymentModeId === row.paymentModeId);
             return {
               paymentModeId: Number(row.paymentModeId) || 0,
-              paymentModeTypeId: Number(
-                selectedMode?.payModeTypeId ?? selectedMode?.paymentModeTypeId ?? 0
-              ),
+              paymentModeTypeId: Number(selectedMode?.payModeTypeId ?? 0),
               amount: Number(row.amount) || 0,
-              bankId: Number(row.bankId) || 0,
-              refNo: String(row.refNo ?? ""),
+              bankId: shouldShowBankField(row.paymentModeId) ? Number(row.bankId) || 0 : 0,
+              refNo: shouldShowReferenceField(row.paymentModeId) ? String(row.refNo ?? "") : "",
               isCopaymentReceipt: 0,
               isPatientAdvanceAmount: 0,
               plutusTransactionReferenceID: "",
@@ -311,7 +332,7 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
     );
 
     const reset = useCallback(() => {
-      const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
+      const cash = paymentList.find(p => p.paymentModeName?.toLowerCase() === "cash");
       setRows([
         {
           paymentModeId: cash?.paymentModeId ?? null,
@@ -381,7 +402,8 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
     useEffect(() => {
       if (!showPaymentMode || !paymentList.length) return;
 
-      const cash = paymentList.find(p => p.paymentModeName.toLowerCase() === "cash");
+      const cash =
+        paymentList.find(p => p.paymentModeName?.toLowerCase() === "cash") ?? paymentList[0];
       if (!cash) return;
 
       const targetAmount =
@@ -401,6 +423,14 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
 
         if (prev.length === 1 && prev[0].paymentModeId === cash.paymentModeId) {
           return prev[0].amount === targetAmount ? prev : [{ ...prev[0], amount: targetAmount }];
+        }
+
+        if (
+          prev.length === 1 &&
+          toNumber(prev[0].amount) === 0 &&
+          toNumber(billingValues.netAmount) > 0
+        ) {
+          return [{ ...prev[0], amount: targetAmount }];
         }
 
         return prev;
@@ -434,24 +464,75 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
       getBanks();
     }, []);
 
+    const normalizePaymentModes = (payload: unknown): PaymentItems[] => {
+      const list = Array.isArray(payload)
+        ? payload
+        : payload &&
+            typeof payload === "object" &&
+            Array.isArray((payload as Record<string, unknown>).data)
+          ? ((payload as Record<string, unknown>).data as unknown[])
+          : [];
+
+      return list
+        .map((mode: unknown) => {
+          const source = (mode ?? {}) as Record<string, unknown>;
+          return {
+            paymentModeId: Number(source.paymentModeId ?? source.PaymentModeId ?? 0),
+            paymentModeName: String(source.paymentModeName ?? source.PaymentModeName ?? ""),
+            payModeType: String(source.payModeType ?? source.PayModeType ?? ""),
+            payModeTypeId: Number(source.payModeTypeId ?? source.PayModeTypeId ?? 0),
+            showBankField: Number(source.showBankField ?? source.ShowBankField ?? 0),
+            showReferenceNumberField: Number(
+              source.showReferenceNumberField ?? source.ShowReferenceNumberField ?? 0
+            ),
+            isExcludedFromPaymentList: Number(
+              source.isExcludedFromPaymentList ?? source.IsExcludedFromPaymentList ?? 0
+            ),
+          };
+        })
+        .filter(
+          mode =>
+            mode.paymentModeId > 0 && mode.paymentModeName && mode.isExcludedFromPaymentList !== 1
+        );
+    };
+
     useEffect(() => {
-      if (!showPaymentMode || !corporateId) {
+      if (!showPaymentMode) {
         setPaymentList([]);
         return;
       }
 
+      let isActive = true;
+      const resolvedCorporateId = Number(corporateId) || 1;
+
       const getPaymentMethods = async () => {
-        const resp = await fetchApi(
-          "GET",
-          ENDPOINTS.GET_CORPORATE_PAYMENT_MODES,
-          {},
-          { params: { corporateId, isRefundPaymentModes: 1 } },
-          { component: "RefundBillingDetails" }
-        );
-        setPaymentList(resp?.data ?? []);
+        const fetchModes = async (isRefundPaymentModes: number) => {
+          const resp = await fetchApi(
+            "GET",
+            ENDPOINTS.GET_CORPORATE_PAYMENT_MODES,
+            {},
+            { params: { corporateId: resolvedCorporateId, isRefundPaymentModes } },
+            { component: "RefundBillingDetails" }
+          );
+          return normalizePaymentModes(resp?.data ?? []);
+        };
+
+        // Prefer refund-allowed corporate modes; if none, use all corporate payment modes.
+        let modes = await fetchModes(1);
+        if (!modes.length) {
+          modes = await fetchModes(0);
+        }
+
+        if (isActive) {
+          setPaymentList(modes);
+        }
       };
 
       void getPaymentMethods();
+
+      return () => {
+        isActive = false;
+      };
     }, [corporateId, showPaymentMode]);
 
     const renderPaymentCellError = (message?: string) => (
@@ -583,7 +664,7 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
                             <td className="align-top">
                               <div className="billing-payment-cell">
                                 <select
-                                  className="input-field max-w-40 mt-2 ml-1"
+                                  className="input-field max-w-30 mt-2 ml-1"
                                   value={row.paymentModeId ?? ""}
                                   onChange={e => handlePaymentChange(index, Number(e.target.value))}
                                 >
@@ -601,7 +682,7 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
                             <td className="align-top">
                               <div className="billing-payment-cell">
                                 <input
-                                  className="input-field max-w-30 mt-2"
+                                  className="input-field max-w-20 mt-2"
                                   placeholder="Amount"
                                   value={row.amount}
                                   onInput={allowOnlyNumbers}
@@ -615,9 +696,9 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
 
                             <td className="align-top">
                               <div className="billing-payment-cell">
-                                {isCardMode(row.paymentModeId) ? (
+                                {shouldShowBankField(row.paymentModeId) ? (
                                   <select
-                                    className="input-field max-w-30 mt-2 ml-1"
+                                    className="input-field max-w-20 mt-2 ml-1"
                                     value={row.bankId ?? ""}
                                     onChange={e =>
                                       handleRowValueChange(
@@ -643,9 +724,9 @@ const RefundBillingDetails = forwardRef<BillingDetailsHandle, RefundBillingDetai
 
                             <td className="align-top">
                               <div className="billing-payment-cell">
-                                {!isCashMode(row.paymentModeId) ? (
+                                {shouldShowReferenceField(row.paymentModeId) ? (
                                   <input
-                                    className="input-field max-w-40 mt-2 ml-2"
+                                    className="input-field max-w-20 mt-2 ml-2"
                                     placeholder="Reference Number"
                                     value={row.refNo}
                                     onChange={e =>

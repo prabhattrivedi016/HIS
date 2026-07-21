@@ -4,31 +4,39 @@ import { openReceiptInNewTab } from "@/screens/opdBilling/components/OpdReceiptN
 import { PatientReceiptItem, PaymentModeItem } from "@/screens/opdBilling/types";
 
 type FetchApiFn = (
-  ...args: Parameters<
-    ReturnType<typeof import("@/hooks/useGlobalApi").default>["fetchApi"]
-  >
+  ...args: Parameters<ReturnType<typeof import("@/hooks/useGlobalApi").default>["fetchApi"]>
 ) => ReturnType<ReturnType<typeof import("@/hooks/useGlobalApi").default>["fetchApi"]>;
 
 export const fetchOpdRefundReceiptData = async (
   fetchApi: FetchApiFn,
   responseData: Record<string, unknown>
 ) => {
+  console.log("responseData of opd refund receipt utils", responseData);
   const ftid = Number(
     responseData.ftid ?? responseData.FtId ?? responseData.FTDId ?? responseData.FtdId ?? 0
   );
   const resolvedVisitId =
     resolveVisitIdFromResponse(responseData) ||
     Number(responseData.visitId ?? responseData.VisitId ?? 0);
-  const receiptId = Number(responseData.receiptId ?? responseData.ReceiptId ?? 0);
+  const receiptId = Number(responseData.receiptId ?? responseData.receiptId ?? 0);
+  console.log("receiptId", receiptId);
   const isReceipt =
     responseData?.isReceipt === true || Number(responseData?.isReceipt ?? 0) === 1 ? 1 : 0;
+
+  console.log("isReceipt", isReceipt);
 
   const [receiptResult, paymentResult] = await Promise.allSettled([
     fetchApi(
       "GET",
       ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
       {},
-      { params: { ftid, isReceipt, receiptId } },
+      {
+        params: {
+          ftid: Number(responseData?.ftid ?? 0),
+          isReceipt: Number(responseData?.receiptId ?? 0) > 0 ? 1 : 0,
+          receiptId: Number(responseData?.receiptId ?? 0),
+        },
+      },
       { component: "OpdRefund" }
     ),
     fetchApi(
@@ -42,7 +50,8 @@ export const fetchOpdRefundReceiptData = async (
 
   const receiptData: PatientReceiptItem[] =
     receiptResult.status === "fulfilled"
-      ? (((receiptResult.value as { data?: PatientReceiptItem[] })?.data ?? []) as PatientReceiptItem[])
+      ? (((receiptResult.value as { data?: PatientReceiptItem[] })?.data ??
+          []) as PatientReceiptItem[])
       : [];
 
   const paymentModes: PaymentModeItem[] =

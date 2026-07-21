@@ -11,17 +11,18 @@ type BankItems = {
   lastModifiedOn: string;
 };
 
-type PaymentItems = {
+type PaymentModeItems = {
   paymentModeId: number;
   paymentModeName: string;
   payModeType: string;
-  // API responses currently use mixed keys across modules.
-  // Keep both to avoid runtime/type mismatches.
-  payModeTypeId?: number;
-  paymentModeTypeId?: number;
-  isRefundAllowed: number;
-  isActive: number;
+  payModeTypeId: number;
+  showBankField: number;
+  showReferenceNumberField: number;
+  isExcludedFromPaymentList: number;
 };
+
+/** @deprecated Use PaymentModeItems — kept as alias for refund billing. */
+type PaymentItems = PaymentModeItems;
 
 type DiscountApproveItem = {
   id: number;
@@ -137,4 +138,5 @@ export type {
   PaymentItems,
   PaymentMethodPayloadItem,
   PaymentMethodsHandle,
+  PaymentModeItems,
 };

@@ -524,6 +524,7 @@ const ENDPOINTS = {
   PAYMENT_COLLECTED_FOR_OPD_REFUND_REQUEST: "Patient/paymentCollectedForOPDRefundRequest",
   CANCEL_OPD_REFUND_REQUEST: "Patient/cancelOPDRefundRequest",
   APPROVE_OPD_REFUND_REQUEST: "Patient/approveOPDRefundRequest",
+  PAYMENT_OPD_REFUND_REQUEST: "Patient/paymentOPDRefundRequest",
 };
 
 export { ENDPOINTS };

@@ -7,6 +7,7 @@ type BillToRefundItem = {
   BillDate: string;
   TotalBillAmount: number;
   TotalPaidAmount: number;
+  PatientName: string;
 };
 
 type BillDetailsToRefundItem = {
@@ -15,6 +16,7 @@ type BillDetailsToRefundItem = {
   PatientName: string;
   PatientId: number;
   DOB: string;
+  Age?: string;
   ReferDoctorId: number | null;
   CorporateName: string;
   DoctorName: string;
@@ -158,6 +160,7 @@ type BuildOpdRefundSavePayloadArgs = {
   branchId: number;
   roleId: number;
   fetchPackageServices: (visitId: number, serviceItemId: number) => Promise<unknown[]>;
+  currentAgeFallback?: string;
 };
 
 export type {
@@ -168,8 +171,8 @@ export type {
   OpdRefundItemPayload,
   OpdRefundPaymentDetailPayload,
   OpdRefundRequestApprovalPayload,
-  OpdRefundRequestBillingItemPayload,
   OpdRefundRequestApprovalVisitDetailsPayload,
+  OpdRefundRequestBillingItemPayload,
   OpdRefundSavePayload,
   OpdRefundVisitDetailsPayload,
 };

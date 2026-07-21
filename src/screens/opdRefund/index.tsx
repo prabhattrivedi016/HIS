@@ -18,7 +18,8 @@ import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { formatApiValidationMessage } from "@/utils/errorUtils";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { markOpRefundPaymentRefreshOnReturn } from "../opRefundPayment/utils/opRefundPaymentStateRef";
 import OpdRefundMultipleBillPopup from "./components/OpdRefundMultipleBillPopup";
 import { BillDetailsToRefundItem, BillToRefundItem } from "./types";
 import { fetchAndPrintOpdRefundReceiptAfterSave } from "./utils/opdRefundReceiptUtils";
@@ -28,6 +29,8 @@ import {
   calculateRefundBillingTotals,
   getRefundDiscountAmount,
   getRefundNetAmount,
+  mapRefundRequestDetailsToBillRows,
+  mergeRefundQtyOntoBillDetails,
   resolveCurrentAge,
 } from "./utils/opdRefundUtils";
 
@@ -46,13 +49,31 @@ const defaultBillingValues: BillingValuesItem = {
 
 const OpdRefund = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = (location.state ?? {}) as {
+    refundId?: number;
+    visitId?: number;
+    tokenNo?: string;
+    uhid?: string;
+    patientId?: number;
+    patientName?: string;
+    age?: string;
+    fromRefundPayment?: boolean;
+  };
+
+  const refundPaymentRefundId = Number(locationState.refundId) || 0;
+  const isRefundPaymentMode = Boolean(locationState.fromRefundPayment) && refundPaymentRefundId > 0;
+
   const { rights: branchRights } = useAssignBranchRight();
-  const isRefundApprovalRequired = Number(branchRights?.IsOPDRefundApprovalRequired) === 1;
+  const isRefundApprovalRequired =
+    !isRefundPaymentMode && Number(branchRights?.IsOPDRefundApprovalRequired) === 1;
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
   const roleId = Number(useContext(RoleContext)?.roleId ?? 2);
 
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const [formResetKey, setFormResetKey] = useState(0);
+  const refundPaymentInitRef = useRef(false);
 
   const [patientDetails, setPatientDetails] = useState({
     UHID: "",
@@ -71,7 +92,8 @@ const OpdRefund = () => {
   const [searchFormQuery, setSearchFormQuery] = useState({
     receiptNo: "",
     billNo: "",
-    uhid: "",
+    uhid: locationState.uhid ?? "",
+    patientName: "",
   });
   const [billingValues, setBillingValues] = useState<BillingValuesItem>(defaultBillingValues);
   const [billingPaymentDetails, setBillingPaymentDetails] = useState({
@@ -86,8 +108,6 @@ const OpdRefund = () => {
   const [patientReceiptDetails, setPatientReceiptDetails] = useState<PatientReceiptItem[]>([]);
   const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
   const [totalPaidAmount, setTotalPaidAmount] = useState(0);
-  const [isOpenPopup, setIsOpenPopup] = useState(false);
-  const [renderPopup, setRenderPopup] = useState(false);
 
   const getOpdPackageServices = useCallback(async (visitId: number, serviceItemId: number) => {
     const resp = await fetchApi(
@@ -122,11 +142,47 @@ const OpdRefund = () => {
     });
   }, []);
 
+  const applyRefundRowsToScreen = useCallback(
+    (rows: BillDetailsToRefundItem[], bill?: BillToRefundItem | null) => {
+      const headerRow = rows[0]
+        ? {
+            ...rows[0],
+            Age: rows[0].Age || locationState.age || "",
+            PatientName: rows[0].PatientName || locationState.patientName || "",
+            UHID: rows[0].UHID || locationState.uhid || bill?.UHID || "",
+          }
+        : null;
+
+      const nextRows = headerRow && rows.length > 0 ? [headerRow, ...rows.slice(1)] : rows;
+
+      setPatientDetails({
+        UHID: headerRow?.UHID || bill?.UHID || locationState.uhid || "",
+        PatientName: headerRow?.PatientName || locationState.patientName || "",
+        DOB: headerRow?.DOB || "",
+        currentAge: resolveCurrentAge(headerRow ?? undefined) || locationState.age || "",
+        CorporateName: headerRow?.CorporateName || "",
+        BillNo: headerRow?.BillNo || bill?.BillNo || "",
+        BillDate: headerRow?.BillDate || bill?.BillDate || "",
+      });
+      setPatientBillDetailsToRefund(nextRows);
+      calculateAndUpdateBillingDetails(nextRows);
+      billingDetailsRef.current?.reset?.();
+      setFormResetKey(prev => prev + 1);
+    },
+    [
+      calculateAndUpdateBillingDetails,
+      locationState.age,
+      locationState.patientName,
+      locationState.uhid,
+    ]
+  );
+
   const resetRefundScreen = useCallback(() => {
     setSearchFormQuery({
       receiptNo: "",
       billNo: "",
       uhid: "",
+      patientName: "",
     });
     setPatientBillDetailsToRefund([]);
     setSelectedBillToRefund(null);
@@ -154,6 +210,47 @@ const OpdRefund = () => {
     setTotalPaidAmount(0);
   }, []);
 
+  const resetFormAndClearNavigation = useCallback(
+    (fromRefundPayment = false) => {
+      resetRefundScreen();
+
+      if (fromRefundPayment) {
+        markOpRefundPaymentRefreshOnReturn();
+        navigate("/op-refund-payment", { replace: true });
+        return;
+      }
+
+      navigate("/opd-refund", { replace: true, state: null });
+    },
+    [navigate, resetRefundScreen]
+  );
+
+  const markRefundPaymentCollected = useCallback(async (refundId: number) => {
+    console.log("refundId", refundId);
+    const payload = { refundId: Number(refundId) };
+    console.log("params", payload);
+
+    const paymentCollectedResp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.PAYMENT_OPD_REFUND_REQUEST,
+      payload,
+      {},
+      { component: "OpdRefund" }
+    );
+
+    if (!paymentCollectedResp?.result) {
+      showError(
+        formatApiValidationMessage(
+          paymentCollectedResp,
+          paymentCollectedResp?.message || "Failed to mark refund payment as collected"
+        )
+      );
+      return false;
+    }
+
+    return true;
+  }, []);
+
   const saveOpdRefundBilling = useCallback(async () => {
     const hasRefundQty = patientBillDetailsToRefund.some(item => Number(item.RefundQty ?? 0) > 0);
     if (!hasRefundQty) {
@@ -172,15 +269,33 @@ const OpdRefund = () => {
       ? (billingPayload.payments as Array<Record<string, unknown>>)
       : [];
 
+    const headerItem = patientBillDetailsToRefund[0]
+      ? {
+          ...patientBillDetailsToRefund[0],
+          Age:
+            patientBillDetailsToRefund[0].Age ||
+            patientDetails.currentAge ||
+            locationState.age ||
+            "",
+          DOB: patientBillDetailsToRefund[0].DOB || patientDetails.DOB || "",
+        }
+      : null;
+
     const payload = await buildOpdRefundSavePayload({
-      headerItem: patientBillDetailsToRefund[0] ?? null,
+      headerItem,
       refundRows: patientBillDetailsToRefund,
       billingValues,
       payments: paymentList,
       branchId,
       roleId,
       fetchPackageServices: getOpdPackageServices,
+      currentAgeFallback: patientDetails.currentAge || locationState.age || "",
     });
+
+    if (!payload.visitDetails.currentAge) {
+      showWarning("Patient age is required to save refund payment.");
+      return;
+    }
 
     if (!payload.refundItems.length) {
       showWarning("Please enter refund quantity for at least one service.");
@@ -217,6 +332,11 @@ const OpdRefund = () => {
       return;
     }
 
+    if (isRefundPaymentMode) {
+      const marked = await markRefundPaymentCollected(refundPaymentRefundId);
+      if (!marked) return;
+    }
+
     await showSuccess(resp?.message ?? "OPD refund saved successfully.");
 
     const printed = await fetchAndPrintOpdRefundReceiptAfterSave(
@@ -234,15 +354,21 @@ const OpdRefund = () => {
     }
 
     window.setTimeout(() => {
-      resetRefundScreen();
+      resetFormAndClearNavigation(isRefundPaymentMode);
     }, 300);
   }, [
     billingValues,
     branchId,
     fetchApi,
     getOpdPackageServices,
+    isRefundPaymentMode,
+    locationState.age,
+    markRefundPaymentCollected,
     patientBillDetailsToRefund,
-    resetRefundScreen,
+    patientDetails.DOB,
+    patientDetails.currentAge,
+    refundPaymentRefundId,
+    resetFormAndClearNavigation,
     roleId,
   ]);
 
@@ -298,7 +424,11 @@ const OpdRefund = () => {
         void sendOpdRefundRequestApproval();
         break;
       case "cancel":
-        resetRefundScreen();
+        if (isRefundPaymentMode) {
+          resetFormAndClearNavigation(true);
+        } else {
+          resetRefundScreen();
+        }
         break;
       default:
         break;
@@ -307,52 +437,144 @@ const OpdRefund = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setSearchFormQuery(prev => ({ ...prev, [name]: value }));
+    setSearchFormQuery(prev => ({ ...prev, [name]: value.trim() }));
   };
 
-  const getRefundBillDetails = async (visitId: number, bill?: BillToRefundItem | null) => {
+  const getRefundBillDetails = useCallback(
+    async (visitId: number, bill?: BillToRefundItem | null) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_BILL_DETAILS_TO_REFUND,
+        {},
+        { params: { visitId } },
+        { component: "OpdRefund" }
+      );
+
+      if (!resp?.result) {
+        showWarning(resp?.message ?? "No bills found for refund");
+        setPatientBillDetailsToRefund([]);
+        setPatientDetails({
+          UHID: "",
+          PatientName: "",
+          DOB: "",
+          currentAge: "",
+          CorporateName: "",
+          BillNo: "",
+          BillDate: "",
+        });
+        setSelectedBillToRefund(null);
+        return;
+      }
+
+      const rows = (resp?.data ?? []).map((item: BillDetailsToRefundItem) => ({
+        ...item,
+        RefundQty: item.RefundQty ?? 0,
+      }));
+
+      applyRefundRowsToScreen(rows, bill);
+      setSelectedBillToRefund(bill ?? null);
+    },
+    [applyRefundRowsToScreen, fetchApi]
+  );
+
+  const loadRefundPaymentDetails = useCallback(async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_BILL_DETAILS_TO_REFUND,
+      ENDPOINTS.GET_OPD_REFUND_REQUEST_DETAILS_BY_REFUND_ID,
       {},
-      { params: { visitId } },
+      { params: { refundId: refundPaymentRefundId } },
       { component: "OpdRefund" }
     );
 
     if (!resp?.result) {
-      showWarning(resp?.message ?? "No bills found for refund");
-      setPatientBillDetailsToRefund([]);
-      setPatientDetails({
-        UHID: "",
-        PatientName: "",
-        DOB: "",
-        currentAge: "",
-        CorporateName: "",
-        BillNo: "",
-        BillDate: "",
-      });
-      setSelectedBillToRefund(null);
+      showWarning(resp?.message ?? "No refund request details found");
       return;
     }
 
-    const rows = (resp?.data ?? []).map((item: BillDetailsToRefundItem) => ({
-      ...item,
-      RefundQty: item.RefundQty ?? 0,
+    const refundRows = mapRefundRequestDetailsToBillRows(resp?.data);
+    const approvalHeader = Array.isArray(resp?.data)
+      ? (resp.data[0] as Record<string, unknown> | undefined)
+      : (resp?.data as Record<string, unknown> | null);
+
+    const visitId =
+      Number(refundRows[0]?.VisitId) ||
+      Number(approvalHeader?.VisitId ?? approvalHeader?.visitId) ||
+      Number(locationState.visitId) ||
+      0;
+
+    setBillingValues(prev => ({
+      ...prev,
+      discApprovedById: Number(
+        approvalHeader?.RefundApprovedID ??
+          approvalHeader?.refundApprovedID ??
+          prev.discApprovedById
+      ),
+      discApprovedName: String(
+        approvalHeader?.RefundApprovedName ??
+          approvalHeader?.refundApprovedName ??
+          prev.discApprovedName ??
+          ""
+      ),
+      discountReason: String(
+        approvalHeader?.RefundReason ?? approvalHeader?.refundReason ?? prev.discountReason ?? ""
+      ),
+      remarks: String(
+        approvalHeader?.RefundRemark ?? approvalHeader?.refundRemark ?? prev.remarks ?? ""
+      ),
     }));
 
-    setPatientDetails({
-      UHID: rows[0]?.UHID ?? bill?.UHID ?? "",
-      PatientName: rows[0]?.PatientName ?? "",
-      DOB: rows[0]?.DOB ?? "",
-      currentAge: resolveCurrentAge(rows[0]),
-      CorporateName: rows[0]?.CorporateName ?? "",
-      BillNo: rows[0]?.BillNo ?? bill?.BillNo ?? "",
-      BillDate: rows[0]?.BillDate ?? bill?.BillDate ?? "",
-    });
-    setPatientBillDetailsToRefund(rows);
-    billingDetailsRef.current?.reset?.();
-    setFormResetKey(prev => prev + 1);
-  };
+    if (visitId > 0) {
+      const billResp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_BILL_DETAILS_TO_REFUND,
+        {},
+        { params: { visitId } },
+        { component: "OpdRefund" }
+      );
+
+      if (billResp?.result && Array.isArray(billResp?.data) && billResp.data.length > 0) {
+        const billRows = (billResp.data as BillDetailsToRefundItem[]).map(item => {
+          const source = item as BillDetailsToRefundItem & {
+            Age?: string;
+            age?: string;
+            CurrentAge?: string;
+            currentAge?: string;
+          };
+
+          return {
+            ...item,
+            Age: source.Age || source.age || source.CurrentAge || source.currentAge || "",
+            RefundQty: item.RefundQty ?? 0,
+          };
+        });
+
+        const mergedRows =
+          refundRows.length > 0 ? mergeRefundQtyOntoBillDetails(billRows, refundRows) : billRows;
+
+        setSearchFormQuery(prev => ({
+          ...prev,
+          uhid: mergedRows[0]?.UHID || locationState.uhid || prev.uhid,
+          billNo: mergedRows[0]?.BillNo || prev.billNo,
+        }));
+
+        applyRefundRowsToScreen(mergedRows);
+        return;
+      }
+    }
+
+    if (!refundRows.length) {
+      showWarning("No refund service items found for this request.");
+      return;
+    }
+
+    setSearchFormQuery(prev => ({
+      ...prev,
+      uhid: refundRows[0]?.UHID || locationState.uhid || prev.uhid,
+      billNo: refundRows[0]?.BillNo || prev.billNo,
+    }));
+
+    applyRefundRowsToScreen(refundRows);
+  }, [applyRefundRowsToScreen, locationState.uhid, locationState.visitId, refundPaymentRefundId]);
 
   const searchBillsForRefund = useCallback(async () => {
     const resp = await fetchApi(
@@ -386,20 +608,30 @@ const OpdRefund = () => {
   const handleSearchSubmit: SubmitClickHandler = useCallback(
     e => {
       e?.preventDefault();
+      if (isRefundPaymentMode) return;
       void searchBillsForRefund();
     },
-    [searchBillsForRefund]
+    [isRefundPaymentMode, searchBillsForRefund]
   );
 
   useEffect(() => {
+    if (isRefundPaymentMode) return;
     if (!selectedBillToRefund?.VisitId) return;
     void getRefundBillDetails(selectedBillToRefund.VisitId, selectedBillToRefund);
-  }, [selectedBillToRefund?.VisitId]);
+  }, [selectedBillToRefund?.VisitId, isRefundPaymentMode]);
+
+  useEffect(() => {
+    if (!isRefundPaymentMode || refundPaymentInitRef.current) return;
+    refundPaymentInitRef.current = true;
+    void loadRefundPaymentDetails();
+  }, [isRefundPaymentMode, loadRefundPaymentDetails]);
 
   const handleRefundQtyChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     selectedItem: BillDetailsToRefundItem
   ) => {
+    if (isRefundPaymentMode) return;
+
     const value = e.target.value;
 
     if (value !== "") {
@@ -433,10 +665,12 @@ const OpdRefund = () => {
   };
 
   const handleSearchCancel = () => {
+    if (isRefundPaymentMode) return;
     setSearchFormQuery({
       receiptNo: "",
       billNo: "",
       uhid: "",
+      patientName: "",
     });
   };
 
@@ -458,60 +692,72 @@ const OpdRefund = () => {
         </div>
       </div>
 
-      <div className="card">
-        <form onSubmit={handleSearchSubmit}>
-          <div className="form-grid-4">
-            <InputField label="Receipt Number">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter receipt number "
-                name="receiptNo"
-                value={searchFormQuery.receiptNo}
-                onChange={handleInputChange}
+      {!isRefundPaymentMode && (
+        <div className="card">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="form-grid-4">
+              <InputField label="Receipt Number">
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Enter receipt number "
+                  name="receiptNo"
+                  value={searchFormQuery.receiptNo}
+                  onChange={handleInputChange}
+                />
+              </InputField>
+
+              <InputField label="Bill Number">
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Enter bill number "
+                  name="billNo"
+                  value={searchFormQuery.billNo}
+                  onChange={handleInputChange}
+                />
+              </InputField>
+
+              <InputField label="UHID">
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Enter UHID "
+                  name="uhid"
+                  value={searchFormQuery.uhid}
+                  onChange={handleInputChange}
+                />
+              </InputField>
+              <InputField label="Patient Name">
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Enter Patient Name "
+                  name="patientName"
+                  value={searchFormQuery.patientName}
+                  onChange={handleInputChange}
+                />
+              </InputField>
+            </div>
+
+            <div className="form-actions-responsive mt-5">
+              <SubmitButton
+                label="Search"
+                className="save-btn-color"
+                type="submit"
+                onClick={handleSearchSubmit}
               />
-            </InputField>
 
-            <InputField label="Bill Number">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter bill number "
-                name="billNo"
-                value={searchFormQuery.billNo}
-                onChange={handleInputChange}
+              <CancelButton
+                label="Cancel"
+                className="cancel-btn-color"
+                type="button"
+                onClick={handleSearchCancel}
               />
-            </InputField>
-
-            <InputField label="UHID">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Enter UHID "
-                name="uhid"
-                value={searchFormQuery.uhid}
-                onChange={handleInputChange}
-              />
-            </InputField>
-          </div>
-
-          <div className="form-actions-responsive mt-5">
-            <SubmitButton
-              label="Search"
-              className="save-btn-color"
-              type="submit"
-              onClick={handleSearchSubmit}
-            />
-
-            <CancelButton
-              label="Cancel"
-              className="cancel-btn-color"
-              type="button"
-              onClick={handleSearchCancel}
-            />
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showRefundDetails && (
         <div className="card mt-1">
@@ -544,7 +790,6 @@ const OpdRefund = () => {
             </div>
           </div>
 
-          {/* table container */}
           <div className="overflow-x-auto">
             <div className="table-container">
               <div className="table-scroll-wrapper">
@@ -577,13 +822,17 @@ const OpdRefund = () => {
                             <td className="table-td">{item.DiscPer}</td>
                             <td className="table-td">{item.Qty}</td>
                             <td className="table-td">
-                              <input
-                                type="text"
-                                className="input-field max-w-20 max-h-10"
-                                value={item.RefundQty ?? ""}
-                                onChange={e => handleRefundQtyChange(e, item)}
-                                onInput={allowOnlyNumbers}
-                              />
+                              {isRefundPaymentMode ? (
+                                <span>{item.RefundQty ?? 0}</span>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="input-field max-w-20 max-h-10"
+                                  value={item.RefundQty ?? ""}
+                                  onChange={e => handleRefundQtyChange(e, item)}
+                                  onInput={allowOnlyNumbers}
+                                />
+                              )}
                             </td>
                             <td className="table-td">
                               {getRefundDiscountAmount(
@@ -605,7 +854,6 @@ const OpdRefund = () => {
             </div>
           </div>
 
-          {/* billing details container */}
           <div className="mt-2">
             <RefundBillingDetails
               key={`opd-refund-billing-${formResetKey}`}
@@ -613,20 +861,19 @@ const OpdRefund = () => {
               setBillingValues={setBillingValues}
               billingValues={billingValues}
               paymentBilling={billingPaymentDetails}
-              showPaymentMode={!isRefundApprovalRequired}
-              corporateId={Number(patientBillDetailsToRefund[0]?.CorporateId ?? 0)}
+              showPaymentMode={!isRefundApprovalRequired || isRefundPaymentMode}
+              corporateId={Number(patientBillDetailsToRefund[0]?.CorporateId ?? 0) || 1}
             />
           </div>
 
-          {/* global footer buttons */}
           <GlobalFooterButtons
             onButtonClick={handleGlobalFooterButtonClick}
             pageType={PageType.OPD_REFUND}
+            paymentCollectionMode={isRefundPaymentMode}
           />
         </div>
       )}
 
-      {/* multiple bill popup */}
       {renderMultipleBillPopup && (
         <OpdRefundMultipleBillPopup
           isOpen={isOpenMultipleBillPopup}
@@ -636,10 +883,8 @@ const OpdRefund = () => {
         />
       )}
 
-      {/* custom loader */}
       {loading && <CustomLoader isLoading={loading} />}
 
-      {/* patient receipt details */}
       <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
         {patientReceiptDetails.length > 0 && (
           <OpdRefundReceipt
