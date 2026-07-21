@@ -1,4 +1,3 @@
-import { getByPath } from "@/components/dynamicForm/utils/path";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -54,9 +53,6 @@ interface ConsultationEmrSectionsProps {
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
 }
 
-const dataPathFor = (sectionId: number, headerId: number) =>
-  `section_${sectionId}.header_${headerId}`;
-
 const getSectionIcon = (name: string): LucideIcon => {
   const key = (name || "").toLowerCase();
   if (key.includes("diagnos")) return Stethoscope;
@@ -80,64 +76,14 @@ const SCROLLSPY_THRESHOLD = [0, 0.25, 0.5, 0.75, 1];
 
 const SECTION_ACCENTS = [
   {
-    grad: "from-blue-500 to-cyan-400",
-    ring: "text-blue-500",
-    text: "text-blue-700",
+    grad: "from-[#0B5394] to-[#1C7EC2]",
+    ring: "text-[#0B5394]",
+    text: "text-[#0B5394]",
     soft: "bg-blue-50",
     wash: "bg-blue-50/40",
-    activeBorder: "border-blue-400",
-    cardBg: "bg-gradient-to-br from-blue-100 via-blue-50 to-cyan-50",
-    glow: "37,99,235",
-  },
-  {
-    grad: "from-violet-500 to-fuchsia-400",
-    ring: "text-violet-500",
-    text: "text-violet-700",
-    soft: "bg-violet-50",
-    wash: "bg-violet-50/40",
-    activeBorder: "border-violet-400",
-    cardBg: "bg-gradient-to-br from-violet-100 via-violet-50 to-fuchsia-50",
-    glow: "147,51,234",
-  },
-  {
-    grad: "from-rose-500 to-orange-400",
-    ring: "text-rose-500",
-    text: "text-rose-700",
-    soft: "bg-rose-50",
-    wash: "bg-rose-50/40",
-    activeBorder: "border-rose-400",
-    cardBg: "bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50",
-    glow: "225,29,72",
-  },
-  {
-    grad: "from-emerald-500 to-teal-400",
-    ring: "text-emerald-500",
-    text: "text-emerald-700",
-    soft: "bg-emerald-50",
-    wash: "bg-emerald-50/40",
-    activeBorder: "border-emerald-400",
-    cardBg: "bg-gradient-to-br from-emerald-100 via-emerald-50 to-teal-50",
-    glow: "5,150,105",
-  },
-  {
-    grad: "from-amber-500 to-yellow-400",
-    ring: "text-amber-500",
-    text: "text-amber-700",
-    soft: "bg-amber-50",
-    wash: "bg-amber-50/40",
-    activeBorder: "border-amber-400",
-    cardBg: "bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-50",
-    glow: "217,119,6",
-  },
-  {
-    grad: "from-indigo-500 to-blue-400",
-    ring: "text-indigo-500",
-    text: "text-indigo-700",
-    soft: "bg-indigo-50",
-    wash: "bg-indigo-50/40",
-    activeBorder: "border-indigo-400",
-    cardBg: "bg-gradient-to-br from-indigo-100 via-indigo-50 to-blue-50",
-    glow: "79,70,229",
+    activeBorder: "border-[#0B5394]",
+    cardBg: "bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100/70",
+    glow: "11,83,148",
   },
 ];
 
@@ -183,7 +129,7 @@ const SectionPill = ({
           <motion.span
             className="absolute inset-0 rounded-full"
             animate={{
-              boxShadow: ["0 0 0 0 rgba(99,102,241,0.35)", "0 0 0 6px rgba(99,102,241,0)"],
+              boxShadow: [`0 0 0 0 rgba(${accent.glow},0.35)`, `0 0 0 6px rgba(${accent.glow},0)`],
             }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
           />
@@ -204,11 +150,26 @@ const SectionPill = ({
         {section.displayName || section.sectionName}
       </span>
 
-      <span
-        className={`relative z-10 w-1.5 h-1.5 rounded-full shrink-0 ${
-          isComplete ? "bg-emerald-400" : isActive ? "bg-white/60" : "bg-red-300"
-        }`}
-      />
+      {isComplete ? (
+        <motion.span
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          title="Section complete"
+          className={`relative z-10 flex items-center justify-center w-4 h-4 rounded-full shrink-0 shadow-sm ${
+            isActive ? "bg-white text-[#0B5394]" : "bg-emerald-500 text-white"
+          }`}
+        >
+          <Check size={10} strokeWidth={3.5} />
+        </motion.span>
+      ) : (
+        <span
+          title="Section incomplete"
+          className={`relative z-10 w-1.5 h-1.5 rounded-full shrink-0 ${
+            isActive ? "bg-white/60" : "bg-red-300"
+          }`}
+        />
+      )}
 
       <span
         role="button"
@@ -343,6 +304,12 @@ const ConsultationEmrSections = ({
   const [headersBySection, setHeadersBySection] = useState<
     Record<number, SectionHeaderMappingRecord[]>
   >({});
+  const [sectionProgress, setSectionProgress] = useState<
+    Record<number, { filled: number; total: number }>
+  >({});
+  const [entriesBySectionId, setEntriesBySectionId] = useState<
+    Record<number, EmrSectionAnswerEntry[]>
+  >({});
   const [favoriteSectionIds, setFavoriteSectionIds] = useState<number[]>([]);
   const [savedFavoriteSectionIds, setSavedFavoriteSectionIds] = useState<number[]>([]);
   const [isSavingFavorites, setIsSavingFavorites] = useState(false);
@@ -369,10 +336,27 @@ const ConsultationEmrSections = ({
     else sectionElRefs.current.delete(sectionId);
   };
 
-  const setScrollContainerRef = (el: HTMLDivElement | null) => {
+  const setScrollContainerRef = useCallback((el: HTMLDivElement | null) => {
     verticalScrollRef.current = el;
-    setScrollContainerEl(el);
-  };
+    setScrollContainerEl(prev => (prev === el ? prev : el));
+  }, []);
+
+  const handleSectionProgress = useCallback((sectionId: number, filled: number, total: number) => {
+    setSectionProgress(prev => {
+      const existing = prev[sectionId];
+      if (existing && existing.filled === filled && existing.total === total) return prev;
+      return { ...prev, [sectionId]: { filled, total } };
+    });
+  }, []);
+
+  const handleSectionEntries = useCallback(
+    (sectionId: number, entries: EmrSectionAnswerEntry[]) => {
+      setEntriesBySectionId(prev =>
+        prev[sectionId] === entries ? prev : { ...prev, [sectionId]: entries }
+      );
+    },
+    []
+  );
 
   const handleSectionVisibility = useCallback(
     (sectionId: number, inView: boolean, entry: IntersectionObserverEntry | undefined) => {
@@ -492,42 +476,20 @@ const ConsultationEmrSections = ({
 
   useEffect(() => {
     if (!onSectionsChange) return;
+    onSectionsChange(Object.values(entriesBySectionId).flat());
+  }, [entriesBySectionId, onSectionsChange]);
 
-    const entries: EmrSectionAnswerEntry[] = [];
-    mappedSections.forEach(section => {
-      const headers = headersBySection[section.sectionId] ?? [];
-      headers.forEach(h => {
-        const value = getByPath(data, dataPathFor(section.sectionId, h.headerId));
-        if (value === undefined || value === null || value === "") return;
-        entries.push({
-          sectionId: section.sectionId,
-          sectionName: section.sectionName,
-          headerId: h.headerId,
-          headerName: h.headerName,
-          controlType: h.controlType,
-          value,
-        });
-      });
-    });
-    onSectionsChange(entries);
-  }, [data, mappedSections, headersBySection]);
-
-  const isSectionAnswered = (sectionId: number) => {
-    const sectionData = data[`section_${sectionId}`] as Record<string, unknown> | undefined;
-    if (!sectionData) return false;
-    return Object.values(sectionData).some(
-      v => v !== undefined && v !== null && String(v).trim() !== ""
-    );
-  };
+  // sectionProgress (populated by each mounted EmrSectionRenderer via onProgressChange) is the
+  // single source of truth for "is this section filled in" — it's the only place that knows the
+  // card-group data shape (values live under section_X.group, not one path per header), so
+  // deriving completion here independently from `data` would silently disagree with the section's
+  // own progress bar for card-group sections
+  const isSectionAnswered = (sectionId: number) => (sectionProgress[sectionId]?.filled ?? 0) > 0;
 
   const getSectionPercent = (sectionId: number) => {
-    const headers = headersBySection[sectionId] ?? [];
-    if (headers.length === 0) return 0;
-    const filled = headers.filter(h => {
-      const value = getByPath(data, dataPathFor(sectionId, h.headerId));
-      return value !== undefined && value !== null && String(value).trim() !== "";
-    }).length;
-    return Math.round((filled / headers.length) * 100);
+    const progress = sectionProgress[sectionId];
+    if (!progress || progress.total === 0) return 0;
+    return Math.round((progress.filled / progress.total) * 100);
   };
 
   const answeredCount = mappedSections.filter(s => isSectionAnswered(s.sectionId)).length;
@@ -585,7 +547,16 @@ const ConsultationEmrSections = ({
 
     isClickScrollingRef.current = true;
     if (spyDebounceTimerRef.current) clearTimeout(spyDebounceTimerRef.current);
-    sectionElRefs.current.get(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const container = scrollContainerEl;
+    const target = sectionElRefs.current.get(sectionId);
+    if (container && target) {
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const nextScrollTop = container.scrollTop + (targetRect.top - containerRect.top);
+      container.scrollTo({ top: nextScrollTop, behavior: "smooth" });
+    }
+
     if (clickScrollTimeoutRef.current) clearTimeout(clickScrollTimeoutRef.current);
     clickScrollTimeoutRef.current = setTimeout(() => {
       isClickScrollingRef.current = false;
@@ -611,7 +582,7 @@ const ConsultationEmrSections = ({
       {/* ── glow header ── */}
       <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm">
             <Sparkles size={13} className="text-white" />
           </span>
           <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">EMR Sections</h3>
@@ -622,7 +593,7 @@ const ConsultationEmrSections = ({
             percent={percent}
             size={30}
             strokeWidth={3}
-            progressClassName={percent === 100 ? "text-emerald-500" : "text-indigo-500"}
+            progressClassName={percent === 100 ? "text-emerald-500" : "text-[#0B5394]"}
           >
             {percent === 100 ? (
               <Check size={12} className="text-emerald-500" />
@@ -663,7 +634,7 @@ const ConsultationEmrSections = ({
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
       ) : layout === "vertical" ? (
         <div className="flex emr-shell">
-          <div className="emr-sidebar flex flex-col w-64 shrink-0 border-r border-slate-100 bg-gradient-to-b from-indigo-50 via-violet-50/50 to-white p-2.5 max-h-[560px] overflow-y-auto scrollbar-none">
+          <div className="emr-sidebar flex flex-col w-64 shrink-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[560px] overflow-y-auto scrollbar-none">
             {/* scroll-progress rail — tracks the active section's position in the list as you scroll */}
             <div className="relative">
               <div className="absolute left-[7px] top-1 bottom-1 w-[3px] rounded-full bg-slate-200/70" />
@@ -745,6 +716,8 @@ const ConsultationEmrSections = ({
                     patientId={patientId}
                     accent={sectionAccent}
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
+                    onProgressChange={handleSectionProgress}
+                    onEntriesChange={handleSectionEntries}
                   />
                 </SectionCard>
               );
@@ -753,7 +726,7 @@ const ConsultationEmrSections = ({
         </div>
       ) : (
         <div className="flex flex-col">
-          <div className="relative flex items-center gap-1.5 px-3 py-1.5 border-b border-slate-100 bg-gradient-to-r from-indigo-50 via-violet-50/40 to-white">
+          <div className="relative flex items-center gap-1.5 px-3 py-1.5 border-b border-slate-100 bg-gradient-to-r from-blue-50 via-sky-50/40 to-white">
             {/* only the pills themselves scroll horizontally on mobile — the "More" button and
                 its dropdown live outside this wrapper, since an overflow-x:auto ancestor clips
                 any absolutely-positioned popover inside it (that's what broke the ⋯ menu) */}
@@ -836,11 +809,19 @@ const ConsultationEmrSections = ({
                             >
                               {section.displayName || section.sectionName}
                             </span>
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                isComplete ? "bg-emerald-400" : "bg-red-300"
-                              }`}
-                            />
+                            {isComplete ? (
+                              <span
+                                title="Section complete"
+                                className="flex items-center justify-center w-4 h-4 rounded-full shrink-0 bg-emerald-500 text-white shadow-sm"
+                              >
+                                <Check size={10} strokeWidth={3.5} />
+                              </span>
+                            ) : (
+                              <span
+                                title="Section incomplete"
+                                className="w-1.5 h-1.5 rounded-full shrink-0 bg-red-300"
+                              />
+                            )}
                             <span
                               role="button"
                               tabIndex={-1}
@@ -919,6 +900,8 @@ const ConsultationEmrSections = ({
                     patientId={patientId}
                     accent={sectionAccent}
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
+                    onProgressChange={handleSectionProgress}
+                    onEntriesChange={handleSectionEntries}
                   />
                 </SectionCard>
               );

@@ -110,3 +110,44 @@
   border-radius: 0.15rem;
   padding: 0 0.1rem;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #emr-print-preview-wrapper,
+  #emr-print-preview-wrapper * {
+    visibility: visible;
+  }
+
+  #emr-print-preview-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .emr-print-no-print {
+    display: none !important;
+  }
+
+  .emr-print-section {
+    break-inside: avoid;
+  }
+}
+
+.emr-print-page {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.emr-print-page-a4 {
+  width: 210mm;
+  min-height: 297mm;
+}
+
+.emr-print-page-a5 {
+  width: 148mm;
+  min-height: 210mm;
+}

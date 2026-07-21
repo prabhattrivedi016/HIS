@@ -16,6 +16,7 @@ import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, History, Loader2 } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef } from "react";
+import { EmrSectionAnswerEntry } from "../types";
 
 interface EmrSectionRendererProps {
   sectionId: number;
@@ -32,6 +33,16 @@ interface EmrSectionRendererProps {
   /** same per-section accent ConsultationEmrSections already assigns its nav pill/rail/card
    * border — passed down so the title marker and progress bar match it exactly */
   accent?: { grad: string; text: string; soft: string };
+  /** reports this section's own filled/total field count up to ConsultationEmrSections so the
+   * sidebar pill and header "X/Y done" badge use the exact same completion math as this section's
+   * own progress bar — this component is the only one that knows the card-group data shape
+   * (values live under section_X.group, not one path per header) */
+  onProgressChange?: (sectionId: number, filled: number, total: number) => void;
+  /** reports this section's actual answered values up to ConsultationEmrSections (for save/print)
+   * — for the same reason as onProgressChange above, this is the only component that knows how to
+   * read a card-group section's data (an array of rows under section_X.group, keyed by
+   * header_<headerId> per column) rather than one value per header path */
+  onEntriesChange?: (sectionId: number, entries: EmrSectionAnswerEntry[]) => void;
 }
 
 const mapControlType = (controlType: string): string => {
@@ -92,8 +103,14 @@ const EmrSectionRenderer = ({
   patientId,
   onOpenHistory,
   accent,
+  onProgressChange,
+  onEntriesChange,
 }: EmrSectionRendererProps) => {
-  const sectionAccent = accent ?? { grad: "from-indigo-500 to-blue-400", text: "text-indigo-700", soft: "bg-indigo-50" };
+  const sectionAccent = accent ?? {
+    grad: "from-[#0B5394] to-[#1C7EC2]",
+    text: "text-[#0B5394]",
+    soft: "bg-blue-50",
+  };
   const { fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const logEdit = useEmrSectionHistoryStore(s => s.logEdit);
@@ -150,7 +167,10 @@ const EmrSectionRenderer = ({
 
   // generic fetch + row-mapping for any header/column wired to a config/emrHeaderBehavior.ts
   // dataSource — replaces what used to be one bespoke fetcher per special-cased header name
-  const mapDataSourceRow = (dataSource: EmrDataSourceConfig, row: Record<string, unknown>): OptionSchema => {
+  const mapDataSourceRow = (
+    dataSource: EmrDataSourceConfig,
+    row: Record<string, unknown>
+  ): OptionSchema => {
     if (dataSource.mapOption) return dataSource.mapOption(row);
     const valueField = dataSource.valueField ?? "value";
     const labelField = dataSource.labelField ?? "label";
@@ -170,7 +190,9 @@ const EmrSectionRenderer = ({
         params: {
           ...dataSource.params,
           ...(query && dataSource.searchParamKey ? { [dataSource.searchParamKey]: query } : {}),
-          ...(headerId && dataSource.headerIdParamKey ? { [dataSource.headerIdParamKey]: headerId } : {}),
+          ...(headerId && dataSource.headerIdParamKey
+            ? { [dataSource.headerIdParamKey]: headerId }
+            : {}),
         },
       },
       { component: "EmrSectionRenderer", silent: true }
@@ -198,7 +220,9 @@ const EmrSectionRenderer = ({
     () =>
       headers
         .filter(
-          h => needsOptions(mapControlType(h.controlType)) && !resolveHeaderBehavior(h.headerName)?.dataSource
+          h =>
+            needsOptions(mapControlType(h.controlType)) &&
+            !resolveHeaderBehavior(h.headerName)?.dataSource
         )
         .map(h => h.headerId),
     [headers]
@@ -313,7 +337,9 @@ const EmrSectionRenderer = ({
       return {
         queryKey: ["emrHeaderDataSource", headerId],
         queryFn: () =>
-          dataSource ? fetchDataSourceOptions(dataSource, undefined, headerId) : Promise.resolve([]),
+          dataSource
+            ? fetchDataSourceOptions(dataSource, undefined, headerId)
+            : Promise.resolve([]),
       };
     }),
   });
@@ -346,7 +372,8 @@ const EmrSectionRenderer = ({
       const mappedType = mapControlType(h.controlType);
       // a header explicitly configured as "Table" always renders as a table —
       // a behavior rule's controlTypeOverride only applies to non-table headers
-      const dynamicType = mappedType === "table" ? "table" : (behavior?.controlTypeOverride ?? mappedType);
+      const dynamicType =
+        mappedType === "table" ? "table" : (behavior?.controlTypeOverride ?? mappedType);
       const isTable = dynamicType === "table";
       const dataSource = !isTable ? behavior?.dataSource : undefined;
       const hasStaticDataSource = Boolean(dataSource) && !dataSource?.searchParamKey;
@@ -474,6 +501,58 @@ const EmrSectionRenderer = ({
   }, [headers, data, sectionId, isCardGroup]);
   const sectionPercent = totalFields ? Math.round((filledFields / totalFields) * 100) : 0;
 
+  useEffect(() => {
+    onProgressChange?.(sectionId, filledFields, totalFields);
+  }, [sectionId, filledFields, totalFields, onProgressChange]);
+
+  const reportedEntries = useMemo<EmrSectionAnswerEntry[]>(() => {
+    const label = displayName || sectionName;
+
+    if (isCardGroup) {
+      const groupValue = getByPath(data, `section_${sectionId}.group`);
+      const rows = Array.isArray(groupValue) ? (groupValue as Record<string, unknown>[]) : [];
+      if (rows.length === 0) return [];
+
+      const readableRows = rows.map(row => {
+        const readable: Record<string, unknown> = {};
+        headers.forEach(h => {
+          readable[h.displayName || h.headerName] = row[`header_${h.headerId}`];
+        });
+        return readable;
+      });
+
+      return [
+        {
+          sectionId,
+          sectionName: label,
+          headerId: 0,
+          headerName: label,
+          controlType: "card-group",
+          value: readableRows,
+        },
+      ];
+    }
+
+    return headers
+      .map(h => ({
+        headerRecord: h,
+        value: getByPath(data, `section_${sectionId}.header_${h.headerId}`),
+      }))
+      .filter(({ value }) => value !== undefined && value !== null && String(value).trim() !== "")
+      .map(({ headerRecord: h, value }) => ({
+        sectionId,
+        sectionName: label,
+        headerId: h.headerId,
+        headerName: h.displayName || h.headerName,
+        controlType: h.controlType,
+        value,
+      }));
+  }, [isCardGroup, headers, data, sectionId, sectionName, displayName]);
+
+  useEffect(() => {
+    onEntriesChange?.(sectionId, reportedEntries);
+  }, [sectionId, reportedEntries, onEntriesChange]);
+
   // edit/change audit trail — diffs this section's header values against their previous values
   // on every data change and logs anything that actually changed (skipped on first mount)
   useEffect(() => {
@@ -531,7 +610,9 @@ const EmrSectionRenderer = ({
     <div>
       <div className="flex items-center justify-between gap-2 mb-2">
         <h2 className="flex items-center gap-2 text-[15px] font-bold text-slate-800 truncate min-w-0">
-          <span className={`w-1.5 h-4 rounded-full shrink-0 bg-gradient-to-b ${sectionAccent.grad}`} />
+          <span
+            className={`w-1.5 h-4 rounded-full shrink-0 bg-gradient-to-b ${sectionAccent.grad}`}
+          />
           {displayName || sectionName}
         </h2>
 

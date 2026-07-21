@@ -9,6 +9,7 @@ import {
   Gauge,
   HeartPulse,
   LucideIcon,
+  Printer,
   Ruler,
   Save,
   Scale,
@@ -32,6 +33,7 @@ import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
+import PrintPreviewModal from "./components/PrintPreviewModal";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
@@ -138,6 +140,7 @@ const DoctorConsultationNew = () => {
 
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
+  const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
   // phones only — the full vitals chip row is too tall to show inline on a small screen, so it
   // starts collapsed behind a compact summary bar instead of pushing EMR Sections far below the fold
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
@@ -333,11 +336,21 @@ const DoctorConsultationNew = () => {
 
   const buildAllergyAttributes: AttributeBuilder = () =>
     allergySection
-      ? [{ attributeType: "allergy", attributeCode: "allergy", label: "Allergy", value: allergySection }]
+      ? [
+          {
+            attributeType: "allergy",
+            attributeCode: "allergy",
+            label: "Allergy",
+            value: allergySection,
+          },
+        ]
       : [];
 
   const buildEmrSectionAttributes: AttributeBuilder = () => {
-    const bySectionId = new Map<number, { sectionName: string; entries: EmrSectionAnswerEntry[] }>();
+    const bySectionId = new Map<
+      number,
+      { sectionName: string; entries: EmrSectionAnswerEntry[] }
+    >();
     emrSectionsData.forEach(e => {
       const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
       bucket.entries.push(e);
@@ -427,9 +440,15 @@ const DoctorConsultationNew = () => {
       // stand-in for GET_EMR_SECTION_HISTORY until the backend endpoint exists —
       // see useEmrSectionHistoryStore for the intended API contract
       if (selectedPatient) {
-        const bySectionId = new Map<number, { sectionName: string; entries: EmrSectionAnswerEntry[] }>();
+        const bySectionId = new Map<
+          number,
+          { sectionName: string; entries: EmrSectionAnswerEntry[] }
+        >();
         emrSectionsData.forEach(e => {
-          const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
+          const bucket = bySectionId.get(e.sectionId) ?? {
+            sectionName: e.sectionName,
+            entries: [],
+          };
           bucket.entries.push(e);
           bySectionId.set(e.sectionId, bucket);
         });
@@ -891,7 +910,12 @@ const DoctorConsultationNew = () => {
                         <button className="text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">
                           View
                         </button>
-                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">
+                        <button
+                          type="button"
+                          onClick={() => setShowPrintPreview(true)}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                        >
+                          <Printer size={14} />
                           Print
                         </button>
                         <button
@@ -934,11 +958,15 @@ const DoctorConsultationNew = () => {
                         className="w-full flex items-center justify-between gap-2 active:scale-[0.98] transition-all"
                       >
                         <span className="min-w-0 flex-1 text-left text-xs text-gray-600 truncate">
-                          <span className="font-semibold text-gray-800">{selectedPatient.UHID}</span>
+                          <span className="font-semibold text-gray-800">
+                            {selectedPatient.UHID}
+                          </span>
                           {" · "}
                           {selectedPatient.TypeName}
                           {" · "}
-                          <span className="text-teal-600 font-medium">{selectedPatient.DoctorName}</span>
+                          <span className="text-teal-600 font-medium">
+                            {selectedPatient.DoctorName}
+                          </span>
                         </span>
                         <ChevronDown
                           size={14}
@@ -977,7 +1005,9 @@ const DoctorConsultationNew = () => {
                           <div
                             key={v.key}
                             className={`group flex items-center gap-2 rounded-xl px-2.5 py-1.5 ring-1 flex-1 basis-32 min-w-[110px] transition-all ${
-                              v.value ? `${v.bg} ${v.ring}` : "bg-slate-50 ring-slate-100 hover:ring-slate-200"
+                              v.value
+                                ? `${v.bg} ${v.ring}`
+                                : "bg-slate-50 ring-slate-100 hover:ring-slate-200"
                             }`}
                           >
                             <span
@@ -1113,6 +1143,16 @@ const DoctorConsultationNew = () => {
         patientId={selectedPatient?.VisitId}
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
+      />
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        doctorId={selectedPatient?.DoctorId}
+        patient={selectedPatient}
+        emrSectionsData={emrSectionsData}
+        vitals={vitalMasterList}
+        vitalsData={vitalsData}
+        allergy={allergySection}
       />
     </div>
   );
