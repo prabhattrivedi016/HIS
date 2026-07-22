@@ -33,6 +33,7 @@ import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
+import MedicineAssistantWidget from "./components/MedicineAssistantWidget";
 import PrintPreviewModal from "./components/PrintPreviewModal";
 import VitalInsights from "./components/VitalInsights";
 import {
@@ -1154,6 +1155,7 @@ const DoctorConsultationNew = () => {
         vitalsData={vitalsData}
         allergy={allergySection}
       />
+      {selectedPatient && <MedicineAssistantWidget emrSectionsData={emrSectionsData} />}
     </div>
   );
 };

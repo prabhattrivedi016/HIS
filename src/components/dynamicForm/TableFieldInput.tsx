@@ -27,9 +27,7 @@ const DurationInput = ({
   const { years, months, days } = parseDuration(value);
 
   const update = (next: { years?: number; months?: number; days?: number }) =>
-    onChange(
-      formatDuration(next.years ?? years, next.months ?? months, next.days ?? days)
-    );
+    onChange(formatDuration(next.years ?? years, next.months ?? months, next.days ?? days));
 
   const unitSelect = (
     label: string,
@@ -139,7 +137,7 @@ const SearchableTextInput = ({
         onKeyDown={onKeyDown}
       />
       {(showDropdown || loading) && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
           {loading ? (
             <div className="px-3 py-2 text-sm text-gray-500">Searching…</div>
           ) : (
@@ -174,7 +172,12 @@ export const TableFieldInput = ({
 }) => {
   if (column.asyncSearch)
     return (
-      <SearchableTextInput column={column} value={value} onChange={onChange} onKeyDown={onKeyDown} />
+      <SearchableTextInput
+        column={column}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+      />
     );
   if (/duration/i.test(column.label)) return <DurationInput value={value} onChange={onChange} />;
 

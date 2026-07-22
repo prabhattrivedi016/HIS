@@ -261,6 +261,7 @@ const EmrSectionRenderer = ({
 
       if (/duration/i.test(label)) return { key, label, dataTypeId: 1 };
       if (/severity/i.test(label)) return { key, label, dataTypeId: 5, options: SEVERITY_OPTIONS };
+      if (/date/i.test(label)) return { key, label, dataTypeId: 3 };
 
       return {
         key,

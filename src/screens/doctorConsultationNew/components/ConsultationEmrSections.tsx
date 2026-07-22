@@ -634,7 +634,7 @@ const ConsultationEmrSections = ({
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
       ) : layout === "vertical" ? (
         <div className="flex emr-shell">
-          <div className="emr-sidebar flex flex-col w-64 shrink-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[560px] overflow-y-auto scrollbar-none">
+          <div className="emr-sidebar flex flex-col w-64 shrink-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[760px] overflow-y-auto scrollbar-none">
             {/* scroll-progress rail — tracks the active section's position in the list as you scroll */}
             <div className="relative">
               <div className="absolute left-[7px] top-1 bottom-1 w-[3px] rounded-full bg-slate-200/70" />
@@ -688,7 +688,7 @@ const ConsultationEmrSections = ({
           {/* ── all sections, scrolled together — left nav highlight follows scroll position ── */}
           <div
             ref={setScrollContainerRef}
-            className="emr-content flex-1 min-w-0 p-4 min-h-72 max-h-[560px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
+            className="emr-content flex-1 min-w-0 p-4 min-h-72 max-h-[760px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
           >
             {orderedSections.map(section => {
               const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
@@ -872,7 +872,7 @@ const ConsultationEmrSections = ({
           {/* ── all sections, scrolled together — tab highlight follows scroll position ── */}
           <div
             ref={setScrollContainerRef}
-            className="emr-content p-4 min-h-72 max-h-[520px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
+            className="emr-content p-4 min-h-72 max-h-[720px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
           >
             {orderedSections.map(section => {
               const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
