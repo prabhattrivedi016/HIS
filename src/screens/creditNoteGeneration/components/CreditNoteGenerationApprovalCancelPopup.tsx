@@ -6,14 +6,9 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { WriteOffApprovalItem } from "../types";
+import { CreditNoteGenerationDetails, CreditNoteGenerationItem } from "../types";
 
-const formatValue = (value: unknown) => {
-  if (value === null || value === undefined || value === "") return "-";
-  return String(value);
-};
-
-const ApproveCancelPopup = ({
+const CreditNoteGenerationCancelPopup = ({
   isOpen,
   onClose,
   onSuccess,
@@ -24,36 +19,36 @@ const ApproveCancelPopup = ({
   onClose: () => void;
   onSuccess?: () => void;
   popupType: string;
-  item: WriteOffApprovalItem | null;
+  item: CreditNoteGenerationItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const [writeOffDetails, setWriteOffDetails] = useState<any | null>(null);
+  const [creditNoteApprovalDetails, setCreditNoteApprovalDetails] =
+    useState<CreditNoteGenerationDetails | null>(null);
 
   // get approval details by Id
-  const getWriteOffDetailsById = async (writeOffId: number) => {
+  const getCreditNoteApprovalDetailsById = async (creditNoteId: number) => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID,
+      ENDPOINTS.GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID,
       {},
-      { params: { writeOffId } },
-      { component: "ApproveCancelPopup" }
+      { params: { creditNoteId } },
+      { component: "CreditNoteGenerationCancelPopup" }
     );
-    setWriteOffDetails(resp?.data?.[0]);
+    setCreditNoteApprovalDetails(resp?.data?.[0]);
   };
 
   useEffect(() => {
-    if (item && item.WriteOffId) {
-      getWriteOffDetailsById(item.WriteOffId);
+    if (item) {
+      getCreditNoteApprovalDetailsById(item?.CreditNoteId);
     }
   }, [item]);
-
   const [cancelFormData, setCancelFormData] = useState({
-    writeOffId: 0,
+    creditNoteId: 0,
     cancelReason: "",
   });
 
   const [approveFormData, setApproveFormData] = useState({
-    writeOffId: 0,
+    creditNoteId: 0,
     flag: 0,
     approvalRemarks: "",
   });
@@ -66,19 +61,26 @@ const ApproveCancelPopup = ({
   useEffect(() => {
     if (!isOpen || !item) return;
 
-    const recordId = Number(item.WriteOffId ?? 0);
+    const recordId = Number(item.CreditNoteId ?? 0);
 
     setCancelFormData({
-      writeOffId: recordId,
+      creditNoteId: recordId,
       cancelReason: "",
     });
 
-    setApproveFormData({
-      writeOffId: recordId,
-      flag: item?.FlagId ?? 0,
-      approvalRemarks: item?.ApprovalRemarks ?? "",
-    });
-
+    if (!item?.TotalApprovedDiscountPerOnBill) {
+      setApproveFormData({
+        creditNoteId: recordId,
+        flag: item?.FlagId ?? 0,
+        approvalRemarks: item?.ApprovalRemarks ?? "",
+      });
+    } else {
+      setApproveFormData({
+        creditNoteId: recordId,
+        flag: item?.FlagId ?? 0,
+        approvalRemarks: item?.ApprovalRemarks ?? "",
+      });
+    }
     setCancelError("");
     setApproveError("");
     setSuccessMessage("");
@@ -122,8 +124,10 @@ const ApproveCancelPopup = ({
   };
 
   const isApproved =
-    Number(item?.IsWriteOffApproved) === 1 || Number(writeOffDetails?.IsWriteOffApproved) === 1;
-  const isCancelled = Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
+    Number(item?.IsCreditNoteApproved) === 1 ||
+    Number(creditNoteApprovalDetails?.IsCreditNoteApproved) === 1;
+  const isCancelled =
+    Number(item?.IsCancel) === 1 || Number(creditNoteApprovalDetails?.IsCancel) === 1;
 
   const isApproveDisabled = isApproved || isCancelled;
   const isCancelDisabled = isCancelled;
@@ -141,29 +145,29 @@ const ApproveCancelPopup = ({
     try {
       const resp = await fetchApi(
         "PATCH",
-        ENDPOINTS.APPROVE_WRITE_OFF_REQUEST,
+        ENDPOINTS.APPROVE_CREDIT_NOTE_REQUEST,
         {
-          writeOffId: Number(approveFormData.writeOffId),
+          creditNoteId: Number(approveFormData.creditNoteId),
           flag: Number(approveFormData.flag),
           approvalRemarks: String(approveFormData.approvalRemarks).trim(),
         },
         {},
-        { component: "ApproveCancelPopup" }
+        { component: "CreditNoteGenerationCancelPopup" }
       );
 
       if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while approving write off");
+        setErrorMessage(resp?.message ?? "Failed while approving discount");
         return;
       }
 
-      setSuccessMessage(resp?.message ?? "Write off approved successfully");
+      setSuccessMessage(resp?.message ?? "Discount approved successfully");
       setTimeout(() => {
         onSuccess?.();
         onClose?.();
       }, 500);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed while approving write off");
+      setErrorMessage("Failed while approving discount");
     }
   };
 
@@ -180,28 +184,28 @@ const ApproveCancelPopup = ({
     try {
       const resp = await fetchApi(
         "PATCH",
-        ENDPOINTS.CANCEL_WRITE_OFF_REQUEST,
+        ENDPOINTS.CANCEL_CREDIT_NOTE_REQUEST,
         {
-          writeOffId: Number(cancelFormData.writeOffId),
+          creditNoteId: Number(cancelFormData.creditNoteId),
           cancelReason: String(cancelFormData.cancelReason).trim(),
         },
         {},
-        { component: "ApproveCancelPopup" }
+        { component: "CreditNoteGenerationCancelPopup" }
       );
 
       if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while cancelling write off");
+        setErrorMessage(resp?.message ?? "Failed while cancelling booking");
         return;
       }
 
-      setSuccessMessage(resp?.message ?? "Write off cancelled successfully");
+      setSuccessMessage(resp?.message ?? "Booking cancelled successfully");
       setTimeout(() => {
         onSuccess?.();
         onClose?.();
       }, 500);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed while cancelling write off");
+      setErrorMessage("Failed while cancelling booking");
     }
   };
 
@@ -276,9 +280,9 @@ const ApproveCancelPopup = ({
       onClose={onClose}
       title={
         popupType === "approve"
-          ? "Approve Write Off"
+          ? "Approve Credit Note"
           : popupType === "cancel"
-            ? "Cancel Write Off"
+            ? "Cancel Credit Note"
             : ""
       }
     >
@@ -304,44 +308,44 @@ const ApproveCancelPopup = ({
             <span className="truncate">{item?.Age + "/" + item?.Gender}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Write Off Approved Name:</span>
-            <span className="truncate">{writeOffDetails?.WriteOffApprovedName}</span>
+            <span className="name-header whitespace-nowrap">Credit Note Approved Name:</span>
+            <span className="truncate">{creditNoteApprovalDetails?.CreditNoteApprovedName}</span>
           </div>{" "}
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Write Off Reason:</span>
-            <span className="truncate">{writeOffDetails?.WriteOffReason}</span>
+            <span className="name-header whitespace-nowrap">Credit Note Reason:</span>
+            <span className="truncate">{creditNoteApprovalDetails?.CreditNoteReason}</span>
           </div>{" "}
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Write Off Remark:</span>
-            <span className="truncate">{writeOffDetails?.WriteOffRemark}</span>
+            <span className="name-header whitespace-nowrap">Credit Note Remark:</span>
+            <span className="truncate">{creditNoteApprovalDetails?.CreditNoteRemark}</span>
           </div>
         </div>
 
         <div className="w-full card grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-1 -mt-1">
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Service Name:</span>
-            <span className="truncate">{writeOffDetails?.ServiceName}</span>
+            <span className="truncate">{creditNoteApprovalDetails?.ServiceName}</span>
           </div>
 
           <div className="flex flex-row gap-1 ">
             <span className="name-header whitespace-nowrap">Total Bill Amount:</span>
-            <span className="truncate">{writeOffDetails?.TotalBillAmount}</span>
+            <span className="truncate">{creditNoteApprovalDetails?.TotalBillAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Total Discount Amount:</span>
-            <span className="truncate">{writeOffDetails?.TotalDiscountAmountOnBill}</span>
+            <span className="truncate">{creditNoteApprovalDetails?.TotalDiscountAmountOnBill}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Total Paid Amount:</span>
-            <span className="truncate">{writeOffDetails?.TotalPaidAmount}</span>
+            <span className="truncate">{creditNoteApprovalDetails?.TotalPaidAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Balance Amount:</span>
-            <span className="truncate">{writeOffDetails?.TotalBalanceAmount}</span>
+            <span className="name-header whitespace-nowrap">Total Balance Amount</span>
+            <span className="truncate">{creditNoteApprovalDetails?.TotalBalanceAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Write Off Amount:</span>
-            <span className="truncate">{writeOffDetails?.TotalWriteOffAmount}</span>
+            <span className="name-header whitespace-nowrap">Total Credit Note Amount</span>
+            <span className="truncate">{creditNoteApprovalDetails?.TotalCreditNoteAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Status:</span>
@@ -358,4 +362,4 @@ const ApproveCancelPopup = ({
   );
 };
 
-export default React.memo(ApproveCancelPopup);
+export default React.memo(CreditNoteGenerationCancelPopup);

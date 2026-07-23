@@ -1,9 +1,9 @@
-export const writeOffApprovalConfig = {
-  type: "writeOffApproval",
+export const writeOffGenerationConfig = {
+  type: "writeOffGeneration",
 
   gridCardView: {
-    type: "writeOffApproval",
-    cardType: "writeOffApprovalGrid",
+    type: "writeOffGeneration",
+    cardType: "writeOffGenerationGrid",
     cardViewType: "grid",
 
     recordIdKey: "WriteOffId",
@@ -25,14 +25,14 @@ export const writeOffApprovalConfig = {
     ],
 
     gridButtonSection: [
-      { label: "Approve", action: "toggleApproveWriteOff" },
+      { label: "Generation", action: "toggleGenerationWriteOff" },
       { label: "Cancel", action: "toggleCancelWriteOff" },
     ],
   },
 
   listCardView: {
-    type: "writeOffApproval",
-    cardType: "writeOffApprovalList",
+    type: "writeOffGeneration",
+    cardType: "writeOffGenerationList",
     cardViewType: "list",
 
     recordIdKey: "WriteOffId",
@@ -40,7 +40,7 @@ export const writeOffApprovalConfig = {
     listLeftButton: [
       {
         label: "Action",
-        action: "toggleApproveWriteOff",
+        action: "togglegenerationWriteOff",
       },
     ],
 
@@ -75,12 +75,34 @@ export const writeOffApprovalConfig = {
         label: "Age",
         keyFromApi: "Age",
       },
-
       {
-        label: "Total Write Off Amount",
-        keyFromApi: "TotalWriteOffAmount",
+        label: "Total Bill Amount",
+        keyFromApi: "TotalBillAmount",
       },
-
+      {
+        label: "Total Discount Per On Bill",
+        keyFromApi: "TotalDiscountPerOnBill",
+      },
+      {
+        label: "Total Discount Amount On Bill",
+        keyFromApi: "TotalDiscountAmountOnBill",
+      },
+      {
+        label: "Round Off",
+        keyFromApi: "RoundOff",
+      },
+      {
+        label: "Total Refund Amount",
+        keyFromApi: "TotalRefundAmount",
+      },
+      {
+        label: "Refund Approved",
+        keyFromApi: "IsRefundApproved",
+      },
+      {
+        label: "Refund Collected",
+        keyFromApi: "IsRefundCollected",
+      },
       {
         label: "Approval Remarks",
         keyFromApi: "ApprovalRemarks",
@@ -158,11 +180,11 @@ export const writeOffApprovalConfig = {
         keyFromApi: "WriteOffApprovedName",
       },
       {
-        label: "Write Off Approved Reason",
+        label: "Write Off Reason",
         keyFromApi: "WriteOffReason",
       },
       {
-        label: "Write Off Approved Remark",
+        label: "Write Off Remark",
         keyFromApi: "WriteOffRemark",
       },
     ],

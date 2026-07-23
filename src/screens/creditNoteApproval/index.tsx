@@ -1,3 +1,5 @@
+import HideShowColumn from "@/components/buttonsPopup";
+import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
 import PageHeader from "@/components/pageHeader";
 import GridView from "@/components/profileCard";
@@ -9,8 +11,20 @@ import { AuthContext } from "@/context/AuthContext";
 import { useConfigMaster } from "@/hooks/useConfigMaster";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { ColumnVisibility } from "@/types";
+import { showWarning } from "@/utils/alert";
+import { exportListViewData } from "@/utils/exportUtils";
+import { filteredData } from "@/utils/filteredData";
 import { transformDataWithConfig } from "@/utils/utilities";
-import { useCallback, useContext, useEffect, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CreditNoteApprovalActionPopup from "./components/CreditNoteApprovalActionPopup";
 import CreditNoteApprovalCancelPopup from "./components/CreditNoteApprovalCancelPopup";
 import CreditNoteFilterPopup, {
@@ -55,6 +69,7 @@ const CreditNoteApproval = () => {
 
   const [rawItemMap, setRawItemMap] = useState<Record<number, CreditNoteApprovalItem>>({});
 
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -70,6 +85,15 @@ const CreditNoteApproval = () => {
   const [gridActionOpen, setGridActionOpen] = useState(false);
   const [gridActionPopup, setGridActionPopup] = useState<DOMRect | null>(null);
   const [gridActionCreditNoteId, setGridActionCreditNoteId] = useState<number | null>(null);
+
+  const [onDownload, setOnDownload] = useState(false);
+  const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
+  const [hideShowColumn, setHideShowColumn] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+
+  const hideShowBtnRef = useRef<HTMLButtonElement>(null);
+  const downloadBtnRef = useRef<HTMLButtonElement>(null);
+  const lastWarningShownRef = useRef<string>("");
 
   const getCreditNoteApprovalList = useCallback(
     async (params: { branchId: number; fromDate: string; toDate: string }) => {
@@ -94,6 +118,21 @@ const CreditNoteApproval = () => {
       }));
 
       const transformed = transformDataWithConfig(activeConfig, resp);
+
+      if (!transformed?.gridView?.length && !transformed?.listView?.length) {
+        setCreditNoteGridData([]);
+        setCreditNoteListData([]);
+        setGridFilteredData([]);
+        setListFilteredData([]);
+        setHasFetched(true);
+
+        const paramsKey = JSON.stringify(params);
+        if (lastWarningShownRef.current !== paramsKey) {
+          showWarning("No data found");
+          lastWarningShownRef.current = paramsKey;
+        }
+        return;
+      }
 
       setRawItemMap(
         Object.fromEntries(
@@ -121,6 +160,67 @@ const CreditNoteApproval = () => {
 
   const handleCardView = (view: string) => setCardView(view);
 
+  const handleRefresh = useCallback(async () => {
+    lastWarningShownRef.current = "";
+    await getCreditNoteApprovalList(queryValue);
+    setSearchQuery("");
+  }, [getCreditNoteApprovalList, queryValue]);
+
+  const searchHandler = useCallback(
+    (keyInput: string, selectedValue = "") => {
+      const value = keyInput?.toLowerCase()?.trim();
+      setSearchQuery(keyInput);
+
+      filteredData({
+        value,
+        selectedValue,
+        listData: creditNoteListData as never,
+        gridData: creditNoteGridData as never,
+        setListFilteredData: setListFilteredData as never,
+        setGridFilteredData: setGridFilteredData as never,
+      });
+    },
+    [creditNoteGridData, creditNoteListData]
+  );
+
+  useEffect(() => {
+    if (listFilteredData.length > 0) {
+      const visibility: Record<string, boolean> = {};
+      listFilteredData[0].columns.forEach(col => {
+        visibility[col.label] = true;
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [listFilteredData]);
+
+  const columnNames = useMemo(() => {
+    if (cardView === VIEWTYPE.LIST && listFilteredData.length > 0) {
+      return [
+        listFilteredData[0]?.listLeftButton?.[0]?.label || "Action",
+        ...(listFilteredData[0]?.columns?.map(col => col.label) || []),
+      ];
+    }
+    return [];
+  }, [cardView, listFilteredData]);
+
+  const downloadHandler = () => {
+    if (!downloadBtnRef.current) return;
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+    setOnDownload(prev => !prev);
+  };
+
+  const hideShowHandler = useCallback(() => {
+    if (hideShowBtnRef.current) {
+      const rect = hideShowBtnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.bottom + 5, left: rect.left });
+    }
+    setHideShowColumn(prev => !prev);
+  }, []);
+
   const closeFilterModal = useCallback(() => {
     setFilterModalOpen(false);
   }, []);
@@ -131,6 +231,7 @@ const CreditNoteApproval = () => {
 
   const applyFilterHandler = useCallback(
     async (params: CreditNoteApprovalFilterValues) => {
+      lastWarningShownRef.current = "";
       setQueryValue(params);
       setSearchQuery("");
       await getCreditNoteApprovalList(params);
@@ -138,6 +239,8 @@ const CreditNoteApproval = () => {
     },
     [getCreditNoteApprovalList]
   );
+
+  const filterDropDown = creditNoteListData?.[0]?.columns;
 
   const openApprovePopup = useCallback((item: CreditNoteApprovalItem) => {
     setSelectedItem(item);
@@ -236,6 +339,62 @@ const CreditNoteApproval = () => {
     [rawItemMap, openApprovePopup, openCancelPopup]
   );
 
+  const renderRowActionMenu = useCallback(
+    (rowData: { id: number }, closeMenu: () => void) => {
+      const item = rawItemMap[rowData.id];
+      if (!item) return null;
+
+      const runAction = (action: (selected: CreditNoteApprovalItem) => void) => {
+        action(item);
+        closeMenu();
+      };
+
+      const approveDisabled = isApproveButtonDisabled(item);
+      const cancelDisabled = isCancelButtonDisabled(item);
+
+      return (
+        <ul className="text-sm">
+          <li>
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
+              onClick={() => runAction(viewHandler)}
+            >
+              View
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              disabled={approveDisabled}
+              aria-disabled={approveDisabled}
+              className={`w-full text-left px-3 py-2 text-gray-700 ${
+                approveDisabled ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-50"
+              }`}
+              onClick={() => handleApproveButtonClick(item, () => runAction(openApprovePopup))}
+            >
+              Approve
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              disabled={cancelDisabled}
+              aria-disabled={cancelDisabled}
+              className={`w-full text-left px-3 py-2 text-gray-700 ${
+                cancelDisabled ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-50"
+              }`}
+              onClick={() => handleCancelButtonClick(item, () => runAction(openCancelPopup))}
+            >
+              Cancel
+            </button>
+          </li>
+        </ul>
+      );
+    },
+    [rawItemMap, openApprovePopup, openCancelPopup, viewHandler]
+  );
+
   // render component
 
   const renderComponent = (view: string) => {
@@ -268,7 +427,11 @@ const CreditNoteApproval = () => {
 
       return (
         <div className="list-view-page-layout">
-          <ListView data={listFilteredData} />
+          <ListView
+            data={listFilteredData}
+            columnVisibility={columnVisibility}
+            renderRowActionMenu={renderRowActionMenu}
+          />
         </div>
       );
     }
@@ -284,12 +447,46 @@ const CreditNoteApproval = () => {
         onCardView={handleCardView}
         buttonTitle=""
         showAddButton={false}
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
         searchValue={searchQuery}
         onAddNew={() => {}}
+        onDownload={downloadHandler}
+        onFilter={filterDropDown}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
+        downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
         onFilterDiscountApproval={onFilterCreditNoteApproval}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>
+
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef as RefObject<HTMLElement>}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
+      )}
+
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef as RefObject<HTMLElement>}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadPdf={() => {
+            exportListViewData(listFilteredData, "CreditNoteApprovalList", "pdf");
+            setOnDownload(false);
+          }}
+          onDownloadExcel={() => {
+            exportListViewData(listFilteredData, "CreditNoteApprovalList", "excel");
+            setOnDownload(false);
+          }}
+        />
+      )}
 
       {gridActionOpen && gridActionCreditNoteId ? (
         <CreditNoteApprovalActionPopup
@@ -303,7 +500,7 @@ const CreditNoteApproval = () => {
         />
       ) : null}
 
-      {renderViewPopup && (
+      {renderViewPopup && viewItem && (
         <CreditNoteViewDetailsPopup
           isOpen={openViewPopup}
           creditNoteId={viewItem?.CreditNoteId ?? 0}

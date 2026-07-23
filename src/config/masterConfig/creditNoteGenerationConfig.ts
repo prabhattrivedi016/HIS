@@ -1,12 +1,12 @@
-export const writeOffApprovalConfig = {
-  type: "writeOffApproval",
+export const creditNoteGenerationConfig = {
+  type: "creditNoteGeneration",
 
   gridCardView: {
-    type: "writeOffApproval",
-    cardType: "writeOffApprovalGrid",
+    type: "creditNoteGeneration",
+    cardType: "creditNotegenerationGrid",
     cardViewType: "grid",
 
-    recordIdKey: "WriteOffId",
+    recordIdKey: "CreditNoteId",
 
     gridLeftTop: [{ label: "Status", keyFromApi: "Status" }],
 
@@ -21,26 +21,26 @@ export const writeOffApprovalConfig = {
     gridFooterSection: [
       { label: "UHID", keyFromApi: "UHID" },
       { label: "Gender", keyFromApi: "Gender" },
-      { label: "Total Bill Amount", keyFromApi: "TotalWriteOffAmount" },
+      { label: "Total Bill Amount", keyFromApi: "TotalCreditNoteAmount" },
     ],
 
     gridButtonSection: [
-      { label: "Approve", action: "toggleApproveWriteOff" },
-      { label: "Cancel", action: "toggleCancelWriteOff" },
+      { label: "Generation", action: "toggleGenerationCreditNote" },
+      { label: "Cancel", action: "toggleCancelCreditNote" },
     ],
   },
 
   listCardView: {
-    type: "writeOffApproval",
-    cardType: "writeOffApprovalList",
+    type: "creditNoteGeneration",
+    cardType: "creditNoteGenerationList",
     cardViewType: "list",
 
-    recordIdKey: "WriteOffId",
+    recordIdKey: "CreditNoteId",
 
     listLeftButton: [
       {
         label: "Action",
-        action: "toggleApproveWriteOff",
+        action: "togglegenerationCreditNote",
       },
     ],
 
@@ -75,12 +75,34 @@ export const writeOffApprovalConfig = {
         label: "Age",
         keyFromApi: "Age",
       },
-
       {
-        label: "Total Write Off Amount",
-        keyFromApi: "TotalWriteOffAmount",
+        label: "Total Bill Amount",
+        keyFromApi: "TotalBillAmount",
       },
-
+      {
+        label: "Total Discount Per On Bill",
+        keyFromApi: "TotalDiscountPerOnBill",
+      },
+      {
+        label: "Total Discount Amount On Bill",
+        keyFromApi: "TotalDiscountAmountOnBill",
+      },
+      {
+        label: "Round Off",
+        keyFromApi: "RoundOff",
+      },
+      {
+        label: "Total Refund Amount",
+        keyFromApi: "TotalRefundAmount",
+      },
+      {
+        label: "Refund Approved",
+        keyFromApi: "IsRefundApproved",
+      },
+      {
+        label: "Refund Collected",
+        keyFromApi: "IsRefundCollected",
+      },
       {
         label: "Approval Remarks",
         keyFromApi: "ApprovalRemarks",
@@ -150,20 +172,20 @@ export const writeOffApprovalConfig = {
         keyFromApi: "CanApprove",
       },
       {
-        label: "Write Off Approved",
-        keyFromApi: "IsWriteOffApproved",
+        label: "Credit Note Approved",
+        keyFromApi: "IsCreditNoteApproved",
       },
       {
-        label: "Write Off Approved Name",
-        keyFromApi: "WriteOffApprovedName",
+        label: "Credit Note Approved Name",
+        keyFromApi: "RefundApprovedName",
       },
       {
-        label: "Write Off Approved Reason",
-        keyFromApi: "WriteOffReason",
+        label: "Credit Note Approved Reason",
+        keyFromApi: "RefundReason",
       },
       {
-        label: "Write Off Approved Remark",
-        keyFromApi: "WriteOffRemark",
+        label: "Credit Note Approved Remark",
+        keyFromApi: "RefundRemark",
       },
     ],
   },
