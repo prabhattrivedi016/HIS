@@ -1,0 +1,153 @@
+@media (max-width: 1024px) {
+  .emr-sidebar {
+    width: 13rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .emr-shell {
+    flex-direction: column;
+  }
+
+  .emr-sidebar {
+    width: 100%;
+    max-height: 208px;
+    border-right: none;
+    border-bottom: 1px solid rgb(226 232 240); /* slate-200 */
+    border-radius: 0;
+  }
+
+  .emr-content {
+    max-height: none;
+  }
+
+  /* the top-tab layout's row can outgrow a phone screen (5 pills + more +
+     save button) — let it scroll horizontally instead of wrapping/clipping */
+  .emr-tabbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .emr-tabbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .emr-section-card {
+    padding: 0.875rem;
+    border-radius: 1rem;
+  }
+}
+
+/* ---- small phones: trim padding further, keep the History/Group-set
+   drawers usable instead of overflowing the viewport ---- */
+@media (max-width: 480px) {
+  .emr-modal-panel {
+    width: 100%;
+    max-width: 100%;
+    height: 88vh;
+    border-radius: 0.75rem;
+  }
+
+  .emr-modal-toolbar {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .emr-modal-select {
+    width: 100%;
+  }
+}
+
+.doctor-note-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.doctor-note-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.65rem 0 0.4rem;
+}
+
+.doctor-note-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.55rem 0 0.35rem;
+}
+
+.doctor-note-content p {
+  margin: 0.4rem 0;
+  line-height: 1.6;
+}
+
+.doctor-note-content ul,
+.doctor-note-content ol {
+  padding-left: 1.5rem;
+  margin: 0.4rem 0;
+}
+
+.doctor-note-content ul {
+  list-style: disc;
+}
+
+.doctor-note-content ol {
+  list-style: decimal;
+}
+
+.doctor-note-content blockquote {
+  border-left: 3px solid rgb(20 184 166);
+  padding-left: 0.75rem;
+  color: rgb(71 85 105);
+  margin: 0.5rem 0;
+}
+
+.doctor-note-content a {
+  color: rgb(37 99 235);
+  text-decoration: underline;
+}
+
+.doctor-note-content mark {
+  border-radius: 0.15rem;
+  padding: 0 0.1rem;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #emr-print-preview-wrapper,
+  #emr-print-preview-wrapper * {
+    visibility: visible;
+  }
+
+  #emr-print-preview-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .emr-print-no-print {
+    display: none !important;
+  }
+
+  .emr-print-section {
+    break-inside: avoid;
+  }
+}
+
+.emr-print-page {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.emr-print-page-a4 {
+  width: 210mm;
+  min-height: 297mm;
+}
+
+.emr-print-page-a5 {
+  width: 148mm;
+  min-height: 210mm;
+}

@@ -25,6 +25,8 @@ export interface TableColumnSchema {
   /** 1: Text Box, 2: Number, 3: Date Picker, 4: Text Area, 5: Dropdown */
   dataTypeId: number;
   options?: OptionSchema[];
+  /** when set, renders as a search-as-you-type text input instead of the dataTypeId default */
+  asyncSearch?: (query: string) => Promise<OptionSchema[]>;
 }
 
 export interface TableMasterEntryConfig {
@@ -36,6 +38,8 @@ export interface TableMasterEntryConfig {
   idField: string;
   /** backend field name for the entity's name, e.g. "complaintName" */
   nameField: string;
+  /** backend table name, passed to DELETE_RECORD_BY_TABLE_NAME to delete a row from this master */
+  tableName: string;
 }
 
 export interface TableOrderSetConfig {
@@ -77,8 +81,19 @@ export interface ControlSchema {
   columns?: TableColumnSchema[];
   masterEntryConfig?: TableMasterEntryConfig;
   orderSetConfig?: TableOrderSetConfig;
+  /** "table" controls only — default false. Set true to show a "Previous Visits" button that lets
+   * the doctor browse past-visit rows (grouped by visit date) and copy selected ones into this
+   * table for the current visit */
+  previousVisitsEnabled?: boolean;
   /** logged-in doctor, used by "table" controls to load/save doctor-wise favourite entries */
   doctorId?: number;
+  /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */
+  favouritesEnabled?: boolean;
+  /** "textarea"/"richtext" controls only — default false. Set true to show the "save as favourite" bar */
+  textFavouritesEnabled?: boolean;
+  /** "textarea" controls only — default false. Set true for a large, auto-growing textarea
+   * instead of the normal fixed-height one */
+  textLarge?: boolean;
 }
 
 export interface CardSchema {

@@ -8,3 +8,5 @@ export const hasAccess = (pageKey: string, rights: any) => {
   if (!rule) return true;
   return rule(rights);
 };
+
+export const canViewEmrSectionHistory = (rights: any) => rights?.CanViewEmrSectionHistory === 1;

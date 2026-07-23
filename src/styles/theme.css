@@ -183,8 +183,13 @@
 
 /* custom input field */
 .input-field {
-  @apply w-full min-w-0 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-400 rounded-lg bg-white placeholder:text-gray-500 placeholder:opacity-60 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition mb-2;
-}
+  @apply w-full px-3.5 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 shadow-sm
+    placeholder:text-gray-400
+    outline-none transition-all duration-150 mb-2
+    hover:border-gray-300
+    focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 focus:shadow-none
+    disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed;
+ }
 
 .input-dob {
   @apply [&::-webkit-datetime-edit]:uppercase

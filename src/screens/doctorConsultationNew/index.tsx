@@ -9,6 +9,7 @@ import {
   Gauge,
   HeartPulse,
   LucideIcon,
+  Printer,
   Ruler,
   Save,
   Scale,
@@ -23,6 +24,7 @@ import { NavLink } from "react-router-dom";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -31,6 +33,8 @@ import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
+import MedicineAssistantWidget from "./components/MedicineAssistantWidget";
+import PrintPreviewModal from "./components/PrintPreviewModal";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
@@ -122,6 +126,7 @@ const DoctorConsultationNew = () => {
   const { loading, fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
+  const addVisitSnapshot = useEmrSectionHistoryStore(s => s.addVisitSnapshot);
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -136,6 +141,13 @@ const DoctorConsultationNew = () => {
 
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
+  const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
+  // phones only — the full vitals chip row is too tall to show inline on a small screen, so it
+  // starts collapsed behind a compact summary bar instead of pushing EMR Sections far below the fold
+  const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
+  // same idea as vitals — UHID/Visit ID/Visit Date/etc. are secondary details, collapsed by
+  // default on phones so the header stays short and EMR Sections is reachable right away
+  const [isDetailsExpandedMobile, setIsDetailsExpandedMobile] = useState(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState("0");
   const [searchText, setSearchText] = useState("");
@@ -325,11 +337,21 @@ const DoctorConsultationNew = () => {
 
   const buildAllergyAttributes: AttributeBuilder = () =>
     allergySection
-      ? [{ attributeType: "allergy", attributeCode: "allergy", label: "Allergy", value: allergySection }]
+      ? [
+          {
+            attributeType: "allergy",
+            attributeCode: "allergy",
+            label: "Allergy",
+            value: allergySection,
+          },
+        ]
       : [];
 
   const buildEmrSectionAttributes: AttributeBuilder = () => {
-    const bySectionId = new Map<number, { sectionName: string; entries: EmrSectionAnswerEntry[] }>();
+    const bySectionId = new Map<
+      number,
+      { sectionName: string; entries: EmrSectionAnswerEntry[] }
+    >();
     emrSectionsData.forEach(e => {
       const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
       bucket.entries.push(e);
@@ -415,6 +437,42 @@ const DoctorConsultationNew = () => {
         origin: { y: 0.35 },
         colors: ["#6366f1", "#a855f7", "#ec4899", "#10b981", "#06b6d4"],
       });
+
+      // stand-in for GET_EMR_SECTION_HISTORY until the backend endpoint exists —
+      // see useEmrSectionHistoryStore for the intended API contract
+      if (selectedPatient) {
+        const bySectionId = new Map<
+          number,
+          { sectionName: string; entries: EmrSectionAnswerEntry[] }
+        >();
+        emrSectionsData.forEach(e => {
+          const bucket = bySectionId.get(e.sectionId) ?? {
+            sectionName: e.sectionName,
+            entries: [],
+          };
+          bucket.entries.push(e);
+          bySectionId.set(e.sectionId, bucket);
+        });
+
+        const recordedOn = new Date().toISOString();
+        bySectionId.forEach(({ sectionName, entries }, sectionId) => {
+          addVisitSnapshot({
+            patientId: selectedPatient.PatientId,
+            sectionId,
+            sectionName,
+            visitId: selectedPatient.VisitId,
+            doctorId: selectedPatient.DoctorId,
+            doctorName: selectedPatient.DoctorName,
+            recordedOn,
+            values: entries.map(e => ({
+              headerId: e.headerId,
+              headerName: e.headerName,
+              controlType: e.controlType,
+              value: e.value,
+            })),
+          });
+        });
+      }
     }
   };
 
@@ -438,7 +496,7 @@ const DoctorConsultationNew = () => {
           } ${
             leftPanelVisible
               ? "lg:w-80 w-full opacity-100"
-              : "lg:w-0 w-full opacity-0 lg:opacity-100"
+              : "hidden lg:block lg:w-0 lg:opacity-100"
           }`}
         >
           <div className="card mr-1 h-full flex flex-col gap-2 p-3">
@@ -771,8 +829,8 @@ const DoctorConsultationNew = () => {
                   <div className="sticky top-0 z-40 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mb-3 overflow-hidden">
                     <div className="h-1 w-full bg-[#0B5394]" />
                     {/* ── Section 1: Name / badges / actions ── */}
-                    <div className="flex items-start justify-between gap-4 px-4 py-3">
-                      <div className="flex items-start gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3 px-3 sm:px-4 py-3">
+                      <div className="flex items-start gap-3 min-w-0">
                         {/* Avatar */}
                         <div className="relative w-12 h-12 rounded-xl bg-[#0B5394] flex items-center justify-center shrink-0 shadow-md ring-2 ring-white">
                           <span className="text-white font-bold text-base tracking-wide">
@@ -838,28 +896,33 @@ const DoctorConsultationNew = () => {
                         </div>
                       </div>
                       {/* Action buttons */}
-                      <div className="flex items-center gap-2 shrink-0 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:shrink-0 mt-1">
                         <button
                           type="button"
                           onClick={() => {
                             setSelectedPatient(null);
                             setLeftPanelVisible(true);
                           }}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
                         >
                           <ChevronLeft size={14} />
                           Back
                         </button>
-                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">
+                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">
                           View
                         </button>
-                        <button className="text-sm font-medium border border-gray-300 rounded-lg px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all">
+                        <button
+                          type="button"
+                          onClick={() => setShowPrintPreview(true)}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                        >
+                          <Printer size={14} />
                           Print
                         </button>
                         <button
                           type="button"
                           onClick={handleFinalSave}
-                          className="save-btn !px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                          className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
                         >
                           <Save size={14} />
                           Save
@@ -867,8 +930,10 @@ const DoctorConsultationNew = () => {
                       </div>
                     </div>
 
-                    {/* ── Section 2: Visit info strip ── */}
-                    <div className="bg-slate-50/70 border-t border-b border-slate-100 px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-2">
+                    {/* ── Section 2: Visit info strip ──
+                        desktop/tablet shows the full grid inline; phones get it collapsed behind
+                        a one-line toggle so it doesn't compete with EMR Sections for screen space */}
+                    <div className="hidden sm:flex bg-slate-50/70 border-t border-b border-slate-100 px-3 sm:px-4 py-2.5 flex-wrap gap-x-6 gap-y-2">
                       {visitFields.map(f => (
                         <div
                           key={f.label}
@@ -886,14 +951,64 @@ const DoctorConsultationNew = () => {
                       ))}
                     </div>
 
-                    {/* ── Section 3: Vitals strip — icon stat chips, editable ── */}
-                    <div className="flex items-center gap-2 w-full px-4 py-3">
+                    {/* phones only — compact visit-details summary bar, expands inline on tap */}
+                    <div className="sm:hidden bg-slate-50/70 border-t border-b border-slate-100 px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsDetailsExpandedMobile(v => !v)}
+                        className="w-full flex items-center justify-between gap-2 active:scale-[0.98] transition-all"
+                      >
+                        <span className="min-w-0 flex-1 text-left text-xs text-gray-600 truncate">
+                          <span className="font-semibold text-gray-800">
+                            {selectedPatient.UHID}
+                          </span>
+                          {" · "}
+                          {selectedPatient.TypeName}
+                          {" · "}
+                          <span className="text-teal-600 font-medium">
+                            {selectedPatient.DoctorName}
+                          </span>
+                        </span>
+                        <ChevronDown
+                          size={14}
+                          className={`text-slate-400 shrink-0 transition-transform ${isDetailsExpandedMobile ? "rotate-180" : ""}`}
+                        />
+                      </button>
+
+                      {isDetailsExpandedMobile && (
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2">
+                          {visitFields.map(f => (
+                            <div
+                              key={f.label}
+                              className={`flex flex-col px-2.5 py-1 rounded-lg ${f.highlight ? "bg-teal-50 ring-1 ring-teal-100" : ""}`}
+                            >
+                              <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+                                {f.label}
+                              </span>
+                              <span
+                                className={`text-sm font-semibold ${f.highlight ? "text-teal-600" : "text-gray-800"}`}
+                              >
+                                {f.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── Section 3: Vitals strip — icon stat chips, editable ──
+                        desktop/tablet shows every chip inline; phones get a compact summary bar
+                        that expands the same chips on tap, so this card doesn't eat the whole
+                        screen and push EMR Sections out of view */}
+                    <div className="hidden sm:flex items-center gap-2 w-full px-4 py-3">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
                         {vitals.map(v => (
                           <div
                             key={v.key}
                             className={`group flex items-center gap-2 rounded-xl px-2.5 py-1.5 ring-1 flex-1 basis-32 min-w-[110px] transition-all ${
-                              v.value ? `${v.bg} ${v.ring}` : "bg-slate-50 ring-slate-100 hover:ring-slate-200"
+                              v.value
+                                ? `${v.bg} ${v.ring}`
+                                : "bg-slate-50 ring-slate-100 hover:ring-slate-200"
                             }`}
                           >
                             <span
@@ -932,12 +1047,83 @@ const DoctorConsultationNew = () => {
                         <Activity size={16} />
                       </button>
                     </div>
+
+                    {/* phones only — compact vitals summary bar, expands inline on tap */}
+                    <div className="sm:hidden w-full px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsVitalsExpandedMobile(v => !v)}
+                          className="flex-1 min-w-0 flex items-center justify-between gap-2 rounded-xl bg-slate-50 ring-1 ring-slate-100 px-3 py-2 active:scale-[0.98] transition-all"
+                        >
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                            <HeartPulse size={13} className="text-slate-400" />
+                            Vitals
+                            <span className="text-[10px] font-medium text-slate-400">
+                              {vitals.filter(v => v.value).length}/{vitals.length} recorded
+                            </span>
+                          </span>
+                          <ChevronDown
+                            size={14}
+                            className={`text-slate-400 transition-transform ${isVitalsExpandedMobile ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowVitalInsights(true)}
+                          title="View vitals insights"
+                          className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shrink-0 shadow-md active:scale-95 transition-all"
+                        >
+                          <Activity size={16} />
+                        </button>
+                      </div>
+
+                      {isVitalsExpandedMobile && (
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          {vitals.map(v => (
+                            <div
+                              key={v.key}
+                              className={`group flex items-center gap-2 rounded-xl px-2.5 py-1.5 ring-1 flex-1 basis-32 min-w-[110px] transition-all ${
+                                v.value ? `${v.bg} ${v.ring}` : "bg-slate-50 ring-slate-100"
+                              }`}
+                            >
+                              <span
+                                className={`flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br ${v.grad} shrink-0 shadow-sm`}
+                              >
+                                <v.Icon size={13} className="text-white" strokeWidth={2.25} />
+                              </span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5 whitespace-nowrap">
+                                  {v.label}
+                                </span>
+                                <div className="flex items-baseline gap-1">
+                                  <input
+                                    type="text"
+                                    value={v.value}
+                                    onChange={e => updateVital(v.key, e.target.value)}
+                                    placeholder="--"
+                                    className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 ${
+                                      v.value ? v.text : "text-slate-300"
+                                    }`}
+                                  />
+                                  <span className="text-[9px] text-slate-400 leading-none whitespace-nowrap">
+                                    {v.unit}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
 
               <ConsultationEmrSections
                 doctorId={selectedPatient?.DoctorId}
+                patientId={selectedPatient?.PatientId}
+                visitId={selectedPatient?.VisitId}
                 onSectionsChange={setEmrSectionsData}
               />
             </div>
@@ -959,6 +1145,17 @@ const DoctorConsultationNew = () => {
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
       />
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        doctorId={selectedPatient?.DoctorId}
+        patient={selectedPatient}
+        emrSectionsData={emrSectionsData}
+        vitals={vitalMasterList}
+        vitalsData={vitalsData}
+        allergy={allergySection}
+      />
+      {selectedPatient && <MedicineAssistantWidget emrSectionsData={emrSectionsData} />}
     </div>
   );
 };

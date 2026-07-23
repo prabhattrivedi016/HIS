@@ -1,0 +1,596 @@
+import { ENDPOINTS } from "@/config/defaults";
+import { AuthContext } from "@/context/AuthContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import {
+  DEFAULT_PRINT_SETTINGS,
+  PrintSettings,
+  usePrintSettingsStore,
+} from "@/store/usePrintSettingsStore";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Building2,
+  FileImage,
+  Loader2,
+  Printer,
+  Save,
+  Square,
+  SquareCheck,
+  User,
+} from "lucide-react";
+import { ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { AllergySection, EmrSectionAnswerEntry, PatientItem } from "../types";
+
+interface VitalMasterLike {
+  vitalId: number;
+  vitalName: string;
+  unitName: string;
+}
+
+interface PrintPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  doctorId?: number;
+  patient: PatientItem | null;
+  emrSectionsData: EmrSectionAnswerEntry[];
+  vitals?: VitalMasterLike[];
+  vitalsData?: Record<number, string>;
+  allergy?: AllergySection | null;
+}
+
+interface BranchDetails {
+  branchName: string;
+  address: string;
+  contactNo1: string;
+  contactNo2: string;
+  email: string;
+}
+
+interface SectionGroup {
+  sectionId: number;
+  sectionName: string;
+  entries: EmrSectionAnswerEntry[];
+}
+
+const FONT_SIZE_CLASS: Record<PrintSettings["fontSize"], string> = {
+  sm: "text-[11px]",
+  md: "text-[12.5px]",
+  lg: "text-[14px]",
+};
+
+const formatEntryValue = (value: unknown): ReactNode => {
+  if (value === null || value === undefined || value === "") return "-";
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
+    if (typeof value[0] === "object" && value[0] !== null) {
+      const rows = value as Record<string, unknown>[];
+      const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
+      return (
+        <table className="w-full border-collapse mt-1">
+          <thead>
+            <tr>
+              {columns.map(col => (
+                <th
+                  key={col}
+                  className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, idx) => (
+              <tr key={idx} className="border-b border-slate-100">
+                {columns.map(col => (
+                  <td key={col} className="py-1 pr-3 text-slate-700 align-top">
+                    {String(row[col] ?? "-")}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+    return value.map(v => String(v)).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(" · ");
+  }
+
+  return String(value);
+};
+
+const PrintPreviewModal = ({
+  isOpen,
+  onClose,
+  doctorId,
+  patient,
+  emrSectionsData,
+  vitals = [],
+  vitalsData = {},
+  allergy,
+}: PrintPreviewModalProps) => {
+  const authUser = useContext(AuthContext)?.user;
+  const branchId = Number(authUser?.branchId ?? 1);
+  const { fetchApi } = useGlobalApi();
+  const fetchApiRef = useRef(fetchApi);
+  fetchApiRef.current = fetchApi;
+
+  const getSettings = usePrintSettingsStore(state => state.getSettings);
+  const saveSettings = usePrintSettingsStore(state => state.saveSettings);
+
+  const [settings, setSettings] = useState<PrintSettings>(DEFAULT_PRINT_SETTINGS);
+  const [branchDetails, setBranchDetails] = useState<BranchDetails | null>(null);
+  const [letterheadImage, setLetterheadImage] = useState<string | null>(null);
+  const [isLoadingLetterhead, setIsLoadingLetterhead] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSettings(getSettings(doctorId));
+  }, [isOpen, doctorId, getSettings]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetchApiRef
+      .current<{
+        data?: BranchDetails[];
+      }>(
+        "GET",
+        ENDPOINTS.GET_BRANCH_DETAILS,
+        {},
+        { params: { branchId } },
+        { component: "PrintPreviewModal", silent: true }
+      )
+      .then(res => {
+        if (cancelled) return;
+        setBranchDetails(res?.data?.[0] ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, branchId]);
+
+  useEffect(() => {
+    if (!isOpen || !settings.showLetterhead) {
+      setLetterheadImage(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingLetterhead(true);
+    (async () => {
+      const listRes = await fetchApiRef.current<{ data?: Record<string, unknown>[] }>(
+        "GET",
+        ENDPOINTS.GET_LAB_REPORT_LETTER_HEAD_LIST,
+        {},
+        {},
+        { component: "PrintPreviewModal", silent: true }
+      );
+      const rows = listRes?.data ?? [];
+      const match =
+        rows.find(r => Number(r.BranchId ?? r.branchId) === branchId) ?? rows[0] ?? null;
+      const filePath = (match?.letterHeadFilePath ?? match?.LetterHeadFilePath) as
+        | string
+        | undefined;
+      if (!filePath) {
+        if (!cancelled) setIsLoadingLetterhead(false);
+        return;
+      }
+      const imgRes = await fetchApiRef.current<{ data?: { base64Data?: string } }>(
+        "GET",
+        ENDPOINTS.GET_FILE_AS_BASE_64,
+        {},
+        { params: { filePath } },
+        { component: "PrintPreviewModal", silent: true }
+      );
+      if (!cancelled) {
+        setLetterheadImage(imgRes?.data?.base64Data ?? null);
+        setIsLoadingLetterhead(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, settings.showLetterhead, branchId]);
+
+  const filledVitals = useMemo(
+    () => vitals.filter(v => (vitalsData[v.vitalId] ?? "").trim() !== ""),
+    [vitals, vitalsData]
+  );
+
+  const hasAllergyData = Boolean(
+    allergy && (allergy.notKnownAllergy || allergy.summary?.trim() || allergy.records.length > 0)
+  );
+
+  const groupedSections = useMemo(() => {
+    const map = new Map<number, SectionGroup>();
+    emrSectionsData.forEach(e => {
+      const bucket = map.get(e.sectionId) ?? {
+        sectionId: e.sectionId,
+        sectionName: e.sectionName,
+        entries: [],
+      };
+      bucket.entries.push(e);
+      map.set(e.sectionId, bucket);
+    });
+    return Array.from(map.values());
+  }, [emrSectionsData]);
+
+  if (!isOpen) return null;
+
+  const toggleSetting = (
+    key: keyof Pick<
+      PrintSettings,
+      "showLetterhead" | "showPatientDetails" | "showHospitalDetails" | "showVitals" | "showAllergy"
+    >
+  ) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleSection = (sectionId: number) => {
+    setSettings(prev => ({
+      ...prev,
+      excludedSectionIds: prev.excludedSectionIds.includes(sectionId)
+        ? prev.excludedSectionIds.filter(id => id !== sectionId)
+        : [...prev.excludedSectionIds, sectionId],
+    }));
+  };
+
+  const handleSaveSettings = () => {
+    if (doctorId == null) return;
+    saveSettings(doctorId, settings);
+  };
+
+  const handlePrint = () => {
+    const styleEl = document.createElement("style");
+    styleEl.id = "emr-print-page-size";
+    styleEl.textContent = `@page { size: ${settings.paperSize === "A5" ? "A5" : "A4"}; margin: 14mm; }`;
+    document.head.appendChild(styleEl);
+    window.print();
+    setTimeout(() => styleEl.remove(), 1000);
+  };
+
+  const visibleSections = groupedSections.filter(
+    g => !settings.excludedSectionIds.includes(g.sectionId)
+  );
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="print-backdrop"
+        className="fixed inset-0 z-[95] bg-black/40"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        key="print-drawer"
+        className="fixed inset-y-0 right-0 z-[96] w-[96vw] max-w-[1500px] bg-white shadow-2xl flex"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 32 }}
+      >
+        <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/70 flex flex-col overflow-y-auto">
+          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-200 bg-white shrink-0">
+            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm">
+              <Printer size={13} className="text-white" />
+            </span>
+            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">Print Settings</h3>
+          </div>
+
+          <div className="flex-1 p-4 flex flex-col gap-5">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Include
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {(
+                  [
+                    { key: "showLetterhead", label: "Hospital letterhead" },
+                    { key: "showPatientDetails", label: "Patient details" },
+                    { key: "showHospitalDetails", label: "Hospital details" },
+                    { key: "showVitals", label: "Vitals" },
+                    { key: "showAllergy", label: "Allergy" },
+                  ] as const
+                ).map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => toggleSetting(opt.key)}
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12.5px] font-medium text-slate-700 hover:bg-white transition-colors"
+                  >
+                    {settings[opt.key] ? (
+                      <SquareCheck size={16} className="text-[#0B5394] shrink-0" />
+                    ) : (
+                      <Square size={16} className="text-slate-300 shrink-0" />
+                    )}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Paper size
+              </p>
+              <div className="flex gap-1.5 bg-white rounded-lg p-1 border border-slate-200">
+                {(["A4", "A5"] as const).map(size => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setSettings(prev => ({ ...prev, paperSize: size }))}
+                    className={`flex-1 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                      settings.paperSize === size
+                        ? "bg-[#0B5394] text-white"
+                        : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Font size
+              </p>
+              <div className="flex gap-1.5 bg-white rounded-lg p-1 border border-slate-200">
+                {(["sm", "md", "lg"] as const).map(size => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setSettings(prev => ({ ...prev, fontSize: size }))}
+                    className={`flex-1 py-1.5 rounded-md text-[12px] font-semibold uppercase transition-colors ${
+                      settings.fontSize === size
+                        ? "bg-[#0B5394] text-white"
+                        : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                EMR sections ({visibleSections.length}/{groupedSections.length})
+              </p>
+              <div className="flex flex-col gap-1 overflow-y-auto">
+                {groupedSections.length === 0 && (
+                  <p className="text-[11px] text-slate-400 px-2.5">No EMR data entered yet</p>
+                )}
+                {groupedSections.map(group => {
+                  const included = !settings.excludedSectionIds.includes(group.sectionId);
+                  return (
+                    <button
+                      key={group.sectionId}
+                      type="button"
+                      onClick={() => toggleSection(group.sectionId)}
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[12.5px] font-medium text-slate-700 hover:bg-white transition-colors"
+                    >
+                      {included ? (
+                        <SquareCheck size={16} className="text-[#0B5394] shrink-0" />
+                      ) : (
+                        <Square size={16} className="text-slate-300 shrink-0" />
+                      )}
+                      <span className="truncate">{group.sectionName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-t border-slate-200 bg-white shrink-0">
+            <button
+              type="button"
+              onClick={handleSaveSettings}
+              disabled={doctorId == null}
+              className="save-btn w-full !py-2 !text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
+            >
+              <Save size={14} />
+              Save as default
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
+            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">Print Preview</h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="save-btn !py-1.5 !text-xs flex items-center gap-1.5"
+              >
+                <Printer size={14} />
+                Print
+              </button>
+              <button className="close-drawer-btn" onClick={onClose}>
+                &times;
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto bg-slate-200 p-8">
+            <div
+              id="emr-print-preview-wrapper"
+              className={`emr-print-page mx-auto ${
+                settings.paperSize === "A5" ? "emr-print-page-a5" : "emr-print-page-a4"
+              } p-10 ${FONT_SIZE_CLASS[settings.fontSize]}`}
+            >
+              {settings.showLetterhead && (
+                <div className="flex flex-col items-center pb-4 mb-4 border-b-2 border-slate-900">
+                  {isLoadingLetterhead ? (
+                    <Loader2 size={18} className="animate-spin text-slate-300" />
+                  ) : letterheadImage ? (
+                    <img
+                      src={letterheadImage}
+                      alt="Hospital letterhead"
+                      className="max-h-24 object-contain"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 text-slate-900">
+                      <FileImage size={18} />
+                      <span className="text-lg font-bold tracking-wide">
+                        {branchDetails?.branchName || "Hospital"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(settings.showPatientDetails || settings.showHospitalDetails) && (
+                <div className="grid grid-cols-2 gap-6 pb-4 mb-4 border-b border-slate-300">
+                  {settings.showPatientDetails && (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-slate-900 font-bold uppercase tracking-wide text-[11px] mb-1.5">
+                        <User size={12} />
+                        Patient Details
+                      </div>
+                      <p className="font-semibold text-slate-800">{patient?.PatientName || "-"}</p>
+                      <p className="text-slate-600">
+                        UHID: {patient?.UHID || "-"} · {patient?.Age || "-"} /{" "}
+                        {patient?.Gender || "-"}
+                      </p>
+                      <p className="text-slate-600">Doctor: {patient?.DoctorName || "-"}</p>
+                      <p className="text-slate-600">
+                        Visit: {patient?.TypeName || "-"} · {patient?.AppDateTime || "-"}
+                      </p>
+                      {patient?.BedNo && <p className="text-slate-600">Bed: {patient.BedNo}</p>}
+                    </div>
+                  )}
+                  {settings.showHospitalDetails && (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-slate-900 font-bold uppercase tracking-wide text-[11px] mb-1.5">
+                        <Building2 size={12} />
+                        Hospital Details
+                      </div>
+                      <p className="font-semibold text-slate-800">
+                        {branchDetails?.branchName || "-"}
+                      </p>
+                      <p className="text-slate-600">{branchDetails?.address || "-"}</p>
+                      <p className="text-slate-600">
+                        {[branchDetails?.contactNo1, branchDetails?.contactNo2]
+                          .filter(Boolean)
+                          .join(", ") || "-"}
+                      </p>
+                      {branchDetails?.email && (
+                        <p className="text-slate-600">{branchDetails.email}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settings.showVitals && filledVitals.length > 0 && (
+                <div className="emr-print-section mb-4">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
+                    Vitals
+                  </h4>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1.5">
+                    {filledVitals.map(v => (
+                      <div key={v.vitalId} className="grid grid-cols-[1fr_auto] gap-2">
+                        <span className="font-semibold text-slate-600">{v.vitalName}</span>
+                        <span className="text-slate-800">
+                          {vitalsData[v.vitalId]} {v.unitName || ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {settings.showAllergy && hasAllergyData && allergy && (
+                <div className="emr-print-section mb-4">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
+                    Allergy
+                  </h4>
+                  {allergy.notKnownAllergy ? (
+                    <p className="text-slate-700">No known allergy</p>
+                  ) : (
+                    <>
+                      {allergy.summary && (
+                        <p className="text-slate-700 mb-1.5">{allergy.summary}</p>
+                      )}
+                      {allergy.records.length > 0 && (
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              {["Allergy", "Type", "Reaction", "Severity", "Remarks"].map(col => (
+                                <th
+                                  key={col}
+                                  className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
+                                >
+                                  {col}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allergy.records.map(r => (
+                              <tr key={r.id} className="border-b border-slate-100">
+                                <td className="py-1 pr-3 text-slate-700 align-top">
+                                  {r.allergyName || "-"}
+                                </td>
+                                <td className="py-1 pr-3 text-slate-700 align-top">
+                                  {r.allergyType || "-"}
+                                </td>
+                                <td className="py-1 pr-3 text-slate-700 align-top">
+                                  {r.reaction || "-"}
+                                </td>
+                                <td className="py-1 pr-3 text-slate-700 align-top">
+                                  {r.interactionSeverity || "-"}
+                                </td>
+                                <td className="py-1 pr-3 text-slate-700 align-top">
+                                  {r.remarks || "-"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-4">
+                {visibleSections.length === 0 && (
+                  <p className="text-slate-400 text-center py-10">No sections selected to print</p>
+                )}
+                {visibleSections.map(group => (
+                  <div key={group.sectionId} className="emr-print-section">
+                    <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
+                      {group.sectionName}
+                    </h4>
+                    <div className="flex flex-col gap-1.5">
+                      {group.entries.map(entry => (
+                        <div key={entry.headerId} className="grid grid-cols-[140px_1fr] gap-3">
+                          <span className="font-semibold text-slate-600">{entry.headerName}</span>
+                          <span className="text-slate-700">{formatEntryValue(entry.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+export default PrintPreviewModal;

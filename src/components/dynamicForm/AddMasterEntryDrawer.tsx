@@ -1,3 +1,4 @@
+import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess } from "@/utils/alert";
 import { useEffect, useRef, useState } from "react";
@@ -130,15 +131,36 @@ const AddMasterEntryDrawer = ({
     setShowSnomedDropdown(false);
   };
 
-  const handleEdit = (item: Record<string, unknown>) => {
+  const resolveItemId = (item: Record<string, unknown>) => {
     const { idField } = masterEntryConfig;
     const pascalIdField = idField.charAt(0).toUpperCase() + idField.slice(1);
+    return item[idField] ?? item[pascalIdField] ?? 0;
+  };
 
+  const handleEdit = (item: Record<string, unknown>) => {
     setIsEditing(true);
-    setEditingId(item[idField] ?? item[pascalIdField] ?? 0);
+    setEditingId(resolveItemId(item));
     setName(String(item[masterEntryConfig.nameField] ?? ""));
     setSnomedCode(String(item.snomedCode ?? ""));
     setStatus(Number(item.isActive ?? 1));
+  };
+
+  const handleDelete = async (item: Record<string, unknown>) => {
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.DELETE_RECORD_BY_TABLE_NAME,
+      {},
+      { params: { tableName: masterEntryConfig.tableName, id: resolveItemId(item) } },
+      { component: "AddMasterEntryDrawer" }
+    );
+
+    if (!resp?.result) {
+      showError(resp?.message || "Failed to delete entry");
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Deleted successfully");
+    loadList();
   };
 
   const handleSave = async () => {
@@ -351,6 +373,13 @@ const AddMasterEntryDrawer = ({
                             className="inline-flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium transition px-2 py-1 rounded hover:bg-blue-50"
                           >
                             Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item)}
+                            className="inline-flex items-center gap-1 text-red-500 hover:text-red-700 text-sm font-medium transition px-2 py-1 rounded hover:bg-red-50 ml-1"
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
