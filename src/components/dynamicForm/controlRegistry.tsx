@@ -28,7 +28,7 @@ import { ControlSchema, OptionSchema } from "./types";
 
 export interface ControlRenderProps {
   schema: ControlSchema;
-  value: unknown;
+  value: unknown | string;
   onChange: (value: unknown) => void;
   onBlur?: () => void;
   rows?: number;

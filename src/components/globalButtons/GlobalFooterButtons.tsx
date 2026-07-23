@@ -20,6 +20,11 @@ const GlobalFooterButtons = ({
   const isOPDRefundApprovalRequired =
     Number(branchRights?.IsOPDRefundApprovalRequired) === 1 ? 1 : 0;
 
+  const isCreditNoteApprovalRequired =
+    Number(branchRights?.IsCreditNoteApprovalRequired) === 1 ? 1 : 0;
+
+  const isWiteOffApprovalRequired = Number(branchRights?.IsWriteOffApprovalRequired) === 1 ? 1 : 0;
+
   // "Save As Draft" is only applicable to OPD Billing; IPD admission always uses the plain "Save".
   //   const showSaveAsDraft =
   //     (pageType === PageType?.OPD_BILLING &&
@@ -49,71 +54,6 @@ const GlobalFooterButtons = ({
   return (
     <div className="fixed bottom-0 left-0 w-full z-20 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.08)]">
       <div className="form-actions-responsive mt-0! flex-wrap justify-end gap-2 px-3 py-1.5">
-        {/* {showSaveAsDraft ? (
-          <>
-            <button type="button" className="save-btn" onClick={() => onButtonClick("saveAsDraft")}>
-              Save As Draft
-            </button>
-            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <></>
-        )} */}
-
-        {/* {showDiscountRequest ? (
-          <>
-            <button
-              type="button"
-              className={hasDiscountApplied ? "save-btn" : "disabled-btn cursor-not-allowed"}
-              onClick={() => onButtonClick("saveAsDraft")}
-              disabled={!hasDiscountApplied}
-            >
-              Request Discount
-            </button>
-            <button
-              type="button"
-              className={hasDiscountApplied ? "disabled-btn cursor-not-allowed" : "save-btn"}
-              onClick={() => onButtonClick("save")}
-              disabled={hasDiscountApplied}
-            >
-              Save
-            </button>
-            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <></>
-        )}
-
-        {showSaveButton ? (
-          <>
-            <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
-              {"Save"}
-            </button>
-            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <></>
-        )} */}
-
-        {/* {pageType === PageType?.PATIENT_ADVANCE ? (
-          <>
-            <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
-              Save
-            </button>
-            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <></>
-        )} */}
-
         {pageType === PageType?.OPD_REFUND &&
         isOPDRefundApprovalRequired === 1 &&
         !paymentCollectionMode ? (
@@ -126,7 +66,7 @@ const GlobalFooterButtons = ({
               Send For Approval
             </button>
           </>
-        ) : (
+        ) : pageType === PageType?.OPD_REFUND ? (
           <>
             <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
               Save
@@ -135,6 +75,43 @@ const GlobalFooterButtons = ({
               Cancel
             </button>
           </>
+        ) : (
+          <></>
+        )}
+
+        {/* credit note */}
+        {pageType === PageType?.CREDIT_NOTE && isCreditNoteApprovalRequired ? (
+          <button
+            type="button"
+            className="save-btn"
+            onClick={() => onButtonClick("sendForApproval")}
+          >
+            Send For Approval
+          </button>
+        ) : pageType === PageType?.CREDIT_NOTE ? (
+          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+            Save
+          </button>
+        ) : (
+          <></>
+        )}
+
+        {/* write off isWiteOffApprovalRequired */}
+
+        {pageType === PageType?.WRITE_OFF && isWiteOffApprovalRequired ? (
+          <button
+            type="button"
+            className="save-btn"
+            onClick={() => onButtonClick("sendForApproval")}
+          >
+            Send For Approval
+          </button>
+        ) : pageType === PageType?.WRITE_OFF ? (
+          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+            Save
+          </button>
+        ) : (
+          <></>
         )}
       </div>
     </div>

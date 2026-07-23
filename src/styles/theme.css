@@ -189,7 +189,7 @@
     hover:border-gray-300
     focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 focus:shadow-none
     disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed;
-}
+ }
 
 .input-dob {
   @apply [&::-webkit-datetime-edit]:uppercase
@@ -309,18 +309,20 @@
 }
 
 /*-------------------NORMAL PAGES ---------------- */
+/* Do NOT add overflow-y-auto / min-h-screen here — Sidebar <main> already scrolls.
+   Nested page scroll traps break scrolling once content (billing + payment) grows. */
 .page-container {
-  @apply bg-gray-50 flex-1 px-3 py-4 -mt-6;
+  @apply w-full min-w-0 max-w-full bg-gray-50 flex-1 px-2 sm:px-3 py-3 sm:py-4 -mt-6;
 }
 .page-heading {
-  @apply text-2xl font-bold text-gray-900;
+  @apply text-xl sm:text-2xl font-bold text-gray-900;
 }
 .helper-text {
-  @apply text-sm text-gray-500 flex gap-2 mt-1;
+  @apply text-xs sm:text-sm text-gray-500 flex flex-wrap gap-1 sm:gap-2 mt-1;
 }
 
 .card {
-  @apply bg-white rounded-xl shadow-lg p-4 border border-gray-200;
+  @apply w-full min-w-0 max-w-full bg-white rounded-xl shadow-lg p-3 sm:p-4 border border-gray-200;
 }
 .card-title {
   @apply text-xl font-semibold text-gray-800 text-left -mt-3 mb-2;
@@ -334,12 +336,12 @@
 /* width of the table */
 
 .table-container {
-  @apply w-full;
+  @apply w-full min-w-0 max-w-full;
 }
 
 /* both vertical + horizontal scroll height+width */
 .table-scroll-wrapper {
-  @apply w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow;
+  @apply w-full min-w-0 max-w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow;
 }
 
 /* min-w-0 max-w-[1200px] lg:h-[547px] sm:h-[500px] md:h-[520px] */
@@ -370,7 +372,7 @@
 
 /* Cells */
 .table-td {
-  @apply px-1 py-1 whitespace-normal border-gray-100;
+  @apply px-1 py-2 whitespace-normal border-gray-100;
 }
 
 /* Action column */
@@ -441,10 +443,6 @@
 
 .close-drawer-btn {
   @apply text-gray-600 hover:text-black text-3xl leading-none focus:scale-105;
-}
-
-.hover-popup-scroll::-webkit-scrollbar {
-  width: 8px;
 }
 
 .hover-popup-scroll::-webkit-scrollbar-track {

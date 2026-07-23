@@ -90,9 +90,6 @@ const ApprovalAuthorityMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
   const queryClient = useQueryClient();
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
-  const [selectedSequential, setSelectedSequential] = useState<SingleValue<OptionItem> | null>(
-    APPROVAL_FLOW_OPTIONS[0]
-  );
 
   const approvalTypeList = usePickMaster("AuthorityApprovalType")?.pickMasterValue ?? [];
   const authorityApprovalLevelList = usePickMaster("AuthorityApprovalLevel")?.pickMasterValue ?? [];

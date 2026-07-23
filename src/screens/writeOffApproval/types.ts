@@ -1,0 +1,84 @@
+type WriteOffApprovalItem = {
+  CreditNoteId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  BillId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  TotalCreditNoteAmount: number;
+  IsCreditNoteApproved: number;
+  ApprovalRemarks: string | null;
+  IsLevel1Approve: string | null;
+  Level1ApproveId: null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: string | null;
+  Level2ApproveId: null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: string | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: string | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  Status: string;
+  StatusId: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string | null;
+  LastModifiedOn: string | null;
+  FlagId: number;
+  CanApprove: number;
+  CreditNoteApprovedID: number;
+  CreditNoteApprovedName: string;
+  CreditNoteReason: string;
+  CreditNoteRemark: string;
+  BookingId: number | null;
+  IsPaymentCollected: number;
+  IsDiscountApproved: number;
+  TotalApprovedDiscountPerOnBill: string | null;
+  DiscountApprovedID: string | null;
+  DiscountApprovedName: string | null;
+  DiscountReason: string | null;
+  Remark: string | null;
+};
+
+type writeOffApprovalGridCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  cardLeftTop: { label: string; value: string | number | null }[];
+  cardRightTop: { label: string; action: string }[];
+  cardAvatar: string | null;
+  cardId: { label: string; value: string | number | null }[];
+  cardTitle: { label: string; value: string | number | null }[];
+  cardFooter: { label: string; value: string | number | null }[];
+  buttonSection: { label: string; action: string }[];
+};
+
+type writeOffApprovalListCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  listLeftButton: { label: string; action: string }[];
+  columns: {
+    label: string;
+    keyFromApi: string;
+    value: string | number | null;
+    isSortable?: boolean;
+    isSearchable?: boolean;
+    allowColumnFilter?: boolean;
+    isMasked?: boolean;
+  }[];
+};
+
+export type { writeOffApprovalGridCard, WriteOffApprovalItem, writeOffApprovalListCard };

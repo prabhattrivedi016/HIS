@@ -69,7 +69,9 @@ const OPDiscountApproval = () => {
   const [, setSearchQuery] = useState("");
 
   const [popupType, setPopupType] = useState("");
+
   const [selectedItem, setSelectedItem] = useState<OPDiscountItem | null>(null);
+
   const [renderPopup, setRenderPopup] = useState(false);
   const [openPopup, setOpenPopup] = useState(false);
 
