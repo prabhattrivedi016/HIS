@@ -8,6 +8,7 @@ import {
 import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
 import { EmrDataSourceConfig, resolveHeaderBehavior } from "@/config/emrHeaderBehavior";
+import { INVESTIGATION_ORDER_TYPES } from "@/config/investigationOrderTypes";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
@@ -88,6 +89,11 @@ const dynamicTypeToDataTypeId = (dynamicType: string): number => {
 };
 
 const SEVERITY_OPTIONS: OptionSchema[] = ["Mild", "Moderate", "Severe"].map(v => ({
+  label: v,
+  value: v,
+}));
+
+const INVESTIGATION_ORDER_TYPE_OPTIONS: OptionSchema[] = INVESTIGATION_ORDER_TYPES.map(v => ({
   label: v,
   value: v,
 }));
@@ -261,6 +267,8 @@ const EmrSectionRenderer = ({
 
       if (/duration/i.test(label)) return { key, label, dataTypeId: 1 };
       if (/severity/i.test(label)) return { key, label, dataTypeId: 5, options: SEVERITY_OPTIONS };
+      if (/order\s*type/i.test(label))
+        return { key, label, dataTypeId: 5, options: INVESTIGATION_ORDER_TYPE_OPTIONS };
       if (/date/i.test(label)) return { key, label, dataTypeId: 3 };
 
       return {
@@ -455,6 +463,9 @@ const EmrSectionRenderer = ({
           masterEntryConfig: isTable ? behavior?.table?.masterEntry : undefined,
           orderSetConfig: isTable ? behavior?.table?.orderSet : undefined,
           favouritesEnabled: isTable ? (behavior?.table?.favouritesEnabled ?? true) : undefined,
+          previousVisitsEnabled: isTable
+            ? (behavior?.table?.previousVisitsEnabled ?? false)
+            : undefined,
           textFavouritesEnabled: isTextLikeType(dynamicType)
             ? (behavior?.text?.favouritesEnabled ?? false)
             : undefined,

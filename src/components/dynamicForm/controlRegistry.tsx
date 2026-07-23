@@ -22,6 +22,7 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
 import OrderSetDrawer from "./OrderSetDrawer";
+import PreviousInvestigationsPanel from "./PreviousInvestigationsPanel";
 import { TableFieldInput } from "./TableFieldInput";
 import { ControlSchema, OptionSchema } from "./types";
 
@@ -74,7 +75,11 @@ const FavouriteTextBar = ({
   // piling up a new favourite for every revision; cleared once the field is emptied out
   const [activeFavouriteId, setActiveFavouriteId] = useState<unknown>(null);
   const currentText = typeof value === "string" ? value : "";
-  const stripHtml = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const stripHtml = (html: string) =>
+    html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   useEffect(() => {
     if (!currentText.trim()) setActiveFavouriteId(null);
@@ -390,7 +395,11 @@ const MultiSelectSearchControl = ({ schema, value, onChange, onBlur }: ControlRe
     const updateRect = () => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
-        setMenuRect({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+        setMenuRect({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
       }
     };
 
@@ -541,7 +550,9 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     const rowIndex = focusRowIndexRef.current;
     focusRowIndexRef.current = null;
     containerRef.current
-      ?.querySelector<HTMLElement>(`tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`)
+      ?.querySelector<HTMLElement>(
+        `tr[data-row-index="${rowIndex}"] input, tr[data-row-index="${rowIndex}"] select`
+      )
       ?.focus();
     setForceEditableRowIndex(null);
   }, [rows.length]);
@@ -584,7 +595,12 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
       .trim()
       .toLowerCase();
     if (!candidate) return false;
-    return rows.some(row => String(row[nameColumnKey] ?? "").trim().toLowerCase() === candidate);
+    return rows.some(
+      row =>
+        String(row[nameColumnKey] ?? "")
+          .trim()
+          .toLowerCase() === candidate
+    );
   };
 
   // same-name check against the doctor's existing favourites (not just the current rows) so a
@@ -596,7 +612,10 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
       .toLowerCase();
     if (!candidate) return false;
     return doctorFavorites.some(
-      f => String(f[nameColumnKey] ?? "").trim().toLowerCase() === candidate
+      f =>
+        String(f[nameColumnKey] ?? "")
+          .trim()
+          .toLowerCase() === candidate
     );
   };
 
@@ -605,8 +624,7 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     setForceEditableRowIndex(rows.length);
     onChange([...rows, {}]);
   };
-  const handleRemoveRow = (rowIndex: number) =>
-    onChange(rows.filter((_, idx) => idx !== rowIndex));
+  const handleRemoveRow = (rowIndex: number) => onChange(rows.filter((_, idx) => idx !== rowIndex));
   const handleToggleFavorite = (rowIndex: number) => {
     const row = rows[rowIndex];
     const isFavoriting = !row.__favorite;
@@ -666,18 +684,22 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
     if (toAdd.length > 0) onChange([...rows, ...toAdd]);
   };
 
-  const handleCellKeyDown =
-    (rowIndex: number) => (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== "Enter" || e.currentTarget.tagName === "TEXTAREA") return;
-      e.preventDefault();
-      if (rowIndex === rows.length - 1) handleAddRow();
-    };
+  const handleCellKeyDown = (rowIndex: number) => (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || e.currentTarget.tagName === "TEXTAREA") return;
+    e.preventDefault();
+    if (rowIndex === rows.length - 1) handleAddRow();
+  };
 
   const indexedRows = rows.map((row, originalIndex) => ({ row, originalIndex }));
   const query = searchText.trim().toLowerCase();
   const displayRows = indexedRows.filter(
     ({ row }) =>
-      !query || columns.some(col => String(row[col.key] ?? "").toLowerCase().includes(query))
+      !query ||
+      columns.some(col =>
+        String(row[col.key] ?? "")
+          .toLowerCase()
+          .includes(query)
+      )
   );
   if (recentFirst) displayRows.reverse();
 
@@ -688,8 +710,15 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
   return (
     <div
       ref={containerRef}
-      className={mergeClass("rounded-xl border border-slate-200 bg-white/55 overflow-hidden", schema)}
+      className={mergeClass(
+        "rounded-xl border border-slate-200 bg-white/55 overflow-hidden",
+        schema
+      )}
     >
+      {schema.previousVisitsEnabled && (
+        <PreviousInvestigationsPanel columns={columns} onApply={handleApplyOrderSet} />
+      )}
+
       {/* toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 gap-y-2 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
         <button
@@ -914,7 +943,8 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
           isOpen={isAddDrawerOpen}
           onClose={() => {
             setIsAddDrawerOpen(false);
-            if (headerId) queryClient.invalidateQueries({ queryKey: ["emrHeaderTableColumns", headerId] });
+            if (headerId)
+              queryClient.invalidateQueries({ queryKey: ["emrHeaderTableColumns", headerId] });
           }}
           title={`Add ${schema.label ?? "Entry"}`}
           nameLabel={columns[0]?.label ?? "Name"}
@@ -1004,7 +1034,12 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
   }
 
   return (
-    <div className={mergeClass("rounded-xl border border-slate-200 bg-white/55 overflow-hidden", schema)}>
+    <div
+      className={mergeClass(
+        "rounded-xl border border-slate-200 bg-white/55 overflow-hidden",
+        schema
+      )}
+    >
       {/* shared entry form — fills one record at a time */}
       <div className="p-4 bg-white/40 border-b border-slate-100">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1020,7 +1055,11 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
           ))}
         </div>
         <div className="flex items-center gap-2 mt-3">
-          <button type="button" onClick={handleSave} className="save-btn !w-auto !px-4 !py-2 !text-xs">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="save-btn !w-auto !px-4 !py-2 !text-xs"
+          >
             {editingIndex === null ? "+ Add Entry" : "Update Entry"}
           </button>
           {editingIndex !== null && (
@@ -1047,7 +1086,9 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
             <div
               key={idx}
               className={`relative w-full bg-white border rounded-xl shadow-sm hover:shadow-md overflow-hidden transition-all ${
-                editingIndex === idx ? "border-indigo-300 ring-2 ring-indigo-100" : "border-slate-200"
+                editingIndex === idx
+                  ? "border-indigo-300 ring-2 ring-indigo-100"
+                  : "border-slate-200"
               }`}
             >
               <div className="h-1 bg-gradient-to-r from-indigo-500 to-blue-400" />
@@ -1080,7 +1121,10 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
                     const v = entry[col.key];
                     if (v === undefined || v === null || String(v).trim() === "") return null;
                     return (
-                      <div key={col.key} className="flex items-baseline gap-1.5 text-[12px] leading-snug">
+                      <div
+                        key={col.key}
+                        className="flex items-baseline gap-1.5 text-[12px] leading-snug"
+                      >
                         <dt className="text-slate-400 font-medium shrink-0">{col.label}:</dt>
                         <dd className="text-slate-700 truncate">{String(v)}</dd>
                       </div>

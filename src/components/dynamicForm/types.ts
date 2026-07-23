@@ -81,6 +81,10 @@ export interface ControlSchema {
   columns?: TableColumnSchema[];
   masterEntryConfig?: TableMasterEntryConfig;
   orderSetConfig?: TableOrderSetConfig;
+  /** "table" controls only — default false. Set true to show a "Previous Visits" button that lets
+   * the doctor browse past-visit rows (grouped by visit date) and copy selected ones into this
+   * table for the current visit */
+  previousVisitsEnabled?: boolean;
   /** logged-in doctor, used by "table" controls to load/save doctor-wise favourite entries */
   doctorId?: number;
   /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */

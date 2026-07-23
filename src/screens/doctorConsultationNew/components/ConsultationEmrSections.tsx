@@ -87,9 +87,26 @@ const SECTION_ACCENTS = [
   },
 ];
 
+// per-section icon tint only — kept separate from SECTION_ACCENTS (which drives the active pill's
+// gradient, card border/background, and progress rail, all still uniformly blue) so each section's
+// icon reads as its own color without recoloring the rest of the shell
+const ICON_COLORS = [
+  "text-rose-500",
+  "text-amber-500",
+  "text-emerald-500",
+  "text-sky-500",
+  "text-violet-500",
+  "text-fuchsia-500",
+  "text-orange-500",
+  "text-teal-500",
+  "text-indigo-500",
+  "text-lime-600",
+];
+
 interface SectionPillProps {
   section: EmrSectionMappingTableItem;
   accent: (typeof SECTION_ACCENTS)[number];
+  iconColor: string;
   isActive: boolean;
   isComplete: boolean;
   isFavorite: boolean;
@@ -101,6 +118,7 @@ interface SectionPillProps {
 const SectionPill = ({
   section,
   accent,
+  iconColor,
   isActive,
   isComplete,
   isFavorite,
@@ -138,10 +156,10 @@ const SectionPill = ({
 
       <span
         className={`relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-          isActive ? "bg-white/25" : accent.soft
+          isActive ? "bg-white/25" : "bg-slate-100"
         }`}
       >
-        <Icon size={12} className={isActive ? "text-white" : accent.text} strokeWidth={2.25} />
+        <Icon size={12} className={iconColor} strokeWidth={2.25} />
       </span>
 
       <span
@@ -264,7 +282,7 @@ const SectionCard = ({
       }`}
     >
       {/* bold, solid-colored band — the obvious "which section is this" marker, not a faint wash */}
-      <div className={`h-2 w-full bg-gradient-to-r ${accent.grad}`} />
+      <div className={`h-1 w-full bg-gradient-to-r ${accent.grad}`} />
 
       {isActive && (
         <motion.span
@@ -504,6 +522,12 @@ const ConsultationEmrSections = ({
     return map;
   }, [mappedSections]);
 
+  const iconColorBySectionId = useMemo(() => {
+    const map = new Map<number, string>();
+    mappedSections.forEach((s, idx) => map.set(s.sectionId, ICON_COLORS[idx % ICON_COLORS.length]));
+    return map;
+  }, [mappedSections]);
+
   // Favourites always render first; selecting a tab never changes its position.
   const orderedSections = useMemo(() => {
     const favoriteIds = new Set(favoriteSectionIds);
@@ -660,6 +684,7 @@ const ConsultationEmrSections = ({
                       key={section.sectionId}
                       section={section}
                       accent={accent}
+                      iconColor={iconColorBySectionId.get(section.sectionId) ?? ICON_COLORS[0]}
                       isActive={isActive}
                       isComplete={isComplete}
                       isFavorite={favoriteSectionIds.includes(section.sectionId)}
@@ -741,6 +766,7 @@ const ConsultationEmrSections = ({
                     key={section.sectionId}
                     section={section}
                     accent={accent}
+                    iconColor={iconColorBySectionId.get(section.sectionId) ?? ICON_COLORS[0]}
                     isActive={isActive}
                     isComplete={isComplete}
                     isFavorite={favoriteSectionIds.includes(section.sectionId)}
@@ -798,7 +824,11 @@ const ConsultationEmrSections = ({
                             <span
                               className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${accent.soft}`}
                             >
-                              <Icon size={12} className={accent.text} strokeWidth={2.25} />
+                              <Icon
+                                size={12}
+                                className={iconColorBySectionId.get(section.sectionId) ?? ICON_COLORS[0]}
+                                strokeWidth={2.25}
+                              />
                             </span>
                             <span
                               className={`flex-1 min-w-0 text-[12.5px] truncate ${

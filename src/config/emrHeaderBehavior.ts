@@ -1,4 +1,8 @@
-import { OptionSchema, TableMasterEntryConfig, TableOrderSetConfig } from "@/components/dynamicForm/types";
+import {
+  OptionSchema,
+  TableMasterEntryConfig,
+  TableOrderSetConfig,
+} from "@/components/dynamicForm/types";
 import { ENDPOINTS } from "@/config/defaults";
 
 /**
@@ -42,6 +46,8 @@ export interface EmrTableBehaviorConfig {
   masterEntry?: TableMasterEntryConfig;
   orderSet?: TableOrderSetConfig;
   columnDataSources?: EmrColumnDataSourceRule[];
+  /** default false — set true to show the "Previous Visits" copy-forward button */
+  previousVisitsEnabled?: boolean;
 }
 
 export interface EmrTextBehaviorConfig {
@@ -143,6 +149,7 @@ export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
           },
         },
       ],
+      previousVisitsEnabled: true,
     },
   },
   {
