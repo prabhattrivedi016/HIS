@@ -5,7 +5,7 @@ import PageHeader from "@/components/pageHeader";
 import GridView from "@/components/profileCard";
 import ListView from "@/components/profileCard/components/ListView";
 import { ENDPOINTS } from "@/config/defaults";
-import { writeOffApprovalConfig } from "@/config/masterConfig/writeOffMasterConfig";
+import { writeOffGenerationConfig } from "@/config/masterConfig/writeOffGenerationConfig";
 import { VIEWTYPE } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
 import { useConfigMaster } from "@/hooks/useConfigMaster";
@@ -25,32 +25,40 @@ import {
   useRef,
   useState,
 } from "react";
-import ApproveCancelPopup from "./components/ApproveCancelPopup";
-import WriteOffApprovalActionPopup from "./components/WriteOffApprovalActionPopup";
-import WriteOffFilterPopup, {
+import { useNavigate } from "react-router-dom";
+import WriteOffViewDetailsPopup from "../writeOffApproval/components/WriteOffViewDetailsPopup";
+import WriteOffGenerationActionPopup from "./components/WriteOffGenerationActionPopup";
+import WriteOffGenerationCancelPopup from "./components/WriteOffGenerationCancelPopup";
+import WriteOffGenerationFilterPopup, {
   WriteOffApprovalFilterValues,
-} from "./components/WriteOffFilterPopup";
-import WriteOffViewDetailsPopup from "./components/WriteOffViewDetailsPopup";
-import { writeOffApprovalGridCard, WriteOffApprovalItem, writeOffApprovalListCard } from "./types";
+} from "./components/WriteOffGenerationFilterPopup";
 import {
-  handleApproveButtonClick,
+  WriteOffGenerationGridCard,
+  WriteOffGenerationItem,
+  WriteOffGenerationListCard,
+} from "./types";
+import {
   handleCancelButtonClick,
-  isApproveButtonDisabled,
+  handleGenerationButtonClick,
   isCancelButtonDisabled,
-} from "./utils/writeOffActions";
+  isGenerationButtonDisabled,
+} from "./utils/writeOffGenerationAction";
 
-const WriteOffApproval = () => {
+const WriteOffGeneration = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const navigate = useNavigate();
   const branchId = Number(useContext(AuthContext)?.user?.branchId) || 1;
-  const today = new Date().toISOString().split("T")[0];
   const branchLists = useGetBranchList()?.branchList?.data ?? [];
+
+  const today = new Date().toISOString().split("T")[0];
 
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const { configDataValue: opRefundApprovalConfigFromApi } =
-    useConfigMaster("writeOffApprovalConfig");
-  const activeConfig = opRefundApprovalConfigFromApi || writeOffApprovalConfig;
+  const { configDataValue: opRefundApprovalConfigFromApi } = useConfigMaster(
+    "writeOffGenerationConfig"
+  );
+  const activeConfig = opRefundApprovalConfigFromApi || writeOffGenerationConfig;
 
   const [queryValue, setQueryValue] = useState({
     branchId: branchId,
@@ -58,24 +66,23 @@ const WriteOffApproval = () => {
     toDate: today,
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [creditNoteGridData, setCreditNoteGridData] = useState<WriteOffGenerationGridCard[]>([]);
+  const [creditNoteListData, setCreditNoteListData] = useState<WriteOffGenerationListCard[]>([]);
+  const [gridFilteredData, setGridFilteredData] = useState<WriteOffGenerationGridCard[]>([]);
+  const [listFilteredData, setListFilteredData] = useState<WriteOffGenerationListCard[]>([]);
 
-  const [writeOffGridData, setWriteOffGridData] = useState<writeOffApprovalGridCard[]>([]);
-  const [writeOffListData, setWriteOffListData] = useState<writeOffApprovalListCard[]>([]);
-  const [gridFilteredData, setGridFilteredData] = useState<writeOffApprovalGridCard[]>([]);
-  const [listFilteredData, setListFilteredData] = useState<writeOffApprovalListCard[]>([]);
-
-  const [rawItemMap, setRawItemMap] = useState<Record<number, WriteOffApprovalItem>>({});
+  const [rawItemMap, setRawItemMap] = useState<Record<number, WriteOffGenerationItem>>({});
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [renderPopup, setRenderPopup] = useState(false);
   const [openPopup, setOpenPopup] = useState(false);
   const [popupType, setPopupType] = useState("");
-  const [selectedItem, setSelectedItem] = useState<WriteOffApprovalItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<WriteOffGenerationItem | null>(null);
 
-  const [viewItem, setViewItem] = useState<WriteOffApprovalItem | null>(null);
+  const [viewItem, setViewItem] = useState<WriteOffGenerationItem | null>(null);
   const [renderViewPopup, setRenderViewPopup] = useState(false);
   const [openViewPopup, setOpenViewPopup] = useState(false);
 
@@ -92,20 +99,21 @@ const WriteOffApproval = () => {
   const downloadBtnRef = useRef<HTMLButtonElement>(null);
   const lastWarningShownRef = useRef<string>("");
 
-  const getWriteOffApprovalList = useCallback(
+  const getCreditNoteApprovalList = useCallback(
     async (params: { branchId: number; fromDate: string; toDate: string }) => {
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_WRITE_OFF_REQUEST_LIST_FOR_APPROVAL,
         {},
         { params },
-        { component: "WriteOffApproval" }
+        { component: "WriteOffGeneration" }
       );
 
       const rawData = (resp?.data ?? []).map((item: any) => ({
         ...item,
-        WriteOffId: Number(item.WriteOffId),
-        IsWriteOffApproved: Number(item.IsWriteOffApproved ?? 0),
+        WriteOffId: Number(item.WriteOffId || item.CreditNoteId),
+        CreditNoteId: Number(item.CreditNoteId),
+        IsWriteOffApproved: Number(item.IsWriteOffApproved ?? item.IsCreditNoteApproved ?? 0),
         IsPaymentCollected: Number(item.IsPaymentCollected ?? 0),
         IsDiscountApproved: Number(item.IsDiscountApproved ?? 0),
         TotalApprovedDiscountPerOnBill: null,
@@ -119,12 +127,12 @@ const WriteOffApproval = () => {
 
       setRawItemMap(
         Object.fromEntries(
-          rawData.map((item: WriteOffApprovalItem) => [Number(item.WriteOffId), item])
+          rawData.map((item: WriteOffGenerationItem) => [Number(item.WriteOffId), item])
         )
       );
       if (!transformed?.gridView?.length && !transformed?.listView?.length) {
-        setWriteOffGridData([]);
-        setWriteOffListData([]);
+        setCreditNoteGridData([]);
+        setCreditNoteListData([]);
         setGridFilteredData([]);
         setListFilteredData([]);
         setHasFetched(true);
@@ -137,8 +145,8 @@ const WriteOffApproval = () => {
         return;
       }
 
-      setWriteOffGridData(transformed?.gridView ?? []);
-      setWriteOffListData(transformed?.listView ?? []);
+      setCreditNoteGridData(transformed?.gridView ?? []);
+      setCreditNoteListData(transformed?.listView ?? []);
       setGridFilteredData(transformed?.gridView ?? []);
       setListFilteredData(transformed?.listView ?? []);
       setHasFetched(true);
@@ -149,20 +157,20 @@ const WriteOffApproval = () => {
   useEffect(() => {
     if (!activeConfig) return;
 
-    void getWriteOffApprovalList({
+    void getCreditNoteApprovalList({
       branchId: branchId || 1,
       fromDate: today,
       toDate: today,
     });
-  }, [activeConfig, branchId, getWriteOffApprovalList, today]);
+  }, [activeConfig, branchId, getCreditNoteApprovalList, today]);
 
   const handleCardView = (view: string) => setCardView(view);
 
   const handleRefresh = useCallback(async () => {
     lastWarningShownRef.current = "";
-    await getWriteOffApprovalList(queryValue);
+    await getCreditNoteApprovalList(queryValue);
     setSearchQuery("");
-  }, [getWriteOffApprovalList, queryValue]);
+  }, [getCreditNoteApprovalList, queryValue]);
 
   const searchHandler = useCallback(
     (keyInput: string, selectedValue = "") => {
@@ -172,13 +180,13 @@ const WriteOffApproval = () => {
       filteredData({
         value,
         selectedValue,
-        listData: writeOffListData as never,
-        gridData: writeOffGridData as never,
+        listData: creditNoteListData as never,
+        gridData: creditNoteGridData as never,
         setListFilteredData: setListFilteredData as never,
         setGridFilteredData: setGridFilteredData as never,
       });
     },
-    [writeOffGridData, writeOffListData]
+    [creditNoteGridData, creditNoteListData]
   );
 
   useEffect(() => {
@@ -223,7 +231,7 @@ const WriteOffApproval = () => {
     setFilterModalOpen(false);
   }, []);
 
-  const onFilterWriteOffApproval = useCallback(() => {
+  const onFilterCreditNoteApproval = useCallback(() => {
     setFilterModalOpen(true);
   }, []);
 
@@ -232,29 +240,34 @@ const WriteOffApproval = () => {
       lastWarningShownRef.current = "";
       setQueryValue(params);
       setSearchQuery("");
-      await getWriteOffApprovalList(params);
+      await getCreditNoteApprovalList(params);
       setFilterModalOpen(false);
     },
-    [getWriteOffApprovalList]
+    [getCreditNoteApprovalList]
   );
 
-  const filterDropDown = writeOffListData?.[0]?.columns;
+  const filterDropDown = creditNoteListData?.[0]?.columns;
 
-  const openApprovePopup = useCallback((item: WriteOffApprovalItem) => {
-    setSelectedItem(item);
-    setPopupType("approve");
-    setRenderPopup(true);
-    setOpenPopup(true);
-  }, []);
-
-  const openCancelPopup = useCallback((item: WriteOffApprovalItem) => {
+  const openCancelPopup = useCallback((item: WriteOffGenerationItem) => {
     setSelectedItem(item);
     setPopupType("cancel");
     setRenderPopup(true);
     setOpenPopup(true);
   }, []);
 
-  const viewHandler = useCallback((item: WriteOffApprovalItem) => {
+  const generationHandler = useCallback(
+    (item: WriteOffGenerationItem) => {
+      navigate("/write-off", {
+        state: {
+          writeOffId: item.WriteOffId,
+          item,
+        },
+      });
+    },
+    [navigate]
+  );
+
+  const viewHandler = useCallback((item: WriteOffGenerationItem) => {
     setViewItem(item);
     setRenderViewPopup(true);
     setOpenViewPopup(true);
@@ -278,8 +291,8 @@ const WriteOffApproval = () => {
   }, []);
 
   const popupSuccessHandler = useCallback(() => {
-    void getWriteOffApprovalList(queryValue);
-  }, [getWriteOffApprovalList, queryValue]);
+    void getCreditNoteApprovalList(queryValue);
+  }, [getCreditNoteApprovalList, queryValue]);
 
   const gridActionHandler = (WriteOffId: number, rect: DOMRect) => {
     if (gridActionOpen && gridActionWriteOffId === WriteOffId) {
@@ -299,8 +312,8 @@ const WriteOffApproval = () => {
   const isGridButtonDisabled = useCallback(
     (action: string, id: number) => {
       const item = rawItemMap[id];
-      if (action === "toggleApproveWriteOff") {
-        return isApproveButtonDisabled(item);
+      if (action === "toggleGenerationWriteOff") {
+        return isGenerationButtonDisabled(item);
       }
       if (action === "toggleCancelWriteOff") {
         return isCancelButtonDisabled(item);
@@ -311,8 +324,8 @@ const WriteOffApproval = () => {
   );
 
   const getGridButtonLabel = useCallback((label: string, action: string) => {
-    if (action === "toggleApproveWriteOff") {
-      return "Approve";
+    if (action === "toggleGenerationWriteOff") {
+      return "Generation";
     }
     if (action === "toggleCancelWriteOff") {
       return "Cancel";
@@ -325,8 +338,8 @@ const WriteOffApproval = () => {
       const item = rawItemMap[id];
       if (!item) return;
 
-      if (action === "toggleApproveWriteOff") {
-        handleApproveButtonClick(item, openApprovePopup);
+      if (action === "toggleGenerationWriteOff") {
+        handleGenerationButtonClick(item, generationHandler);
         return;
       }
 
@@ -334,7 +347,7 @@ const WriteOffApproval = () => {
         handleCancelButtonClick(item, openCancelPopup);
       }
     },
-    [rawItemMap, openApprovePopup, openCancelPopup]
+    [rawItemMap, generationHandler, openCancelPopup]
   );
 
   const renderRowActionMenu = useCallback(
@@ -342,12 +355,12 @@ const WriteOffApproval = () => {
       const item = rawItemMap[rowData.id];
       if (!item) return null;
 
-      const runAction = (action: (selected: WriteOffApprovalItem) => void) => {
+      const runAction = (action: (selected: WriteOffGenerationItem) => void) => {
         action(item);
         closeMenu();
       };
 
-      const approveDisabled = isApproveButtonDisabled(item);
+      const generationDisabled = isGenerationButtonDisabled(item);
       const cancelDisabled = isCancelButtonDisabled(item);
 
       return (
@@ -364,14 +377,14 @@ const WriteOffApproval = () => {
           <li>
             <button
               type="button"
-              disabled={approveDisabled}
-              aria-disabled={approveDisabled}
+              disabled={generationDisabled}
+              aria-disabled={generationDisabled}
               className={`w-full text-left px-3 py-2 text-gray-700 ${
-                approveDisabled ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-50"
+                generationDisabled ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-50"
               }`}
-              onClick={() => handleApproveButtonClick(item, () => runAction(openApprovePopup))}
+              onClick={() => handleGenerationButtonClick(item, () => runAction(generationHandler))}
             >
-              Approve
+              Generation
             </button>
           </li>
           <li>
@@ -390,13 +403,14 @@ const WriteOffApproval = () => {
         </ul>
       );
     },
-    [rawItemMap, openApprovePopup, openCancelPopup, viewHandler]
+    [rawItemMap, generationHandler, openCancelPopup, viewHandler]
   );
 
-  //   render  component
+  // render component
+
   const renderComponent = (view: string) => {
     if (!activeConfig || !hasFetched) {
-      return <div className="initial-message">Loading write off approval...</div>;
+      return <div className="initial-message">Loading write off generation...</div>;
     }
 
     if (view === VIEWTYPE.GRID) {
@@ -439,7 +453,7 @@ const WriteOffApproval = () => {
   return (
     <div className="master-page-size">
       <PageHeader
-        title="Write Off Approval"
+        title="Write Off Generation"
         view={cardView}
         onCardView={handleCardView}
         buttonTitle=""
@@ -453,7 +467,7 @@ const WriteOffApproval = () => {
         onToggleColumnModal={hideShowHandler}
         hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
         downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
-        onFilterDiscountApproval={onFilterWriteOffApproval}
+        onFilterDiscountApproval={onFilterCreditNoteApproval}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>
@@ -475,24 +489,24 @@ const WriteOffApproval = () => {
           position={downloadPopup}
           onClose={() => setOnDownload(false)}
           onDownloadPdf={() => {
-            exportListViewData(listFilteredData, "WriteOffApprovalList", "pdf");
+            exportListViewData(listFilteredData, "WriteOffGenerationList", "pdf");
             setOnDownload(false);
           }}
           onDownloadExcel={() => {
-            exportListViewData(listFilteredData, "WriteOffApprovalList", "excel");
+            exportListViewData(listFilteredData, "WriteOffGenerationList", "excel");
             setOnDownload(false);
           }}
         />
       )}
 
       {gridActionOpen && gridActionWriteOffId ? (
-        <WriteOffApprovalActionPopup
+        <WriteOffGenerationActionPopup
           writeOffId={gridActionWriteOffId}
           rawItemMap={rawItemMap}
           anchorRect={gridActionPopup}
           onClose={() => setGridActionOpen(false)}
           onView={viewHandler}
-          onApprove={openApprovePopup}
+          onGeneration={generationHandler}
           onCancel={openCancelPopup}
         />
       ) : null}
@@ -506,7 +520,7 @@ const WriteOffApproval = () => {
       )}
 
       {renderPopup && (
-        <ApproveCancelPopup
+        <WriteOffGenerationCancelPopup
           isOpen={openPopup}
           popupType={popupType}
           item={selectedItem}
@@ -515,7 +529,7 @@ const WriteOffApproval = () => {
         />
       )}
 
-      <WriteOffFilterPopup
+      <WriteOffGenerationFilterPopup
         isOpen={filterModalOpen}
         onClose={closeFilterModal}
         onApply={applyFilterHandler}
@@ -523,9 +537,9 @@ const WriteOffApproval = () => {
         branchList={branchLists}
       />
 
-      {loading ? <CustomLoader isLoading={loading} /> : null}
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };
 
-export default WriteOffApproval;
+export default WriteOffGeneration;

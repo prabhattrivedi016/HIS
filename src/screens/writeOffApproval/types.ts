@@ -1,5 +1,5 @@
 type WriteOffApprovalItem = {
-  CreditNoteId: number;
+  WriteOffId: number;
   TokenNo: string;
   BranchId: number;
   PatientId: number;
@@ -9,19 +9,20 @@ type WriteOffApprovalItem = {
   PatientName: string;
   Age: string;
   Gender: string;
-  TotalCreditNoteAmount: number;
-  IsCreditNoteApproved: number;
-  ApprovalRemarks: string | null;
-  IsLevel1Approve: string | null;
-  Level1ApproveId: null;
-  Level1ApproveOn: string | null;
-  IsLevel2Approve: string | null;
-  Level2ApproveId: null;
+  TotalWriteOffAmount: number;
+  IsWriteOffApproved: number;
+  IsWriteOffCreated: number;
+  ApprovalRemarks: string;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number | null;
+  Level2ApproveId: number | null;
   Level2ApproveOn: string | null;
-  IsLevel3Approve: string | null;
+  IsLevel3Approve: number | null;
   Level3ApproveId: number | null;
   Level3ApproveOn: string | null;
-  IsLevel4Approve: string | null;
+  IsLevel4Approve: number | null;
   Level4ApproveId: number | null;
   Level4ApproveOn: string | null;
   IsCancel: number;
@@ -36,18 +37,10 @@ type WriteOffApprovalItem = {
   LastModifiedOn: string | null;
   FlagId: number;
   CanApprove: number;
-  CreditNoteApprovedID: number;
-  CreditNoteApprovedName: string;
-  CreditNoteReason: string;
-  CreditNoteRemark: string;
-  BookingId: number | null;
-  IsPaymentCollected: number;
-  IsDiscountApproved: number;
-  TotalApprovedDiscountPerOnBill: string | null;
-  DiscountApprovedID: string | null;
-  DiscountApprovedName: string | null;
-  DiscountReason: string | null;
-  Remark: string | null;
+  WriteOffApprovedID: number | null;
+  WriteOffApprovedName: string | null;
+  WriteOffReason: string | null;
+  WriteOffRemark: string | null;
 };
 
 type writeOffApprovalGridCard = {

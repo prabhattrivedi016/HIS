@@ -6,14 +6,9 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { WriteOffApprovalItem } from "../types";
+import { WriteOffGenerationDetails, WriteOffGenerationItem } from "../types";
 
-const formatValue = (value: unknown) => {
-  if (value === null || value === undefined || value === "") return "-";
-  return String(value);
-};
-
-const ApproveCancelPopup = ({
+const WriteOffGenerationCancelPopup = ({
   isOpen,
   onClose,
   onSuccess,
@@ -24,19 +19,19 @@ const ApproveCancelPopup = ({
   onClose: () => void;
   onSuccess?: () => void;
   popupType: string;
-  item: WriteOffApprovalItem | null;
+  item: WriteOffGenerationItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const [writeOffDetails, setWriteOffDetails] = useState<any | null>(null);
+  const [writeOffDetails, setWriteOffDetails] = useState<WriteOffGenerationDetails | null>(null);
 
-  // get approval details by Id
+  // get details by Id
   const getWriteOffDetailsById = async (writeOffId: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID,
       {},
       { params: { writeOffId } },
-      { component: "ApproveCancelPopup" }
+      { component: "WriteOffGenerationCancelPopup" }
     );
     setWriteOffDetails(resp?.data?.[0]);
   };
@@ -52,14 +47,7 @@ const ApproveCancelPopup = ({
     cancelReason: "",
   });
 
-  const [approveFormData, setApproveFormData] = useState({
-    writeOffId: 0,
-    flag: 0,
-    approvalRemarks: "",
-  });
-
   const [cancelError, setCancelError] = useState("");
-  const [approveError, setApproveError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -73,14 +61,7 @@ const ApproveCancelPopup = ({
       cancelReason: "",
     });
 
-    setApproveFormData({
-      writeOffId: recordId,
-      flag: item?.FlagId ?? 0,
-      approvalRemarks: item?.ApprovalRemarks ?? "",
-    });
-
     setCancelError("");
-    setApproveError("");
     setSuccessMessage("");
     setErrorMessage("");
   }, [isOpen, item]);
@@ -94,23 +75,6 @@ const ApproveCancelPopup = ({
     setErrorMessage("");
   };
 
-  const approvalRemarksChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    setApproveFormData(prev => ({
-      ...prev,
-      approvalRemarks: e.target.value,
-    }));
-  };
-
-  const validateApproveForm = () => {
-    if (!String(approveFormData.approvalRemarks ?? "").trim()) {
-      setApproveError("Please enter approval remarks");
-      return false;
-    }
-
-    setApproveError("");
-    return true;
-  };
-
   const validateCancelForm = () => {
     if (!String(cancelFormData.cancelReason ?? "").trim()) {
       setCancelError("Cancel reason is required");
@@ -121,51 +85,10 @@ const ApproveCancelPopup = ({
     return true;
   };
 
-  const isApproved =
-    Number(item?.IsWriteOffApproved) === 1 || Number(writeOffDetails?.IsWriteOffApproved) === 1;
-  const isCancelled = Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
+  const isCancelled =
+    Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
 
-  const isApproveDisabled = isApproved || isCancelled;
   const isCancelDisabled = isCancelled;
-
-  const approveSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isApproveDisabled) return;
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    if (!validateApproveForm()) {
-      return;
-    }
-
-    try {
-      const resp = await fetchApi(
-        "PATCH",
-        ENDPOINTS.APPROVE_WRITE_OFF_REQUEST,
-        {
-          writeOffId: Number(approveFormData.writeOffId),
-          flag: Number(approveFormData.flag),
-          approvalRemarks: String(approveFormData.approvalRemarks).trim(),
-        },
-        {},
-        { component: "ApproveCancelPopup" }
-      );
-
-      if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while approving write off");
-        return;
-      }
-
-      setSuccessMessage(resp?.message ?? "Write off approved successfully");
-      setTimeout(() => {
-        onSuccess?.();
-        onClose?.();
-      }, 500);
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("Failed while approving write off");
-    }
-  };
 
   const cancelSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -186,7 +109,7 @@ const ApproveCancelPopup = ({
           cancelReason: String(cancelFormData.cancelReason).trim(),
         },
         {},
-        { component: "ApproveCancelPopup" }
+        { component: "WriteOffGenerationCancelPopup" }
       );
 
       if (!resp?.result) {
@@ -207,34 +130,6 @@ const ApproveCancelPopup = ({
 
   const renderComponent = () => {
     switch (popupType) {
-      case "approve": {
-        return (
-          <form onSubmit={approveSubmitHandler}>
-            <div className="form-grid-1 mt-1">
-              <InputField label="Approval Remark" required>
-                <input
-                  type="text"
-                  placeholder="Enter approval remark"
-                  onChange={approvalRemarksChangeHandler}
-                  className="input-field"
-                  value={approveFormData.approvalRemarks}
-                  disabled={isApproveDisabled}
-                />
-                {!!approveError && <p className="input-field-error">{approveError}</p>}
-              </InputField>
-            </div>
-            <div className="form-actions-responsive mt-5">
-              <button
-                type="submit"
-                className="save-btn disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isApproveDisabled}
-              >
-                Approve
-              </button>
-            </div>
-          </form>
-        );
-      }
       case "cancel": {
         return (
           <form onSubmit={cancelSubmitHandler}>
@@ -274,13 +169,7 @@ const ApproveCancelPopup = ({
     <CentralPopup
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        popupType === "approve"
-          ? "Approve Write Off"
-          : popupType === "cancel"
-            ? "Cancel Write Off"
-            : ""
-      }
+      title={popupType === "cancel" ? "Cancel Write Off" : ""}
     >
       <>
         {!!successMessage && <SuccessMessage text={successMessage} />}
@@ -319,7 +208,7 @@ const ApproveCancelPopup = ({
 
         <div className="w-full card grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-1 -mt-1">
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Service Name:</span>
+            <span className="name-header whitespace-nowrap">ServiceName:</span>
             <span className="truncate">{writeOffDetails?.ServiceName}</span>
           </div>
 
@@ -336,11 +225,11 @@ const ApproveCancelPopup = ({
             <span className="truncate">{writeOffDetails?.TotalPaidAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Balance Amount:</span>
+            <span className="name-header whitespace-nowrap">Total Balance Amount</span>
             <span className="truncate">{writeOffDetails?.TotalBalanceAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Write Off Amount:</span>
+            <span className="name-header whitespace-nowrap">Total Write Off Amount</span>
             <span className="truncate">{writeOffDetails?.TotalWriteOffAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
@@ -358,4 +247,4 @@ const ApproveCancelPopup = ({
   );
 };
 
-export default React.memo(ApproveCancelPopup);
+export default React.memo(WriteOffGenerationCancelPopup);

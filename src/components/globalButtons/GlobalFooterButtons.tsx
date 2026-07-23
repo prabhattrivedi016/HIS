@@ -5,11 +5,13 @@ const GlobalFooterButtons = ({
   pageType,
   hasDiscountApplied = false,
   paymentCollectionMode = false,
+  shouldSaveButtonVisible = false,
 }: {
   onButtonClick: (action: string) => void;
   pageType?: PageType;
   hasDiscountApplied?: boolean;
   paymentCollectionMode?: boolean;
+  shouldSaveButtonVisible?: boolean;
 }) => {
   const { rights: branchRights } = useAssignBranchRight();
   const isDiscountApprovalRequired =
@@ -80,7 +82,11 @@ const GlobalFooterButtons = ({
         )}
 
         {/* credit note */}
-        {pageType === PageType?.CREDIT_NOTE && isCreditNoteApprovalRequired ? (
+        {pageType === PageType?.CREDIT_NOTE && shouldSaveButtonVisible ? (
+          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+            Save
+          </button>
+        ) : pageType === PageType?.CREDIT_NOTE && isCreditNoteApprovalRequired ? (
           <button
             type="button"
             className="save-btn"
@@ -92,9 +98,7 @@ const GlobalFooterButtons = ({
           <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
             Save
           </button>
-        ) : (
-          <></>
-        )}
+        ) : null}
 
         {/* write off isWiteOffApprovalRequired */}
 

@@ -71,6 +71,7 @@ import VendorMaster from "../vendorMaster";
 import VitalMaster from "../vitalmaster";
 import WriteOff from "../writeOff";
 import WriteOffApproval from "../writeOffApproval";
+import WriteOffGeneration from "../writeOffGeneration";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
@@ -145,4 +146,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "credit-note-approval": <CreditNoteApproval />,
   "write-off-approval": <WriteOffApproval />,
   "credit-note-generation": <CreditNoteGeneration />,
+  "write-off-generation": <WriteOffGeneration />,
 };
