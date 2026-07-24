@@ -678,19 +678,15 @@ const OpdRefund = () => {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
-        <div className="flex-1">
-          <h1 className="page-heading">Opd Refund</h1>
+      <h1 className="page-heading">Opd Refund</h1>
 
-          <nav className="helper-text">
-            <NavLink to="/dashboard" className="hover:underline">
-              Home
-            </NavLink>
-            <span>››</span>
-            <span>Opd Refund</span>
-          </nav>
-        </div>
-      </div>
+      <nav className="helper-text">
+        <NavLink to="/dashboard" className="hover:underline">
+          Home
+        </NavLink>
+        <span>››</span>
+        <span>Opd Refund</span>
+      </nav>
 
       {!isRefundPaymentMode && (
         <div className="card">
@@ -885,7 +881,7 @@ const OpdRefund = () => {
 
       {loading && <CustomLoader isLoading={loading} />}
 
-      <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+      <div style={{ display: "none" }}>
         {patientReceiptDetails.length > 0 && (
           <OpdRefundReceipt
             data={patientReceiptDetails}

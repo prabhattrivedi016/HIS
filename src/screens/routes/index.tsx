@@ -5,12 +5,16 @@ import ApprovalAuthorityMaster from "../approvalAuthorityMaster";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
 import BedMaster from "../bedMaster";
+import BillReceiptReprint from "../billReceiptReprint";
 import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
+import CreditNoteApproval from "../creditNoteApproval";
+import CreditNoteGeneration from "../creditNoteGeneration";
+import CreditNoteWriteOff from "../creditNoteWriteOff";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
 import DiscountApprovalMaster from "../discountApprovalMaster";
@@ -65,6 +69,8 @@ import UserMaster from "../userMaster";
 import UserWiseDiscountMaster from "../userWiseDiscountMaster";
 import VendorMaster from "../vendorMaster";
 import VitalMaster from "../vitalmaster";
+import WriteOff from "../writeOff";
+import WriteOffApproval from "../writeOffApproval";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
@@ -133,4 +139,10 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-refund-approval": <OpRefundApproval />,
   "gravity-master": <GravityMaster />,
   "op-refund-payment": <OPRefundPayment />,
+  "bill-receipt-reprint": <BillReceiptReprint />,
+  "credit-note": <CreditNoteWriteOff />,
+  "write-off": <WriteOff />,
+  "credit-note-approval": <CreditNoteApproval />,
+  "write-off-approval": <WriteOffApproval />,
+  "credit-note-generation": <CreditNoteGeneration />,
 };

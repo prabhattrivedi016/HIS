@@ -17,6 +17,7 @@ export interface FieldChangeEvent {
 }
 
 interface DynamicFormRendererProps<T> {
+  className?: string;
   blob: CardSchema[];
   data: T;
   onDataChange: (data: T) => void;
@@ -25,7 +26,7 @@ interface DynamicFormRendererProps<T> {
 }
 
 const DynamicFormRendererInner = <T,>(
-  { blob, data, onDataChange, onControlChange }: DynamicFormRendererProps<T>,
+  { className, blob, data, onDataChange, onControlChange }: DynamicFormRendererProps<T>,
   ref: React.ForwardedRef<DynamicFormRendererHandle>
 ) => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -83,13 +84,13 @@ const DynamicFormRendererInner = <T,>(
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4`}>
       {blob.map(card => {
         const isVisible = evaluateConditionalDisplay(card.conditionalDisplay, data);
         if (!isVisible) return null;
 
         return (
-          <div key={card.key} className="card">
+          <div key={card.key} className={`${className}`}>
             {card.title && <h2 className="card-title mb-1">{card.title}</h2>}
             {card.subtitle && <p className="text-sm text-gray-500 mb-3">{card.subtitle}</p>}
             <div className="dynamic-form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

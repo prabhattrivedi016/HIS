@@ -3070,17 +3070,19 @@ const OpdBilling = () => {
       const paymentList = Array.isArray(billingPayload?.payments)
         ? (billingPayload?.payments as Array<Record<string, unknown>>)
         : [];
-      const allPaymentDetails = paymentList.map(payment => ({
-        paymentModeId: Number(payment?.paymentModeId) || 0,
-        paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
-        amount: Number(payment?.amount) || 0,
-        bankId: Number(payment?.bankId) || 0,
-        refNo: String(payment?.refNo ?? ""),
-        isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
-        isPatientAdvanceAmount: Number(payment?.isPatientAdvanceAmount ?? 0),
-        plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
-        transactionLogId: String(payment?.transactionLogId ?? ""),
-      }));
+      const allPaymentDetails = paymentList
+        .filter(payment => Number(payment?.isExcludedFromPaymentList) !== 1)
+        .map(payment => ({
+          paymentModeId: Number(payment?.paymentModeId) || 0,
+          paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
+          amount: Number(payment?.amount) || 0,
+          bankId: Number(payment?.bankId) || 0,
+          refNo: String(payment?.refNo ?? ""),
+          isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
+          isPatientAdvanceAmount: Number(payment?.isPatientAdvanceAmount ?? 0),
+          plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
+          transactionLogId: String(payment?.transactionLogId ?? ""),
+        }));
 
       const completePayload = {
         ...buildSavePayloadForOpdBilling(

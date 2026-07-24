@@ -75,9 +75,16 @@ const Sidebar = () => {
   }, []);
 
   useEffect(() => {
-    const sidebarWidth = window.innerWidth < 768 ? "0px" : sidebarOpen ? "15rem" : "4rem";
-    document.documentElement.style.setProperty("--app-sidebar-width", sidebarWidth);
+    document.documentElement.style.setProperty(
+      "--app-sidebar-width",
+      window.innerWidth < 768 ? "0px" : sidebarOpen ? "15rem" : "4rem"
+    );
   }, [sidebarOpen]);
+
+  /* Close mobile drawer on route change */
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, [location.pathname]);
 
   /* ---------------- close on mobile on outside click---------------- */
 
@@ -181,7 +188,7 @@ const Sidebar = () => {
   );
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen min-h-0 overflow-hidden">
       <div
         className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
           sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -196,7 +203,6 @@ const Sidebar = () => {
           transition-[width,transform] duration-300 ease-in-out
           md:translate-x-0
           ${sidebarOpen ? "md:w-60" : "md:w-16"}
-        
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -213,7 +219,7 @@ const Sidebar = () => {
         </div>
 
         {/* Content */}
-        <div className="h-[calc(100%-4rem)] p-2 overflow-y-auto no-scroll-buttons">
+        <div className="sidebar-nav-scroll h-[calc(100%-4rem)] p-2 overflow-y-auto">
           {sidebarOpen && (
             <InputField>
               <input
@@ -271,7 +277,7 @@ const Sidebar = () => {
                       animate={{ height: "auto", opacity: 0.5 }}
                       exit={{ height: 0, opacity: 0.5 }}
                       transition={{ duration: 0.5, ease: "easeInOut" }}
-                      className="hover-popup-scroll no-scroll-buttons m-2 bg-gray-50 pl-5 font-semibold flex flex-col max-h-64 overflow-y-auto overflow-x-hidden"
+                      className="m-2 bg-gray-50 pl-5 font-semibold flex flex-col max-h-64 overflow-y-auto overflow-x-hidden scrollbar-none"
                     >
                       {tab.pages
                         .filter(page => {
@@ -336,7 +342,7 @@ const Sidebar = () => {
                               </AnimatePresence>
                             </div>
                           );
-                        })}{" "}
+                        })}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -348,17 +354,14 @@ const Sidebar = () => {
 
       {/* -----------------------------------main---------------------------------- */}
       <div
-        className={`flex-1 min-w-0 flex flex-col transition-[margin] duration-300 ease-in-out ${
+        className={`flex-1 min-w-0 min-h-0 flex flex-col transition-[margin] duration-300 ease-in-out ${
           sidebarOpen ? "md:ml-60" : "md:ml-16"
         }`}
       >
         <Header toggleSidebar={() => setSidebarOpen(p => !p)} isSidebarOpen={sidebarOpen} />
         <FavRoleButtonToggle />
-        {/* <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto">
-          <Outlet />
-        </main> */}
-        <main className="flex-1 min-w-0 bg-gray-50 p-4 pt-20 overflow-auto relative">
-          <div className="h-full overflow-auto pb-24">
+        <main className="flex-1 min-w-0 min-h-0 overflow-auto bg-gray-50 p-4 pt-20 relative">
+          <div className="w-full min-w-0 max-w-full pb-24">
             <Outlet />
           </div>
         </main>
@@ -385,7 +388,7 @@ const Sidebar = () => {
               </p>
 
               <div
-                className="hover-popup-scroll no-scroll-buttons flex flex-col gap-1 overflow-y-auto overflow-x-hidden p-1"
+                className="flex flex-col gap-1 overflow-y-auto overflow-x-hidden scrollbar-none p-1"
                 style={{ maxHeight: `${Math.min(hoverPopup.tab.pages.length, 5) * 44}px` }}
               >
                 {hoverPopup.tab.pages.map(page => (
