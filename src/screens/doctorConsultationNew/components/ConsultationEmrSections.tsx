@@ -947,6 +947,8 @@ const ConsultationEmrSections = ({
         sections={mappedSections}
         headersBySection={headersBySection}
         initialSectionId={historySectionId ?? mappedSections[0]?.sectionId ?? 0}
+        data={data}
+        onDataChange={setData}
       />
 
       <ReportAnnotatorModal

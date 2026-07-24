@@ -1006,6 +1006,23 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
     setEditingIndex(null);
   };
 
+  // mirrors TableControl.handleCellChange — a dropdown option may carry a backend id (e.g.
+  // ComplaintId) in `key`, stashed alongside the picked value as `__<columnKey>Id` so it reaches
+  // the saved entry the same way a table row's cell id does
+  const handleFieldChange = (columnKey: string, fieldValue: unknown) => {
+    const matchedOption = columns
+      .find(col => col.key === columnKey)
+      ?.options?.find(opt => opt.value === fieldValue);
+    const idKey = `__${columnKey}Id`;
+
+    setFormValues(prev => {
+      const updated = { ...prev, [columnKey]: fieldValue };
+      if (matchedOption?.key) updated[idKey] = matchedOption.key;
+      else delete updated[idKey];
+      return updated;
+    });
+  };
+
   const handleSave = () => {
     if (nameColumnKey && !String(formValues[nameColumnKey] ?? "").trim()) {
       showWarning(`${columns[0]?.label ?? "This field"} is required`);
@@ -1049,7 +1066,7 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
               <TableFieldInput
                 column={col}
                 value={formValues[col.key]}
-                onChange={v => setFormValues(prev => ({ ...prev, [col.key]: v }))}
+                onChange={v => handleFieldChange(col.key, v)}
               />
             </div>
           ))}

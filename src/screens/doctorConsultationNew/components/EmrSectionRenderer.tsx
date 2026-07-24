@@ -13,11 +13,16 @@ import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { groupAttributeConditionRows } from "@/screens/emrControls/utils/attributeConditionParsing";
-import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
+import {
+  EmrSectionVisitSnapshotEntry,
+  useEmrSectionHistoryStore,
+} from "@/store/useEmrSectionHistoryStore";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, History, Loader2 } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { EmrSectionAnswerEntry } from "../types";
+import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
+import { applySnapshotToSectionData, isCardGroupSection, mapControlType } from "../utils/sectionSnapshot";
 
 interface EmrSectionRendererProps {
   sectionId: number;
@@ -45,24 +50,6 @@ interface EmrSectionRendererProps {
    * header_<headerId> per column) rather than one value per header path */
   onEntriesChange?: (sectionId: number, entries: EmrSectionAnswerEntry[]) => void;
 }
-
-const mapControlType = (controlType: string): string => {
-  const key = (controlType || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-_]/g, "");
-  if (key.includes("rich")) return "richtext";
-  if (key.includes("table")) return "table";
-  if (key.includes("textarea")) return "textarea";
-  if (key.includes("date")) return "date";
-  if (key.includes("number")) return "number";
-  if (key.includes("currency")) return "currency";
-  if (key.includes("check")) return "switch";
-  if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
-    return "dropdown";
-  if (key.includes("radio")) return "radio";
-  return "text";
-};
 
 const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamicType === "dropdown";
 const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
@@ -120,7 +107,15 @@ const EmrSectionRenderer = ({
   const { fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const logEdit = useEmrSectionHistoryStore(s => s.logEdit);
+  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
   const previousValuesRef = useRef<Record<number, unknown> | null>(null);
+
+  // 6 most recent past-visit snapshots for this section — getVisitSnapshots already sorts
+  // newest-first, so this is just the top slice
+  const recentVisitSnapshots = useMemo(
+    () => (patientId ? getVisitSnapshots(patientId, sectionId).slice(0, 6) : []),
+    [patientId, sectionId, getVisitSnapshots]
+  );
 
   const getSectionHeaderMapping = async (): Promise<SectionHeaderMappingRecord[]> => {
     const resp = await fetchApi(
@@ -365,8 +360,7 @@ const EmrSectionRenderer = ({
   // History: Condition/Relationship/Sex/...) — render them as one add-a-card-per-entry control
   // instead of N separate always-visible fields. Computed outside cardSchema too since the
   // completion badge below needs to know it reads a different data path for such sections.
-  const isCardGroup =
-    headers.length > 1 && headers.every(h => mapControlType(h.controlType) !== "table");
+  const isCardGroup = isCardGroupSection(headers);
 
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
@@ -618,6 +612,10 @@ const EmrSectionRenderer = ({
     );
   }
 
+  const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
+    onDataChange(applySnapshotToSectionData(data, sectionId, headers, values));
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -661,6 +659,11 @@ const EmrSectionRenderer = ({
           style={{ width: `${sectionPercent}%` }}
         />
       </div>
+
+      <PreviousSectionVisitsStrip
+        snapshots={recentVisitSnapshots}
+        onCopyToCurrent={handleCopySnapshotValues}
+      />
 
       <div
         className="[&_.card]:!bg-transparent [&_.card]:!border-0 [&_.card]:!shadow-none [&_.card]:!p-0 [&_.card]:!rounded-none

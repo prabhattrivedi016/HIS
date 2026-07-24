@@ -358,10 +358,11 @@ const DoctorConsultationNew = () => {
       bySectionId.set(e.sectionId, bucket);
     });
 
-    return Array.from(bySectionId.values()).map(({ sectionName, entries }) => ({
+    return Array.from(bySectionId.entries()).map(([sectionId, { sectionName, entries }]) => ({
       attributeType: "emrSection",
       attributeCode: sectionName.replace(/[^a-zA-Z0-9]/g, ""),
       label: sectionName,
+      sectionId,
       value: entries.map(e => ({
         headerId: e.headerId,
         headerName: e.headerName,
