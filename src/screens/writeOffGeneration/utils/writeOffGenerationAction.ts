@@ -8,7 +8,11 @@ export const shouldShowCancelButton = (_item?: WriteOffGenerationItem | null) =>
 
 export const isGenerationButtonDisabled = (item?: WriteOffGenerationItem | null) => {
   if (!item) return false;
-  return Number(item.IsCreditNoteApproved) !== 1 || Number(item.IsCancel) === 1;
+  return (
+    Number(item.IsWriteOffApproved) === 0 ||
+    Number(item?.IsWriteOffCreated) === 1 ||
+    Number(item.IsCancel) === 1
+  );
 };
 
 export const isCancelButtonDisabled = (item?: WriteOffGenerationItem | null) => {
@@ -16,11 +20,9 @@ export const isCancelButtonDisabled = (item?: WriteOffGenerationItem | null) => 
   return Number(item.IsCancel) === 1;
 };
 
-export const getApproveDisabledWarning = (
-  item?: WriteOffGenerationItem | null
-): string | null => {
+export const getApproveDisabledWarning = (item?: WriteOffGenerationItem | null): string | null => {
   if (!item) return null;
-  if (Number(item.IsCreditNoteApproved) !== 1) return "Write off is not approved.";
+  if (Number(item.IsWriteOffApproved) !== 1) return "Write off is not approved.";
   if (Number(item.IsCancel) === 1) return "Write off is already cancelled.";
   return null;
 };
