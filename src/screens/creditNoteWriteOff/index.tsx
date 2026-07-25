@@ -13,14 +13,14 @@ import { formatDisplayDate } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import FilterBillPopup from "./components/FilterBillPopup";
 import { ApprovalList, BillDetailsItem, CreditNoteBillDetailItem } from "./types";
 
 const CreditNote = () => {
   const { loading, fetchApi } = useGlobalApi();
   const location = useLocation();
-
+  const navigate = useNavigate();
   const vistiIdFromCreditGeneration = location?.state?.item?.VisitId ?? 0;
   const creditNoteIdFromCreditGeneration = location?.state?.item?.CreditNoteId ?? 0;
   const shouldSaveButtonVisible = vistiIdFromCreditGeneration > 0 ? true : false;
@@ -248,6 +248,76 @@ const CreditNote = () => {
   // button click handler
   const buttonClickHandler = async (value: string) => {
     switch (value) {
+      case "save":
+        setIsSubmitClicked(true);
+
+        if (!validateCreditNoteApproval()) {
+          return;
+        }
+        const payload = {
+          visitDetails: createVistiDetailsPayload(),
+          billingItems: createBillingDetailsPaylaod(),
+        };
+
+        const amount =
+          payload.billingItems?.reduce((total, item) => total + Number(item.creditNoteAmt), 0) ?? 0;
+
+        if (amount > creditNoteApprovalValeus.totalCreditNoteAmount) {
+          showWarning("Credit note amount cannot be greater than total selected credit amount");
+          return;
+        }
+
+        if (!payload) return;
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.SAVE_CREDIT_NOTE,
+          payload,
+          {},
+          { component: "CreditNote" }
+        );
+        if (!resp?.result) {
+          showWarning(resp?.data ?? "failed to save");
+          return;
+        }
+        showSuccess(resp?.message ?? "Data saved successfully");
+        setPatientDetails({
+          patientId: "",
+          patientName: "",
+          uhid: "",
+          dob: "",
+          VisitId: "",
+          billNo: "",
+          billId: "",
+          billDate: "",
+          doctorName: "",
+          corporateName: "",
+          serviceName: "",
+          totalBillAmount: "",
+          totalDiscountOnBill: "",
+          totalPaidAmount: "",
+          totalBalanceAmount: "",
+          totalCreditNoteAmount: "",
+        });
+
+        setCreditNoteApprovalValues({
+          totalCreditNoteAmount: 0,
+          creditNoteApprovedID: 0,
+          creditNoteApprovedName: "",
+          creditNoteReason: "",
+          creditNoteRemark: "",
+        });
+        setErrors({
+          creditNoteApprovedID: "",
+          creditNoteReason: "",
+          totalCreditNoteAmount: "",
+        });
+        setCreditNoteTableList([]);
+        setShowTable(false);
+        setValueDisable(false);
+        navigate(location.pathname, { replace: true, state: null });
+
+        break;
+
       case "sendForApproval": {
         setIsSubmitClicked(true);
 
@@ -313,6 +383,8 @@ const CreditNote = () => {
         });
         setCreditNoteTableList([]);
         setShowTable(false);
+        setValueDisable(false);
+        navigate(location.pathname, { replace: true, state: null });
 
         break;
       }

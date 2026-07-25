@@ -11,7 +11,7 @@ import { formatDisplayDate } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import FilterBillPopup from "./components/FilterBillPopup";
 import { ApprovalList, WriteOffBillDetailsItem, WriteOffBillItem } from "./types";
 
@@ -25,6 +25,60 @@ const WriteOff = () => {
   const [writeOffTableData, setWriteOffTableData] = useState<WriteOffBillDetailsItem[]>([]);
   const [selectedBillForWriteOff, setSelectedBillForWriteOff] = useState<WriteOffBillItem | null>();
   const [isSubmitClicked, setIsSubmitClicked] = useState(false);
+  const [valueDisable, setValueDisable] = useState<boolean>(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const vistiIdFromWriteOffGeneration = location?.state?.item?.VisitId ?? 0;
+  const writeOffIdFromWriteOffGeneration = location?.state?.item?.WriteOffId ?? 0;
+  const shouldSaveButtonVisible = vistiIdFromWriteOffGeneration > 0 ? true : false;
+
+  const getWriteOffDetails = async (writeOffId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID,
+      {},
+      { params: { writeOffId } },
+      { component: "WriteOff" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No data found");
+      setValueDisable(false);
+      return;
+    }
+
+    setValueDisable(true);
+    setWriteOffApprovalValues({
+      totalWriteOffAmount: Number(resp?.data?.[0]?.TotalWriteOffAmount),
+      writeOffApprovedId: Number(resp?.data?.[0]?.WriteOffApprovedID),
+      writeOffApprovedName: resp?.data?.[0]?.WriteOffApprovedName,
+      writeOffReason: resp?.data?.[0]?.WriteOffReason,
+      writeOffRemark: resp?.data?.[0]?.WriteOffRemark,
+    });
+    setPatientDetails({
+      patientId: resp?.data?.[0]?.PatientId,
+      patientName: location?.state?.item?.PatientName || resp?.data?.[0]?.PatientName,
+      uhid: resp?.data?.[0]?.UHID,
+      dob: location?.state?.item?.Age || resp?.data?.[0]?.Age,
+      VisitId: resp?.data?.[0]?.VisitId,
+      billNo: location?.state?.item?.BillNo || resp?.data?.[0]?.BillNo,
+      billId: resp?.data?.[0]?.BillId,
+      billDate: location?.state?.item?.BillDate || resp?.data?.[0]?.BillDate,
+      corporateName: location?.state?.item?.CorporateName || resp?.data?.[0]?.CorporateName,
+      totalDiscountOnBill: resp?.data?.[0]?.TotalDiscountAmountOnBill,
+      totalNetAmount: location?.state?.item?.TotalNetAmount || resp?.data?.[0]?.TotalNetAmount,
+      totalPaidAmount: resp?.data?.[0]?.TotalPaidAmount,
+      totalBalanceAmount: resp?.data?.[0]?.TotalBalanceAmount,
+      totalWriteOffAmount: resp?.data?.[0]?.TotalWriteOffAmount,
+    });
+    setWriteOffTableData(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    if (vistiIdFromWriteOffGeneration && writeOffIdFromWriteOffGeneration) {
+      void getWriteOffDetails(Number(writeOffIdFromWriteOffGeneration));
+    }
+  }, [vistiIdFromWriteOffGeneration, writeOffIdFromWriteOffGeneration]);
 
   const [patientDetails, setPatientDetails] = useState({
     patientId: "",
@@ -63,11 +117,11 @@ const WriteOff = () => {
       ENDPOINTS.GET_BILL_DETAILS_FOR_WRITE_OFF,
       {},
       { params: { visitId } },
-      { component: "CreditNote" }
+      { component: "WriteOff" }
     );
     if (!resp?.result) {
       showWarning(resp?.message ?? "No data found");
-      return;
+      return null;
     }
     setPatientDetails({
       patientId: resp?.data?.[0]?.PatientId,
@@ -86,6 +140,7 @@ const WriteOff = () => {
       totalWriteOffAmount: resp?.data?.[0]?.TotalWriteOffAmount,
     });
     setWriteOffTableData(resp?.data ?? []);
+    return resp?.data ?? [];
   };
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -141,8 +196,65 @@ const WriteOff = () => {
   // button click handler
   const buttonClickHandler = async (value: string) => {
     switch (value) {
+      case "save": {
+        setIsSubmitClicked(true);
+
+        if (!validateCreditNoteApproval()) {
+          return;
+        }
+
+        const payload = createWriteOffPayload();
+
+        if (!payload) return;
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.SAVE_WRITE_OFF,
+          payload,
+          {},
+          { component: "WriteOff" }
+        );
+        if (!resp?.result) {
+          showWarning(resp?.data ?? "failed to save");
+          return;
+        }
+        showSuccess(resp?.message ?? "Data saved successfully");
+        setPatientDetails({
+          patientId: "",
+          patientName: "",
+          uhid: "",
+          dob: "",
+          VisitId: "",
+          billNo: "",
+          billId: "",
+          billDate: "",
+          corporateName: "",
+          totalDiscountOnBill: "",
+          totalNetAmount: "",
+          totalPaidAmount: "",
+          totalBalanceAmount: "",
+          totalWriteOffAmount: "",
+        });
+
+        setWriteOffApprovalValues({
+          totalWriteOffAmount: 0,
+          writeOffApprovedId: 0,
+          writeOffApprovedName: "",
+          writeOffReason: "",
+          writeOffRemark: "",
+        });
+        setErrors({
+          writeOffApprovedId: "",
+          writeOffReason: "",
+          totalWriteOffAmount: "",
+        });
+        setWriteOffTableData([]);
+        setValueDisable(false);
+        navigate(location.pathname, { replace: true, state: null });
+
+        break;
+      }
+
       case "sendForApproval": {
-        console.log("send of approval");
         setIsSubmitClicked(true);
 
         if (!validateCreditNoteApproval()) {
@@ -194,6 +306,8 @@ const WriteOff = () => {
           totalWriteOffAmount: "",
         });
         setWriteOffTableData([]);
+        setValueDisable(false);
+        navigate(location.pathname, { replace: true, state: null });
 
         break;
       }
@@ -307,22 +421,30 @@ const WriteOff = () => {
             <InputField label="Bill Number" required>
               <div className="flex flex-row gap-2">
                 <input
-                  className="input-field"
+                  className={
+                    vistiIdFromWriteOffGeneration > 0 ? "disabled-input-field" : "input-field"
+                  }
                   placeholder="Press Enter to search bills"
                   onChange={e => setBillNumberValue(e.target.value.trim())}
                   onKeyDown={handleKeyDown}
+                  disabled={vistiIdFromWriteOffGeneration > 0}
                 />
-                <SearchIconButton onClick={handleOpenPopup} className="" />
+                <SearchIconButton
+                  onClick={handleOpenPopup}
+                  className={vistiIdFromWriteOffGeneration > 0 ? "disabled-search-icon" : ""}
+                  disabled={vistiIdFromWriteOffGeneration > 0}
+                />
               </div>
             </InputField>
             {!!writeOffTableData && writeOffTableData.length > 0 && (
               <>
                 <InputField label="Write Off Approved By" required>
                   <select
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     name="writeOffApprovedId"
                     value={writeOffApprovalValeus.writeOffApprovedId}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   >
                     <option value={0}>Select</option>
 
@@ -340,11 +462,12 @@ const WriteOff = () => {
 
                 <InputField label="Write Off Reason" required>
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     placeholder="Enter credit note reason"
                     name="writeOffReason"
                     value={writeOffApprovalValeus?.writeOffReason}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   />
                   {isSubmitClicked && errors.writeOffReason && (
                     <p className="input-field-error">{errors.writeOffReason}</p>
@@ -353,21 +476,23 @@ const WriteOff = () => {
 
                 <InputField label="Write Off Remark">
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     placeholder="Enter credit note remark"
                     name="writeOffRemark"
                     value={writeOffApprovalValeus?.writeOffRemark}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   />
                 </InputField>
 
                 <InputField label="WriteOff Amount" required>
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     name="totalWriteOffAmount"
                     value={writeOffApprovalValeus.totalWriteOffAmount}
                     onChange={adjustAmountChangeHandler}
                     onInput={allowOnlyNumbers}
+                    disabled={valueDisable}
                   />
                   {isSubmitClicked && errors.totalWriteOffAmount && (
                     <p className="input-field-error">{errors.totalWriteOffAmount}</p>
@@ -442,7 +567,11 @@ const WriteOff = () => {
         />
       )}
 
-      <GlobalFooterButtons pageType={PageType?.WRITE_OFF} onButtonClick={buttonClickHandler} />
+      <GlobalFooterButtons
+        pageType={PageType?.WRITE_OFF}
+        shouldSaveButtonVisible={shouldSaveButtonVisible}
+        onButtonClick={buttonClickHandler}
+      />
     </div>
   );
 };

@@ -102,7 +102,11 @@ const GlobalFooterButtons = ({
 
         {/* write off isWiteOffApprovalRequired */}
 
-        {pageType === PageType?.WRITE_OFF && isWiteOffApprovalRequired ? (
+        {pageType === PageType?.WRITE_OFF && shouldSaveButtonVisible ? (
+          <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+            Save
+          </button>
+        ) : pageType === PageType?.WRITE_OFF && isWiteOffApprovalRequired ? (
           <button
             type="button"
             className="save-btn"
