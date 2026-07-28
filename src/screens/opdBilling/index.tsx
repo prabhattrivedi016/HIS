@@ -363,6 +363,11 @@ const OpdBilling = () => {
     isSeparateCollectionCounterEnabled,
     isDiscountApprovalRequired
   );
+
+  const ispatientRegistartionChargeRequired =
+    Number(branchRights?.IsPatientRegistrationChargeRequired) === 1 ? 1 : 0;
+
+  console.log("ispatientRegistartionChargeRequired", ispatientRegistartionChargeRequired);
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -1467,7 +1472,7 @@ const OpdBilling = () => {
 
   const handleSelectPatient = useCallback(
     async (item: SearchedPatientItem) => {
-      const patientId = Number(item?.patientId ?? 0);
+      const patientId = Number(item?.PatientId ?? 0);
 
       if (!patientId) {
         setSearchPatientError("Invalid patient selected.");
@@ -1705,13 +1710,53 @@ const OpdBilling = () => {
     }));
   }, [doctorList]);
 
-  const doctorSelectHandler = (option: OptionItem | null) => {
+  const getServiceOfRegistrationCharge = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      { params: { isRegistrationCharge: 1, isActive: 1 } },
+      { component: "DoctorMaster" }
+    );
+
+    console.log("resp of registration charges serivice", resp?.data);
+  };
+
+  // registration service charge
+  const getRegistrationChargeService = async (overrideDoctorId?: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      { params: { isRegistrationCharge: 1, isActive: 1 } },
+      { component: "DoctorMaster" }
+    );
+
+    await addServiceToTable(resp?.data?.[0], overrideDoctorId);
+  };
+
+  const doctorSelectHandler = async (option: OptionItem | null) => {
     if (!option) {
       setSelectedDoctor(null);
       return;
     }
+
     setSelectDoctorError("");
     setSelectedDoctor(option);
+
+    const patientId = Number(
+      patientRegistrationDetails?.PatientId ?? patientRegistrationDetails?.patientId ?? 0
+    );
+    const isRegistrationExpired =
+      Number(
+        patientRegistrationDetails?.IsRegistrationChargeValidityExpired ??
+          patientRegistrationDetails?.isRegistrationChargeValidityExpired ??
+          0
+      ) === 1;
+
+    if (ispatientRegistartionChargeRequired && (patientId === 0 || isRegistrationExpired)) {
+      await getRegistrationChargeService(Number(option.value));
+    }
   };
 
   useEffect(() => {
@@ -2039,6 +2084,7 @@ const OpdBilling = () => {
               categoryId: selectedCategory,
               subCategoryId: selectedSubCategory?.value,
               subSubCategoryId: selectedSubSubCategory?.value,
+              isActive: 1,
             },
           },
           { component: "OpdBilling" }
@@ -2155,7 +2201,10 @@ const OpdBilling = () => {
   }, [isPackageUrgent]);
 
   // add duplicate service to table
-  const addServiceToTable = async (item: ServiceItemList) => {
+  const addServiceToTable = async (item: ServiceItemList, overrideDoctorId?: number) => {
+    console.log("item", item);
+    const doctorId =
+      overrideDoctorId !== undefined ? overrideDoctorId : (selectedDoctor?.value ?? 0);
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
@@ -2164,7 +2213,7 @@ const OpdBilling = () => {
         params: {
           branchId,
           corporateId: selectedCorporate?.value,
-          doctorId: selectedDoctor?.value ?? 0,
+          doctorId,
           serviceItemId: item?.serviceItemId,
           categoryId: item?.categoryId,
           subCategoryId: item?.subCategoryId,
@@ -2176,7 +2225,11 @@ const OpdBilling = () => {
 
     const requiresPerformingDoctor = Number(resp?.data?.isRequiredSeparatePerformingDoctor) === 1;
 
-    if (!requiresPerformingDoctor && !selectedDoctor?.value) {
+    if (
+      !requiresPerformingDoctor &&
+      !selectedDoctor?.value &&
+      !ispatientRegistartionChargeRequired
+    ) {
       setSelectDoctorError("Please select any one doctor");
       showWarning("Please select any one doctor");
       doctorRef.current?.focus();

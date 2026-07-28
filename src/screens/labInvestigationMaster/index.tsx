@@ -63,7 +63,7 @@ const LabInvestigationMaster = () => {
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryTypeId: 3 } },
+      { params: { categoryTypeIds: 3 } },
       { component: "LabInvestigationMaster" }
     );
     setCategoryList(resp?.data ?? []);

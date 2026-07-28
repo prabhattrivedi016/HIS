@@ -118,7 +118,7 @@ const IPDAdmission = () => {
 
   const handleSelectPatient = useCallback(
     async (item: SearchedPatientItem) => {
-      const patientId = Number(item?.patientId ?? 0);
+      const patientId = Number(item?.PatientId ?? 0);
 
       if (!patientId) {
         setSearchPatientError("Invalid patient selected.");

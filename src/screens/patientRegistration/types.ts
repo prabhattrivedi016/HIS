@@ -225,6 +225,7 @@ type PatientDataEditItem = {
   dayCareNo: number;
   dialysisNo: number;
   emergencyNo: number;
+  isRegistrationChargeValidityExpired?: number;
 };
 
 type PatientDocumentPayloadItem = {

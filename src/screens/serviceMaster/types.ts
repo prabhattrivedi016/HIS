@@ -49,7 +49,7 @@ type ServiceTableItem = {
   isRequiredSeparatePerformingDoctor?: number;
   doctorDepartmentIds?: string;
   isRegistrationCharge?: number;
-  registrationChargeValidityDays?: string | number;
+  registrationChargeValidityDays?: number;
 };
 
 type CategoryTypeItem = { categoryTypeId: number; categoryTypeName: string };
