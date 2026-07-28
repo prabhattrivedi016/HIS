@@ -65,6 +65,22 @@ export const createUpdateServiceMasterSchema = yup.object().shape({
   isOnlineConsultationAllow: yup.number().nullable(),
   isTeleConsultationService: yup.number().nullable(),
   isActive: yup.number().nullable(),
+  isRegistrationCharge: yup.number().nullable(),
+  registrationChargeValidityDays: yup
+    .number()
+    .transform((value, originalValue) =>
+      originalValue === "" || originalValue === null || originalValue === undefined
+        ? 0
+        : Number(value)
+    )
+    .when("isRegistrationCharge", {
+      is: (value: unknown) => Number(value) === 1,
+      then: schema =>
+        schema
+          .required("Registration charge validity days is required")
+          .min(1, "Registration validity must be greater than 0"),
+      otherwise: schema => schema.notRequired().nullable(),
+    }),
   isRequiredSeparatePerformingDoctor: yup
     .number()
     .transform((value, originalValue) =>

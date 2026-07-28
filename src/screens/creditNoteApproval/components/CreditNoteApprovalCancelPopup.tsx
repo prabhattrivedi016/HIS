@@ -34,6 +34,7 @@ const CreditNoteApproveCancelPopup = ({
       { params: { creditNoteId } },
       { component: "CreditNoteApproveCancelPopup" }
     );
+
     setCreditNoteApprovalDetails(resp?.data?.[0]);
   };
 
@@ -42,6 +43,7 @@ const CreditNoteApproveCancelPopup = ({
       getCreditNoteApprovalDetailsById(item?.CreditNoteId);
     }
   }, [item]);
+
   const [cancelFormData, setCancelFormData] = useState({
     creditNoteId: 0,
     cancelReason: "",
@@ -306,6 +308,10 @@ const CreditNoteApproveCancelPopup = ({
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Age / Gender:</span>
             <span className="truncate">{item?.Age + "/" + item?.Gender}</span>
+          </div>
+          <div className="flex flex-row gap-1">
+            <span className="name-header whitespace-nowrap">Bill No.:</span>
+            <span className="truncate">{item?.BillNo}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Credit Note Approved Name:</span>

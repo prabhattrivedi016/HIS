@@ -19,7 +19,12 @@ export const shouldShowCancelButton = (item?: OPDiscountItem | null) => !!item;
 export const isApproveButtonDisabled = (item?: OPDiscountItem | null) => {
   if (!item) return true;
 
-  return isBookingCancelled(item) || isPaymentCollected(item) || isDiscountApproved(item);
+  return (
+    isBookingCancelled(item) ||
+    isPaymentCollected(item) ||
+    isDiscountApproved(item) ||
+    canApproveDiscount(item)
+  );
 };
 
 export const isCancelButtonDisabled = (item?: OPDiscountItem | null) => {

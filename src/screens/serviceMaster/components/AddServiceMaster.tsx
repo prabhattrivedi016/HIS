@@ -11,6 +11,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { SubCategoryListItem } from "@/screens/labInvestigationMaster/types";
 import { PickMasterItem, SelectItem } from "@/types";
 import { showWarning } from "@/utils/alert";
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   createUpdateServiceMasterFormItem,
   createUpdateServiceMasterSchema,
@@ -157,6 +158,8 @@ const AddServiceMaster = ({
       isActive: 1,
       isRequiredSeparatePerformingDoctor: 0,
       doctorDepartmentIds: "",
+      isRegistrationCharge: 0,
+      registrationChargeValidityDays: 0,
     },
   });
 
@@ -164,6 +167,7 @@ const AddServiceMaster = ({
   const isEdit = Boolean(watch("serviceItemId"));
   const selectedOpdTypeId = watch("opdConsultationTypeId");
   const isRequiredPerformingDoctor = Number(watch("isRequiredSeparatePerformingDoctor")) === 1;
+  const isRegistrationCharge = Number(watch("isRegistrationCharge")) === 1;
 
   const buttonTitle = isEdit ? "Update" : "Create";
 
@@ -462,6 +466,8 @@ const AddServiceMaster = ({
       isActive: data.isActive ?? 1,
       isRequiredSeparatePerformingDoctor: data.isRequiredSeparatePerformingDoctor ?? 0,
       doctorDepartmentIds: data.doctorDepartmentIds ?? "",
+      isRegistrationCharge: data.isRegistrationCharge ?? 0,
+      registrationChargeValidityDays: data.registrationChargeValidityDays ?? "",
     });
 
     setCategoryId(data.categoryId);
@@ -560,6 +566,14 @@ const AddServiceMaster = ({
     }
   }, [icuValue]);
 
+  const watchRegistrationCharge = watch("isRegistrationCharge");
+
+  useEffect(() => {
+    if (Number(watchRegistrationCharge) === 0) {
+      setValue("registrationChargeValidityDays", 0);
+    }
+  }, [watchRegistrationCharge, setValue]);
+
   // set snomed data value
   useEffect(() => {
     if (!snomedData) return;
@@ -625,6 +639,8 @@ const AddServiceMaster = ({
         isActive: 1,
         isRequiredSeparatePerformingDoctor: 0,
         doctorDepartmentIds: "",
+        isRegistrationCharge: 0,
+        registrationChargeValidityDays: 0,
       });
       onClose?.();
     }, 500);
@@ -875,6 +891,34 @@ const AddServiceMaster = ({
                       />
                     </InputField>
                   </>
+                )}
+
+                <InputField label="Registration Chargable">
+                  <select className="input-field" {...register("isRegistrationCharge")}>
+                    <option value={1}>Yes</option>
+                    <option value={0}>No</option>
+                  </select>
+                </InputField>
+
+                {!!isRegistrationCharge && (
+                  <InputField label="Registration Validity (days)" required>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Enter registration validity"
+                      {...register("registrationChargeValidityDays")}
+                      onInput={allowOnlyNumbers}
+                    />
+                    {errors.registrationChargeValidityDays && (
+                      <p
+                        className="input-field-error cursor-pointer hover:underline"
+                        onClick={() => setValue("registrationChargeValidityDays", 365, { shouldValidate: true, shouldDirty: true })}
+                        title="Click to autofill 365 days"
+                      >
+                        {errors.registrationChargeValidityDays.message}
+                      </p>
+                    )}
+                  </InputField>
                 )}
 
                 <InputField label="Status">

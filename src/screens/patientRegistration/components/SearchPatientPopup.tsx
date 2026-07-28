@@ -330,29 +330,26 @@ const SearchPatientPopup = ({
                           onDoubleClick={() => selectPatientHandler(item)}
                         >
                           <td className="table-td">{idx + 1}</td>
-                          <td className="table-td">{item?.title || "-"}</td>
+                          <td className="table-td">{item?.Title || "-"}</td>
                           <td className="table-td max-w-50 wrap-break-word">
-                            {item?.patientName || "-"}
+                            {item?.PatientName || "-"}
                           </td>
-                          <td className="table-td">{item?.uhid || "-"}</td>
-                          <td className="table-td">{item?.dob || "-"}</td>
-                          <td className="table-td">{item?.gender || "-"}</td>
-                          <td className="table-td">{item?.relativeName || "-"}</td>
-                          <td className="table-td">{item?.contactNumber || "-"}</td>
+                          <td className="table-td">{item?.UHID || "-"}</td>
+                          <td className="table-td">{item?.DOB || "-"}</td>
+                          <td className="table-td">{item?.Gender || "-"}</td>
+                          <td className="table-td">{item?.RelativeName || "-"}</td>
+                          <td className="table-td">{item?.ContactNumber || "-"}</td>
                           <td className="table-td max-w-40 wrap-break-word">
-                            {item?.fullAddress || "-"}
+                            {item?.FullAddress || "-"}
                           </td>
-                          <td className="table-td">{item?.registrationDate || "-"}</td>
-                          <td className="table-td">{item?.ipdNo || "-"}</td>
+                          <td className="table-td">{item?.RegistrationDate || "-"}</td>
+                          <td className="table-td">{item?.IPDNo || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-              {/* <p className="input-field-error font-semibold text-center">
-                💠 Please double click to select a patient
-              </p> */}
             </div>
           </Animation>
         )}

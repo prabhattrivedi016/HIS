@@ -103,28 +103,29 @@ type PatientDataItem = {
 };
 
 type SearchedPatientItem = {
-  patientId: number;
-  branchId: number;
-  uhid: string;
-  title: string;
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  patientName: string;
-  ageYears: number;
-  ageMonths: number;
-  ageDays: number;
-  age: string;
-  dob: string;
-  gender: string;
-  relation: string;
-  relativeName: string;
-  contactNumber: string;
-  emergencyContactNumber: string;
-  email: string;
-  fullAddress: string;
-  registrationDate: string;
-  ipdNo: number;
+  BranchId: number;
+  PatientId: number;
+  UHID: string;
+  Title: string;
+  FirstName: string;
+  MiddleName: null;
+  LastName: null;
+  PatientName: string;
+  AgeYears: number;
+  AgeMonths: number;
+  AgeDays: number;
+  Age: string;
+  DOB: string;
+  Gender: string;
+  Relation: null;
+  RelativeName: null;
+  ContactNumber: string;
+  EmergencyContactNumber: null;
+  Email: null;
+  FullAddress: string;
+  RegistrationDate: string;
+  IPDNo: string;
+  IsRegistrationChargeValidityExpired: number;
 };
 
 type PatientDataProps = {

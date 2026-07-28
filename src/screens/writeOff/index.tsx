@@ -64,6 +64,7 @@ const WriteOff = () => {
       billNo: location?.state?.item?.BillNo || resp?.data?.[0]?.BillNo,
       billId: resp?.data?.[0]?.BillId,
       billDate: location?.state?.item?.BillDate || resp?.data?.[0]?.BillDate,
+      totalBillAmount: resp?.data?.[0]?.TotalBillAmount,
       corporateName: location?.state?.item?.CorporateName || resp?.data?.[0]?.CorporateName,
       totalDiscountOnBill: resp?.data?.[0]?.TotalDiscountAmountOnBill,
       totalNetAmount: location?.state?.item?.TotalNetAmount || resp?.data?.[0]?.TotalNetAmount,
@@ -90,6 +91,7 @@ const WriteOff = () => {
     billId: "",
     billDate: "",
     corporateName: "",
+    totalBillAmount: "",
     totalDiscountOnBill: "",
     totalNetAmount: "",
     totalPaidAmount: "",
@@ -133,6 +135,7 @@ const WriteOff = () => {
       billId: resp?.data?.[0]?.BillId,
       billDate: resp?.data?.[0]?.BillDate,
       corporateName: resp?.data?.[0]?.CorporateName,
+      totalBillAmount: resp?.data?.[0]?.TotalBillAmount,
       totalDiscountOnBill: resp?.data?.[0]?.TotalDiscountAmountOnBill,
       totalNetAmount: resp?.data?.[0]?.TotalNetAmount,
       totalPaidAmount: resp?.data?.[0]?.TotalPaidAmount,
@@ -193,6 +196,55 @@ const WriteOff = () => {
     };
   };
 
+  // update status of generation
+  const updateWriteOffGeneration = async () => {
+    if (!writeOffIdFromWriteOffGeneration) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.COLLECT_WRITE_OFF_REQUEST,
+      { writeOffId: Number(writeOffIdFromWriteOffGeneration) },
+      {},
+      { component: "WriteOff" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.data ?? "failed to update");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setPatientDetails({
+      patientId: "",
+      patientName: "",
+      uhid: "",
+      dob: "",
+      VisitId: "",
+      billNo: "",
+      billId: "",
+      billDate: "",
+      corporateName: "",
+      totalBillAmount: "",
+      totalDiscountOnBill: "",
+      totalNetAmount: "",
+      totalPaidAmount: "",
+      totalBalanceAmount: "",
+      totalWriteOffAmount: "",
+    });
+
+    setWriteOffApprovalValues({
+      totalWriteOffAmount: 0,
+      writeOffApprovedId: 0,
+      writeOffApprovedName: "",
+      writeOffReason: "",
+      writeOffRemark: "",
+    });
+    setErrors({
+      writeOffApprovedId: "",
+      writeOffReason: "",
+      totalWriteOffAmount: "",
+    });
+    setWriteOffTableData([]);
+    setValueDisable(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
   // button click handler
   const buttonClickHandler = async (value: string) => {
     switch (value) {
@@ -217,39 +269,8 @@ const WriteOff = () => {
           showWarning(resp?.data ?? "failed to save");
           return;
         }
-        showSuccess(resp?.message ?? "Data saved successfully");
-        setPatientDetails({
-          patientId: "",
-          patientName: "",
-          uhid: "",
-          dob: "",
-          VisitId: "",
-          billNo: "",
-          billId: "",
-          billDate: "",
-          corporateName: "",
-          totalDiscountOnBill: "",
-          totalNetAmount: "",
-          totalPaidAmount: "",
-          totalBalanceAmount: "",
-          totalWriteOffAmount: "",
-        });
 
-        setWriteOffApprovalValues({
-          totalWriteOffAmount: 0,
-          writeOffApprovedId: 0,
-          writeOffApprovedName: "",
-          writeOffReason: "",
-          writeOffRemark: "",
-        });
-        setErrors({
-          writeOffApprovedId: "",
-          writeOffReason: "",
-          totalWriteOffAmount: "",
-        });
-        setWriteOffTableData([]);
-        setValueDisable(false);
-        navigate(location.pathname, { replace: true, state: null });
+        await updateWriteOffGeneration();
 
         break;
       }
@@ -286,6 +307,7 @@ const WriteOff = () => {
           billId: "",
           billDate: "",
           corporateName: "",
+          totalBillAmount: "",
           totalDiscountOnBill: "",
           totalNetAmount: "",
           totalPaidAmount: "",
@@ -533,8 +555,17 @@ const WriteOff = () => {
                 </div>
 
                 <div className="flex flex-row gap-1">
+                  <span className="name-header whitespace-nowrap">Total Bill Amount:</span>
+                  <span className="truncate">{patientDetails?.totalBillAmount}</span>
+                </div>
+
+                <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Discount On Bill:</span>
                   <span className="truncate">{patientDetails?.totalDiscountOnBill}</span>
+                </div>
+                <div className="flex flex-row gap-1">
+                  <span className="name-header whitespace-nowrap">Total Net Amount:</span>
+                  <span className="truncate">{patientDetails?.totalNetAmount}</span>
                 </div>
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Paid Amount:</span>
@@ -547,10 +578,6 @@ const WriteOff = () => {
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Previous WriteOff Amount:</span>
                   <span className="truncate">{patientDetails?.totalWriteOffAmount ?? 0}</span>
-                </div>
-                <div className="flex flex-row gap-1">
-                  <span className="name-header whitespace-nowrap">Total Net Amount:</span>
-                  <span className="truncate">{patientDetails?.totalNetAmount}</span>
                 </div>
               </div>
             </>

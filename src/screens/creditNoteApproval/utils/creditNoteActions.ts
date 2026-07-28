@@ -8,7 +8,11 @@ export const shouldShowCancelButton = (_item?: CreditNoteApprovalItem | null) =>
 
 export const isApproveButtonDisabled = (item?: CreditNoteApprovalItem | null) => {
   if (!item) return false;
-  return Number(item.IsCreditNoteApproved) === 1 || Number(item.IsCancel) === 1;
+  return (
+    Number(item.IsCreditNoteApproved) === 1 ||
+    Number(item.IsCancel) === 1 ||
+    Number(item?.CanApprove === 0)
+  );
 };
 
 export const isCancelButtonDisabled = (item?: CreditNoteApprovalItem | null) => {
