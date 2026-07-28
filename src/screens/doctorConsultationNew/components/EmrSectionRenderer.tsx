@@ -7,7 +7,13 @@ import {
 } from "@/components/dynamicForm/types";
 import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
+import { getDummyLovFallback } from "@/config/dummyHeaderLovs";
 import { EmrDataSourceConfig, resolveHeaderBehavior } from "@/config/emrHeaderBehavior";
+import {
+  resolveGenericAttributeGroupColumns,
+  resolveGenericAttributeGroupNameColumnKey,
+  resolveGenericAttributeGroupPreviousVisits,
+} from "@/config/genericAttributeGroups";
 import { INVESTIGATION_ORDER_TYPES } from "@/config/investigationOrderTypes";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -33,6 +39,8 @@ interface EmrSectionRendererProps {
   onHeadersLoaded?: (headers: SectionHeaderMappingRecord[]) => void;
   doctorId?: number;
   patientId?: number;
+  /** current visit, used by "imageUpload" controls to scope the shared visit-reports store */
+  visitId?: number;
   /** opens the shared cross-section History drawer (owned by ConsultationEmrSections),
    * defaulted to this section */
   onOpenHistory?: () => void;
@@ -52,7 +60,8 @@ interface EmrSectionRendererProps {
 }
 
 const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamicType === "dropdown";
-const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
+const isFullWidth = (dynamicType: string) =>
+  dynamicType === "richtext" || dynamicType === "medicineList";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -94,6 +103,7 @@ const EmrSectionRenderer = ({
   onHeadersLoaded,
   doctorId,
   patientId,
+  visitId,
   onOpenHistory,
   accent,
   onProgressChange,
@@ -212,7 +222,13 @@ const EmrSectionRenderer = ({
       { component: "EmrSectionRenderer", silent: true }
     );
     const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
-    return raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
+    const options = raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
+    if (options.length > 0) return options;
+
+    // no real LOVs configured for this header yet — fall back to a name-matched dummy list
+    // (e.g. Procedure/Diagnoses/Status/Follow Up) so the section is testable in the meantime
+    const header = headers.find(h => h.headerId === headerId);
+    return header ? getDummyLovFallback(header.headerName) : [];
   };
 
   // headers whose behavior rule supplies its own dataSource skip the static-LOV fetch below —
@@ -326,7 +342,12 @@ const EmrSectionRenderer = ({
     () =>
       headers
         .filter(h => {
-          if (mapControlType(h.controlType) === "table") return false;
+          if (
+            ["table", "medicineList", "genericAttributeGroup", "imageUpload"].includes(
+              mapControlType(h.controlType)
+            )
+          )
+            return false;
           const dataSource = resolveHeaderBehavior(h.headerName)?.dataSource;
           return Boolean(dataSource) && !dataSource!.searchParamKey;
         })
@@ -373,10 +394,14 @@ const EmrSectionRenderer = ({
     const resolveHeaderRender = (h: SectionHeaderMappingRecord) => {
       const behavior = resolveHeaderBehavior(h.headerName);
       const mappedType = mapControlType(h.controlType);
-      // a header explicitly configured as "Table" always renders as a table —
-      // a behavior rule's controlTypeOverride only applies to non-table headers
-      const dynamicType =
-        mappedType === "table" ? "table" : (behavior?.controlTypeOverride ?? mappedType);
+      // a header explicitly configured as "Table" or "Medicines List" always renders as that —
+      // a behavior rule's controlTypeOverride only applies to headers with neither control type.
+      // (otherwise a header named e.g. "Medicines" with ControlType "Medicines List" would get
+      // silently downgraded to a plain dropdown by the header-name-matched "medicine-picker" rule)
+      const HARD_CONTROL_TYPES = ["table", "medicineList", "genericAttributeGroup", "imageUpload"];
+      const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
+        ? mappedType
+        : (behavior?.controlTypeOverride ?? mappedType);
       const isTable = dynamicType === "table";
       const dataSource = !isTable ? behavior?.dataSource : undefined;
       const hasStaticDataSource = Boolean(dataSource) && !dataSource?.searchParamKey;
@@ -405,19 +430,65 @@ const EmrSectionRenderer = ({
         };
       });
 
+      // a card-group covers the WHOLE section (not one header), so its favourites/master-entry/
+      // order-set config is sourced from WHICHEVER header has a matching emrHeaderBehavior.ts
+      // rule — not necessarily the first one. Family History is why: its meaningful/master-
+      // searchable field is "Condition", but "Relationship" is sequenced ahead of it. That
+      // matched header's own column also becomes the card's name/title column (nameColumnKey),
+      // instead of always defaulting to whichever header happens to be first.
+      const masterHeaderEntry = headers
+        .map(h => ({ header: h, behavior: resolveHeaderBehavior(h.headerName) }))
+        .find(e => e.behavior?.table?.masterEntry || e.behavior?.table?.orderSet);
+      const primaryHeaderBehavior = masterHeaderEntry?.behavior;
+
       controls = [
         {
           key: `section_${sectionId}_group`,
+          // a card-group covers the whole section, so its own label is the section name — same
+          // "control gets a visible header name" treatment every other control (e.g. Medicines
+          // List) already gets from its own h.displayName/sectionName-derived label
+          label: displayName || sectionName,
           type: "card-group",
           dataPath: `section_${sectionId}.group`,
           colSpan: 4,
           columns,
           doctorId,
+          patientId,
+          favouritesEnabled: primaryHeaderBehavior?.table?.favouritesEnabled ?? true,
+          masterEntryConfig: primaryHeaderBehavior?.table?.masterEntry,
+          orderSetConfig: primaryHeaderBehavior?.table?.orderSet,
+          nameColumnKey: masterHeaderEntry ? `header_${masterHeaderEntry.header.headerId}` : undefined,
+          previousVisitsEnabled: primaryHeaderBehavior?.table?.previousVisitsEnabled ?? false,
+          previousVisitsData: primaryHeaderBehavior?.table?.previousVisitsData,
         },
       ];
     } else {
       controls = headers.map(h => {
         const { behavior, dynamicType, isTable, options, asyncSearch } = resolveHeaderRender(h);
+
+        // a header whose own ControlType isn't a basic type (e.g. "Diagnosis", "Procedure") is a
+        // single self-contained repeatable-attribute card widget — CardGroupControl reused
+        // directly, driven by genericAttributeGroups.ts's columns instead of sibling headers
+        if (dynamicType === "genericAttributeGroup") {
+          const previousVisits = resolveGenericAttributeGroupPreviousVisits(h.controlType);
+          return {
+            key: `header_${h.headerId}`,
+            label: h.displayName || h.headerName,
+            type: "card-group",
+            dataPath: `section_${sectionId}.header_${h.headerId}`,
+            colSpan: 4,
+            columns: resolveGenericAttributeGroupColumns(h.controlType) ?? [],
+            doctorId,
+            patientId,
+            favouritesEnabled: behavior?.table?.favouritesEnabled ?? true,
+            masterEntryConfig: behavior?.table?.masterEntry,
+            orderSetConfig: behavior?.table?.orderSet,
+            nameColumnKey: resolveGenericAttributeGroupNameColumnKey(h.controlType),
+            previousVisitsEnabled: Boolean(previousVisits),
+            previousVisitsData: previousVisits,
+          };
+        }
+
         const ownRules = rulesByHeaderId.get(h.headerId);
 
         const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
@@ -465,6 +536,8 @@ const EmrSectionRenderer = ({
             : undefined,
           textLarge: dynamicType === "textarea" ? (behavior?.text?.large ?? false) : undefined,
           doctorId,
+          patientId,
+          visitId,
         };
       });
     }
@@ -492,6 +565,8 @@ const EmrSectionRenderer = ({
     displayName,
     attributeConditions,
     doctorId,
+    patientId,
+    visitId,
   ]);
 
   const totalFields = isCardGroup ? 1 : headers.length;
@@ -534,6 +609,7 @@ const EmrSectionRenderer = ({
           headerId: 0,
           headerName: label,
           controlType: "card-group",
+          controlTypeId: 0,
           value: readableRows,
         },
       ];
@@ -551,6 +627,7 @@ const EmrSectionRenderer = ({
         headerId: h.headerId,
         headerName: h.displayName || h.headerName,
         controlType: h.controlType,
+        controlTypeId: h.controlTypeId,
         value,
       }));
   }, [isCardGroup, headers, data, sectionId, sectionName, displayName]);

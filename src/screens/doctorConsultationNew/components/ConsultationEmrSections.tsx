@@ -739,6 +739,7 @@ const ConsultationEmrSections = ({
                     }
                     doctorId={doctorId}
                     patientId={patientId}
+                    visitId={visitId}
                     accent={sectionAccent}
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
                     onProgressChange={handleSectionProgress}
@@ -928,6 +929,7 @@ const ConsultationEmrSections = ({
                     }
                     doctorId={doctorId}
                     patientId={patientId}
+                    visitId={visitId}
                     accent={sectionAccent}
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
                     onProgressChange={handleSectionProgress}

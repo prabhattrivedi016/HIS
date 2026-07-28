@@ -67,6 +67,9 @@ type EmrSectionAnswerEntry = {
   headerId: number;
   headerName: string;
   controlType: string;
+  /** numeric control type id (0 for a card-group entry, which represents a whole section/group
+   * rather than one real header) */
+  controlTypeId: number;
   value: unknown;
 };
 

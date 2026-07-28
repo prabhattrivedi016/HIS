@@ -1,13 +1,15 @@
-import { PATIENT_INVESTIGATION_HISTORY } from "@/data/investigationVisitHistory";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useEffect, useState } from "react";
-import { TableColumnSchema } from "./types";
+import { PreviousVisitEntry, TableColumnSchema } from "./types";
 
-export interface PreviousInvestigationsPanelProps {
-  /** live column config for the current Investigations table, used to build rows keyed exactly
-   * the way the real table expects (rather than hardcoding "Service Name" / "Order Type" strings) */
+export interface PreviousVisitsTablePanelProps {
+  /** live column config for the current control, used both to render the table header and to
+   * resolve each dummy row's value per column (see resolveRowValue below) */
   columns: TableColumnSchema[];
+  visits: PreviousVisitEntry[];
   onApply: (rows: Record<string, unknown>[]) => void;
+  /** shown in the empty-state row when a visit has no entries — defaults to a generic message */
+  emptyLabel?: string;
 }
 
 const formatVisitDateLabel = (iso: string) => {
@@ -15,13 +17,25 @@ const formatVisitDateLabel = (iso: string) => {
   return `${day}-${month}-${year}`;
 };
 
-const formatDisplayDate = (iso: string) => {
-  const [year, month, day] = iso.split("-");
-  return `${day}/${month}/${year}`;
+const normalizeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// dummy rows may be keyed exactly like the column's own key (e.g. genericAttributeGroup's
+// camelCase "diagnosisType"), or only resemble the column's label text (e.g. table columns whose
+// key is a raw LOV label like "Service Name" while the dummy data uses "serviceName") — try an
+// exact key match first, then fall back to a normalized label match so either convention works
+const resolveRowValue = (row: Record<string, unknown>, column: TableColumnSchema): unknown => {
+  if (column.key in row) return row[column.key];
+  const target = normalizeKey(column.label);
+  const matchKey = Object.keys(row).find(k => normalizeKey(k) === target);
+  return matchKey ? row[matchKey] : undefined;
 };
 
-const PreviousInvestigationsPanel = ({ columns, onApply }: PreviousInvestigationsPanelProps) => {
-  const visits = PATIENT_INVESTIGATION_HISTORY;
+const PreviousVisitsTablePanel = ({
+  columns,
+  visits,
+  onApply,
+  emptyLabel = "No entries recorded for this visit",
+}: PreviousVisitsTablePanelProps) => {
   const [activeVisitDate, setActiveVisitDate] = useState(visits[0]?.visitDate ?? "");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -29,11 +43,11 @@ const PreviousInvestigationsPanel = ({ columns, onApply }: PreviousInvestigation
     setSelectedIds(new Set());
   }, [activeVisitDate]);
 
-  if (visits.length === 0) return null;
+  if (visits.length === 0 || columns.length === 0) return null;
 
-  const activeVisit = visits.find(v => v.visitDate === activeVisitDate);
-  const orders = activeVisit?.orders ?? [];
-  const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
+  const activeVisit = visits.find(v => v.visitDate === activeVisitDate) ?? visits[0];
+  const rows = activeVisit?.rows ?? [];
+  const allSelected = rows.length > 0 && rows.every(r => selectedIds.has(r.id));
 
   const toggleOne = (id: string) => {
     setSelectedIds(prev => {
@@ -45,33 +59,30 @@ const PreviousInvestigationsPanel = ({ columns, onApply }: PreviousInvestigation
   };
 
   const toggleAll = () => {
-    setSelectedIds(allSelected ? new Set() : new Set(orders.map(o => o.id)));
+    setSelectedIds(allSelected ? new Set() : new Set(rows.map(r => r.id)));
   };
 
   const handleCopyToCurrent = () => {
     if (selectedIds.size === 0) return;
 
-    const serviceCol = columns.find(c => /service\s*name/i.test(c.label)) ?? columns[0];
-    const orderTypeCol = columns.find(c => /order\s*type/i.test(c.label));
-    const dateCol = columns.find(c => /date/i.test(c.label));
-
-    if (!serviceCol) {
-      showWarning("Could not determine table columns to copy into");
-      return;
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const rows = orders
-      .filter(o => selectedIds.has(o.id))
-      .map(o => {
-        const row: Record<string, unknown> = { [serviceCol.key]: o.serviceName };
-        if (orderTypeCol) row[orderTypeCol.key] = o.orderType;
-        if (dateCol) row[dateCol.key] = today;
+    const applied = rows
+      .filter(r => selectedIds.has(r.id))
+      .map(r => {
+        const row: Record<string, unknown> = {};
+        columns.forEach(col => {
+          const val = resolveRowValue(r, col);
+          if (val !== undefined) row[col.key] = val;
+        });
         return row;
       });
 
-    onApply(rows);
-    showSuccess(`${rows.length} investigation(s) copied to current visit`);
+    if (applied.every(r => Object.keys(r).length === 0)) {
+      showWarning("Could not match this visit's data to the current columns");
+      return;
+    }
+
+    onApply(applied);
+    showSuccess(`${applied.length} entr${applied.length === 1 ? "y" : "ies"} copied to current visit`);
     setSelectedIds(new Set());
   };
 
@@ -123,41 +134,41 @@ const PreviousInvestigationsPanel = ({ columns, onApply }: PreviousInvestigation
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  disabled={orders.length === 0}
+                  disabled={rows.length === 0}
                 />
               </th>
-              <th className="px-4 py-3 text-[13px] font-semibold text-slate-800">Service Name</th>
-              <th className="px-4 py-3 text-[13px] font-semibold text-slate-800">Order Type</th>
-              <th className="px-4 py-3 text-[13px] font-semibold text-slate-800">
-                Investigation Date
-              </th>
+              {columns.map(col => (
+                <th key={col.key} className="px-4 py-3 text-[13px] font-semibold text-slate-800">
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {orders.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-sm text-slate-400">
-                  No investigations recorded for this visit
+                <td colSpan={columns.length + 1} className="px-4 py-6 text-center text-sm text-slate-400">
+                  {emptyLabel}
                 </td>
               </tr>
             ) : (
-              orders.map(order => (
+              rows.map(row => (
                 <tr
-                  key={order.id}
+                  key={row.id}
                   className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 transition-colors"
                 >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(order.id)}
-                      onChange={() => toggleOne(order.id)}
+                      checked={selectedIds.has(row.id)}
+                      onChange={() => toggleOne(row.id)}
                     />
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-slate-700">{order.serviceName}</td>
-                  <td className="px-4 py-3 text-[13px] text-slate-600">{order.orderType}</td>
-                  <td className="px-4 py-3 text-[13px] text-slate-600">
-                    {formatDisplayDate(order.investigationDate)}
-                  </td>
+                  {columns.map(col => (
+                    <td key={col.key} className="px-4 py-3 text-[13px] text-slate-600">
+                      {String(resolveRowValue(row, col) ?? "—")}
+                    </td>
+                  ))}
                 </tr>
               ))
             )}
@@ -168,4 +179,4 @@ const PreviousInvestigationsPanel = ({ columns, onApply }: PreviousInvestigation
   );
 };
 
-export default PreviousInvestigationsPanel;
+export default PreviousVisitsTablePanel;

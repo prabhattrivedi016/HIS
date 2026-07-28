@@ -1,3 +1,5 @@
+import ImageDownload from "@/components/SingledrawerAndPopup/components/ImageDownload";
+import ImagePreview from "@/components/SingledrawerAndPopup/components/ImagePreview";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
@@ -14,11 +16,21 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeEvent, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { HeaderMasterItem, ListOfLovsItem } from "../types";
+import { EmrControlDocumentItem, HeaderMasterItem, ListOfLovsItem } from "../types";
 
 type HeaderMasterPayload = HeaderMasterFormData & {
   ListOfValues: ListOfLovsItem[];
   queries: string | null;
+};
+
+/** control type id for "Image Uploader" — its documents are managed via
+ * GET_EMR_CONTROL_DOCUMENT_MAPPING / UPLOAD_EMR_CONTROL_DOCUMENT instead of ListOfValues */
+const IMAGE_UPLOADER_CONTROL_TYPE_ID = 20;
+
+const resolveHeaderIdFromResponse = (data: unknown): number => {
+  if (!data || typeof data !== "object") return 0;
+  const item = data as Record<string, unknown>;
+  return Number(item.headerId ?? item.HeaderId ?? 0);
 };
 
 const HeaderMaster = () => {
@@ -47,6 +59,13 @@ const HeaderMaster = () => {
   const [lookupItems, setLookupItems] = useState<string[]>([]);
   const [customQuery, setCustomQuery] = useState("");
   const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
+  // "Image Uploader" (control type 20) document slots — fetched once the header has an id
+  // (either an existing header being edited, or one just created below in mutation.onSuccess)
+  const [emrControlDocuments, setEmrControlDocuments] = useState<EmrControlDocumentItem[]>([]);
+  const [emrControlDocumentFiles, setEmrControlDocumentFiles] = useState<Record<number, File>>(
+    {}
+  );
+  const [isUploadingControlDocuments, setIsUploadingControlDocuments] = useState(false);
 
   const {
     handleSubmit,
@@ -93,6 +112,89 @@ const HeaderMaster = () => {
   const removeLookupHandler = (idx: number) => {
     setLookupItems(prev => prev.filter((_, i) => i !== idx));
   };
+
+  // fetch the document slots configured for this header (control type 20 — "Image Uploader")
+  const fetchEmrControlDocumentMapping = async (headerId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_EMR_CONTROL_DOCUMENT_MAPPING,
+      {},
+      { params: { headerId } },
+      { component: "HeaderMaster" }
+    );
+    setEmrControlDocuments((resp?.data ?? []) as EmrControlDocumentItem[]);
+  };
+
+  const emrControlDocumentFileChangeHandler = (documentId: number, file: File | null) => {
+    setEmrControlDocumentFiles(prev => {
+      const next = { ...prev };
+      if (file) next[documentId] = file;
+      else delete next[documentId];
+      return next;
+    });
+  };
+
+  const deleteEmrControlDocumentHandler = async (headerId: number, documentId: number) => {
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.DELETE_EMR_CONTROL_DOCUMENT_MAPPING,
+      {},
+      { params: { headerId, documentId } },
+      { component: "HeaderMaster" }
+    );
+
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Failed to delete document");
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Document deleted successfully");
+    await fetchEmrControlDocumentMapping(headerId);
+  };
+
+  // uploads one file per selected document slot — loops sequentially when more than one
+  // file was chosen, since UPLOAD_EMR_CONTROL_DOCUMENT only accepts a single file per call
+  const uploadEmrControlDocuments = async (headerId: number) => {
+    const entries = Object.entries(emrControlDocumentFiles);
+    if (entries.length === 0) {
+      await fetchEmrControlDocumentMapping(headerId);
+      return;
+    }
+
+    setIsUploadingControlDocuments(true);
+    let allUploaded = true;
+
+    try {
+      for (const [documentId, file] of entries) {
+        const formData = new FormData();
+        formData.append("HeaderId", String(headerId));
+        formData.append("DocumentId", documentId);
+        formData.append("DocumentFile", file);
+
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.UPLOAD_EMR_CONTROL_DOCUMENT,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+          { component: "HeaderMaster" }
+        );
+
+        if (!resp?.result) allUploaded = false;
+      }
+    } finally {
+      setIsUploadingControlDocuments(false);
+    }
+
+    if (allUploaded) {
+      showSuccess("Documents uploaded successfully");
+      setEmrControlDocumentFiles({});
+    } else {
+      showWarning("Some documents failed to upload");
+    }
+
+    await fetchEmrControlDocumentMapping(headerId);
+  };
+
   // Sync selectedControlId with watchControlTypeId
   useEffect(() => {
     if (watchControlTypeId) {
@@ -180,9 +282,8 @@ const HeaderMaster = () => {
   const deleteLovHandler = (index: number) => {
     setLovsItems(prev => {
       const filtered = prev.filter((_, i) => i !== index);
-      return filtered.length
-        ? filtered
-        : [{ dataTypeId: 0, value: "", headerName: "", options: [] }];
+      if (filtered.length) return filtered;
+      return [{ dataTypeId: 0, value: "", headerName: "", options: [] }];
     });
   };
   const lovHeaderNameChangeHandler = (index: number, headerName: string) => {
@@ -225,7 +326,7 @@ const HeaderMaster = () => {
     mutationKey: ["createUpdateHeaderMaster"],
     mutationFn: (data: HeaderMasterPayload) => createUpdateHeaderMaster(data),
 
-    onSuccess: resp => {
+    onSuccess: (resp, variables) => {
       if (!resp?.result) {
         showWarning(resp?.message ?? "Something went wrong");
         return;
@@ -234,6 +335,20 @@ const HeaderMaster = () => {
       queryClient.invalidateQueries({
         queryKey: ["getHeaderMasterList"],
       });
+
+      // Image Uploader headers don't carry their files in this payload — the document slots can
+      // only be fetched (and uploaded to) once the header has an id, so keep the form open on
+      // the saved header instead of resetting, and load its document slots for upload below
+      if (Number(variables?.controlTypeId) === IMAGE_UPLOADER_CONTROL_TYPE_ID) {
+        const headerId = resolveHeaderIdFromResponse(resp?.data) || Number(variables?.headerId);
+        if (headerId) {
+          setValue("headerId", headerId);
+          // uploads any files chosen in the document-slot table below (or just refreshes the
+          // slot list, on the very first save when nothing's been chosen yet)
+          uploadEmrControlDocuments(headerId);
+        }
+        return;
+      }
 
       reset({
         headerId: 0,
@@ -386,7 +501,13 @@ const HeaderMaster = () => {
     setValue("controlTypeId", Number(selectedCont?.key ?? 0));
     setCustomQuery(item?.queries ?? "");
 
-    await getLovsListByHeader(Number(item?.headerId));
+    setEmrControlDocuments([]);
+    setEmrControlDocumentFiles({});
+    if (Number(item?.controlTypeId) === IMAGE_UPLOADER_CONTROL_TYPE_ID) {
+      await fetchEmrControlDocumentMapping(Number(item?.headerId));
+    } else {
+      await getLovsListByHeader(Number(item?.headerId));
+    }
   };
   const lovOptionKeyDownHandler = (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -435,6 +556,8 @@ const HeaderMaster = () => {
     setLookupItems([]);
     setLookupInput("");
     setCustomQuery("");
+    setEmrControlDocuments([]);
+    setEmrControlDocumentFiles({});
   };
 
   return (
@@ -737,6 +860,70 @@ const HeaderMaster = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </InputField>
+            )}
+            {selectedControlId === 20 && (
+              <InputField label="Image Upload">
+                {!watch("headerId") ? (
+                  <p className="input-field-error">
+                    Save this header first, then choose files for each document slot below.
+                  </p>
+                ) : emrControlDocuments.length === 0 ? (
+                  <p className="text-sm text-gray-400">No document slots configured</p>
+                ) : (
+                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-2">
+                    <table className="w-full">
+                      <tbody>
+                        {emrControlDocuments.map(doc => (
+                          <tr key={doc.DocumentId} className="table-row">
+                            <td className="table-td">
+                              {doc.DocumentName}
+                              {doc.IsMandatory === 1 && <span className="text-red-500"> *</span>}
+                            </td>
+                            <td className="table-td">
+                              {doc.DocumentPath ? <ImagePreview pathName={doc.DocumentPath} /> : "—"}
+                            </td>
+                            <td className="table-td">
+                              {doc.DocumentPath && <ImageDownload pathName={doc.DocumentPath} />}
+                            </td>
+                            <td className="table-td">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="file-upload max-w-50"
+                                onChange={e =>
+                                  emrControlDocumentFileChangeHandler(
+                                    doc.DocumentId,
+                                    e.target.files?.[0] ?? null
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="table-td">
+                              {doc.DocumentPath && (
+                                <button
+                                  type="button"
+                                  className="delete-icon"
+                                  onClick={() =>
+                                    deleteEmrControlDocumentHandler(
+                                      Number(watch("headerId")),
+                                      doc.DocumentId
+                                    )
+                                  }
+                                >
+                                  <i className="fa-solid fa-trash"></i>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {isUploadingControlDocuments && (
+                      <p className="text-sm text-gray-400 mt-2">Uploading documents...</p>
+                    )}
                   </div>
                 )}
               </InputField>

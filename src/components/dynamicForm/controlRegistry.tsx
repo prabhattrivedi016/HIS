@@ -1,12 +1,15 @@
 import TextEditor from "@/components/ckEditor";
 import { SelectStyles } from "@/components/customSelect";
+import { PATIENT_INVESTIGATION_HISTORY } from "@/data/investigationVisitHistory";
 import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
+import ReportAnnotatorModal from "@/screens/doctorConsultationNew/components/ReportAnnotatorModal";
 import { showWarning } from "@/utils/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
   BookmarkCheck,
   Check,
+  Eye,
   History,
   Layers,
   Pencil,
@@ -21,10 +24,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
+import MedicineListControl from "./MedicineListControl";
 import OrderSetDrawer from "./OrderSetDrawer";
-import PreviousInvestigationsPanel from "./PreviousInvestigationsPanel";
+import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
 import { TableFieldInput } from "./TableFieldInput";
-import { ControlSchema, OptionSchema } from "./types";
+import { ControlSchema, OptionSchema, PreviousVisitEntry } from "./types";
+
+const INVESTIGATION_VISIT_HISTORY: PreviousVisitEntry[] = PATIENT_INVESTIGATION_HISTORY.map(v => ({
+  visitDate: v.visitDate,
+  rows: v.orders,
+}));
 
 export interface ControlRenderProps {
   schema: ControlSchema;
@@ -51,12 +60,6 @@ const TextControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) =>
   />
 );
 
-/**
- * Doctor-wise favourites for a long-text control (Textarea/RichText) — same generic
- * useDoctorFavourites hook the "table" control already uses for row favourites, storing
- * { text } entries instead of row data. Lets a doctor save a frequently-typed paragraph
- * (e.g. a HOPI narrative) and re-insert it later instead of retyping it.
- */
 const FavouriteTextBar = ({
   schema,
   value,
@@ -204,9 +207,6 @@ const TextareaControl = ({ schema, value, onChange, onBlur, rows }: ControlRende
   const isLarge = schema.textLarge ?? false;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // large textareas grow with content instead of scrolling internally — resize-y is dropped
-  // since it would otherwise fight this on every keystroke. everything else stays a normal,
-  // fixed-height field like its sibling inputs, manually resizable if needed
   useEffect(() => {
     if (!isLarge) return;
     const el = textareaRef.current;
@@ -716,7 +716,12 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
       )}
     >
       {schema.previousVisitsEnabled && (
-        <PreviousInvestigationsPanel columns={columns} onApply={handleApplyOrderSet} />
+        <PreviousVisitsTablePanel
+          columns={columns}
+          visits={schema.previousVisitsData ?? INVESTIGATION_VISIT_HISTORY}
+          onApply={handleApplyOrderSet}
+          emptyLabel="No investigations recorded for this visit"
+        />
       )}
 
       {/* toolbar */}
@@ -979,7 +984,36 @@ const RichTextControl = ({ schema, value, onChange }: ControlRenderProps) => (
     <TextEditor value={(value as string) ?? ""} onChange={onChange} />
   </div>
 );
+//Control TypeId -- 20 case start-------------------------------------------------------------------
+const ImageUploadControl = ({ schema }: ControlRenderProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const headerId = Number(schema.key.replace(/^header_/, "")) || undefined;
 
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className={mergeClass(
+          "save-btn !w-auto !px-4 !py-2 !text-xs flex items-center gap-1.5",
+          schema
+        )}
+      >
+        <Eye size={14} />
+        View
+      </button>
+
+      <ReportAnnotatorModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        patientId={schema.patientId}
+        visitId={schema.visitId}
+        headerId={headerId}
+      />
+    </>
+  );
+};
+//Control Id --20 cse end-----------------------------------------------------------
 const DynamicContentControl = ({ schema }: ControlRenderProps) => (
   <div
     className={mergeClass("text-sm text-gray-700", schema)}
@@ -987,28 +1021,37 @@ const DynamicContentControl = ({ schema }: ControlRenderProps) => (
   />
 );
 
-/**
- * A section whose attributes are several plain (non-table) headers describing one repeatable
- * record — e.g. Family History (Condition/Relationship/Sex/...). One shared entry form up top
- * builds each entry; "+ Add Entry" turns the current form into a card below, then clears the
- * form for the next one. Each card can be edited (reloads it into the form) or deleted.
- */
+const parseSectionIdFromGroupPath = (dataPath: string) =>
+  Number(dataPath.match(/^section_(\d+)\./)?.[1]) || 0;
+
 const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
   const columns = schema.columns ?? [];
   const entries: Record<string, unknown>[] = Array.isArray(value) ? (value as any) : [];
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [showFavorites, setShowFavorites] = useState(true);
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [orderSetMode, setOrderSetMode] = useState<"all" | "favourites" | null>(null);
 
-  const nameColumnKey = columns[0]?.key;
+  // usually the first column, but a section's meaningful/master-searchable field isn't always
+  // sequenced first (e.g. Family History's "Condition" behind "Relationship") — EmrSectionRenderer
+  // sets nameColumnKey explicitly in that case
+  const nameColumnKey = schema.nameColumnKey ?? columns[0]?.key;
+  const nameColumn = columns.find(c => c.key === nameColumnKey) ?? columns[0];
+  const favouritesEnabled = schema.favouritesEnabled !== false;
+  // no single headerId represents "the whole card-group" — the section itself (parsed from its
+  // own dataPath, `section_<id>.group`) is the stable bucket every entry in this group shares
+  const sectionEntityId = parseSectionIdFromGroupPath(schema.dataPath);
+  const { favorites: doctorFavorites, setFavorite: setDoctorFavorite } = useDoctorFavourites(
+    favouritesEnabled ? schema.doctorId : undefined,
+    sectionEntityId
+  );
 
   const resetForm = () => {
     setFormValues({});
     setEditingIndex(null);
   };
 
-  // mirrors TableControl.handleCellChange — a dropdown option may carry a backend id (e.g.
-  // ComplaintId) in `key`, stashed alongside the picked value as `__<columnKey>Id` so it reaches
-  // the saved entry the same way a table row's cell id does
   const handleFieldChange = (columnKey: string, fieldValue: unknown) => {
     const matchedOption = columns
       .find(col => col.key === columnKey)
@@ -1023,12 +1066,40 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
     });
   };
 
+  // same-name check against the doctor's existing favourites (not just current entries), same
+  // reasoning as TableControl's isDuplicateFavorite
+  const isDuplicateFavoriteEntry = (entryValue: unknown) => {
+    if (!nameColumnKey) return false;
+    const candidate = String(entryValue ?? "")
+      .trim()
+      .toLowerCase();
+    if (!candidate) return false;
+    return doctorFavorites.some(
+      f =>
+        String(f[nameColumnKey] ?? "")
+          .trim()
+          .toLowerCase() === candidate
+    );
+  };
+
+  // the record id (e.g. diagnosisId) can live either directly under masterEntryConfig.idField
+  // (entries added via the "Add entry" drawer) or under `__<nameColumnKey>Id` (entries where the
+  // name field's dropdown was picked inline — see handleFieldChange above)
+  const resolveRecordId = (entry: Record<string, unknown>) => {
+    if (!schema.masterEntryConfig) return undefined;
+    const direct = entry[schema.masterEntryConfig.idField];
+    if (direct !== undefined) return direct;
+    return nameColumnKey ? entry[`__${nameColumnKey}Id`] : undefined;
+  };
+
   const handleSave = () => {
     if (nameColumnKey && !String(formValues[nameColumnKey] ?? "").trim()) {
-      showWarning(`${columns[0]?.label ?? "This field"} is required`);
+      showWarning(`${nameColumn?.label ?? "This field"} is required`);
       return;
     }
     if (editingIndex === null) {
+      // unlike a table/investigation row, the same Diagnosis Type (etc.) legitimately repeats
+      // across entries with different Status/Remarks — no duplicate-name guard here
       onChange([...entries, formValues]);
     } else {
       onChange(entries.map((entry, idx) => (idx === editingIndex ? formValues : entry)));
@@ -1046,6 +1117,57 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
     if (editingIndex === idx) resetForm();
   };
 
+  const handleToggleFavorite = (idx: number) => {
+    const entry = entries[idx];
+    const isFavoriting = !entry.__favorite;
+
+    if (isFavoriting && isDuplicateFavoriteEntry(entry[nameColumnKey ?? ""])) {
+      showWarning(`${nameColumn?.label ?? "This entry"} is already in favourites`);
+      return;
+    }
+
+    onChange(entries.map((e, i) => (i === idx ? { ...e, __favorite: isFavoriting } : e)));
+
+    const favouriteEntry: Record<string, unknown> = {};
+    Object.keys(entry).forEach(key => {
+      if (key !== "__favorite") favouriteEntry[key] = entry[key];
+    });
+    setDoctorFavorite(favouriteEntry, isFavoriting, resolveRecordId(entry));
+  };
+
+  const handleAddFromFavorite = (favoriteEntry: Record<string, unknown>) => {
+    // __recordId is favourites-list bookkeeping (see useDoctorFavourites) — strip it so it
+    // doesn't leak into the entry and get re-saved if this entry is favourited again later
+    const entry: Record<string, unknown> = {};
+    Object.keys(favoriteEntry).forEach(key => {
+      if (key !== "__recordId") entry[key] = favoriteEntry[key];
+    });
+    onChange([...entries, entry]);
+  };
+
+  const handleRemoveDoctorFavorite = (entry: Record<string, unknown>) =>
+    setDoctorFavorite(entry, false, entry.__recordId);
+
+  const handleSaveFromDrawer = (entry: Record<string, unknown>) => {
+    onChange([...entries, entry]);
+  };
+
+  const handleApplyOrderSet = (newEntries: Record<string, unknown>[]) => {
+    // still guard against the same item appearing twice within one order-set application —
+    // that's a malformed set, not a legitimate repeat like two Diagnosis Type entries
+    const seen = new Set<string>();
+    const toAdd = newEntries.filter(entry => {
+      const value = String(entry[nameColumnKey ?? ""] ?? "")
+        .trim()
+        .toLowerCase();
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+
+    if (toAdd.length > 0) onChange([...entries, ...toAdd]);
+  };
+
   if (columns.length === 0) {
     return <p className="text-sm text-gray-400">No columns configured</p>;
   }
@@ -1057,8 +1179,101 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
         schema
       )}
     >
+      {schema.previousVisitsEnabled && schema.previousVisitsData && (
+        <PreviousVisitsTablePanel
+          columns={columns}
+          visits={schema.previousVisitsData}
+          onApply={handleApplyOrderSet}
+        />
+      )}
+
       {/* shared entry form — fills one record at a time */}
       <div className="p-4 bg-white/40 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            {schema.masterEntryConfig && (
+              <button
+                type="button"
+                onClick={() => setIsAddDrawerOpen(true)}
+                title="Add entry (search SNOMED)"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white shadow-sm hover:bg-slate-700 active:scale-95 transition-all shrink-0"
+              >
+                <Plus size={15} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {favouritesEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowFavorites(v => !v)}
+                title={showFavorites ? "Hide favourites" : "Show favourites"}
+                className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+                  showFavorites
+                    ? "bg-amber-50 border-amber-200 text-amber-500"
+                    : "bg-white border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200"
+                }`}
+              >
+                <Star size={13} className={showFavorites ? "fill-amber-400" : ""} />
+              </button>
+            )}
+            {schema.orderSetConfig && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setOrderSetMode("all")}
+                  title="Order set"
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
+                >
+                  <Layers size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderSetMode("favourites")}
+                  title="Favourite order set"
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
+                >
+                  <BookmarkCheck size={13} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {favouritesEnabled && showFavorites && (
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-3 py-2 mb-3 rounded-lg border border-slate-100 bg-amber-50/30">
+            {doctorFavorites.length === 0 ? (
+              <span className="text-[12px] text-slate-400">No favourites saved yet</span>
+            ) : (
+              doctorFavorites.map((entry, idx) => (
+                <span
+                  key={idx}
+                  className="flex items-center gap-1.5 shrink-0 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 text-[12px] font-medium rounded-full pl-1 pr-1.5 py-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleAddFromFavorite(entry)}
+                    title="Add as new entry"
+                    className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full hover:bg-blue-100"
+                  >
+                    <Plus size={11} />
+                    {String(entry[nameColumnKey ?? ""] ?? `Favourite ${idx + 1}`)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDoctorFavorite(entry)}
+                    title="Remove from favourites"
+                    className="flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:text-blue-700 hover:bg-blue-100"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {columns.map(col => (
             <div key={col.key}>
@@ -1077,7 +1292,7 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
             onClick={handleSave}
             className="save-btn !w-auto !px-4 !py-2 !text-xs"
           >
-            {editingIndex === null ? "+ Add Entry" : "Update Entry"}
+            {editingIndex === null ? "Add+" : "Update Entry"}
           </button>
           {editingIndex !== null && (
             <button
@@ -1115,6 +1330,19 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
                     {String(entry[nameColumnKey ?? ""] ?? `Entry ${idx + 1}`)}
                   </h4>
                   <div className="flex items-center gap-1 shrink-0">
+                    {favouritesEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFavorite(idx)}
+                        title={entry.__favorite ? "Remove from favourites" : "Save as favourite"}
+                        className="flex items-center justify-center w-6 h-6 rounded-full text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                      >
+                        <Star
+                          size={12}
+                          className={entry.__favorite ? "fill-amber-400 text-amber-400" : ""}
+                        />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleEdit(idx)}
@@ -1153,6 +1381,32 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
           ))}
         </div>
       )}
+
+      {schema.masterEntryConfig && (
+        <AddMasterEntryDrawer
+          isOpen={isAddDrawerOpen}
+          onClose={() => setIsAddDrawerOpen(false)}
+          title={`Add ${schema.label ?? nameColumn?.label ?? "Entry"}`}
+          nameLabel={nameColumn?.label ?? "Name"}
+          nameKey={nameColumnKey ?? "name"}
+          extraColumns={[]}
+          masterEntryConfig={schema.masterEntryConfig}
+          onSave={handleSaveFromDrawer}
+        />
+      )}
+
+      {schema.orderSetConfig && (
+        <OrderSetDrawer
+          isOpen={orderSetMode !== null}
+          onClose={() => setOrderSetMode(null)}
+          title={`${schema.label ?? nameColumn?.label ?? "Entry"} Order Sets`}
+          nameKey={nameColumnKey ?? "name"}
+          doctorId={schema.doctorId}
+          initialFavouritesOnly={orderSetMode === "favourites"}
+          config={schema.orderSetConfig}
+          onApply={handleApplyOrderSet}
+        />
+      )}
     </div>
   );
 };
@@ -1173,6 +1427,8 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   "multiselect-search": MultiSelectSearchControl,
   table: TableControl,
   "card-group": CardGroupControl,
+  medicineList: MedicineListControl,
+  imageUpload: ImageUploadControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

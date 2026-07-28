@@ -1,4 +1,5 @@
 import { setByPath } from "@/components/dynamicForm/utils/path";
+import { resolveGenericAttributeGroupColumns } from "@/config/genericAttributeGroups";
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
 
@@ -10,6 +11,7 @@ export const mapControlType = (controlType: string): string => {
     .trim()
     .toLowerCase()
     .replace(/[\s-_]/g, "");
+  if (key.includes("medicine") && key.includes("list")) return "medicineList";
   if (key.includes("rich")) return "richtext";
   if (key.includes("table")) return "table";
   if (key.includes("textarea")) return "textarea";
@@ -20,6 +22,13 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
     return "dropdown";
   if (key.includes("radio")) return "radio";
+  if (key.includes("lookup")) return "lookup";
+  if (key.includes("image")) return "imageUpload";
+  // anything else with a registered generic-attribute-group config (e.g. "Diagnosis",
+  // "Procedure") becomes that repeatable-attribute card widget — everything else (including
+  // plain "Text Box" or any unrecognized/typo'd control type) safely falls back to plain text,
+  // same as before this existed
+  if (resolveGenericAttributeGroupColumns(controlType)) return "genericAttributeGroup";
   return "text";
 };
 
@@ -27,7 +36,13 @@ export const mapControlType = (controlType: string): string => {
  * card-group control (instead of one control per header) when every header in it is non-table
  * and there's more than one of them */
 export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boolean =>
-  headers.length > 1 && headers.every(h => mapControlType(h.controlType) !== "table");
+  headers.length > 1 &&
+  headers.every(
+    h =>
+      !["table", "medicineList", "genericAttributeGroup", "imageUpload"].includes(
+        mapControlType(h.controlType)
+      )
+  );
 
 /**
  * Applies a past-visit snapshot's values back into the current section's live data blob — the

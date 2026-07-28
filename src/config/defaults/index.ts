@@ -328,6 +328,10 @@ const ENDPOINTS = {
   GET_DOCTOR_HEARDER_LOVS: "Admin/getDoctorHeaderLOVs",
   GET_DOCTOR_HEADER_MAPPING_FOR_MASTER: "Admin/getDoctorHeaderMappingForMaster",
   SAVE_DOCTOR_HEADER_DEPARTMENT_MAPPING: "Admin/saveDoctorHeaderDepartmentMapping",
+  // consultation header master — "Image Uploader" control type document slots
+  GET_EMR_CONTROL_DOCUMENT_MAPPING: "EMR/getEMRControlDocumentMapping",
+  UPLOAD_EMR_CONTROL_DOCUMENT: "EMR/uploadEMRControlDocument",
+  DELETE_EMR_CONTROL_DOCUMENT_MAPPING: "EMR/deleteEMRControlDocumentMapping",
 
   // emr controls — sections built from existing Header Master controls
   GET_ALL_EMR_SECTIONS: "EMR/getEMRSectionMaster",
@@ -464,11 +468,22 @@ const ENDPOINTS = {
   // order sets (named groups of table rows a doctor can bulk-add at once, e.g. investigation panels)
   GET_INVESTIGATION_ORDER_SET_LIST: "EMR/getInvestigationOrderSetList",
   CREATE_UPDATE_INVESTIGATION_ORDER_SET: "EMR/createUpdateInvestigationOrderSet",
+  GET_MEDICINE_ORDER_SET_LIST: "EMR/getMedicineOrderSetList",
+  CREATE_UPDATE_MEDICINE_ORDER_SET: "EMR/createUpdateMedicineOrderSet",
+  GET_PROCEDURE_ORDER_SET_LIST: "EMR/getProcedureOrderSetList",
+  CREATE_UPDATE_PROCEDURE_ORDER_SET: "EMR/createUpdateProcedureOrderSet",
+  GET_DIAGNOSIS_ORDER_SET_LIST: "EMR/getDiagnosisOrderSetList",
+  CREATE_UPDATE_DIAGNOSIS_ORDER_SET: "EMR/createUpdateDiagnosisOrderSet",
 
   // procedure master
   GET_PROCEDURE_MASTER_LIST: "EMR/getProcedureMasterList",
   CREATE_UPDATE_PROCEDURE_MASTER: "EMR/createUpdateProcedureMaster",
   DELETE_PROCEDURE_MASTER: "EMR/deleteProcedureMaster",
+
+  // dose master — Morning-Afternoon-Evening-Night patterns (e.g. "1-0-1") offered from the
+  // "Dose Master" popup on the Medicine List control
+  GET_DOSE_MASTER_LIST: "EMR/getDoseMasterList",
+  CREATE_UPDATE_DOSE_MASTER: "EMR/createUpdateDoseMaster",
 
   // vital master
   GET_VITAL_MASTER_LIST: "Admin/getVitalMasterList",

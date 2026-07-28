@@ -25,6 +25,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
+import { useVisitReportsStore } from "@/store/useVisitReportsStore";
 import { showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -127,6 +128,10 @@ const DoctorConsultationNew = () => {
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
   const addVisitSnapshot = useEmrSectionHistoryStore(s => s.addVisitSnapshot);
+  // "imageUpload" sections save through their own store/endpoint (SAVE_PATIENT_VISIT_REPORT) —
+  // read here too so a single saveConsultationEmr call can also carry them, instead of the main
+  // payload silently omitting whatever's in the Patient Reports panel
+  const allVisitReports = useVisitReportsStore(s => s.reports);
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -367,9 +372,30 @@ const DoctorConsultationNew = () => {
         headerId: e.headerId,
         headerName: e.headerName,
         controlType: e.controlType,
+        controlTypeId: e.controlTypeId,
         value: e.value,
       })),
     }));
+  };
+
+  // "imageUpload" controls (the Patient Reports panel) manage their own store scoped only by
+  // patientId/visitId, not by section/header — so unlike buildEmrSectionAttributes, this is one
+  // flat attribute for the whole visit rather than one per section
+  const buildImageUploadAttributes: AttributeBuilder = () => {
+    if (!selectedPatient) return [];
+    const reports = allVisitReports.filter(
+      r => r.patientId === selectedPatient.PatientId && r.visitId === selectedPatient.VisitId
+    );
+    if (reports.length === 0) return [];
+
+    return [
+      {
+        attributeType: "imageUpload",
+        attributeCode: "patientReports",
+        label: "Patient Reports",
+        value: reports,
+      },
+    ];
   };
 
   // Register a new builder here to add another attribute to the save payload —
@@ -378,6 +404,7 @@ const DoctorConsultationNew = () => {
     buildVitalAttributes,
     buildAllergyAttributes,
     buildEmrSectionAttributes,
+    buildImageUploadAttributes,
   ];
 
   const emrPayload: EmrConsultationPayload | null = useMemo(() => {
@@ -417,6 +444,7 @@ const DoctorConsultationNew = () => {
     vitalsData,
     allergySection,
     emrSectionsData,
+    allVisitReports,
     authUser,
   ]);
 
