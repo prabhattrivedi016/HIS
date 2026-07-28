@@ -8,7 +8,11 @@ export const shouldShowCancelButton = (_item?: CreditNoteGenerationItem | null) 
 
 export const isGenerationButtonDisabled = (item?: CreditNoteGenerationItem | null) => {
   if (!item) return false;
-  return Number(item.IsCreditNoteApproved) !== 1 || Number(item.IsCancel) === 1;
+  return (
+    Number(item.IsCreditNoteApproved) === 1 ||
+    !item?.IsCreditNoteCreated ||
+    Number(item.IsCancel) === 1
+  );
 };
 
 export const isCancelButtonDisabled = (item?: CreditNoteGenerationItem | null) => {

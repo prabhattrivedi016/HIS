@@ -53,6 +53,7 @@ const CreditNote = () => {
     serviceName: "",
     totalBillAmount: "",
     totalDiscountOnBill: "",
+    totalNetAmount: "",
     totalPaidAmount: "",
     totalBalanceAmount: "",
     totalCreditNoteAmount: "",
@@ -148,6 +149,7 @@ const CreditNote = () => {
       setShowTable(false);
       return null;
     }
+    console.log("resp of get bill details of credit note", resp?.data?.[0]);
     setShowTable(true);
     setPatientDetails({
       patientId: resp?.data?.[0]?.PatientId,
@@ -163,6 +165,7 @@ const CreditNote = () => {
       serviceName: resp?.data?.[0]?.ServiceName,
       totalBillAmount: resp?.data?.[0]?.TotalBillAmount,
       totalDiscountOnBill: resp?.data?.[0]?.TotalDiscountAmountOnBill,
+      totalNetAmount: resp?.data?.[0]?.TotalNetAmount,
       totalPaidAmount: resp?.data?.[0]?.TotalPaidAmount,
       totalBalanceAmount: resp?.data?.[0]?.TotalBalanceAmount,
       totalCreditNoteAmount: resp?.data?.[0]?.TotalCreditNoteAmt,
@@ -245,6 +248,59 @@ const CreditNote = () => {
       }));
   };
 
+  // update status of generation
+  const updateCreditGeneration = async () => {
+    if (!creditNoteIdFromCreditGeneration) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.COLLECT_CREDIT_NOTE_REQUEST,
+      { creditNoteId: Number(creditNoteIdFromCreditGeneration) },
+      {},
+      { component: "CreditNote" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.data ?? "failed to update");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setPatientDetails({
+      patientId: "",
+      patientName: "",
+      uhid: "",
+      dob: "",
+      VisitId: "",
+      billNo: "",
+      billId: "",
+      billDate: "",
+      doctorName: "",
+      corporateName: "",
+      serviceName: "",
+      totalBillAmount: "",
+      totalDiscountOnBill: "",
+      totalNetAmount: "",
+      totalPaidAmount: "",
+      totalBalanceAmount: "",
+      totalCreditNoteAmount: "",
+    });
+
+    setCreditNoteApprovalValues({
+      totalCreditNoteAmount: 0,
+      creditNoteApprovedID: 0,
+      creditNoteApprovedName: "",
+      creditNoteReason: "",
+      creditNoteRemark: "",
+    });
+    setErrors({
+      creditNoteApprovedID: "",
+      creditNoteReason: "",
+      totalCreditNoteAmount: "",
+    });
+    setCreditNoteTableList([]);
+    setShowTable(false);
+    setValueDisable(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
+
   // button click handler
   const buttonClickHandler = async (value: string) => {
     switch (value) {
@@ -262,7 +318,7 @@ const CreditNote = () => {
         const amount =
           payload.billingItems?.reduce((total, item) => total + Number(item.creditNoteAmt), 0) ?? 0;
 
-        if (amount > creditNoteApprovalValeus.totalCreditNoteAmount) {
+        if (amount < creditNoteApprovalValeus.totalCreditNoteAmount) {
           showWarning("Credit note amount cannot be greater than total selected credit amount");
           return;
         }
@@ -275,46 +331,12 @@ const CreditNote = () => {
           {},
           { component: "CreditNote" }
         );
+        console.log("resp", resp?.data);
         if (!resp?.result) {
           showWarning(resp?.data ?? "failed to save");
           return;
         }
-        showSuccess(resp?.message ?? "Data saved successfully");
-        setPatientDetails({
-          patientId: "",
-          patientName: "",
-          uhid: "",
-          dob: "",
-          VisitId: "",
-          billNo: "",
-          billId: "",
-          billDate: "",
-          doctorName: "",
-          corporateName: "",
-          serviceName: "",
-          totalBillAmount: "",
-          totalDiscountOnBill: "",
-          totalPaidAmount: "",
-          totalBalanceAmount: "",
-          totalCreditNoteAmount: "",
-        });
-
-        setCreditNoteApprovalValues({
-          totalCreditNoteAmount: 0,
-          creditNoteApprovedID: 0,
-          creditNoteApprovedName: "",
-          creditNoteReason: "",
-          creditNoteRemark: "",
-        });
-        setErrors({
-          creditNoteApprovedID: "",
-          creditNoteReason: "",
-          totalCreditNoteAmount: "",
-        });
-        setCreditNoteTableList([]);
-        setShowTable(false);
-        setValueDisable(false);
-        navigate(location.pathname, { replace: true, state: null });
+        await updateCreditGeneration();
 
         break;
 
@@ -364,6 +386,7 @@ const CreditNote = () => {
           serviceName: "",
           totalBillAmount: "",
           totalDiscountOnBill: "",
+          totalNetAmount: "",
           totalPaidAmount: "",
           totalBalanceAmount: "",
           totalCreditNoteAmount: "",
@@ -720,7 +743,6 @@ const CreditNote = () => {
                   <span className="name-header whitespace-nowrap">Corporate Name:</span>
                   <span className="truncate">{patientDetails?.corporateName}</span>
                 </div>
-
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Bill Amount:</span>
                   <span className="truncate">{patientDetails?.totalBillAmount}</span>
@@ -728,6 +750,10 @@ const CreditNote = () => {
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Discount On Bill:</span>
                   <span className="truncate">{patientDetails?.totalDiscountOnBill}</span>
+                </div>
+                <div className="flex flex-row gap-1">
+                  <span className="name-header whitespace-nowrap">Total Net Amount:</span>
+                  <span className="truncate">{patientDetails?.totalNetAmount}</span>
                 </div>
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Paid Amount:</span>
@@ -801,8 +827,8 @@ const CreditNote = () => {
                                 item.isChecked &&
                                 !item.isNavigatedDisabled &&
                                 vistiIdFromCreditGeneration === 0
-                                  ? "input-field"
-                                  : "disabled-input-field"
+                                  ? "input-field disabled cursor-not-allowed"
+                                  : "disabled-input-field cursor-not-allowed"
                               } max-w-30 max-h-8`}
                               value={item.creditNoteAmount}
                               onInput={allowOnlyNumbers}

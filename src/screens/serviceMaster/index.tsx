@@ -63,8 +63,16 @@ const ServiceMaster = () => {
         "GET",
         ENDPOINTS.GET_SERVICE_ITEM_LIST,
         {},
-        { params: { categoryId, subCategoryId, subSubCategoryId, serviceName } },
-        { component: "ServiceMaster", silent: options?.silent ?? false }
+        {
+          params: {
+            categoryId,
+            subCategoryId,
+            subSubCategoryId,
+            serviceName,
+            categoryTypeId: "1,2,4,5,8,9,10",
+          },
+        },
+        { component: "ServiceMaster" }
       );
 
       if (!resp?.result) {

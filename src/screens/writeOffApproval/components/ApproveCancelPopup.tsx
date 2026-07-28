@@ -304,13 +304,17 @@ const ApproveCancelPopup = ({
             <span className="truncate">{item?.Age + "/" + item?.Gender}</span>
           </div>
           <div className="flex flex-row gap-1">
+            <span className="name-header whitespace-nowrap">Bill No:</span>
+            <span className="truncate">{item?.BillNo}</span>
+          </div>
+          <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Write Off Approved Name:</span>
             <span className="truncate">{writeOffDetails?.WriteOffApprovedName}</span>
-          </div>{" "}
+          </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Write Off Reason:</span>
             <span className="truncate">{writeOffDetails?.WriteOffReason}</span>
-          </div>{" "}
+          </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Write Off Remark:</span>
             <span className="truncate">{writeOffDetails?.WriteOffRemark}</span>
@@ -318,10 +322,10 @@ const ApproveCancelPopup = ({
         </div>
 
         <div className="w-full card grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-1 -mt-1">
-          <div className="flex flex-row gap-1">
+          {/* <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Service Name:</span>
             <span className="truncate">{writeOffDetails?.ServiceName}</span>
-          </div>
+          </div> */}
 
           <div className="flex flex-row gap-1 ">
             <span className="name-header whitespace-nowrap">Total Bill Amount:</span>

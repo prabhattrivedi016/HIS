@@ -8,7 +8,11 @@ export const shouldShowCancelButton = (_item?: WriteOffApprovalItem | null) => t
 
 export const isApproveButtonDisabled = (item?: WriteOffApprovalItem | null) => {
   if (!item) return false;
-  return Number(item.IsWriteOffApproved) === 1 || Number(item.IsCancel) === 1;
+  return (
+    Number(item.IsWriteOffApproved) === 1 ||
+    Number(item.IsCancel) === 1 ||
+    Number(item?.CanApprove === 0)
+  );
 };
 
 export const isCancelButtonDisabled = (item?: WriteOffApprovalItem | null) => {
