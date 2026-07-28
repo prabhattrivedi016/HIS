@@ -443,6 +443,7 @@ const AddServiceMaster = ({
     setValue,
   ]);
 
+  console.log("data of services", data);
   useEffect(() => {
     if (!data?.serviceItemId) return;
     if (!categoryList.length) return;
@@ -467,7 +468,7 @@ const AddServiceMaster = ({
       isRequiredSeparatePerformingDoctor: data.isRequiredSeparatePerformingDoctor ?? 0,
       doctorDepartmentIds: data.doctorDepartmentIds ?? "",
       isRegistrationCharge: data.isRegistrationCharge ?? 0,
-      registrationChargeValidityDays: data.registrationChargeValidityDays ?? "",
+      registrationChargeValidityDays: data?.registrationChargeValidityDays ?? 0,
     });
 
     setCategoryId(data.categoryId);
@@ -480,7 +481,7 @@ const AddServiceMaster = ({
       setSelectedCategory(cat);
       setCategoryTypeId(Number(cat.categoryTypeId));
     }
-  }, [data, categoryList]);
+  }, [data, categoryList, data?.registrationChargeValidityDays]);
 
   // sub category
 
@@ -565,14 +566,6 @@ const AddServiceMaster = ({
       setValue("gstPer", null);
     }
   }, [icuValue]);
-
-  const watchRegistrationCharge = watch("isRegistrationCharge");
-
-  useEffect(() => {
-    if (Number(watchRegistrationCharge) === 0) {
-      setValue("registrationChargeValidityDays", 0);
-    }
-  }, [watchRegistrationCharge, setValue]);
 
   // set snomed data value
   useEffect(() => {
@@ -894,13 +887,23 @@ const AddServiceMaster = ({
                 )}
 
                 <InputField label="Registration Chargable">
-                  <select className="input-field" {...register("isRegistrationCharge")}>
+                  <select
+                    className="input-field"
+                    {...register("isRegistrationCharge", {
+                      onChange: e => {
+                        const val = Number(e.target.value);
+                        if (val === 0) {
+                          setValue("registrationChargeValidityDays", 0);
+                        }
+                      },
+                    })}
+                  >
                     <option value={1}>Yes</option>
                     <option value={0}>No</option>
                   </select>
                 </InputField>
 
-                {!!isRegistrationCharge && (
+                <div className={isRegistrationCharge ? "" : "hidden"}>
                   <InputField label="Registration Validity (days)" required>
                     <input
                       type="text"
@@ -909,17 +912,13 @@ const AddServiceMaster = ({
                       {...register("registrationChargeValidityDays")}
                       onInput={allowOnlyNumbers}
                     />
-                    {errors.registrationChargeValidityDays && (
-                      <p
-                        className="input-field-error cursor-pointer hover:underline"
-                        onClick={() => setValue("registrationChargeValidityDays", 365, { shouldValidate: true, shouldDirty: true })}
-                        title="Click to autofill 365 days"
-                      >
-                        {errors.registrationChargeValidityDays.message}
+                    {errors?.registrationChargeValidityDays && (
+                      <p className="input-field-error">
+                        {errors?.registrationChargeValidityDays?.message}
                       </p>
                     )}
                   </InputField>
-                )}
+                </div>
 
                 <InputField label="Status">
                   <select className="input-field" {...register("isActive")}>

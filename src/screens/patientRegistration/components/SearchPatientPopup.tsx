@@ -114,7 +114,7 @@ const SearchPatientPopup = ({
       const canProceed = await onSelectPatient(item);
       if (!canProceed) return;
     } else {
-      onSelectPatientId?.(item?.patientId ?? null);
+      onSelectPatientId?.(item?.PatientId ?? null);
     }
 
     onClose();

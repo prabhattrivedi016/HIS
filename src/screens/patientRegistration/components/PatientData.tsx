@@ -723,8 +723,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         ENDPOINTS.GET_PATIENT_MASTER,
         {},
         { params: { patientId: patientId } },
-        { component: "Patient Registration" }
+        { component: "patientRegistration" }
       );
+
       if (!resp?.result) {
         showWarning(resp?.message ?? "Failed to get patient data");
         return;
