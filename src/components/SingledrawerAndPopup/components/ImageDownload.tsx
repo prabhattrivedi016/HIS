@@ -51,7 +51,7 @@ const ImageDownload = ({ pathName }: { pathName: string }) => {
   return (
     <>
       {/* download button */}
-      <button onClick={downloadHandler}>
+      <button type="button" onClick={downloadHandler}>
         {<i className="fa-solid fa-download  icon-color-button"></i>}
       </button>
 

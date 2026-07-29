@@ -1,9 +1,13 @@
 import {
   OptionSchema,
+  PreviousVisitEntry,
   TableMasterEntryConfig,
   TableOrderSetConfig,
 } from "@/components/dynamicForm/types";
 import { ENDPOINTS } from "@/config/defaults";
+import { PATIENT_DIAGNOSIS_HISTORY } from "@/data/diagnosisVisitHistory";
+import { PATIENT_FAMILY_HISTORY } from "@/data/familyHistoryVisitHistory";
+import { PATIENT_PROCEDURE_HISTORY } from "@/data/procedureVisitHistory";
 
 /**
  * Single place to declare "special" EMR header behavior — anything beyond a plain field with
@@ -48,6 +52,11 @@ export interface EmrTableBehaviorConfig {
   columnDataSources?: EmrColumnDataSourceRule[];
   /** default false — set true to show the "Previous Visits" copy-forward button */
   previousVisitsEnabled?: boolean;
+  /** dummy/mock past-visit data for the "Previous Visits" panel above — only read when
+   * previousVisitsEnabled is true. Used by the multi-header card-group path (several real
+   * headers sharing one section, e.g. Family History configured as Relationship/Sex/Status/...);
+   * the single self-contained-header path reads its own data from genericAttributeGroups.ts */
+  previousVisitsData?: PreviousVisitEntry[];
 }
 
 export interface EmrTextBehaviorConfig {
@@ -74,6 +83,34 @@ export interface EmrHeaderBehaviorRule {
 
 const normalize = (headerName: string) => (headerName || "").trim().toLowerCase();
 
+const asPreviousVisits = <T extends { id: string }>(
+  history: { visitDate: string; entries: T[] }[]
+): PreviousVisitEntry[] =>
+  history.map(v => ({ visitDate: v.visitDate, rows: v.entries as (T & { id: string })[] }));
+
+/** no dedicated "Condition Master"/"Family History Master" endpoint exists, so both Family
+ * History rules below reuse the Diagnosis master + order set — a family history condition is the
+ * same kind of catalog entry as a diagnosis */
+const CONDITION_STYLE_MASTER_TABLE_CONFIG: EmrTableBehaviorConfig = {
+  masterEntry: {
+    saveEndpoint: ENDPOINTS.CREATE_UPDATE_DIAGNOSIS_MASTER,
+    listEndpoint: ENDPOINTS.GET_DIAGNOSIS_MASTER_LIST,
+    idField: "diagnosisId",
+    nameField: "diagnosisName",
+    tableName: "DiagnosisMaster",
+  },
+  orderSet: {
+    listEndpoint: ENDPOINTS.GET_DIAGNOSIS_ORDER_SET_LIST,
+    saveEndpoint: ENDPOINTS.CREATE_UPDATE_DIAGNOSIS_ORDER_SET,
+    itemSearchEndpoint: ENDPOINTS.GET_DIAGNOSIS_MASTER_LIST,
+    idField: "orderSetId",
+    nameField: "orderSetName",
+    itemsField: "items",
+  },
+  previousVisitsEnabled: true,
+  previousVisitsData: asPreviousVisits(PATIENT_FAMILY_HISTORY),
+};
+
 /** "shortName (name)" when a short name exists, else just "name" — falls back to name for the value too */
 const mapInvestigationOption = (item: Record<string, unknown>): OptionSchema => {
   const shortName = item?.shortName as string | undefined;
@@ -91,6 +128,13 @@ const mapChiefComplaintOption = (item: Record<string, unknown>): OptionSchema =>
 });
 
 export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
+  {
+    // must come before history-text-favourites below — "Family History" contains "history" too,
+    // and .find() stops at the first match, so the more specific rule has to win by going first
+    name: "family-history-single-header-card-group",
+    match: name => normalize(name).includes("family"),
+    table: CONDITION_STYLE_MASTER_TABLE_CONFIG,
+  },
   {
     name: "history-text-favourites",
     match: name => normalize(name).includes("history"),
@@ -176,6 +220,68 @@ export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
         },
       ],
     },
+  },
+  {
+    // whichever header in the group matches supplies the whole card-group's master-entry +
+    // order set (and becomes its name/title column) — see EmrSectionRenderer's isCardGroup
+    // branch, which scans every header in the group for a match rather than assuming the first
+    name: "diagnosis-type-card-group",
+    match: name => normalize(name).includes("diagnosis"),
+    table: {
+      masterEntry: {
+        saveEndpoint: ENDPOINTS.CREATE_UPDATE_DIAGNOSIS_MASTER,
+        listEndpoint: ENDPOINTS.GET_DIAGNOSIS_MASTER_LIST,
+        idField: "diagnosisId",
+        nameField: "diagnosisName",
+        tableName: "DiagnosisMaster",
+      },
+      orderSet: {
+        listEndpoint: ENDPOINTS.GET_DIAGNOSIS_ORDER_SET_LIST,
+        saveEndpoint: ENDPOINTS.CREATE_UPDATE_DIAGNOSIS_ORDER_SET,
+        itemSearchEndpoint: ENDPOINTS.GET_DIAGNOSIS_MASTER_LIST,
+        idField: "orderSetId",
+        nameField: "orderSetName",
+        itemsField: "items",
+      },
+      previousVisitsEnabled: true,
+      previousVisitsData: asPreviousVisits(PATIENT_DIAGNOSIS_HISTORY),
+    },
+  },
+  {
+    // same idea as diagnosis-type-card-group — "Procedure" (Status/Follow Up/Date alongside it)
+    // renders as a card group too, so its master-entry + order set come from this header
+    name: "procedure-card-group",
+    match: name => normalize(name).includes("procedure"),
+    table: {
+      masterEntry: {
+        saveEndpoint: ENDPOINTS.CREATE_UPDATE_PROCEDURE_MASTER,
+        listEndpoint: ENDPOINTS.GET_PROCEDURE_MASTER_LIST,
+        idField: "procedureId",
+        nameField: "procedureName",
+        tableName: "ProcedureMaster",
+      },
+      orderSet: {
+        listEndpoint: ENDPOINTS.GET_PROCEDURE_ORDER_SET_LIST,
+        saveEndpoint: ENDPOINTS.CREATE_UPDATE_PROCEDURE_ORDER_SET,
+        itemSearchEndpoint: ENDPOINTS.GET_PROCEDURE_MASTER_LIST,
+        idField: "orderSetId",
+        nameField: "orderSetName",
+        itemsField: "items",
+      },
+      previousVisitsEnabled: true,
+      previousVisitsData: asPreviousVisits(PATIENT_PROCEDURE_HISTORY),
+    },
+  },
+  {
+    // Family History's meaningful/master-searchable field — "Condition" isn't sequenced first in
+    // that group (Relationship is), which is exactly why EmrSectionRenderer now scans every
+    // header for a match instead of assuming headers[0]. Exact-match only ("condition", not
+    // "includes"), so this doesn't also catch the separate free-text "Condition Text" header.
+    // Applies when Family History is configured as several real headers (Relationship/Sex/
+    // Status/.../Condition/...) sharing one card-group section.
+    name: "family-history-condition-card-group",
+    match: name => normalize(name) === "condition",
+    table: CONDITION_STYLE_MASTER_TABLE_CONFIG,
   },
 ];
 

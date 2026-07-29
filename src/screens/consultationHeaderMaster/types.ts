@@ -3,6 +3,19 @@ type ListOfLovsItem = {
   dataTypeId: number;
   headerName?: string;
   options?: string[];
+  /** original file name, used only for the "Download" action of image-upload rows (control type 20) */
+  fileName?: string;
+};
+
+/** one document slot returned by GET_EMR_CONTROL_DOCUMENT_MAPPING for a header of
+ * control type "Image Uploader" (20) — the doctor/admin attaches a file against DocumentId
+ * via UPLOAD_EMR_CONTROL_DOCUMENT */
+type EmrControlDocumentItem = {
+  DocumentId: number;
+  DocumentName: string;
+  DocumentCode: string;
+  DocumentPath: string;
+  IsMandatory: number;
 };
 
 type HeaderMasterItem = {
@@ -73,6 +86,7 @@ export type {
   DepartmentItem,
   DoctorDepartmentTableItem,
   DoctorItem,
+  EmrControlDocumentItem,
   HeaderMasterItem,
   ListOfLovsItem,
 };

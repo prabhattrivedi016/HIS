@@ -22,6 +22,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import DoctorNoteEditor from "./DoctorNoteEditor";
 import ReportAnnotationCanvas from "./ReportAnnotationCanvas";
 
@@ -30,6 +31,20 @@ interface ReportAnnotatorModalProps {
   onClose: () => void;
   patientId?: number;
   visitId?: number;
+  /** EMR header this control belongs to — used to seed this visit's report list with the
+   * header's default template images (via GET_EMR_CONTROL_DOCUMENT_MAPPING) the first time it's
+   * opened for a visit that has no reports yet */
+  headerId?: number;
+  /** that header's numeric control type id — attached to every report saved here, same as every
+   * other control type's payload entry */
+  controlTypeId?: number;
+}
+
+/** one document slot returned by GET_EMR_CONTROL_DOCUMENT_MAPPING for this header */
+interface EmrControlDocument {
+  DocumentId: number;
+  DocumentName: string;
+  DocumentPath: string;
 }
 
 type ModalTab = "patient" | "doctor";
@@ -43,16 +58,20 @@ const ReportAnnotatorModal = ({
   onClose,
   patientId,
   visitId,
+  headerId,
+  controlTypeId,
 }: ReportAnnotatorModalProps) => {
   const addReport = useVisitReportsStore(state => state.addReport);
   const updatePages = useVisitReportsStore(state => state.updatePages);
   const removeReport = useVisitReportsStore(state => state.removeReport);
-  const setReports = useVisitReportsStore(state => state.setReports);
   const allReports = useVisitReportsStore(state => state.reports);
   const { fetchApi } = useGlobalApi();
 
+  // scoped by header too, not just patient+visit — a file uploaded from a different Image
+  // Uploader control for the same visit must not show up here
   const reports = allReports.filter(
-    report => report.patientId === patientId && report.visitId === visitId
+    report =>
+      report.patientId === patientId && report.visitId === visitId && report.headerId === headerId
   );
 
   const [activeTab, setActiveTab] = useState<ModalTab>("patient");
@@ -72,22 +91,95 @@ const ReportAnnotatorModal = ({
 
   const selectedReport = reports.find(report => report.id === selectedId) ?? null;
 
+  // keep this visit's report list in sync with the header's current default template images
+  // (Image-1/2/3 etc.): add any that are missing (matched by name, not just "any report
+  // exists" — so a partially-seeded visit still tops up what's missing), and remove any
+  // previously-seeded copy whose master document has since had its file deleted, so a stale
+  // seed from before a master-side delete doesn't keep showing up forever
   useEffect(() => {
-    if (!isOpen || patientId == null || visitId == null) return;
+    if (!isOpen || patientId == null || visitId == null || !headerId) return;
     let cancelled = false;
-    fetchApiRef
-      .current<{
+
+    const syncDefaultImages = async () => {
+      const mappingRes = await fetchApiRef.current<{
         result: boolean;
-        data: VisitReportDocument[];
-      }>("GET", ENDPOINTS.GET_PATIENT_VISIT_REPORTS, {}, { params: { patientId, visitId } }, { component: "ReportAnnotatorModal", silent: true })
-      .then(res => {
-        if (cancelled || !res?.result || !Array.isArray(res.data)) return;
-        setReports(patientId, visitId, res.data);
-      });
+        data: EmrControlDocument[];
+      }>(
+        "GET",
+        ENDPOINTS.GET_EMR_CONTROL_DOCUMENT_MAPPING,
+        {},
+        { params: { headerId } },
+        { component: "ReportAnnotatorModal", silent: true }
+      );
+      if (cancelled || !mappingRes?.result || !Array.isArray(mappingRes.data)) return;
+
+      const mappingByName = new Map(mappingRes.data.map(doc => [doc.DocumentName, doc]));
+
+      for (const report of reports) {
+        const doc = mappingByName.get(report.fileName);
+        if (!doc || doc.DocumentPath) continue;
+
+        removeReport(report.id);
+        setSelectedId(prev => (prev === report.id ? null : prev));
+        await fetchApiRef.current(
+          "DELETE",
+          ENDPOINTS.DELETE_PATIENT_VISIT_REPORT,
+          {},
+          { params: { id: report.id } },
+          { component: "ReportAnnotatorModal", silent: true }
+        );
+      }
+      if (cancelled) return;
+
+      const existingNames = new Set(reports.map(r => r.fileName));
+      const missingDocs = mappingRes.data.filter(
+        doc => doc.DocumentPath && !existingNames.has(doc.DocumentName)
+      );
+
+      for (const doc of missingDocs) {
+        const fileRes = await fetchApiRef.current<{
+          result: boolean;
+          data?: { base64Data?: string };
+        }>(
+          "GET",
+          ENDPOINTS.GET_FILE_AS_BASE_64,
+          {},
+          { params: { filePath: doc.DocumentPath } },
+          { component: "ReportAnnotatorModal", silent: true }
+        );
+        if (cancelled) return;
+
+        const dataUrl = fileRes?.data?.base64Data;
+        if (!dataUrl) continue;
+
+        const created = addReport({
+          patientId,
+          visitId,
+          headerId,
+          controlTypeId,
+          fileName: doc.DocumentName,
+          pages: [{ pageNumber: 1, dataUrl }],
+        });
+
+        await fetchApiRef.current(
+          "POST",
+          ENDPOINTS.SAVE_PATIENT_VISIT_REPORT,
+          created,
+          {},
+          { component: "ReportAnnotatorModal", silent: true }
+        );
+      }
+    };
+
+    syncDefaultImages();
     return () => {
       cancelled = true;
     };
-  }, [isOpen, patientId, visitId, setReports]);
+    // deliberately not depending on `reports` — addReport()/removeReport() below update the
+    // store on every iteration, and re-running this effect mid-loop would flip `cancelled` to
+    // true and abandon the remaining images after only the first one was processed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, patientId, visitId, headerId, addReport, removeReport]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -152,7 +244,14 @@ const ReportAnnotatorModal = ({
       for (const file of Array.from(files)) {
         if (file.type === "application/pdf") {
           const pages = await convertPdfToImages(file);
-          const created = addReport({ patientId, visitId, fileName: file.name, pages });
+          const created = addReport({
+            patientId,
+            visitId,
+            headerId,
+            controlTypeId,
+            fileName: file.name,
+            pages,
+          });
           lastCreatedId = created.id;
           if (!(await syncReportToServer(created))) allSynced = false;
         } else {
@@ -160,6 +259,8 @@ const ReportAnnotatorModal = ({
           const created = addReport({
             patientId,
             visitId,
+            headerId,
+            controlTypeId,
             fileName: file.name,
             pages: [{ pageNumber: 1, dataUrl }],
           });
@@ -218,12 +319,12 @@ const ReportAnnotatorModal = ({
     setScale(prev => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number((prev + delta).toFixed(2)))));
   };
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-[90] bg-black/40" onClick={onClose} />
 
-      <div className="fixed inset-0 z-[91] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-white w-[96vw] max-w-[1600px] h-[90vh] rounded-2xl shadow-2xl flex flex-col pointer-events-auto overflow-hidden">
+      <div className="fixed inset-0 z-[91] pointer-events-none">
+        <div className="bg-white w-screen h-screen flex flex-col pointer-events-auto overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gradient-to-r from-slate-50 via-white to-slate-50 shrink-0">
             <div className="flex items-center gap-2">
               <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 shadow-sm">
@@ -457,7 +558,8 @@ const ReportAnnotatorModal = ({
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 

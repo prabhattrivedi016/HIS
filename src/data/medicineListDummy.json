@@ -1,0 +1,42 @@
+{
+  "doseUnits": ["mg", "ug", "tablets", "capsules", "injection"],
+  "frequencies": [
+    "Once a Day",
+    "Twice a Day",
+    "Thrice a Day",
+    "Four times a Day",
+    "Before Food",
+    "After Food",
+    "SOS"
+  ],
+  "routes": [
+    "Oral",
+    "Inhalational",
+    "Intradermal",
+    "Intramuscular",
+    "Intranasal",
+    "Intravenous",
+    "Topical"
+  ],
+  "instructions": [
+    "Take with plenty of water",
+    "Avoid alcohol",
+    "Take at bedtime",
+    "Take on empty stomach",
+    "Do not crush",
+    "Take with food"
+  ],
+  "medicines": [
+    { "serviceItemId": "d1", "name": "ABEL 40MG TABLET 1X10 LUPIN LTD" },
+    { "serviceItemId": "d2", "name": "AB PHYLLINE 100mg TABLET 1x10 SUN PHARMACEUTICALS INDUSTRIES LTD." },
+    { "serviceItemId": "d3", "name": "AB PHYLLINE SR 200mg TABLET 1x10 SUN PHARMACEUTICALS INDUSTRIES LTD." },
+    { "serviceItemId": "d4", "name": "FABIFLU 200MG TABLET 1X34 GLENMARK PHARMACEUTICALS LTD" },
+    { "serviceItemId": "d5", "name": "UPRISE D3 60000IU CAPSULES 1x8 ALKEM LABORATRIES LTD.(CHOLECALCIFEROL)" },
+    { "serviceItemId": "d6", "name": "DOLO 500MG TABLET" },
+    { "serviceItemId": "d7", "name": "DOLO 650MG TABLET" },
+    { "serviceItemId": "d8", "name": "REBAGEN 100mg TABLET 1x10 MACLEODS PHARMACEUTICALS PVT.LTD." },
+    { "serviceItemId": "d9", "name": "DSR TABLETS(PARACETAMOL)" },
+    { "serviceItemId": "d10", "name": "8MG TABLET 1X10 LOCAL(METHYL PREDNISOLONE)" },
+    { "serviceItemId": "d11", "name": "8X SHAMPOO 0.01 LOTIONS 1x100ml CIPLA LTD(CALCIPIROX)" }
+  ]
+}

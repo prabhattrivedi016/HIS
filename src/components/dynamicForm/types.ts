@@ -42,6 +42,16 @@ export interface TableMasterEntryConfig {
   tableName: string;
 }
 
+/** one past visit's worth of rows for a "Previous Visits" panel — `rows` are matched against the
+ * control's live `columns` by key first, falling back to a normalized label match, so the same
+ * dummy dataset works whether columns are keyed by header id (`header_12`) or by name
+ * (`diagnosisType`, or even the raw label text like table columns use) */
+export interface PreviousVisitEntry {
+  /** ISO date, e.g. "2026-03-23" */
+  visitDate: string;
+  rows: { id: string; [key: string]: unknown }[];
+}
+
 export interface TableOrderSetConfig {
   /** ENDPOINTS key to list this doctor's order sets (named groups of rows to bulk-add) */
   listEndpoint: string;
@@ -81,12 +91,23 @@ export interface ControlSchema {
   columns?: TableColumnSchema[];
   masterEntryConfig?: TableMasterEntryConfig;
   orderSetConfig?: TableOrderSetConfig;
-  /** "table" controls only — default false. Set true to show a "Previous Visits" button that lets
-   * the doctor browse past-visit rows (grouped by visit date) and copy selected ones into this
-   * table for the current visit */
+  /** "table"/"card-group" controls only — default false. Set true to show a "Previous Visits"
+   * panel that lets the doctor browse past-visit rows (grouped by visit date) and copy selected
+   * ones into this control for the current visit */
   previousVisitsEnabled?: boolean;
+  /** the past-visit data the "Previous Visits" panel above renders — dummy/mock until a real
+   * per-header history endpoint exists (same precedent as dummyHeaderLovs.ts) */
+  previousVisitsData?: PreviousVisitEntry[];
   /** logged-in doctor, used by "table" controls to load/save doctor-wise favourite entries */
   doctorId?: number;
+  /** current patient, used by "medicineList" controls to look up its own past-visit snapshots */
+  patientId?: number;
+  /** current visit, used by "imageUpload" controls to scope the shared visit-reports store */
+  visitId?: number;
+  /** this header's own numeric control type id (e.g. from GET_EMR_SECTION_HEADER_MAPPING) —
+   * currently only threaded through for "imageUpload" controls, to attach alongside headerId on
+   * each saved report, same as every other control type's payload entry already gets */
+  controlTypeId?: number;
   /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */
   favouritesEnabled?: boolean;
   /** "textarea"/"richtext" controls only — default false. Set true to show the "save as favourite" bar */
@@ -94,6 +115,11 @@ export interface ControlSchema {
   /** "textarea" controls only — default false. Set true for a large, auto-growing textarea
    * instead of the normal fixed-height one */
   textLarge?: boolean;
+  /** "card-group" controls only — which column's key is the entry's "name" (card title,
+   * duplicate-check, and the field a master-entry/order-set pick lands in). Defaults to the
+   * first column when unset — only needed when the meaningful/master-searchable field isn't
+   * sequenced first (e.g. Family History's "Condition" column, with "Relationship" ahead of it) */
+  nameColumnKey?: string;
 }
 
 export interface CardSchema {

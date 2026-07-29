@@ -67,6 +67,9 @@ type EmrSectionAnswerEntry = {
   headerId: number;
   headerName: string;
   controlType: string;
+  /** numeric control type id (0 for a card-group entry, which represents a whole section/group
+   * rather than one real header) */
+  controlTypeId: number;
   value: unknown;
 };
 
@@ -80,6 +83,8 @@ type ConsultationAttributeEntry = {
   attributeCode: string;
   label: string;
   value: unknown;
+  /** "emrSection" entries only — the EMR section this attribute's headers belong to */
+  sectionId?: number;
 };
 
 /** produces the ConsultationAttributeEntry[] for one attribute kind — add a new function of

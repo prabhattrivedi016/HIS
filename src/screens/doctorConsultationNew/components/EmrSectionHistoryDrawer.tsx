@@ -6,6 +6,8 @@ import {
 } from "@/store/useEmrSectionHistoryStore";
 import { History as HistoryIcon, ListChecks, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
+import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
 
 interface HistorySectionOption {
   sectionId: number;
@@ -25,6 +27,10 @@ interface EmrSectionHistoryDrawerProps {
   headersBySection: Record<number, SectionHeaderMappingRecord[]>;
   /** which section to show first — the one the History button was clicked from */
   initialSectionId: number;
+  /** the live EMR data blob, and its setter — needed so "Copy to Current" on a past visit can
+   * write straight back into whichever section is currently selected in this drawer */
+  data: Record<string, unknown>;
+  onDataChange: (data: Record<string, unknown>) => void;
 }
 
 type TabKey = "visits" | "editLog";
@@ -117,6 +123,8 @@ const EmrSectionHistoryDrawer = ({
   sections,
   headersBySection,
   initialSectionId,
+  data,
+  onDataChange,
 }: EmrSectionHistoryDrawerProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("visits");
   const [selectedSectionId, setSelectedSectionId] = useState(initialSectionId);
@@ -165,15 +173,9 @@ const EmrSectionHistoryDrawer = ({
     [isEditLogDummy, selectedHeaders, selectedSectionId, patientId, realEditLog]
   );
 
-  const columnHeaders = useMemo(() => {
-    const seen = new Map<number, string>();
-    visitSnapshots.forEach(v =>
-      v.values.forEach(val => {
-        if (!seen.has(val.headerId)) seen.set(val.headerId, val.headerName);
-      })
-    );
-    return Array.from(seen.entries()).map(([headerId, headerName]) => ({ headerId, headerName }));
-  }, [visitSnapshots]);
+  const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
+    onDataChange(applySnapshotToSectionData(data, selectedSectionId, selectedHeaders, values));
+  };
 
   if (!isOpen) return null;
 
@@ -252,55 +254,14 @@ const EmrSectionHistoryDrawer = ({
           )}
 
           {activeTab === "visits" ? (
-            <div className="flex-1 flex flex-col min-h-0 px-5 py-3 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 px-5 py-3 overflow-y-auto">
               {selectedHeaders.length === 0 && visitSnapshots.length === 0 ? (
                 <p className="table-empty">Open this section at least once to load its history</p>
               ) : (
-                <div className="table-scroll-wrapper flex-1 min-h-0">
-                  <div className="table-size">
-                    <table className="base-table">
-                      <thead className="table-head">
-                        <tr>
-                          <th className="table-th whitespace-nowrap">Visit Date</th>
-                          <th className="table-th whitespace-nowrap">Doctor</th>
-                          {columnHeaders.map(c => (
-                            <th key={c.headerId} className="table-th whitespace-nowrap">
-                              {c.headerName}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visitSnapshots.length === 0 ? (
-                          <tr>
-                            <td colSpan={columnHeaders.length + 2} className="table-empty">
-                              No past visit records found
-                            </td>
-                          </tr>
-                        ) : (
-                          visitSnapshots.map(snap => {
-                            const byHeaderId = new Map(snap.values.map(v => [v.headerId, v.value]));
-                            return (
-                              <tr key={snap.id} className="table-row hover:bg-blue-50/50 transition-colors">
-                                <td className="table-td whitespace-nowrap font-medium text-gray-700">
-                                  {formatDateTime(snap.recordedOn)}
-                                </td>
-                                <td className="table-td whitespace-nowrap text-gray-600">
-                                  {snap.doctorName || "-"}
-                                </td>
-                                {columnHeaders.map(c => (
-                                  <td key={c.headerId} className="table-td text-gray-600">
-                                    {formatValue(byHeaderId.get(c.headerId))}
-                                  </td>
-                                ))}
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <PreviousSectionVisitsStrip
+                  snapshots={visitSnapshots}
+                  onCopyToCurrent={handleCopySnapshotValues}
+                />
               )}
             </div>
           ) : (

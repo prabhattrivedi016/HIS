@@ -7,17 +7,28 @@ import {
 } from "@/components/dynamicForm/types";
 import { getByPath } from "@/components/dynamicForm/utils/path";
 import { ENDPOINTS } from "@/config/defaults";
+import { getDummyLovFallback } from "@/config/dummyHeaderLovs";
 import { EmrDataSourceConfig, resolveHeaderBehavior } from "@/config/emrHeaderBehavior";
+import {
+  resolveGenericAttributeGroupColumns,
+  resolveGenericAttributeGroupNameColumnKey,
+  resolveGenericAttributeGroupPreviousVisits,
+} from "@/config/genericAttributeGroups";
 import { INVESTIGATION_ORDER_TYPES } from "@/config/investigationOrderTypes";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { groupAttributeConditionRows } from "@/screens/emrControls/utils/attributeConditionParsing";
-import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
+import {
+  EmrSectionVisitSnapshotEntry,
+  useEmrSectionHistoryStore,
+} from "@/store/useEmrSectionHistoryStore";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, History, Loader2 } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { EmrSectionAnswerEntry } from "../types";
+import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
+import { applySnapshotToSectionData, isCardGroupSection, mapControlType } from "../utils/sectionSnapshot";
 
 interface EmrSectionRendererProps {
   sectionId: number;
@@ -28,6 +39,8 @@ interface EmrSectionRendererProps {
   onHeadersLoaded?: (headers: SectionHeaderMappingRecord[]) => void;
   doctorId?: number;
   patientId?: number;
+  /** current visit, used by "imageUpload" controls to scope the shared visit-reports store */
+  visitId?: number;
   /** opens the shared cross-section History drawer (owned by ConsultationEmrSections),
    * defaulted to this section */
   onOpenHistory?: () => void;
@@ -46,26 +59,10 @@ interface EmrSectionRendererProps {
   onEntriesChange?: (sectionId: number, entries: EmrSectionAnswerEntry[]) => void;
 }
 
-const mapControlType = (controlType: string): string => {
-  const key = (controlType || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-_]/g, "");
-  if (key.includes("rich")) return "richtext";
-  if (key.includes("table")) return "table";
-  if (key.includes("textarea")) return "textarea";
-  if (key.includes("date")) return "date";
-  if (key.includes("number")) return "number";
-  if (key.includes("currency")) return "currency";
-  if (key.includes("check")) return "switch";
-  if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
-    return "dropdown";
-  if (key.includes("radio")) return "radio";
-  return "text";
-};
-
-const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamicType === "dropdown";
-const isFullWidth = (dynamicType: string) => dynamicType === "richtext";
+const needsOptions = (dynamicType: string) =>
+  dynamicType === "radio" || dynamicType === "dropdown" || dynamicType === "checkbox-list";
+const isFullWidth = (dynamicType: string) =>
+  dynamicType === "richtext" || dynamicType === "medicineList";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -107,6 +104,7 @@ const EmrSectionRenderer = ({
   onHeadersLoaded,
   doctorId,
   patientId,
+  visitId,
   onOpenHistory,
   accent,
   onProgressChange,
@@ -120,7 +118,15 @@ const EmrSectionRenderer = ({
   const { fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const logEdit = useEmrSectionHistoryStore(s => s.logEdit);
+  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
   const previousValuesRef = useRef<Record<number, unknown> | null>(null);
+
+  // 6 most recent past-visit snapshots for this section — getVisitSnapshots already sorts
+  // newest-first, so this is just the top slice
+  const recentVisitSnapshots = useMemo(
+    () => (patientId ? getVisitSnapshots(patientId, sectionId).slice(0, 6) : []),
+    [patientId, sectionId, getVisitSnapshots]
+  );
 
   const getSectionHeaderMapping = async (): Promise<SectionHeaderMappingRecord[]> => {
     const resp = await fetchApi(
@@ -217,7 +223,13 @@ const EmrSectionRenderer = ({
       { component: "EmrSectionRenderer", silent: true }
     );
     const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
-    return raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
+    const options = raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
+    if (options.length > 0) return options;
+
+    // no real LOVs configured for this header yet — fall back to a name-matched dummy list
+    // (e.g. Procedure/Diagnoses/Status/Follow Up) so the section is testable in the meantime
+    const header = headers.find(h => h.headerId === headerId);
+    return header ? getDummyLovFallback(header.headerName) : [];
   };
 
   // headers whose behavior rule supplies its own dataSource skip the static-LOV fetch below —
@@ -331,7 +343,12 @@ const EmrSectionRenderer = ({
     () =>
       headers
         .filter(h => {
-          if (mapControlType(h.controlType) === "table") return false;
+          if (
+            ["table", "medicineList", "genericAttributeGroup", "imageUpload"].includes(
+              mapControlType(h.controlType)
+            )
+          )
+            return false;
           const dataSource = resolveHeaderBehavior(h.headerName)?.dataSource;
           return Boolean(dataSource) && !dataSource!.searchParamKey;
         })
@@ -365,8 +382,7 @@ const EmrSectionRenderer = ({
   // History: Condition/Relationship/Sex/...) — render them as one add-a-card-per-entry control
   // instead of N separate always-visible fields. Computed outside cardSchema too since the
   // completion badge below needs to know it reads a different data path for such sections.
-  const isCardGroup =
-    headers.length > 1 && headers.every(h => mapControlType(h.controlType) !== "table");
+  const isCardGroup = isCardGroupSection(headers);
 
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
@@ -379,10 +395,14 @@ const EmrSectionRenderer = ({
     const resolveHeaderRender = (h: SectionHeaderMappingRecord) => {
       const behavior = resolveHeaderBehavior(h.headerName);
       const mappedType = mapControlType(h.controlType);
-      // a header explicitly configured as "Table" always renders as a table —
-      // a behavior rule's controlTypeOverride only applies to non-table headers
-      const dynamicType =
-        mappedType === "table" ? "table" : (behavior?.controlTypeOverride ?? mappedType);
+      // a header explicitly configured as "Table" or "Medicines List" always renders as that —
+      // a behavior rule's controlTypeOverride only applies to headers with neither control type.
+      // (otherwise a header named e.g. "Medicines" with ControlType "Medicines List" would get
+      // silently downgraded to a plain dropdown by the header-name-matched "medicine-picker" rule)
+      const HARD_CONTROL_TYPES = ["table", "medicineList", "genericAttributeGroup", "imageUpload"];
+      const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
+        ? mappedType
+        : (behavior?.controlTypeOverride ?? mappedType);
       const isTable = dynamicType === "table";
       const dataSource = !isTable ? behavior?.dataSource : undefined;
       const hasStaticDataSource = Boolean(dataSource) && !dataSource?.searchParamKey;
@@ -411,19 +431,65 @@ const EmrSectionRenderer = ({
         };
       });
 
+      // a card-group covers the WHOLE section (not one header), so its favourites/master-entry/
+      // order-set config is sourced from WHICHEVER header has a matching emrHeaderBehavior.ts
+      // rule — not necessarily the first one. Family History is why: its meaningful/master-
+      // searchable field is "Condition", but "Relationship" is sequenced ahead of it. That
+      // matched header's own column also becomes the card's name/title column (nameColumnKey),
+      // instead of always defaulting to whichever header happens to be first.
+      const masterHeaderEntry = headers
+        .map(h => ({ header: h, behavior: resolveHeaderBehavior(h.headerName) }))
+        .find(e => e.behavior?.table?.masterEntry || e.behavior?.table?.orderSet);
+      const primaryHeaderBehavior = masterHeaderEntry?.behavior;
+
       controls = [
         {
           key: `section_${sectionId}_group`,
+          // a card-group covers the whole section, so its own label is the section name — same
+          // "control gets a visible header name" treatment every other control (e.g. Medicines
+          // List) already gets from its own h.displayName/sectionName-derived label
+          label: displayName || sectionName,
           type: "card-group",
           dataPath: `section_${sectionId}.group`,
           colSpan: 4,
           columns,
           doctorId,
+          patientId,
+          favouritesEnabled: primaryHeaderBehavior?.table?.favouritesEnabled ?? true,
+          masterEntryConfig: primaryHeaderBehavior?.table?.masterEntry,
+          orderSetConfig: primaryHeaderBehavior?.table?.orderSet,
+          nameColumnKey: masterHeaderEntry ? `header_${masterHeaderEntry.header.headerId}` : undefined,
+          previousVisitsEnabled: primaryHeaderBehavior?.table?.previousVisitsEnabled ?? false,
+          previousVisitsData: primaryHeaderBehavior?.table?.previousVisitsData,
         },
       ];
     } else {
       controls = headers.map(h => {
         const { behavior, dynamicType, isTable, options, asyncSearch } = resolveHeaderRender(h);
+
+        // a header whose own ControlType isn't a basic type (e.g. "Diagnosis", "Procedure") is a
+        // single self-contained repeatable-attribute card widget — CardGroupControl reused
+        // directly, driven by genericAttributeGroups.ts's columns instead of sibling headers
+        if (dynamicType === "genericAttributeGroup") {
+          const previousVisits = resolveGenericAttributeGroupPreviousVisits(h.controlType);
+          return {
+            key: `header_${h.headerId}`,
+            label: h.displayName || h.headerName,
+            type: "card-group",
+            dataPath: `section_${sectionId}.header_${h.headerId}`,
+            colSpan: 4,
+            columns: resolveGenericAttributeGroupColumns(h.controlType) ?? [],
+            doctorId,
+            patientId,
+            favouritesEnabled: behavior?.table?.favouritesEnabled ?? true,
+            masterEntryConfig: behavior?.table?.masterEntry,
+            orderSetConfig: behavior?.table?.orderSet,
+            nameColumnKey: resolveGenericAttributeGroupNameColumnKey(h.controlType),
+            previousVisitsEnabled: Boolean(previousVisits),
+            previousVisitsData: previousVisits,
+          };
+        }
+
         const ownRules = rulesByHeaderId.get(h.headerId);
 
         const conditionalDisplay: ControlSchema["conditionalDisplay"] = ownRules?.length
@@ -454,7 +520,7 @@ const EmrSectionRenderer = ({
                 ? tableHeaderIds.length <= 1
                   ? 4
                   : 2
-                : dynamicType === "radio"
+                : dynamicType === "radio" || dynamicType === "checkbox-list"
                   ? 2
                   : 1,
           conditionalDisplay,
@@ -471,6 +537,9 @@ const EmrSectionRenderer = ({
             : undefined,
           textLarge: dynamicType === "textarea" ? (behavior?.text?.large ?? false) : undefined,
           doctorId,
+          patientId,
+          visitId,
+          controlTypeId: h.controlTypeId,
         };
       });
     }
@@ -498,6 +567,8 @@ const EmrSectionRenderer = ({
     displayName,
     attributeConditions,
     doctorId,
+    patientId,
+    visitId,
   ]);
 
   const totalFields = isCardGroup ? 1 : headers.length;
@@ -533,13 +604,22 @@ const EmrSectionRenderer = ({
         return readable;
       });
 
+      // a multi-header card-group (e.g. Family History split across Relationship/Sex/Status/...)
+      // has no single "real" header behind the whole group — attach the same primary/master
+      // header cardSchema already resolves for masterEntry/orderSet config (if any header in the
+      // group matches one) instead of always reporting the synthetic headerId/controlTypeId 0
+      const masterHeaderEntry = headers
+        .map(h => ({ header: h, behavior: resolveHeaderBehavior(h.headerName) }))
+        .find(e => e.behavior?.table?.masterEntry || e.behavior?.table?.orderSet);
+
       return [
         {
           sectionId,
           sectionName: label,
-          headerId: 0,
+          headerId: masterHeaderEntry?.header.headerId ?? 0,
           headerName: label,
           controlType: "card-group",
+          controlTypeId: masterHeaderEntry?.header.controlTypeId ?? 0,
           value: readableRows,
         },
       ];
@@ -557,6 +637,7 @@ const EmrSectionRenderer = ({
         headerId: h.headerId,
         headerName: h.displayName || h.headerName,
         controlType: h.controlType,
+        controlTypeId: h.controlTypeId,
         value,
       }));
   }, [isCardGroup, headers, data, sectionId, sectionName, displayName]);
@@ -618,6 +699,10 @@ const EmrSectionRenderer = ({
     );
   }
 
+  const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
+    onDataChange(applySnapshotToSectionData(data, sectionId, headers, values));
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -661,6 +746,11 @@ const EmrSectionRenderer = ({
           style={{ width: `${sectionPercent}%` }}
         />
       </div>
+
+      <PreviousSectionVisitsStrip
+        snapshots={recentVisitSnapshots}
+        onCopyToCurrent={handleCopySnapshotValues}
+      />
 
       <div
         className="[&_.card]:!bg-transparent [&_.card]:!border-0 [&_.card]:!shadow-none [&_.card]:!p-0 [&_.card]:!rounded-none
