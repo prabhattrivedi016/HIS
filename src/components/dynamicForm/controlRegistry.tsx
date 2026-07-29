@@ -2,6 +2,9 @@ import TextEditor from "@/components/ckEditor";
 import { SelectStyles } from "@/components/customSelect";
 import { PATIENT_INVESTIGATION_HISTORY } from "@/data/investigationVisitHistory";
 import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
+import DentalChartModal, {
+  DentalChartValue,
+} from "@/screens/doctorConsultationNew/components/DentalChartModal";
 import ReportAnnotatorModal from "@/screens/doctorConsultationNew/components/ReportAnnotatorModal";
 import { showWarning } from "@/utils/alert";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +23,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { FaTooth } from "react-icons/fa";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
@@ -1051,6 +1055,43 @@ const ImageUploadControl = ({ schema }: ControlRenderProps) => {
   );
 };
 //Control Id --20 cse end-----------------------------------------------------------
+
+const DentalChartControl = ({ schema, value, onChange }: ControlRenderProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const chartValue = (value as DentalChartValue) ?? {};
+  const hasData = Boolean(
+    chartValue.treatmentType ||
+      Object.values(chartValue.bite ?? {}).some(g => g && g !== "None") ||
+      Object.keys(chartValue.chart?.marks ?? {}).length ||
+      (chartValue.chart?.ipr ?? []).length ||
+      chartValue.plan?.packagePrice ||
+      chartValue.plan?.notes
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className={mergeClass(
+          "save-btn !w-auto !px-4 !py-2 !text-xs flex items-center gap-1.5",
+          schema
+        )}
+      >
+        <FaTooth size={14} />
+        {hasData ? "Edit Dental Chart" : "Open Dental Chart"}
+      </button>
+
+      <DentalChartModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        value={chartValue}
+        onChange={onChange}
+      />
+    </>
+  );
+};
+
 const DynamicContentControl = ({ schema }: ControlRenderProps) => (
   <div
     className={mergeClass("text-sm text-gray-700", schema)}
@@ -1467,6 +1508,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   "card-group": CardGroupControl,
   medicineList: MedicineListControl,
   imageUpload: ImageUploadControl,
+  dentalChart: DentalChartControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

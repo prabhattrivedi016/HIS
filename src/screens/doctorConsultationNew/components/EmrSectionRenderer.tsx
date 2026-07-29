@@ -344,7 +344,7 @@ const EmrSectionRenderer = ({
       headers
         .filter(h => {
           if (
-            ["table", "medicineList", "genericAttributeGroup", "imageUpload"].includes(
+            ["table", "medicineList", "genericAttributeGroup", "imageUpload", "dentalChart"].includes(
               mapControlType(h.controlType)
             )
           )
@@ -399,7 +399,13 @@ const EmrSectionRenderer = ({
       // a behavior rule's controlTypeOverride only applies to headers with neither control type.
       // (otherwise a header named e.g. "Medicines" with ControlType "Medicines List" would get
       // silently downgraded to a plain dropdown by the header-name-matched "medicine-picker" rule)
-      const HARD_CONTROL_TYPES = ["table", "medicineList", "genericAttributeGroup", "imageUpload"];
+      const HARD_CONTROL_TYPES = [
+        "table",
+        "medicineList",
+        "genericAttributeGroup",
+        "imageUpload",
+        "dentalChart",
+      ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
         : (behavior?.controlTypeOverride ?? mappedType);
