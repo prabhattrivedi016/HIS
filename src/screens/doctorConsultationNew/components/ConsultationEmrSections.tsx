@@ -658,7 +658,7 @@ const ConsultationEmrSections = ({
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
       ) : layout === "vertical" ? (
         <div className="flex emr-shell">
-          <div className="emr-sidebar flex flex-col w-64 shrink-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[760px] overflow-y-auto scrollbar-none">
+          <div className="emr-sidebar flex flex-col w-64 shrink-0 min-h-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[760px] overflow-y-auto scrollbar-none">
             {/* scroll-progress rail — tracks the active section's position in the list as you scroll */}
             <div className="relative">
               <div className="absolute left-[7px] top-1 bottom-1 w-[3px] rounded-full bg-slate-200/70" />
@@ -696,18 +696,6 @@ const ConsultationEmrSections = ({
                 })}
               </div>
             </div>
-
-            {doctorId != null && (
-              <SubmitButton
-                type="button"
-                label={
-                  isSavingFavorites ? "Saving…" : hasUnsavedFavorites ? "Save favourites" : "Saved"
-                }
-                onClick={handleSaveFavorites}
-                disabled={!hasUnsavedFavorites || isSavingFavorites}
-                className="!h-9 !w-full !px-3 !py-0 !text-[12px] !rounded-full mt-1 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-500"
-              />
-            )}
           </div>
 
           {/* ── all sections, scrolled together — left nav highlight follows scroll position ── */}

@@ -35,6 +35,9 @@ interface ReportAnnotatorModalProps {
    * header's default template images (via GET_EMR_CONTROL_DOCUMENT_MAPPING) the first time it's
    * opened for a visit that has no reports yet */
   headerId?: number;
+  /** that header's numeric control type id — attached to every report saved here, same as every
+   * other control type's payload entry */
+  controlTypeId?: number;
 }
 
 /** one document slot returned by GET_EMR_CONTROL_DOCUMENT_MAPPING for this header */
@@ -56,6 +59,7 @@ const ReportAnnotatorModal = ({
   patientId,
   visitId,
   headerId,
+  controlTypeId,
 }: ReportAnnotatorModalProps) => {
   const addReport = useVisitReportsStore(state => state.addReport);
   const updatePages = useVisitReportsStore(state => state.updatePages);
@@ -152,6 +156,7 @@ const ReportAnnotatorModal = ({
           patientId,
           visitId,
           headerId,
+          controlTypeId,
           fileName: doc.DocumentName,
           pages: [{ pageNumber: 1, dataUrl }],
         });
@@ -239,7 +244,14 @@ const ReportAnnotatorModal = ({
       for (const file of Array.from(files)) {
         if (file.type === "application/pdf") {
           const pages = await convertPdfToImages(file);
-          const created = addReport({ patientId, visitId, headerId, fileName: file.name, pages });
+          const created = addReport({
+            patientId,
+            visitId,
+            headerId,
+            controlTypeId,
+            fileName: file.name,
+            pages,
+          });
           lastCreatedId = created.id;
           if (!(await syncReportToServer(created))) allSynced = false;
         } else {
@@ -248,6 +260,7 @@ const ReportAnnotatorModal = ({
             patientId,
             visitId,
             headerId,
+            controlTypeId,
             fileName: file.name,
             pages: [{ pageNumber: 1, dataUrl }],
           });

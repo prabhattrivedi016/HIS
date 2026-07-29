@@ -25,6 +25,9 @@ export interface VisitReportDocument {
    * scoped by header as well as patient+visit, so a file uploaded from one Image Uploader control
    * doesn't also show up under a different one for the same visit */
   headerId?: number;
+  /** that header's numeric control type id, same "attach it if present" treatment every other
+   * control type's payload entry already gets */
+  controlTypeId?: number;
   fileName: string;
   pages: ReportPage[];
   uploadedOn: string;
@@ -37,6 +40,7 @@ interface VisitReportsState {
     patientId: number;
     visitId: number;
     headerId?: number;
+    controlTypeId?: number;
     fileName: string;
     pages: { pageNumber: number; dataUrl: string }[];
   }) => VisitReportDocument;
@@ -57,6 +61,7 @@ export const useVisitReportsStore = create<VisitReportsState>()(
           patientId: entry.patientId,
           visitId: entry.visitId,
           headerId: entry.headerId,
+          controlTypeId: entry.controlTypeId,
           fileName: entry.fileName,
           id: crypto.randomUUID(),
           pages: entry.pages.map(page => ({ ...page, strokes: [] })),

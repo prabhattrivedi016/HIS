@@ -361,6 +361,42 @@ const RadioControl = ({ schema, value, onChange }: ControlRenderProps) => (
   </div>
 );
 
+// multiple selectable options driven by the header's own List Of Values — distinct from
+// SwitchControl (a single on/off toggle) and from RadioControl (single-select)
+const CheckboxListControl = ({ schema, value, onChange }: ControlRenderProps) => {
+  const selected: string[] = Array.isArray(value) ? (value as string[]) : [];
+
+  const toggleOption = (optValue: string) => {
+    onChange(
+      selected.includes(optValue)
+        ? selected.filter(v => v !== optValue)
+        : [...selected, optValue]
+    );
+  };
+
+  return (
+    <div className={mergeClass("flex flex-wrap gap-x-4 gap-y-2", schema)}>
+      {schema.options?.map((opt, i) => {
+        const optValue = String(opt.value);
+        return (
+          <label
+            key={opt.key ?? i}
+            className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none"
+          >
+            <input
+              type="checkbox"
+              className="input-checkbox"
+              checked={selected.includes(optValue)}
+              onChange={() => toggleOption(optValue)}
+            />
+            {opt.label}
+          </label>
+        );
+      })}
+    </div>
+  );
+};
+
 const MultiSelectSearchControl = ({ schema, value, onChange, onBlur }: ControlRenderProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<OptionSchema[]>([]);
@@ -1009,6 +1045,7 @@ const ImageUploadControl = ({ schema }: ControlRenderProps) => {
         patientId={schema.patientId}
         visitId={schema.visitId}
         headerId={headerId}
+        controlTypeId={schema.controlTypeId}
       />
     </>
   );
@@ -1422,6 +1459,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   dropdown: DropdownControl,
   "search-dropdown": SearchDropdownControl,
   radio: RadioControl,
+  "checkbox-list": CheckboxListControl,
   richtext: RichTextControl,
   dynamicContent: DynamicContentControl,
   "multiselect-search": MultiSelectSearchControl,

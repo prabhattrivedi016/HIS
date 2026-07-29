@@ -59,7 +59,8 @@ interface EmrSectionRendererProps {
   onEntriesChange?: (sectionId: number, entries: EmrSectionAnswerEntry[]) => void;
 }
 
-const needsOptions = (dynamicType: string) => dynamicType === "radio" || dynamicType === "dropdown";
+const needsOptions = (dynamicType: string) =>
+  dynamicType === "radio" || dynamicType === "dropdown" || dynamicType === "checkbox-list";
 const isFullWidth = (dynamicType: string) =>
   dynamicType === "richtext" || dynamicType === "medicineList";
 const isTextLikeType = (dynamicType: string) =>
@@ -519,7 +520,7 @@ const EmrSectionRenderer = ({
                 ? tableHeaderIds.length <= 1
                   ? 4
                   : 2
-                : dynamicType === "radio"
+                : dynamicType === "radio" || dynamicType === "checkbox-list"
                   ? 2
                   : 1,
           conditionalDisplay,
@@ -538,6 +539,7 @@ const EmrSectionRenderer = ({
           doctorId,
           patientId,
           visitId,
+          controlTypeId: h.controlTypeId,
         };
       });
     }
@@ -602,14 +604,22 @@ const EmrSectionRenderer = ({
         return readable;
       });
 
+      // a multi-header card-group (e.g. Family History split across Relationship/Sex/Status/...)
+      // has no single "real" header behind the whole group — attach the same primary/master
+      // header cardSchema already resolves for masterEntry/orderSet config (if any header in the
+      // group matches one) instead of always reporting the synthetic headerId/controlTypeId 0
+      const masterHeaderEntry = headers
+        .map(h => ({ header: h, behavior: resolveHeaderBehavior(h.headerName) }))
+        .find(e => e.behavior?.table?.masterEntry || e.behavior?.table?.orderSet);
+
       return [
         {
           sectionId,
           sectionName: label,
-          headerId: 0,
+          headerId: masterHeaderEntry?.header.headerId ?? 0,
           headerName: label,
           controlType: "card-group",
-          controlTypeId: 0,
+          controlTypeId: masterHeaderEntry?.header.controlTypeId ?? 0,
           value: readableRows,
         },
       ];

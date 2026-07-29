@@ -18,6 +18,10 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("date")) return "date";
   if (key.includes("number")) return "number";
   if (key.includes("currency")) return "currency";
+  // "Check-Box List" (multiple selectable options, driven by this header's List Of Values) is
+  // distinct from a plain "Check Box" (one on/off toggle) — must come before the generic "check"
+  // rule below, since both contain that substring
+  if (key.includes("check") && key.includes("list")) return "checkbox-list";
   if (key.includes("check")) return "switch";
   if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
     return "dropdown";

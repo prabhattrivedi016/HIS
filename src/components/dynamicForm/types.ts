@@ -104,6 +104,10 @@ export interface ControlSchema {
   patientId?: number;
   /** current visit, used by "imageUpload" controls to scope the shared visit-reports store */
   visitId?: number;
+  /** this header's own numeric control type id (e.g. from GET_EMR_SECTION_HEADER_MAPPING) —
+   * currently only threaded through for "imageUpload" controls, to attach alongside headerId on
+   * each saved report, same as every other control type's payload entry already gets */
+  controlTypeId?: number;
   /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */
   favouritesEnabled?: boolean;
   /** "textarea"/"richtext" controls only — default false. Set true to show the "save as favourite" bar */
