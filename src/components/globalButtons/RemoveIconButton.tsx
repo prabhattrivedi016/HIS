@@ -1,20 +1,20 @@
 import type { MouseEvent, SyntheticEvent } from "react";
 
-export type EditIconClickHandler = (e?: SyntheticEvent) => void | Promise<void>;
+export type RemoveIconClickHandler = (e?: SyntheticEvent) => void | Promise<void>;
 
-type EditIconButtonProps = {
-  onClick?: EditIconClickHandler;
+type RemoveIconButtonProps = {
+  onClick?: RemoveIconClickHandler;
   className?: string;
   disabled?: boolean;
   title?: string;
 };
 
-const EditIconButton = ({
+const RemoveIconButton = ({
   onClick,
   className = "",
   disabled = false,
-  title = "Edit",
-}: EditIconButtonProps) => {
+  title = "Remove",
+}: RemoveIconButtonProps) => {
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
     if (!onClick) return;
 
@@ -33,10 +33,10 @@ const EditIconButton = ({
       aria-label={title}
     >
       <i
-        className={`fa-solid fa-edit text-xl ${className} text-blue-500 active:scale-90 cursor-pointer transition-transform duration-150`}
+        className={`fa-solid fa-trash text-xl ${className} text-red-500 cursor-pointer active:scale-95 cursor-pointer transition-transform duration-150`}
       />
     </button>
   );
 };
 
-export default EditIconButton;
+export default RemoveIconButton;

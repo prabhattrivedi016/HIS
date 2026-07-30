@@ -9,6 +9,7 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { addNewTabSchema } from "../../../validation/addNewTabSchema";
 
+import { AddNewTabIconTableHeader } from "@/constants/constants";
 import {
   AddNewTabPanelProps,
   AddTabFormFields,
@@ -23,11 +24,12 @@ const AddNewTabPanel = ({
   tabId,
   refreshTabDropdown,
 }: AddNewTabPanelProps) => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
 
   const [faIcons, setFaIcons] = useState<IconListItem[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<IconListItem | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [tabUpdateData, setTabUpdateData] = useState<tabDropdownItem[]>([]);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +94,10 @@ const AddNewTabPanel = ({
   const onSubmit = async (payload: NewTabProps) => {
     const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_NAVIGATION_TAB_MASTER, payload);
 
-    if (!response) return;
+    if (!response?.result) {
+      setErrorMessage(response?.message ?? "Something went wrong");
+      return;
+    }
 
     setSuccessMessage(response?.message);
     await refreshTabDropdown();
@@ -103,6 +108,11 @@ const AddNewTabPanel = ({
       setSelectedIcon(null);
       setSuccessMessage("");
     }, 1000);
+  };
+
+  const handleSelectIcon = (item: IconListItem) => {
+    setSelectedIcon(item);
+    setValue("faIconId", String(item.id), { shouldValidate: true });
   };
 
   return (
@@ -123,7 +133,7 @@ const AddNewTabPanel = ({
         </div>
 
         {successMessage && <SuccessMessage text={successMessage} />}
-        {error && <ErrorMessage text={error?.message} />}
+        {errorMessage && <ErrorMessage text={errorMessage} />}
 
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           {/* Tab Name */}
@@ -137,51 +147,92 @@ const AddNewTabPanel = ({
             {errors?.tabName && <p className="input-field-error">{errors?.tabName?.message}</p>}
           </InputField>
 
-          <InputField label="Select Icon">
-            <select
+          <InputField label="Selected Icon Name">
+            <input
+              type="text"
               className="input-field"
-              {...register("faIconId")}
-              onChange={e => {
-                setValue("faIconId", e.target.value, { shouldValidate: true });
-                const icon = faIcons.find(i => String(i.id) === e.target.value);
-                setSelectedIcon(icon ?? null);
-              }}
-            >
-              <option value="">Select icon</option>
-              {faIcons?.map(icon => (
-                <option key={icon?.id} value={icon?.id}>
-                  {icon?.iconName}
-                </option>
-              ))}
-            </select>
-
+              value={selectedIcon?.iconName ?? "No Icon Selected"}
+              disabled
+            />
             {errors?.faIconId && <p className="input-field-error">{errors?.faIconId?.message}</p>}
           </InputField>
 
-          {/* <InputField label="Icon Preview"> */}
-          {selectedIcon ? (
-            <div className="flex items-center justify-between">
-              <span className="text-xl">{"Icon Preview :"}</span>
-              <i className={`${selectedIcon?.iconClass}  text-4xl`}></i>
+          {/* table */}
+          <div className="table-container -mt-3 ">
+            <div className="table-scroll-wrapper ">
+              <div className="table-size lg:min-h-60 lg:max-h-60">
+                <table className="base-table ">
+                  <thead className="table-head">
+                    <tr>
+                      {AddNewTabIconTableHeader.map((h, index) => (
+                        <th key={index} className="table-th ">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {faIcons?.length === 0 && (
+                      <tr>
+                        <td colSpan={AddNewTabIconTableHeader.length} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {faIcons.map((item: IconListItem, idx: number) => {
+                      const isSelected = selectedIcon?.id === item?.id;
+                      return (
+                        <tr
+                          key={idx}
+                          className={`table-row cursor-pointer transition-colors duration-150 ${
+                            isSelected
+                              ? "bg-blue-50 font-semibold border-l-4 border-blue-500"
+                              : "hover:bg-gray-50"
+                          }`}
+                          onClick={() => handleSelectIcon(item)}
+                        >
+                          <td className="table-td">{item?.id}</td>
+                          <td className="table-td">{item?.iconName || "-"}</td>
+                          <td className="table-td text-center">
+                            {item?.iconClass ? <i className={`${item?.iconClass} text-lg`} /> : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          ) : (
-            <h1>Please select any Icons</h1>
-          )}
-          {/* </InputField> */}
+          </div>
 
-          <div className="flex justify-center gap-3 p-3">
-            <button type="submit" className="save-btn">
-              Save
-            </button>
+          {/* <InputField label="Icon Preview"> */}
+          <div className="grid grid-cols-2">
+            {selectedIcon ? (
+              <div className="flex items-center justify-between">
+                <span className="text-xl">{"Icon Preview :"}</span>
+                <i className={`${selectedIcon?.iconClass}  text-4xl`}></i>
+              </div>
+            ) : (
+              <h1>Please select any Icons</h1>
+            )}
+            {/* </InputField> */}
 
-            <button type="button" className="cancel-button" onClick={onCloseTab}>
-              Cancel
-            </button>
+            <div className="flex justify-center gap-3 p-3">
+              <button type="submit" className="save-btn">
+                Save
+              </button>
+
+              <button type="button" className="cancel-button" onClick={onCloseTab}>
+                Cancel
+              </button>
+            </div>
           </div>
         </form>
       </div>
 
-      {loading && <CustomLoader isLoading={loading} />}
+      {!!loading && <CustomLoader isLoading={loading} />}
     </>
   );
 };

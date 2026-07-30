@@ -566,6 +566,9 @@ const ENDPOINTS = {
   GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID: "Patient/getWriteOffRequestDetailsByWriteOffId",
   GET_WRITE_OFF_REQUEST_APPROVAL_DETAILS: "Patient/getWriteOffRequestApprovalDetails",
   SAVE_WRITE_OFF: "Patient/saveWriteOff",
+
+  // package master
+  CREATE_UPDATE_PACKAGE_MASTER: "Admin/createUpdatePackageMaster",
 };
 
 export { ENDPOINTS };

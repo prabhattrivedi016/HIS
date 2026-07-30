@@ -143,7 +143,7 @@ const NavigationPanelDrawer = ({
                 <div className="flex-1">
                   <InputField label="Tab Name" required={true}>
                     <select
-                      className="input-field h-[38px]"
+                      className="input-field "
                       {...register("tabId")}
                       value={String(watch("tabId") ?? "")}
                       onChange={e => {

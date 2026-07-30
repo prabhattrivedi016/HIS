@@ -1,3 +1,4 @@
+import CentralPopup from "@/components/centralPopup";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
@@ -26,8 +27,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
+import DoctorDepartmentPopup from "../../serviceMaster/components/DoctorDepartmentPopup";
+import PrintPopup from "../../serviceMaster/components/PrintPopupGroup";
 import {
   CategoryItem,
   CategoryTypeItem,
@@ -35,9 +37,7 @@ import {
   PrintGroupItem,
   SubCategoryItem,
   SubSubCategoryItem,
-} from "../types";
-import DoctorDepartmentPopup from "./DoctorDepartmentPopup";
-import PrintPopup from "./PrintPopupGroup";
+} from "../../serviceMaster/types";
 
 const CreateUpdatePopup = ({
   isOpen,
@@ -63,7 +63,7 @@ const CreateUpdatePopup = ({
   resetCategoryId: Dispatch<SetStateAction<number>>;
   resetCategory: Dispatch<SetStateAction<CategoryItem | null>>;
   onCategoryUpdate: () => Promise<QueryObserverResult<any, Error>>;
-  subCategoryData?: SubCategoryItem;
+  subCategoryData?: SubCategoryItem | null;
   refreshSubCategory?: () => Promise<void>;
   resetSubCategoryOption?: Dispatch<SetStateAction<SelectItem | null>>;
   resetSubCategoryValue?: Dispatch<SetStateAction<SubCategoryItem | null>>;
@@ -99,14 +99,14 @@ const CreateUpdatePopup = ({
       "GET",
       ENDPOINTS.GET_CATEGORY_TYPE_LIST,
       {},
-      { params: { categoryTypeIds: "8,2,1,4,5,10,9" } },
+      { params: { categoryTypeIds: "11,12" } },
       { component: "CreateUpdatePopup" }
     );
     return resp?.data ?? [];
   };
 
   const { data: categoryType = [] } = useQuery({
-    queryKey: ["getCategoryTypeList"],
+    queryKey: ["getCategoryTypeListForPackage"],
     queryFn: getCategoryTypeList,
   });
 
@@ -279,8 +279,19 @@ const CreateUpdatePopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
-    resetCategoryId?.(0);
-    resetCategory?.(null);
+    if (resp?.data) {
+      const dataObj = Array.isArray(resp.data) ? resp.data[0] : resp.data;
+      if (dataObj?.categoryId) {
+        resetCategoryId?.(Number(dataObj.categoryId));
+        resetCategory?.(dataObj);
+      } else {
+        resetCategoryId?.(0);
+        resetCategory?.(null);
+      }
+    } else {
+      resetCategoryId?.(0);
+      resetCategory?.(null);
+    }
     await onCategoryUpdate?.();
     setTimeout(() => {
       categoryForm.reset({
@@ -307,8 +318,22 @@ const CreateUpdatePopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
-    resetSubCategoryOption?.(null);
-    resetSubCategoryValue?.(null);
+    if (resp?.data) {
+      const dataObj = Array.isArray(resp.data) ? resp.data[0] : resp.data;
+      if (dataObj?.subCategoryId) {
+        resetSubCategoryOption?.({
+          label: dataObj.subCategoryName,
+          value: Number(dataObj.subCategoryId),
+        });
+        resetSubCategoryValue?.(dataObj);
+      } else {
+        resetSubCategoryOption?.(null);
+        resetSubCategoryValue?.(null);
+      }
+    } else {
+      resetSubCategoryOption?.(null);
+      resetSubCategoryValue?.(null);
+    }
     await onSubCategoryUpdate?.();
     setTimeout(() => {
       subCategoryForm.reset({
@@ -357,8 +382,22 @@ const CreateUpdatePopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
-    resetSubSubCategoryOption?.(null);
-    resetSubSubCategory?.(null);
+    if (resp?.data) {
+      const dataObj = Array.isArray(resp.data) ? resp.data[0] : resp.data;
+      if (dataObj?.subSubCategoryId) {
+        resetSubSubCategoryOption?.({
+          label: dataObj.subSubCategoryName,
+          value: Number(dataObj.subSubCategoryId),
+        });
+        resetSubSubCategory?.(dataObj);
+      } else {
+        resetSubSubCategoryOption?.(null);
+        resetSubSubCategory?.(null);
+      }
+    } else {
+      resetSubSubCategoryOption?.(null);
+      resetSubSubCategory?.(null);
+    }
     await onSubSubCategoryUpdate?.();
     setTimeout(() => {
       subSubCategoryForm.reset({
@@ -446,9 +485,6 @@ const CreateUpdatePopup = ({
         const {
           register,
           handleSubmit,
-          reset,
-          setValue,
-          watch,
           formState: { errors },
         } = categoryForm;
         return (
@@ -501,8 +537,6 @@ const CreateUpdatePopup = ({
         const {
           register,
           handleSubmit,
-          reset,
-          setValue,
           formState: { errors },
         } = subCategoryForm;
         return (
@@ -537,9 +571,7 @@ const CreateUpdatePopup = ({
         const {
           register,
           handleSubmit,
-          reset,
           watch,
-          setValue,
           formState: { errors },
         } = subSubCategoryForm;
         return (
@@ -656,36 +688,23 @@ const CreateUpdatePopup = ({
 
   useScrollLock(isOpen);
 
-  return createPortal(
-    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
-      <div
-        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      />
+  return (
+    <CentralPopup
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        popupName === ServiceMasterPopupName?.CATEGORY
+          ? `${categoryButtonTitle} Category`
+          : popupName === ServiceMasterPopupName?.SUB_CATEGORY
+            ? `${subCategoryButtonTitle} Sub Category`
+            : `${subSubCategoryButtonTitle} Sub Sub Category`
+      }
+      className=""
+    >
+      {!!successMessage && <SuccessMessage text={successMessage} />}
+      {!!errorMessage && <ErrorMessage text={errorMessage} />}
 
-      <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${
-          isOpen ? "opacity-full" : ""
-        }`}
-      >
-        <div className="popup-header min-w-0">
-          <h2 className="popup-helper-text truncate">
-            {popupName === ServiceMasterPopupName?.CATEGORY
-              ? `${categoryButtonTitle} Category`
-              : popupName === ServiceMasterPopupName?.SUB_CATEGORY
-                ? `${subCategoryButtonTitle} Sub Category`
-                : `${subSubCategoryButtonTitle} Sub Sub Category`}
-          </h2>
-
-          <button onClick={onClose} className="close-drawer-btn shrink-0 ml-3">
-            ×
-          </button>
-        </div>
-
-        {!!successMessage && <SuccessMessage text={successMessage} />}
-        {!!errorMessage && <ErrorMessage text={errorMessage} />}
-
-        {renderComponent()}
-      </div>
+      {renderComponent()}
 
       {/* print popup */}
       {!!renderPrintPopup && (
@@ -719,8 +738,7 @@ const CreateUpdatePopup = ({
       )}
 
       {!!loading && <CustomLoader isLoading={loading} />}
-    </div>,
-    document.body
+    </CentralPopup>
   );
 };
 

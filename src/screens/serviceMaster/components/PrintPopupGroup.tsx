@@ -78,9 +78,26 @@ const PrintPopup = React.memo(
         return;
       }
       setSuccessMessage(resp?.message ?? "Data saved successfully");
+      if (resp?.data) {
+        const dataObj = Array.isArray(resp.data) ? resp.data[0] : resp.data;
+        if (dataObj?.printGroupId || dataObj?.PrintGroupId) {
+          const printGroupId = Number(dataObj.printGroupId ?? dataObj.PrintGroupId);
+          const printGroupItem = {
+            PrintGroupId: printGroupId,
+            PrintGroupName: dataObj.printGroupName ?? dataObj.PrintGroupName ?? "",
+            PrintOrder: Number(dataObj.printOrder ?? dataObj.PrintOrder ?? 1),
+          };
+          resetPrintGroupId(printGroupId);
+          resetData(printGroupItem);
+        } else {
+          resetPrintGroupId(0);
+          resetData(null);
+        }
+      } else {
+        resetPrintGroupId(0);
+        resetData(null);
+      }
       refreshData?.();
-      resetPrintGroupId(0);
-      resetData(null);
       setTimeout(() => {
         reset({
           printGroupId: 0,

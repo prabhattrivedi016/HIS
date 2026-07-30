@@ -436,7 +436,7 @@ input::placeholder {
 /* buttons */
 
 .form-actions-responsive {
-  @apply flex flex-col sm:flex-row gap-3 sm:justify-end mt-5;
+  @apply flex flex-col sm:flex-row gap-3 sm:justify-end mt-2;
 }
 
 /* Mobile behavior */
