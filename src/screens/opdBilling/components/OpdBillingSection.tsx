@@ -3,6 +3,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
+import InputFieldModal from "@/components/inputFieldModal";
 import { ENDPOINTS } from "@/config/defaults";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -15,13 +16,7 @@ import {
   getDefaultAdvanceLedgerDetails,
   normalizeAdvanceLedgerDetails,
 } from "../../patientAdvance/utils/patientAdvanceUtils";
-import {
-  CategoryItem,
-  OpdBillingSectionProps,
-  OptionItem,
-  ServiceBindingItem,
-  ServiceItemList,
-} from "../types";
+import { CategoryItem, OpdBillingSectionProps, OptionItem, ServiceBindingItem } from "../types";
 import { sanitizeQtyDraft } from "./helperFunction";
 
 const OpdBillingSection = ({
@@ -338,7 +333,7 @@ const OpdBillingSection = ({
         </InputField>
 
         <div>
-          <InputField>
+          <InputField label="">
             <div className="relative w-full">
               <input
                 ref={serviceInputRef}
@@ -348,26 +343,20 @@ const OpdBillingSection = ({
                 onChange={serviceItemHandler}
                 onKeyDown={serviceInputKeyDownHandler}
               />
+
               <i
                 className="fa-solid fa-magnifying-glass input-search-icon input-search-icon-right"
                 aria-hidden="true"
               />
-              {showPopup && serviceNameList?.length > 0 && (
-                <div className="input-popup-bg">
-                  {serviceNameList.map((s: ServiceItemList, index: number) => (
-                    <div
-                      key={index}
-                      className={`input-popup-row ${
-                        index === activeServiceIndex ? "bg-gray-200" : ""
-                      }`}
-                      onMouseEnter={() => setActiveServiceIndex(index)}
-                      onClick={() => selectedServiceHandler(s)}
-                    >
-                      {s?.name}
-                    </div>
-                  ))}
-                </div>
-              )}
+
+              <InputFieldModal
+                showPopup={showPopup}
+                data={serviceNameList}
+                activeIndex={activeServiceIndex}
+                setActiveIndex={setActiveServiceIndex}
+                onSelect={selectedServiceHandler}
+                getLabel={item => item.name}
+              />
             </div>
           </InputField>
           <div className="flex flex-row gap-2 justify-center items-center">

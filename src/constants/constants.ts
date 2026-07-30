@@ -531,3 +531,5 @@ export const ConditionOperatorOptions = [
   { value: ">", label: "Greater Than (>)" },
   { value: ">=", label: "Greater Than Equals To (>=)" },
 ] as const;
+
+export const AddNewTabIconTableHeader = ["#", "Icon Name", "Image"];

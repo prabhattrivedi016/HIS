@@ -21,11 +21,15 @@ const DoctorDepartmentPopup = ({
   onClose,
   data,
   refreshDepartment,
+  resetDepartmentId,
+  resetData,
 }: {
   isOpen: boolean;
   onClose: () => void;
   data: DoctorDepartmentList | null;
   refreshDepartment?: () => Promise<QueryObserverResult<any, Error>>;
+  resetDepartmentId?: (id: number) => void;
+  resetData?: (data: DoctorDepartmentList | null) => void;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -100,6 +104,13 @@ const DoctorDepartmentPopup = ({
       return;
     }
     setSuccessMessage(resp?.message ?? "Data saved successfully");
+    if (resp?.data) {
+      const dataObj = Array.isArray(resp.data) ? resp.data[0] : resp.data;
+      if (dataObj?.departmentId) {
+        resetDepartmentId?.(Number(dataObj.departmentId));
+        resetData?.(dataObj);
+      }
+    }
     await refreshDepartment?.();
     setTimeout(() => {
       reset({

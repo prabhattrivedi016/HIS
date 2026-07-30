@@ -48,6 +48,7 @@ import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
+import PackageMaster from "../packageMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
@@ -147,4 +148,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "write-off-approval": <WriteOffApproval />,
   "credit-note-generation": <CreditNoteGeneration />,
   "write-off-generation": <WriteOffGeneration />,
+  "package-master": <PackageMaster />,
 };
