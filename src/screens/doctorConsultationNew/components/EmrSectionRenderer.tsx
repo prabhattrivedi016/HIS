@@ -27,8 +27,12 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, History, Loader2 } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { EmrSectionAnswerEntry } from "../types";
+import {
+  applySnapshotToSectionData,
+  isCardGroupSection,
+  mapControlType,
+} from "../utils/sectionSnapshot";
 import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
-import { applySnapshotToSectionData, isCardGroupSection, mapControlType } from "../utils/sectionSnapshot";
 
 interface EmrSectionRendererProps {
   sectionId: number;
@@ -62,7 +66,7 @@ interface EmrSectionRendererProps {
 const needsOptions = (dynamicType: string) =>
   dynamicType === "radio" || dynamicType === "dropdown" || dynamicType === "checkbox-list";
 const isFullWidth = (dynamicType: string) =>
-  dynamicType === "richtext" || dynamicType === "medicineList";
+  dynamicType === "richtext" || dynamicType === "medicineList" || dynamicType === "comparisonGrid";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -321,6 +325,14 @@ const EmrSectionRenderer = ({
     [headers]
   );
 
+  const multiLevelGridHeaderIds = useMemo(
+    () =>
+      headers
+        .filter(h => mapControlType(h.controlType) === "multiLevelInputGrid")
+        .map(h => h.headerId),
+    [headers]
+  );
+
   const tableColumnsQueries = useQueries({
     queries: tableHeaderIds.map(headerId => ({
       queryKey: ["emrHeaderTableColumns", headerId],
@@ -344,9 +356,15 @@ const EmrSectionRenderer = ({
       headers
         .filter(h => {
           if (
-            ["table", "medicineList", "genericAttributeGroup", "imageUpload", "dentalChart"].includes(
-              mapControlType(h.controlType)
-            )
+            [
+              "table",
+              "medicineList",
+              "genericAttributeGroup",
+              "imageUpload",
+              "dentalChart",
+              "multiLevelInputGrid",
+              "comparisonGrid",
+            ].includes(mapControlType(h.controlType))
           )
             return false;
           const dataSource = resolveHeaderBehavior(h.headerName)?.dataSource;
@@ -405,6 +423,8 @@ const EmrSectionRenderer = ({
         "genericAttributeGroup",
         "imageUpload",
         "dentalChart",
+        "multiLevelInputGrid",
+        "comparisonGrid",
       ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
@@ -464,7 +484,9 @@ const EmrSectionRenderer = ({
           favouritesEnabled: primaryHeaderBehavior?.table?.favouritesEnabled ?? true,
           masterEntryConfig: primaryHeaderBehavior?.table?.masterEntry,
           orderSetConfig: primaryHeaderBehavior?.table?.orderSet,
-          nameColumnKey: masterHeaderEntry ? `header_${masterHeaderEntry.header.headerId}` : undefined,
+          nameColumnKey: masterHeaderEntry
+            ? `header_${masterHeaderEntry.header.headerId}`
+            : undefined,
           previousVisitsEnabled: primaryHeaderBehavior?.table?.previousVisitsEnabled ?? false,
           previousVisitsData: primaryHeaderBehavior?.table?.previousVisitsData,
         },
@@ -512,6 +534,9 @@ const EmrSectionRenderer = ({
         const label =
           isOnlyControl && isTextLikeType(dynamicType) ? undefined : h.displayName || h.headerName;
 
+        const isMultiLevelGrid = dynamicType === "multiLevelInputGrid";
+        const isComparisonGrid = dynamicType === "comparisonGrid";
+
         return {
           key: `header_${h.headerId}`,
           label,
@@ -526,18 +551,24 @@ const EmrSectionRenderer = ({
                 ? tableHeaderIds.length <= 1
                   ? 4
                   : 2
-                : dynamicType === "radio" || dynamicType === "checkbox-list"
-                  ? 2
-                  : 1,
+                : isMultiLevelGrid
+                  ? multiLevelGridHeaderIds.length <= 1
+                    ? 4
+                    : 2
+                  : dynamicType === "radio" || dynamicType === "checkbox-list"
+                    ? 2
+                    : 1,
           conditionalDisplay,
           asyncSearch,
           columns: isTable ? (tableColumnsByHeaderId[h.headerId] ?? []) : undefined,
           masterEntryConfig: isTable ? behavior?.table?.masterEntry : undefined,
           orderSetConfig: isTable ? behavior?.table?.orderSet : undefined,
-          favouritesEnabled: isTable ? (behavior?.table?.favouritesEnabled ?? true) : undefined,
+          favouritesEnabled:
+            isTable || isMultiLevelGrid ? (behavior?.table?.favouritesEnabled ?? true) : undefined,
           previousVisitsEnabled: isTable
             ? (behavior?.table?.previousVisitsEnabled ?? false)
             : undefined,
+          gridConfigName: isMultiLevelGrid || isComparisonGrid ? h.headerName : undefined,
           textFavouritesEnabled: isTextLikeType(dynamicType)
             ? (behavior?.text?.favouritesEnabled ?? false)
             : undefined,

@@ -63,7 +63,6 @@ export interface TableOrderSetConfig {
   itemSearchParams?: Record<string, unknown>;
   idField: string;
   nameField: string;
-  /** backend field name for the array of item names inside an order set, e.g. "items" */
   itemsField: string;
 }
 
@@ -91,35 +90,23 @@ export interface ControlSchema {
   columns?: TableColumnSchema[];
   masterEntryConfig?: TableMasterEntryConfig;
   orderSetConfig?: TableOrderSetConfig;
-  /** "table"/"card-group" controls only — default false. Set true to show a "Previous Visits"
-   * panel that lets the doctor browse past-visit rows (grouped by visit date) and copy selected
-   * ones into this control for the current visit */
+
   previousVisitsEnabled?: boolean;
-  /** the past-visit data the "Previous Visits" panel above renders — dummy/mock until a real
-   * per-header history endpoint exists (same precedent as dummyHeaderLovs.ts) */
+
   previousVisitsData?: PreviousVisitEntry[];
-  /** logged-in doctor, used by "table" controls to load/save doctor-wise favourite entries */
   doctorId?: number;
-  /** current patient, used by "medicineList" controls to look up its own past-visit snapshots */
   patientId?: number;
-  /** current visit, used by "imageUpload" controls to scope the shared visit-reports store */
   visitId?: number;
-  /** this header's own numeric control type id (e.g. from GET_EMR_SECTION_HEADER_MAPPING) —
-   * currently only threaded through for "imageUpload" controls, to attach alongside headerId on
-   * each saved report, same as every other control type's payload entry already gets */
+
   controlTypeId?: number;
-  /** "table" controls only — default true. Set false to hide the favourites bar/star column entirely */
   favouritesEnabled?: boolean;
-  /** "textarea"/"richtext" controls only — default false. Set true to show the "save as favourite" bar */
   textFavouritesEnabled?: boolean;
-  /** "textarea" controls only — default false. Set true for a large, auto-growing textarea
-   * instead of the normal fixed-height one */
+
   textLarge?: boolean;
-  /** "card-group" controls only — which column's key is the entry's "name" (card title,
-   * duplicate-check, and the field a master-entry/order-set pick lands in). Defaults to the
-   * first column when unset — only needed when the meaningful/master-searchable field isn't
-   * sequenced first (e.g. Family History's "Condition" column, with "Relationship" ahead of it) */
+
   nameColumnKey?: string;
+
+  gridConfigName?: string;
 }
 
 export interface CardSchema {

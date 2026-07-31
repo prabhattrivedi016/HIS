@@ -29,6 +29,8 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
 import MedicineListControl from "./MedicineListControl";
+import ComparisonGridControl from "./ComparisonGridControl";
+import MultiLevelInputGridControl from "./MultiLevelInputGridControl";
 import OrderSetDrawer from "./OrderSetDrawer";
 import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
 import { TableFieldInput } from "./TableFieldInput";
@@ -372,9 +374,7 @@ const CheckboxListControl = ({ schema, value, onChange }: ControlRenderProps) =>
 
   const toggleOption = (optValue: string) => {
     onChange(
-      selected.includes(optValue)
-        ? selected.filter(v => v !== optValue)
-        : [...selected, optValue]
+      selected.includes(optValue) ? selected.filter(v => v !== optValue) : [...selected, optValue]
     );
   };
 
@@ -1061,11 +1061,11 @@ const DentalChartControl = ({ schema, value, onChange }: ControlRenderProps) => 
   const chartValue = (value as DentalChartValue) ?? {};
   const hasData = Boolean(
     chartValue.treatmentType ||
-      Object.values(chartValue.bite ?? {}).some(g => g && g !== "None") ||
-      Object.keys(chartValue.chart?.marks ?? {}).length ||
-      (chartValue.chart?.ipr ?? []).length ||
-      chartValue.plan?.packagePrice ||
-      chartValue.plan?.notes
+    Object.values(chartValue.bite ?? {}).some(g => g && g !== "None") ||
+    Object.keys(chartValue.chart?.marks ?? {}).length ||
+    (chartValue.chart?.ipr ?? []).length ||
+    chartValue.plan?.packagePrice ||
+    chartValue.plan?.notes
   );
 
   return (
@@ -1509,6 +1509,8 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   medicineList: MedicineListControl,
   imageUpload: ImageUploadControl,
   dentalChart: DentalChartControl,
+  multiLevelInputGrid: MultiLevelInputGridControl,
+  comparisonGrid: ComparisonGridControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

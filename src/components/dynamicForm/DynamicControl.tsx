@@ -55,6 +55,34 @@ const DynamicControl = ({
   }
 
   if (schema.type === "table") {
+    if (!schema.label) {
+      return (
+        <div className={wrapperClass}>
+          <Renderer
+            schema={effectiveSchema}
+            value={value}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <InputField label={schema.label} className={wrapperClass}>
+        <Renderer
+          schema={effectiveSchema}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+      </InputField>
+    );
+  }
+
+  // MultiLevelInputGridControl/ComparisonGridControl already show their own title, so wrapping
+  // either in the external label too would show the header's name twice
+  if (schema.type === "multiLevelInputGrid" || schema.type === "comparisonGrid") {
     return (
       <div className={wrapperClass}>
         <Renderer

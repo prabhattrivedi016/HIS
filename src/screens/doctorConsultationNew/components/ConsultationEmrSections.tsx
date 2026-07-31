@@ -815,7 +815,9 @@ const ConsultationEmrSections = ({
                             >
                               <Icon
                                 size={12}
-                                className={iconColorBySectionId.get(section.sectionId) ?? ICON_COLORS[0]}
+                                className={
+                                  iconColorBySectionId.get(section.sectionId) ?? ICON_COLORS[0]
+                                }
                                 strokeWidth={2.25}
                               />
                             </span>

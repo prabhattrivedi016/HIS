@@ -29,6 +29,8 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("lookup")) return "lookup";
   if (key.includes("image")) return "imageUpload";
   if (key.includes("dental")) return "dentalChart";
+  if (key.includes("multilevel")) return "multiLevelInputGrid";
+  if (key.includes("comparison")) return "comparisonGrid";
   // anything else with a registered generic-attribute-group config (e.g. "Diagnosis",
   // "Procedure") becomes that repeatable-attribute card widget — everything else (including
   // plain "Text Box" or any unrecognized/typo'd control type) safely falls back to plain text,
@@ -44,9 +46,15 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
   headers.length > 1 &&
   headers.every(
     h =>
-      !["table", "medicineList", "genericAttributeGroup", "imageUpload", "dentalChart"].includes(
-        mapControlType(h.controlType)
-      )
+      ![
+        "table",
+        "medicineList",
+        "genericAttributeGroup",
+        "imageUpload",
+        "dentalChart",
+        "multiLevelInputGrid",
+        "comparisonGrid",
+      ].includes(mapControlType(h.controlType))
   );
 
 /**
