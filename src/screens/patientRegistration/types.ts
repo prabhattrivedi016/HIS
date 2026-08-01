@@ -125,7 +125,7 @@ type SearchedPatientItem = {
   FullAddress: string;
   RegistrationDate: string;
   IPDNo: string;
-  IsRegistrationChargeValidityExpired: number;
+  IsRegistrationValid: number;
 };
 
 type PatientDataProps = {
@@ -225,7 +225,7 @@ type PatientDataEditItem = {
   dayCareNo: number;
   dialysisNo: number;
   emergencyNo: number;
-  isRegistrationChargeValidityExpired?: number;
+  IsRegistrationValid?: number;
 };
 
 type PatientDocumentPayloadItem = {

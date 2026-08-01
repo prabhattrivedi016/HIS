@@ -2,6 +2,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { SelectStyles } from "@/components/customSelect";
+import Select from "react-select";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import { ErrorMessage, SuccessMessage } from "../../../components/infoText";
@@ -9,7 +11,6 @@ import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { addNewTabSchema } from "../../../validation/addNewTabSchema";
 
-import { AddNewTabIconTableHeader } from "@/constants/constants";
 import {
   AddNewTabPanelProps,
   AddTabFormFields,
@@ -115,6 +116,51 @@ const AddNewTabPanel = ({
     setValue("faIconId", String(item.id), { shouldValidate: true });
   };
 
+  const iconOptions = React.useMemo(() => {
+    return faIcons.map(item => ({
+      value: item.id,
+      label: item.iconName || "-",
+      iconClass: item.iconClass,
+    }));
+  }, [faIcons]);
+
+  const selectedOption = React.useMemo(() => {
+    return selectedIcon
+      ? { value: selectedIcon.id, label: selectedIcon.iconName, iconClass: selectedIcon.iconClass }
+      : null;
+  }, [selectedIcon]);
+
+  const formatOptionLabel = (
+    option: {
+      label?: string;
+      value?: string | number;
+      iconClass?: string;
+    },
+    { context }: { context: "menu" | "value" }
+  ) => {
+    if (context === "value") {
+      return <span>{option.label}</span>;
+    }
+    return (
+      <div className="flex items-center justify-between w-full">
+        <span>{option.label}</span>
+        {option.iconClass && <i className={option.iconClass} />}
+      </div>
+    );
+  };
+
+  const handleSelectOption = (option: any) => {
+    if (!option) {
+      setSelectedIcon(null);
+      setValue("faIconId", "", { shouldValidate: true });
+      return;
+    }
+    const matched = faIcons.find(i => i.id === option.value);
+    if (matched) {
+      handleSelectIcon(matched);
+    }
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -148,17 +194,20 @@ const AddNewTabPanel = ({
           </InputField>
 
           <InputField label="Selected Icon Name">
-            <input
-              type="text"
-              className="input-field"
-              value={selectedIcon?.iconName ?? "No Icon Selected"}
-              disabled
+            <Select
+              value={selectedOption}
+              options={iconOptions}
+              onChange={handleSelectOption}
+              isSearchable
+              placeholder="Search or Select Icon..."
+              styles={SelectStyles as any}
+              formatOptionLabel={formatOptionLabel}
             />
             {errors?.faIconId && <p className="input-field-error">{errors?.faIconId?.message}</p>}
           </InputField>
 
           {/* table */}
-          <div className="table-container -mt-3 ">
+          {/* <div className="table-container -mt-3 ">
             <div className="table-scroll-wrapper ">
               <div className="table-size lg:min-h-60 lg:max-h-60">
                 <table className="base-table ">
@@ -192,6 +241,7 @@ const AddNewTabPanel = ({
                               : "hover:bg-gray-50"
                           }`}
                           onClick={() => handleSelectIcon(item)}
+                          onDoubleClick={() => handleSelectIcon(item)}
                         >
                           <td className="table-td">{item?.id}</td>
                           <td className="table-td">{item?.iconName || "-"}</td>
@@ -205,7 +255,7 @@ const AddNewTabPanel = ({
                 </table>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* <InputField label="Icon Preview"> */}
           <div className="grid grid-cols-2">

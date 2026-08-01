@@ -506,6 +506,7 @@ export enum PageType {
   OPD_REFUND = "OpdRefund",
   CREDIT_NOTE = "creditNote",
   WRITE_OFF = "writeOff",
+  IPD_ADMISSION = "IPDAdmission",
 }
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",
