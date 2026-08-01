@@ -2,7 +2,7 @@ import CustomLoader from "@/components/customLoader";
 
 import { ENDPOINTS } from "@/config/defaults";
 
-import { IPDAdmissionTabName, IpdOpdTypeName } from "@/constants/constants";
+import { IPDAdmissionTabName, IpdOpdTypeName, PageType } from "@/constants/constants";
 
 import useGlobalApi from "@/hooks/useGlobalApi";
 
@@ -11,8 +11,6 @@ import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { NavLink } from "react-router-dom";
-
-import Buttons from "../opdBilling/components/Buttons";
 
 import PatientData from "../patientRegistration/components/PatientData";
 
@@ -28,6 +26,7 @@ import IpdAdmissionDetails from "./components/IpdAdmissionDetails";
 
 import { buildIpdPatientSummary, buildSaveIpdAdmissionPayload } from "./helpers";
 
+import GlobalFooterButtons from "@/components/globalButtons/GlobalFooterButtons";
 import IpdOpdDocument from "@/components/SingledrawerAndPopup/components/IpdOpdDocument";
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
 import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
@@ -357,7 +356,10 @@ const IPDAdmission = () => {
       </div>
 
       <div className={activeTab === IPDAdmissionTabName.IPD_ADIMISSION ? "" : "hidden"}>
-        <IpdAdmissionDetails ref={admissionDetailsRef} />
+        <IpdAdmissionDetails
+          ref={admissionDetailsRef}
+          patientDetails={patientRegistrationDetails}
+        />
       </div>
 
       <div className={activeTab === IPDAdmissionTabName.IPD_DOCUMENT ? "" : "hidden"}>
@@ -463,8 +465,6 @@ const IPDAdmission = () => {
 
       {renderTabs()}
 
-      <Buttons onButtonClick={buttonClickHandler} />
-
       {renderSearchPatientPopup && (
         <SearchPatientPopup
           isOpen={openSearchPatientPopup}
@@ -475,6 +475,9 @@ const IPDAdmission = () => {
           selectionErrorMessage={searchPatientError}
         />
       )}
+
+      {/* buttons */}
+      <GlobalFooterButtons pageType={PageType?.IPD_ADMISSION} onButtonClick={buttonClickHandler} />
 
       {loading && <CustomLoader isLoading={loading} />}
     </div>

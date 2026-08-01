@@ -13,6 +13,37 @@
   @apply bg-[#3B82F6] hover:bg-[#2563EB];
 }
 
+/* colors codings colors */
+/* opd billing */
+
+.opd-zero-rate {
+  background-color: #ffe6b7 !important;
+}
+.opd-zero-rate:hover {
+  background-color: #ffd795 !important;
+}
+
+.opd-non-payable {
+  background-color: #cff2ff !important;
+}
+.opd-non-payable:hover {
+  background-color: #b3e7ff !important;
+}
+
+.opd-corporate-discount {
+  background-color: #d7d7d7 !important;
+}
+.opd-corporate-discount:hover {
+  background-color: #c3c3c3 !important;
+}
+
+.opd-privileged-card-discount {
+  background-color: #ffc0cb !important;
+}
+.opd-privileged-card-discount:hover {
+  background-color: #ffa6b7 !important;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

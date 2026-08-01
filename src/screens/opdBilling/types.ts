@@ -191,6 +191,7 @@ type ServiceBindingItem = {
   remarks?: string;
   isDiscountLocked?: number;
   isBookingServiceLocked?: number;
+  isPrivilegedCardDiscount?: number;
 };
 
 type CategoryItem = {

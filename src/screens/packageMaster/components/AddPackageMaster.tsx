@@ -88,7 +88,7 @@ const AddPackageMaster = ({
   } = useForm({
     resolver: yupResolver(addPackageMasterSchema),
     defaultValues: {
-      packageId: null,
+      packageId: 0,
       categoryId: 0,
       subCategoryId: 0,
       subSubCategoryId: 0,
@@ -494,7 +494,7 @@ const AddPackageMaster = ({
   useEffect(() => {
     if (!itemValue) {
       reset({
-        packageId: null,
+        packageId: 0,
         categoryId: 0,
         subCategoryId: 0,
         subSubCategoryId: 0,
@@ -516,7 +516,7 @@ const AddPackageMaster = ({
     }
 
     reset({
-      packageId: itemValue.serviceItemId ?? null,
+      packageId: itemValue.serviceItemId ?? 0,
       categoryId: itemValue.categoryId ?? 0,
       subCategoryId: itemValue.subCategoryId ?? 0,
       subSubCategoryId: itemValue.subSubCategoryId ?? 0,

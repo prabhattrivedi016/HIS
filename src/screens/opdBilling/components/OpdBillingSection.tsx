@@ -9,7 +9,7 @@ import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Select, { StylesConfig } from "react-select";
 import { InsuranceItem } from "../../branchMaster/types";
 import {
@@ -172,6 +172,7 @@ const OpdBillingSection = ({
             onChange={insuranceSelectHandler}
             className={hasSelectedService ? "disabled-input-field" : "input-field"}
             disabled={hasSelectedService}
+            value={selectedInsurance ?? 0}
           >
             <option value={0}>Self</option>
             {insuranceList.map((item: InsuranceItem) => (
@@ -200,6 +201,7 @@ const OpdBillingSection = ({
           )}
         </InputField>
 
+        {/* Doctor selection: the flag to prevent duplicate registration charge service additions is managed in the parent OpdBilling (index.tsx) doctorSelectHandler */}
         <InputField label="Doctor">
           <Select<OptionItem, false>
             ref={doctorRef as React.RefObject<never>}
@@ -374,22 +376,22 @@ const OpdBillingSection = ({
         <div className="w-full">
           <div className="flex flex-wrap items-center gap-6 px-3 py-2 text-md justify-between">
             <div className="flex items-center gap-1 text-orange-500">
-              <span className="w-3 h-3 rounded-full bg-orange-400"></span>
+              <span className="w-3 h-3 rounded-full opd-zero-rate border border-orange-300"></span>
               Rate Not Set
             </div>
 
             <div className="flex items-center gap-1 text-blue-500">
-              <span className="w-3 h-3 rounded-full bg-blue-400"></span>
+              <span className="w-3 h-3 rounded-full opd-non-payable border border-blue-300"></span>
               Corporate Non-Payable
             </div>
 
             <div className="flex items-center gap-1 text-gray-500">
-              <span className="w-3 h-3 rounded-full bg-gray-400"></span>
+              <span className="w-3 h-3 rounded-full opd-corporate-discount border border-gray-300"></span>
               Corporate Wise Discount
             </div>
 
             <div className="flex items-center gap-1 text-pink-400">
-              <span className="w-3 h-3 rounded-full bg-pink-300"></span>
+              <span className="w-3 h-3 rounded-full opd-privileged-card-discount border border-pink-300"></span>
               Privileged Card Discount
               <span className="text-red-500 ml-1">ⓘ</span>
             </div>
@@ -426,10 +428,21 @@ const OpdBillingSection = ({
                         const isBookingServiceLocked =
                           Number(item?.isBookingServiceLocked ?? 0) === 1;
 
+                        const rowBgClass =
+                          Number(item?.rate ?? 0) === 0
+                            ? "opd-zero-rate"
+                            : Number(item?.isNonPayable ?? 0) === 1
+                              ? "opd-non-payable"
+                              : Number(item?.isCorporateDiscount ?? 0) === 1
+                                ? "opd-corporate-discount"
+                                : Number(item?.isPrivilegedCardDiscount ?? 0) === 1
+                                  ? "opd-privileged-card-discount"
+                                  : "";
+
                         return (
                           <tr
                             key={idx}
-                            className="table-row"
+                            className={`table-row ${rowBgClass}`}
                             onDoubleClick={() => {
                               if (!isBookingServiceLocked) {
                                 deleteHandler(idx);

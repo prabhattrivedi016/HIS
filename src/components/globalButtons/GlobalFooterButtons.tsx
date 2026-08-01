@@ -3,7 +3,6 @@ import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 const GlobalFooterButtons = ({
   onButtonClick,
   pageType,
-  hasDiscountApplied = false,
   paymentCollectionMode = false,
   shouldSaveButtonVisible = false,
 }: {
@@ -14,10 +13,6 @@ const GlobalFooterButtons = ({
   shouldSaveButtonVisible?: boolean;
 }) => {
   const { rights: branchRights } = useAssignBranchRight();
-  const isDiscountApprovalRequired =
-    Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
-  const isSeparateCollectionCounterEnabled =
-    Number(branchRights?.IsSeparateCollectionCounterEnabled) === 1 ? 1 : 0;
 
   const isOPDRefundApprovalRequired =
     Number(branchRights?.IsOPDRefundApprovalRequired) === 1 ? 1 : 0;
@@ -27,35 +22,13 @@ const GlobalFooterButtons = ({
 
   const isWiteOffApprovalRequired = Number(branchRights?.IsWriteOffApprovalRequired) === 1 ? 1 : 0;
 
-  // "Save As Draft" is only applicable to OPD Billing; IPD admission always uses the plain "Save".
-  //   const showSaveAsDraft =
-  //     (pageType === PageType?.OPD_BILLING &&
-  //       isSeparateCollectionCounterEnabled === 1 &&
-  //       isDiscountApprovalRequired === 1) ||
-  //     (isSeparateCollectionCounterEnabled === 1 && isDiscountApprovalRequired === 0);
-
-  //   const showDiscountRequest =
-  //     pageType === PageType?.OPD_BILLING &&
-  //     isDiscountRequestButtonMode(isSeparateCollectionCounterEnabled, isDiscountApprovalRequired);
-
-  //   const showSaveButton =
-  //     isSeparateCollectionCounterEnabled === 0 && isDiscountApprovalRequired === 0;
-
-  //   if (paymentCollectionMode) {
-  //     return (
-  //       <div className="fixed bottom-0 left-0 w-full z-20 bg-white shadow-lg p-1 border-t border-gray-200">
-  //         <div className="form-actions-responsive flex-wrap gap-2 justify-end">
-  //           <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
-  //             Save
-  //           </button>
-  //         </div>
-  //       </div>
-  //     );
-  //   }
-
   return (
-    <div className="fixed bottom-0 left-0 w-full z-20 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.08)]">
-      <div className="form-actions-responsive mt-0! flex-wrap justify-end gap-2 px-3 py-1.5">
+    <div
+      className="fixed bottom-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
+      style={{ left: "var(--app-sidebar-width, 0px)" }}
+    >
+      <div className="flex flex-wrap justify-end gap-2 px-3 py-2.5">
+        {/* opd refund */}
         {pageType === PageType?.OPD_REFUND &&
         isOPDRefundApprovalRequired === 1 &&
         !paymentCollectionMode ? (
@@ -118,9 +91,19 @@ const GlobalFooterButtons = ({
           <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
             Save
           </button>
-        ) : (
-          <></>
-        )}
+        ) : null}
+
+        {/* ipd admission */}
+        {pageType === PageType?.IPD_ADMISSION ? (
+          <>
+            <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+              Save
+            </button>
+            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
+              Cancel
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );

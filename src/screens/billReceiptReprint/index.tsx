@@ -4,11 +4,11 @@ import CustomLoader from "@/components/customLoader";
 import CancelButton from "@/components/globalButtons/CancelButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
-import { billReceiptReprintTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
-import { ChangeEvent, useContext, useEffect, useState } from "react";
+import { MRT_ColumnDef, MaterialReactTable, useMaterialReactTable } from "material-react-table";
+import { ChangeEvent, useContext, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { BillReceiptReprintItem } from "./types";
 
@@ -22,6 +22,444 @@ const BillReceiptReprint = () => {
   const [originalBillReceiptTableData, setOriginalBillReceiptTableData] = useState<
     BillReceiptReprintItem[]
   >([]);
+
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState("");
+
+  const columns = useMemo<MRT_ColumnDef<BillReceiptReprintItem>[]>(
+    () => [
+      {
+        accessorKey: "Type",
+        header: "Type",
+        minSize: 100,
+      },
+      {
+        accessorKey: "BillDate",
+        header: "Bill Date",
+        minSize: 140,
+      },
+      {
+        accessorKey: "ReceiptNo",
+        header: "Receipt No",
+        minSize: 150,
+      },
+      {
+        accessorKey: "BillNo",
+        header: "Bill No",
+        minSize: 130,
+      },
+      {
+        accessorKey: "UHID",
+        header: "UHID",
+        minSize: 130,
+      },
+      {
+        accessorKey: "PatientName",
+        header: "Patient Name",
+        minSize: 220,
+      },
+      {
+        accessorKey: "Age",
+        header: "Age",
+        minSize: 90,
+      },
+      {
+        accessorKey: "NetAmount",
+        header: "Net Amount",
+        minSize: 130,
+
+        Cell: ({ cell }) => (
+          <span className="font-semibold text-green-600">₹ {cell.getValue<number>()}</span>
+        ),
+      },
+      {
+        accessorKey: "Status",
+        header: "Status",
+        size: 120,
+
+        Cell: ({ cell }) => {
+          const status = cell.getValue<string>();
+
+          return (
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold
+            ${status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+            >
+              {status}
+            </span>
+          );
+        },
+      },
+
+      {
+        id: "print",
+        header: "Action",
+        size: 40,
+
+        Cell: ({ row }) => (
+          <button
+            onClick={() => console.log(row.original)}
+            className="w-9 h-9 rounded-full bg-blue-50 text-blue-600
+          hover:bg-blue-600 hover:text-white duration-200"
+          >
+            <i className="fa-solid fa-print" />
+          </button>
+        ),
+      },
+    ],
+    []
+  );
+
+  // const table = useMaterialReactTable({
+  //   columns,
+  //   data: billReceiptTableData,
+
+  //   // ===========================
+  //   // FEATURES
+  //   // ===========================
+
+  //   enableColumnOrdering: true,
+  //   enableColumnResizing: true,
+  //   enableColumnPinning: true,
+  //   enableSorting: true,
+  //   enableColumnFilters: true,
+  //   enableGlobalFilter: true,
+  //   enablePagination: true,
+  //   enableStickyHeader: true,
+  //   enableStickyFooter: true,
+  //   enableDensityToggle: true,
+  //   enableFullScreenToggle: true,
+  //   enableColumnActions: true,
+  //   enableHiding: true,
+  //   enableRowNumbers: true,
+  //   enableRowSelection: false,
+
+  //   // ===========================
+  //   // INITIAL STATE
+  //   // ===========================
+
+  //   initialState: {
+  //     density: "compact",
+
+  //     pagination: {
+  //       pageIndex: 0,
+  //       pageSize: 10,
+  //     },
+
+  //     showGlobalFilter: true,
+
+  //     showColumnFilters: false,
+  //   },
+
+  //   // ===========================
+  //   // SEARCH BOX
+  //   // ===========================
+
+  //   muiSearchTextFieldProps: {
+  //     placeholder: "Search Patients...",
+  //     variant: "outlined",
+  //     size: "small",
+
+  //     sx: {
+  //       minWidth: 350,
+
+  //       "& .MuiOutlinedInput-root": {
+  //         borderRadius: "30px",
+  //         background: "#fff",
+  //       },
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // PAPER
+  //   // ===========================
+
+  //   muiTablePaperProps: {
+  //     elevation: 0,
+
+  //     sx: {
+  //       borderRadius: "14px",
+  //       border: "1px solid #E5E7EB",
+  //       overflow: "hidden",
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // TABLE CONTAINER
+  //   // ===========================
+
+  //   muiTableContainerProps: {
+  //     sx: {
+  //       maxHeight: "65vh",
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // HEADER
+  //   // ===========================
+
+  //   muiTableHeadCellProps: {
+  //     sx: {
+  //       backgroundColor: "#0F172A",
+  //       color: "#fff",
+  //       fontWeight: 700,
+  //       fontSize: "14px",
+  //       textAlign: "center",
+
+  //       whiteSpace: "normal",
+  //       wordBreak: "break-word",
+  //       lineHeight: 1.3,
+
+  //       "& .Mui-TableHeadCell-Content": {
+  //         justifyContent: "center",
+  //       },
+
+  //       "& .MuiSvgIcon-root": {
+  //         color: "#fff",
+  //       },
+
+  //       "& .MuiButtonBase-root": {
+  //         color: "#fff",
+  //       },
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // BODY CELLS
+  //   // ===========================
+
+  //   muiTableBodyCellProps: {
+  //     sx: {
+  //       fontSize: "13px",
+
+  //       borderBottom: "1px solid #E5E7EB",
+
+  //       whiteSpace: "nowrap",
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // ROWS
+  //   // ===========================
+
+  //   muiTableBodyRowProps: {
+  //     hover: true,
+
+  //     sx: {
+  //       transition: "all .2s",
+
+  //       "&:nth-of-type(even)": {
+  //         background: "#FAFAFA",
+  //       },
+
+  //       "&:hover": {
+  //         background: "#EFF6FF",
+  //       },
+  //     },
+  //   },
+
+  //   // ===========================
+  //   // PAGINATION
+  //   // ===========================
+
+  //   muiPaginationProps: {
+  //     color: "primary",
+  //     shape: "rounded",
+  //     variant: "outlined",
+  //   },
+
+  //   // ===========================
+  //   // TOOLBAR
+  //   // ===========================
+
+  //   positionGlobalFilter: "left",
+
+  //   // renderTopToolbarCustomActions: () => (
+  //   //   <div className="flex items-center gap-2">
+  //   //     <button className="rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700">
+  //   //       Export Excel
+  //   //     </button>
+
+  //   //     <button className="rounded-md bg-blue-600 px-3 py-2 text-white hover:bg-blue-700">
+  //   //       Refresh
+  //   //     </button>
+  //   //   </div>
+  //   // ),
+  // });
+
+  const table = useMaterialReactTable({
+    columns,
+    data: billReceiptTableData,
+
+    // ===========================
+    // FEATURES
+    // ===========================
+
+    enableTopToolbar: false,
+    enableBottomToolbar: true,
+
+    enableColumnOrdering: true,
+    enableColumnResizing: true,
+    enableColumnPinning: true,
+    enableSorting: true,
+    enableColumnFilters: true,
+    enableGlobalFilter: false,
+    enableStickyHeader: true,
+    enableStickyFooter: true,
+    enableDensityToggle: false,
+    enableFullScreenToggle: false,
+    enableColumnActions: true,
+    enableHiding: true,
+    enableRowNumbers: true,
+    enableRowSelection: false,
+
+    // ===========================
+    // INITIAL STATE
+    // ===========================
+
+    initialState: {
+      density: "compact",
+
+      pagination: {
+        pageIndex: 0,
+        pageSize: 10,
+      },
+
+      showColumnFilters: false,
+    },
+
+    // ===========================
+    // TABLE PAPER
+    // ===========================
+
+    muiTablePaperProps: {
+      elevation: 0,
+      sx: {
+        borderRadius: "12px",
+        border: "1px solid #E5E7EB",
+        overflow: "hidden",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+        justifyContent: "space-between",
+      },
+    },
+
+    // ===========================
+    // TABLE CONTAINER
+    // ===========================
+
+    muiTableContainerProps: {
+      sx: {
+        maxHeight: "65vh",
+        overflow: "auto",
+        justifyContent: "left",
+      },
+    },
+
+    // ===========================
+    // HEADER
+    // ===========================
+
+    muiTableHeadCellProps: {
+      align: "center",
+      sx: {
+        backgroundColor: "#0d4db3ff",
+        justifyContent: "center",
+
+        color: "#fff",
+        fontWeight: 700,
+        fontSize: "15px",
+        height: 56,
+        padding: "0 12px",
+        borderRight: "1px solid #374151",
+
+        "& .Mui-TableHeadCell-Content": {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "left",
+
+          gap: "8px",
+          width: "100%",
+          height: "100%",
+        },
+
+        "& .Mui-TableHeadCell-Content-Labels": {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "4px",
+          flexWrap: "nowrap",
+          fontWeight: 700,
+          color: "#fff",
+        },
+
+        "& .MuiSvgIcon-root": {
+          color: "#CBD5E1",
+          fontSize: "18px",
+        },
+
+        "& .MuiIconButton-root": {
+          color: "#CBD5E1",
+          padding: "4px",
+        },
+      },
+    },
+
+    // ===========================
+    // BODY CELLS
+    // ===========================
+
+    muiTableBodyCellProps: {
+      sx: {
+        fontSize: "13px",
+        py: 1.2,
+        borderBottom: "1px solid #E5E7EB",
+      },
+    },
+
+    // ===========================
+    // BODY ROWS
+    // ===========================
+
+    muiTableBodyRowProps: {
+      hover: true,
+      sx: {
+        transition: "0.2s",
+
+        "&:nth-of-type(even)": {
+          backgroundColor: "#FAFAFA",
+        },
+
+        "&:hover": {
+          backgroundColor: "#EFF6FF",
+        },
+      },
+    },
+
+    // ===========================
+    // PAGINATION
+    // ===========================
+
+    muiPaginationProps: {
+      color: "primary",
+      shape: "rounded",
+      variant: "outlined",
+      rowsPerPageOptions: [10, 20, 50, 100],
+    },
+
+    // ===========================
+    // TABLE LAYOUT
+    // ===========================
+
+    layoutMode: "semantic",
+    columnResizeMode: "onChange",
+
+    displayColumnDefOptions: {
+      "mrt-row-numbers": {
+        size: 60,
+        grow: false,
+      },
+    },
+  });
 
   useEffect(() => {
     setQueryData(prev => ({
@@ -247,75 +685,8 @@ const BillReceiptReprint = () => {
 
       {/* table */}
       {!!billReceiptTableData && showTable ? (
-        <div className="table-container mt-1 ">
-          <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-110 lg:max-h-110">
-              <table className="base-table ">
-                <thead className="table-head">
-                  <tr>
-                    {billReceiptReprintTableHeader.map((header, index) => (
-                      <th key={index} className="table-th ">
-                        {header !== "#" && header !== "Re-Print" && header !== "Card Print" ? (
-                          <div className="flex flex-col">
-                            <span>{header} </span>
-                            <div className="relative w-30">
-                              <input
-                                type="text"
-                                className="input-field w-full h-8 pl-8 pr-1"
-                                onChange={e => searchKeyChangeHandler(e, header)}
-                                placeholder="Search..."
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span>{header}</span>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {billReceiptTableData.length === 0 ? (
-                    <tr>
-                      <td colSpan={billReceiptReprintTableHeader.length} className="table-empty">
-                        No records found
-                      </td>
-                    </tr>
-                  ) : (
-                    billReceiptTableData.map((item: BillReceiptReprintItem, idx: number) => (
-                      <tr key={item?.VisitId ?? idx} className="table-row">
-                        <td className="table-td">{idx + 1}</td>
-                        <td className="table-td">{item?.Type ?? "-"}</td>
-                        <td className="table-td">{item?.BillDate ?? "-"}</td>
-                        <td className="table-td">{item?.ReceiptNo ?? "-"}</td>
-
-                        <td className="table-td">{item?.BillNo ?? "-"}</td>
-                        <td className="table-td">{item?.UHID ?? "-"}</td>
-                        <td className="table-td">{item?.PatientName ?? "-"}</td>
-                        <td className="table-td">{item?.Age ?? "-"}</td>
-                        <td className="table-td">{item?.NetAmount ?? "-"}</td>
-
-                        <td
-                          className={`table-td ${
-                            item.Status === "Active" ? "active-text" : "inactive-text"
-                          }`}
-                        >
-                          {item.Status === "Active" ? "Active" : "Inactive"}
-                        </td>
-
-                        <td className="table-td">
-                          <button type="button">
-                            <i className="fa-solid fa-print icon-color-button" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div className="mt-3 rounded">
+          <MaterialReactTable table={table} />
         </div>
       ) : (
         <></>
