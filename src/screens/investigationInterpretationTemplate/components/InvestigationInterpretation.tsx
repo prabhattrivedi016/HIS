@@ -118,7 +118,6 @@ const InvestigationInterpretation = () => {
       },
       { component: "InvestigationInterpretation" }
     );
-    console.log("resp", resp?.data);
     setAllTemplateList(resp?.data ?? []);
   };
 

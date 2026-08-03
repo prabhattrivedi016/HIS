@@ -149,7 +149,6 @@ const CreditNote = () => {
       setShowTable(false);
       return null;
     }
-    console.log("resp of get bill details of credit note", resp?.data?.[0]);
     setShowTable(true);
     setPatientDetails({
       patientId: resp?.data?.[0]?.PatientId,
@@ -331,7 +330,6 @@ const CreditNote = () => {
           {},
           { component: "CreditNote" }
         );
-        console.log("resp", resp?.data);
         if (!resp?.result) {
           showWarning(resp?.data ?? "failed to save");
           return;

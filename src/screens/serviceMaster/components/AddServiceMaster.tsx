@@ -443,7 +443,6 @@ const AddServiceMaster = ({
     setValue,
   ]);
 
-  console.log("data of services", data);
   useEffect(() => {
     if (!data?.serviceItemId) return;
     if (!categoryList.length) return;

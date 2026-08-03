@@ -148,8 +148,6 @@ const Login = () => {
         rememberMe: rememberMe,
       });
 
-      console.log("loginRes", loginRes);
-
       if (!loginRes?.result) {
         setErrorMessage(loginRes?.message ?? "Failed to login");
         return;

@@ -149,9 +149,7 @@ const AllergyMaster = () => {
     });
   };
 
-  const onSubmit = (formData: any) => {
-    console.log("Allergy Master submit", formData);
-  };
+  const onSubmit = (formData: any) => {};
 
   const documentRegister = register("document");
 

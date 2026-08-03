@@ -50,8 +50,6 @@ const MrdLocationMaster = () => {
 
   /*---------------rack master----------------------------*/
   const getRacks = async (id: number) => {
-    console.log("id", id);
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_MRD_RACK_MASTER,
@@ -60,7 +58,6 @@ const MrdLocationMaster = () => {
         params: { roomId: id, rackId: 0, activeFlag: 0 },
       }
     );
-    console.log("resp of rack", resp);
 
     setRackLists(resp?.data ?? []);
   };

@@ -226,9 +226,7 @@ const OpdRefund = () => {
   );
 
   const markRefundPaymentCollected = useCallback(async (refundId: number) => {
-    console.log("refundId", refundId);
     const payload = { refundId: Number(refundId) };
-    console.log("params", payload);
 
     const paymentCollectedResp = await fetchApi(
       "PATCH",

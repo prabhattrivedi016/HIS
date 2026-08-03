@@ -44,6 +44,13 @@
   background-color: #ffa6b7 !important;
 }
 
+.opd-package {
+  background-color: #e8daff !important;
+}
+.opd-package:hover {
+  background-color: #d9c2ff !important;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

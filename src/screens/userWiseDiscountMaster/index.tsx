@@ -136,7 +136,6 @@ const UserWiseDiscountMaster = () => {
         return;
       }
       case "cancel": {
-        console.log("cancel button is clicked");
         setApiValues(userWiseDiscountList);
         return;
       }

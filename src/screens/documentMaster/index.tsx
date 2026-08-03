@@ -22,7 +22,6 @@ const PatientDocumentMaster = () => {
   const { loading, error, fetchApi } = useGlobalApi();
 
   const documentCategoryList = usePickMaster("DocumentCategoryType")?.pickMasterValue ?? [];
-  console.log("documentCategoryList", documentCategoryList);
 
   const [patientDocumentList, setPatientDocumentList] = useState<PatientDocumentItem[]>([]);
   const [showDetails, setShowDetails] = useState(false);

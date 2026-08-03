@@ -101,8 +101,6 @@ export default function PatientAdvanceReceipt({
   paymentModeList: PatientAdvancePaymentModeItem[];
   paidAmt: number;
 }) {
-  console.log("paymentModeList", paymentModeList);
-  console.log("patientDetails", patientDetails);
   const { loading, fetchApi } = useGlobalApi();
 
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);

@@ -85,6 +85,7 @@ const OpdBillingSection = ({
   hasDiscountApplied = false,
   bookingDetails = null,
   isPaymentCollectionMode = false,
+  rowDoctorChangeHandler,
 }: OpdBillingSectionProps) => {
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
 
@@ -380,6 +381,11 @@ const OpdBillingSection = ({
               Rate Not Set
             </div>
 
+            <div className="flex items-center gap-1 text-purple-500">
+              <span className="w-3 h-3 rounded-full opd-package border border-purple-300"></span>
+              Consultation Under Package
+            </div>
+
             <div className="flex items-center gap-1 text-blue-500">
               <span className="w-3 h-3 rounded-full opd-non-payable border border-blue-300"></span>
               Corporate Non-Payable
@@ -429,15 +435,17 @@ const OpdBillingSection = ({
                           Number(item?.isBookingServiceLocked ?? 0) === 1;
 
                         const rowBgClass =
-                          Number(item?.rate ?? 0) === 0
-                            ? "opd-zero-rate"
-                            : Number(item?.isNonPayable ?? 0) === 1
-                              ? "opd-non-payable"
-                              : Number(item?.isCorporateDiscount ?? 0) === 1
-                                ? "opd-corporate-discount"
-                                : Number(item?.isPrivilegedCardDiscount ?? 0) === 1
-                                  ? "opd-privileged-card-discount"
-                                  : "";
+                          Number(item?.isOpdConsultation ?? 0) === 1
+                            ? "opd-package"
+                            : Number(item?.rate ?? 0) === 0
+                              ? "opd-zero-rate"
+                              : Number(item?.isNonPayable ?? 0) === 1
+                                ? "opd-non-payable"
+                                : Number(item?.isCorporateDiscount ?? 0) === 1
+                                  ? "opd-corporate-discount"
+                                  : Number(item?.isPrivilegedCardDiscount ?? 0) === 1
+                                    ? "opd-privileged-card-discount"
+                                    : "";
 
                         return (
                           <tr
@@ -477,16 +485,52 @@ const OpdBillingSection = ({
                               </div>
                             </td>
                             <td className="table-td">{item?.code || "-"}</td>
-                            <td className="table-td">{selectedDoctor?.label}</td>
+                            <td className="table-td max-w-35">
+                              {Number(item?.categoryTypeId) === 1 &&
+                              Number(item?.isUnderPackage ?? 0) === 1 ? (
+                                <div className="min-w-25">
+                                  <Select<OptionItem, false>
+                                    value={
+                                      item?.doctorId
+                                        ? doctorSelectOption.find(
+                                            opt => Number(opt.value) === Number(item.doctorId)
+                                          ) || null
+                                        : null
+                                    }
+                                    options={doctorSelectOption}
+                                    placeholder="Select doctor"
+                                    isSearchable
+                                    isClearable
+                                    onChange={option => {
+                                      rowDoctorChangeHandler?.(
+                                        idx,
+                                        option ? Number(option.value) : 0,
+                                        option ? option.label : ""
+                                      );
+                                    }}
+                                    styles={SelectStyles as StylesConfig<OptionItem, false>}
+                                    menuPortalTarget={document.body}
+                                    menuPosition="fixed"
+                                  />
+                                </div>
+                              ) : (
+                                item?.doctorName || "-"
+                              )}
+                            </td>
 
                             <td className="table-td wrap-break-word max-w-30">
                               {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
                                 <select
-                                  className="input-field max-w-50 max-h-10"
-                                  value={Number(item?.doctorId ?? 0)}
+                                  className={`input-field max-w-50 max-h-10 ${
+                                    isPaymentCollectionMode || isBookingServiceLocked
+                                      ? "disabled-input-field cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                  value={Number(item?.performingDoctorId ?? 0)}
                                   onChange={e =>
                                     performingDoctorChangeHandler(idx, Number(e.target.value))
                                   }
+                                  disabled={isPaymentCollectionMode || isBookingServiceLocked}
                                 >
                                   <option value={0}>Select doctor</option>
                                   {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
@@ -549,7 +593,9 @@ const OpdBillingSection = ({
                                 }`}
                                 value={item?.discountPer ?? 0}
                                 onChange={e => discountPercentageChangeHandler(e, idx)}
-                                disabled={isDiscountLocked}
+                                disabled={
+                                  isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
+                                }
                               />
                             </td>
                             <td className="table-td">
@@ -561,7 +607,9 @@ const OpdBillingSection = ({
                                 }`}
                                 value={item?.dis ?? 0}
                                 onChange={e => discountChangeHandler(e, idx)}
-                                disabled={isDiscountLocked}
+                                disabled={
+                                  isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
+                                }
                               />
                             </td>
                             <td className="table-td input-field-error">
@@ -570,10 +618,15 @@ const OpdBillingSection = ({
 
                             <td className="table-td">
                               <input
-                                className="input-field max-w-40 max-h-10"
+                                className={`input-field max-w-40 max-h-10 ${
+                                  Number(item?.isDisabledItem ?? 0) === 1
+                                    ? "disabled-input-field cursor-not-allowed"
+                                    : ""
+                                }`}
                                 value={item?.remarks ?? ""}
                                 onChange={e => remarksChangeHandler(e, idx)}
                                 placeholder="Enter remarks"
+                                disabled={Number(item?.isDisabledItem ?? 0) === 1}
                               />
                             </td>
                             <td className="table-td">
@@ -584,6 +637,7 @@ const OpdBillingSection = ({
                                   (item as { isUrgent?: number | string | null })?.isUrgent
                                 )}
                                 onChange={e => urgentChangeHandler(e, idx)}
+                                disabled={Number(item?.isDisabledItem ?? 0) === 1}
                               />
                             </td>
                           </tr>
