@@ -136,8 +136,6 @@ const DoctorVisits = () => {
 
   // visit type
   const getVisitType = async (categoryId: number) => {
-    console.log("categoryId", categoryId);
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SERVICE_ITEM_LIST,

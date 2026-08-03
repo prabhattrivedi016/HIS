@@ -53,7 +53,6 @@ const DocumentNamePopup = React.memo(
     const buttonTitle = isEdit ? "Update" : "Create";
     //   submit handler
     const onSubmit = async (formData: SampleManagementDocumentNameFormData) => {
-      console.log("formdata", formData);
       const resp = await fetchApi(
         "POST",
         ENDPOINTS.CREATE_UPDATE_INVESTIGATION_DOCUMENT_NAME_MASTER,

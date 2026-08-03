@@ -44,7 +44,6 @@ const HeaderMaster = () => {
 
   const isDropdownLov = (dataTypeId: number) => {
     const selected = lovsList?.find((l: PickMasterItem) => Number(l?.key) === Number(dataTypeId));
-    console.log("LOV label:", selected?.value);
     return selected?.value?.toLowerCase() === "dropdown";
   };
 
@@ -62,9 +61,7 @@ const HeaderMaster = () => {
   // "Image Uploader" (control type 20) document slots — fetched once the header has an id
   // (either an existing header being edited, or one just created below in mutation.onSuccess)
   const [emrControlDocuments, setEmrControlDocuments] = useState<EmrControlDocumentItem[]>([]);
-  const [emrControlDocumentFiles, setEmrControlDocumentFiles] = useState<Record<number, File>>(
-    {}
-  );
+  const [emrControlDocumentFiles, setEmrControlDocumentFiles] = useState<Record<number, File>>({});
   const [isUploadingControlDocuments, setIsUploadingControlDocuments] = useState(false);
 
   const {
@@ -883,7 +880,11 @@ const HeaderMaster = () => {
                               {doc.IsMandatory === 1 && <span className="text-red-500"> *</span>}
                             </td>
                             <td className="table-td">
-                              {doc.DocumentPath ? <ImagePreview pathName={doc.DocumentPath} /> : "—"}
+                              {doc.DocumentPath ? (
+                                <ImagePreview pathName={doc.DocumentPath} />
+                              ) : (
+                                "—"
+                              )}
                             </td>
                             <td className="table-td">
                               {doc.DocumentPath && <ImageDownload pathName={doc.DocumentPath} />}

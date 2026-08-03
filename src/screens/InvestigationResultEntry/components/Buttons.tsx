@@ -35,10 +35,6 @@ const Buttons = ({
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
 
-  console.log("isApprove", isApprove);
-  console.log("isResultDone", isResultDone);
-  console.log("approvedDoctorId", approvedDoctorId);
-
   const [approvedDoctorList, setApprovedDoctorList] = useState<ApprovedDoctorItem[]>([]);
   const getApprovedDoctorList = async () => {
     const resp = await fetchApi(

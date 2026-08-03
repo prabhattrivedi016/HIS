@@ -34,9 +34,6 @@ export const isCancelButtonDisabled = (item?: OPDiscountItem | null) => {
 };
 
 export const getApproveDisabledWarning = (item?: OPDiscountItem | null): string | null => {
-  console.log("item", item);
-  console.log("item.CanApprove", item?.CanApprove);
-  console.log("item.FlagId", item?.FlagId);
   if (!item) return null;
 
   if (item.CanApprove === 0 && item.FlagId === 0) {

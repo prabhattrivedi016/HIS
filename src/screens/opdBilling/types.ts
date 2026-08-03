@@ -102,12 +102,17 @@ type ReferDoctorItem = {
 type ServiceItemList = {
   serviceItemId: number;
   hospId: number;
+  categoryTypeId: number;
   categoryId: number;
+  categoryName: string;
   subCategoryId: number;
+  subCategoryName: string;
   subSubCategoryId: number;
+  subSubCategoryName: string;
   name: string;
   code: string;
   reportTypeId: number;
+  labTypeId: number;
   reportType: string;
   isSampleRequired: number;
   sampleTypeId: number;
@@ -123,6 +128,20 @@ type ServiceItemList = {
   investigationComment: string;
   tatInMin: number;
   isActive: number;
+  gstPer: number;
+  roomTypeId: number;
+  roomType: string;
+  isICU: number;
+  snomedCode: string;
+  doctorDepartmentIds: string;
+  isRequiredSeparatePerformingDoctor: number;
+  opdConsultationTypeId: number;
+  opdConsultationType: string;
+  isOnlineConsultationAllow: number;
+  isTeleConsultationService: number;
+  isRegistrationCharge: number;
+  registrationChargeValidityDays: number;
+  isPackageExpired: number;
 };
 
 interface DoctorMasterItem {
@@ -192,6 +211,11 @@ type ServiceBindingItem = {
   isDiscountLocked?: number;
   isBookingServiceLocked?: number;
   isPrivilegedCardDiscount?: number;
+  isDisabledItem?: number;
+  isOpdConsultation?: number;
+  packageId?: number;
+  performingDoctorId?: number;
+  performingDoctorName?: string;
 };
 
 type CategoryItem = {
@@ -244,6 +268,7 @@ type PackageItems = {
   packageServiceSubSubCategoryId: number;
   packageServiceCode: string;
   packageServiceCategoryId: number;
+  packageServiceCategoryTypeId?: number;
 };
 
 type PackagePopupProps = {
@@ -279,6 +304,7 @@ type PackagePayloadItem = {
   packageId?: number;
   isUrgent: number;
   remarks?: string;
+  packageServiceCategoryTypeId?: number;
 };
 
 type OpdBillingItemPayload = {
@@ -307,6 +333,7 @@ type OpdBillingItemPayload = {
   isUrgent: number;
   sampleTypeId: number;
   remarks: string;
+  isOpdConsultation?: number;
 };
 
 type OpdBookingItemPayload = {
@@ -700,6 +727,7 @@ type OpdBillingSectionProps = {
   hasDiscountApplied?: boolean;
   bookingDetails?: OpdBookingDetailsResponse | null;
   isPaymentCollectionMode?: boolean;
+  rowDoctorChangeHandler?: (rowIndex: number, doctorId: number, doctorName: string) => void;
 };
 
 type PatientAdvanceItem = {

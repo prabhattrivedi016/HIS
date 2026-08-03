@@ -31,9 +31,6 @@ const ImportTariffsUpload = () => {
 
       setHeaders(sheetHeaders);
       setRows(sheetRows);
-
-      console.log("Headers:", sheetHeaders);
-      console.log("Rows:", sheetRows);
     };
     reader.readAsArrayBuffer(file);
   };

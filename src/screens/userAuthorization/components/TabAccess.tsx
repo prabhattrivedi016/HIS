@@ -134,7 +134,6 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
         })),
       };
 
-      console.log("payload", payload);
       const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_IPD_TAB_MAPPING, payload);
       if (!resp?.result) {
         showWarning(resp?.message ?? "Failed to update tab access");

@@ -512,8 +512,6 @@ const VendorMaster = () => {
     const id = e.target.value;
     const selected = typeSelectOption.find((t: TypeItem) => t.key === id);
 
-    console.log("selected", selected);
-
     setValue("typeId", id, { shouldValidate: true });
     setValue("type", selected?.value ?? "");
   };

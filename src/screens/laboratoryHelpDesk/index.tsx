@@ -323,14 +323,12 @@ const LaboratoryHelpDesk = () => {
 
   // out source
   const outSourcePopupHandler = (item: LaboratoryHelpDeskItem) => {
-    console.log("item", item);
     setOpenOutSourcePopup(true);
     setRenderOutSourcePopup(true);
   };
 
   // patient info handler
   const patientInfoHandler = (item: LaboratoryHelpDeskItem) => {
-    console.log("item of patient handler", item);
     if (!item) return;
     setSelectedPatientInfo(item);
     setOpenInfoPatientPopup(true);

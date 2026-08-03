@@ -216,9 +216,8 @@ const mapBookingItemToServiceRow = (
   const dis = Number(item.discAmt ?? item.DiscAmt ?? 0);
   const grossAmt = Number(item.grossAmt ?? item.GrossAmt ?? rate * qty);
   const netAmount = Number(item.netAmt ?? item.NetAmt ?? grossAmt - dis);
-  const performingDoctorId = Number(
-    item.performingDoctorId ?? item.PerformingDoctorId ?? item.doctorId ?? item.DoctorId ?? doctorId
-  );
+  const prefDoctorId = Number(item.doctorId ?? item.DoctorId ?? doctorId);
+  const prefPerfDoctorId = Number(item.performingDoctorId ?? item.PerformingDoctorId ?? 0);
 
   return {
     serviceItemId,
@@ -233,7 +232,7 @@ const mapBookingItemToServiceRow = (
     discountPer,
     dis,
     netAmount,
-    doctorId: performingDoctorId,
+    doctorId: prefDoctorId,
     doctorName,
     isUrgent: Number(item.isUrgent ?? item.IsUrgent ?? 0),
     remarks: String(item.remarks ?? item.Remarks ?? ""),
@@ -253,6 +252,8 @@ const mapBookingItemToServiceRow = (
     isRequiredSeparatePerformingDoctor: 0,
     isDiscountLocked: 1,
     isBookingServiceLocked: 1,
+    performingDoctorId: prefPerfDoctorId,
+    performingDoctorName: "",
   };
 };
 
@@ -281,15 +282,15 @@ const mergeBookingItemPrefillIntoServiceRow = (
   bookingItem: OpdBookingItemResponse,
   performingDoctorName: string
 ): ServiceBindingItem => {
+  const requiresPerformingDoctor = Number(apiRow.isRequiredSeparatePerformingDoctor) === 1;
+  const prescribingDoctorId = Number(
+    bookingItem.doctorId ?? bookingItem.DoctorId ?? apiRow.doctorId ?? 0
+  );
   const performingDoctorId = Number(
     bookingItem.performingDoctorId ??
       bookingItem.PerformingDoctorId ??
-      bookingItem.doctorId ??
-      bookingItem.DoctorId ??
-      apiRow.doctorId ??
-      0
+      (requiresPerformingDoctor ? (bookingItem.doctorId ?? bookingItem.DoctorId ?? 0) : 0)
   );
-  const requiresPerformingDoctor = Number(apiRow.isRequiredSeparatePerformingDoctor) === 1;
 
   return {
     ...apiRow,
@@ -307,8 +308,10 @@ const mergeBookingItemPrefillIntoServiceRow = (
     isUrgent: Number(bookingItem.isUrgent ?? bookingItem.IsUrgent ?? apiRow.isUrgent ?? 0),
     rateListId: Number(bookingItem.rateListId ?? bookingItem.RateListId ?? apiRow.rateListId ?? 0),
     remarks: String(bookingItem.remarks ?? bookingItem.Remarks ?? apiRow.remarks ?? ""),
-    doctorId: requiresPerformingDoctor ? performingDoctorId : apiRow.doctorId,
-    doctorName: requiresPerformingDoctor ? performingDoctorName : apiRow.doctorName,
+    doctorId: prescribingDoctorId,
+    doctorName: apiRow.doctorName,
+    performingDoctorId: requiresPerformingDoctor ? performingDoctorId : 0,
+    performingDoctorName: requiresPerformingDoctor ? performingDoctorName : "",
     isDiscountLocked: 1,
     isBookingServiceLocked: 1,
   };
@@ -367,7 +370,6 @@ const OpdBilling = () => {
   const ispatientRegistartionChargeRequired =
     Number(branchRights?.IsPatientRegistrationChargeRequired) === 1 ? 1 : 0;
 
-  console.log("ispatientRegistartionChargeRequired", ispatientRegistartionChargeRequired);
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
   const { totalBillingAmount, setTotalBillingAmount } = useContext(BillingAmountContext);
@@ -472,6 +474,8 @@ const OpdBilling = () => {
   const [isPackageUrgent, setIsPackageUrgent] = useState<number>(0);
 
   const [packagePayload, setPackagePayload] = useState<PackagePayloadItem[]>([]);
+
+  const [packageCategoryPayload, setPackageCategoryPayload] = useState<PackagePayloadItem[]>([]);
 
   const doctorRef = useRef<any>(null);
 
@@ -749,8 +753,6 @@ const OpdBilling = () => {
     selectDoctorError,
   ]);
 
-  console.log("patientRegistrationDetails", patientRegistrationDetails);
-
   const [isBillingDiscount, setIsBillingDiscount] = useState<number>(0);
 
   //visit details payload
@@ -823,12 +825,8 @@ const OpdBilling = () => {
     overrides?: { doctorId?: number; doctorName?: string; remarks?: string }
   ): ServiceBindingItem => {
     const data = (apiData ?? {}) as ServiceBindingItem & Record<string, unknown>;
-    const requiresPerformingDoctor = Number(data?.isRequiredSeparatePerformingDoctor) === 1;
-    const doctorId =
-      overrides?.doctorId ?? (requiresPerformingDoctor ? 0 : Number(selectedDoctor?.value ?? 0));
-    const doctorName =
-      overrides?.doctorName ??
-      (requiresPerformingDoctor ? "" : String(selectedDoctor?.label ?? ""));
+    const doctorId = overrides?.doctorId ?? Number(selectedDoctor?.value ?? 0);
+    const doctorName = overrides?.doctorName ?? String(selectedDoctor?.label ?? "");
 
     return {
       ...data,
@@ -836,6 +834,8 @@ const OpdBilling = () => {
       qty: data?.qty ?? 1,
       doctorId,
       doctorName,
+      performingDoctorId: 0,
+      performingDoctorName: "",
       remarks: String(overrides?.remarks ?? getServiceRowRemarks(data)),
     };
   };
@@ -853,9 +853,10 @@ const OpdBilling = () => {
   );
 
   const finalizeServiceRow = (
-    apiData: ServiceBindingItem | Record<string, unknown> | null | undefined
+    apiData: ServiceBindingItem | Record<string, unknown> | null | undefined,
+    overrides?: { doctorId?: number; doctorName?: string; remarks?: string }
   ): ServiceBindingItem => {
-    const row = buildServiceRowFromApi(apiData);
+    const row = buildServiceRowFromApi(apiData, overrides);
     return {
       ...row,
       rateListId: resolveRateListIdForRow(row),
@@ -926,7 +927,7 @@ const OpdBilling = () => {
     if (!doctorId) {
       updateServiceTableItem(prev =>
         prev.map((item, index) =>
-          index === rowIndex ? { ...item, doctorId: 0, doctorName: "" } : item
+          index === rowIndex ? { ...item, performingDoctorId: 0, performingDoctorName: "" } : item
         )
       );
       setServiceValidationError("");
@@ -941,8 +942,8 @@ const OpdBilling = () => {
         index === rowIndex
           ? {
               ...item,
-              doctorId,
-              doctorName: selected?.label ?? "",
+              performingDoctorId: doctorId,
+              performingDoctorName: selected?.label ?? "",
             }
           : item
       )
@@ -950,9 +951,24 @@ const OpdBilling = () => {
     setServiceValidationError("");
   };
 
+  const rowDoctorChangeHandler = (rowIndex: number, doctorId: number, doctorName: string) => {
+    updateServiceTableItem(prev =>
+      prev.map((item, index) =>
+        index === rowIndex
+          ? {
+              ...item,
+              doctorId,
+              doctorName,
+            }
+          : item
+      )
+    );
+  };
+
   const validatePerformingDoctors = (): boolean => {
     const missingPerformingDoctor = serviceDataTableItem.some(
-      item => Number(item.isRequiredSeparatePerformingDoctor) === 1 && !Number(item.doctorId)
+      item =>
+        Number(item.isRequiredSeparatePerformingDoctor) === 1 && !Number(item.performingDoctorId)
     );
 
     if (missingPerformingDoctor) {
@@ -973,11 +989,10 @@ const OpdBilling = () => {
     );
 
     if (missingBillingDoctor) {
-      const message = "Please select doctor for services that require billing doctor";
+      const message = "Please select doctor for each service";
       setSelectDoctorError(message);
       showWarning(message);
       setActiveTab(OPDBillingTabName.OPD_BILLING);
-      doctorRef.current?.focus();
       return false;
     }
 
@@ -1035,8 +1050,15 @@ const OpdBilling = () => {
     });
   }, [serviceDataTableItem, performingDoctorsCache, loadPerformingDoctorsForDepartments]);
 
-  const resolvePerformingDoctorId = (row: ServiceBindingItem | PackagePayloadItem): number =>
-    Number(row?.doctorId) || 0;
+  const resolvePerformingDoctorId = (row: ServiceBindingItem | PackagePayloadItem): number => {
+    if (Number(row?.isUnderPackage ?? 0) === 1) {
+      return 0;
+    }
+    if (Number((row as ServiceBindingItem)?.isRequiredSeparatePerformingDoctor ?? 0) !== 1) {
+      return 0;
+    }
+    return Number((row as ServiceBindingItem)?.performingDoctorId) || 0;
+  };
 
   const mapServiceToOpdBillingItem = (s: ServiceBindingItem): OpdBillingItemPayload => {
     const qty = [1, 3, 11].includes(Number(s?.categoryTypeId)) ? 1 : normalizeQty(s?.qty);
@@ -1068,7 +1090,7 @@ const OpdBilling = () => {
       grossAmt,
       netAmt,
       isUnderPackage: Number(s?.isUnderPackage) || 0,
-      packageId: 0,
+      packageId: Number(s?.packageId) || 0,
       isUrgent: Number(s?.isUrgent) || 0,
       sampleTypeId: Number(s?.sampleTypeId) || 0,
       remarks: resolveServiceRemarks(s, s?.serviceItemId),
@@ -1440,6 +1462,7 @@ const OpdBilling = () => {
     setSelectedSubCategory(null);
     setSelectedSubSubCategory(null);
     setPackagePayload([]);
+    setPackageCategoryPayload([]);
     setIsPackageUrgent(0);
     setBillingPaymentDetails({});
     setBillingValues({
@@ -1756,8 +1779,6 @@ const OpdBilling = () => {
       { params: { isRegistrationCharge: 1, isActive: 1 } },
       { component: "DoctorMaster" }
     );
-
-    console.log("resp of registration charges serivice", resp?.data);
   };
 
   // registration service charge
@@ -1970,8 +1991,8 @@ const OpdBilling = () => {
           const requiresPerformingDoctor =
             Number(resp.data?.isRequiredSeparatePerformingDoctor) === 1;
           const apiRow = buildServiceRowFromApi(resp.data, {
-            doctorId: requiresPerformingDoctor ? performingDoctorId : doctorId,
-            doctorName: requiresPerformingDoctor ? performingDoctorName : doctorName,
+            doctorId: doctorId,
+            doctorName: doctorName,
             remarks: baseRow.remarks,
           });
           const mergedRow = mergeBookingItemPrefillIntoServiceRow(
@@ -2195,40 +2216,116 @@ const OpdBilling = () => {
 
       if (!resp?.data || !Array.isArray(resp.data)) return;
 
-      const packPayload: PackagePayloadItem[] = resp.data.map((item: PackageItems) => ({
-        serviceItemId: item?.packageServiceId ?? 0,
-        serviceName: item?.packageServiceName ?? "",
-        code: item?.packageServiceCode ?? "",
-        categoryId: item?.packageServiceCategoryId ?? 0,
-        subCategoryId: item?.packageServiceSubCategoryId ?? 0,
-        subSubCategoryId: item?.packageServiceSubSubCategoryId ?? 0,
-        corporateAlias: "",
-        corporateCode: "",
+      const packagePayload: PackagePayloadItem[] = resp.data
+        .filter((item: PackageItems) => item.packageServiceCategoryTypeId !== 1)
+        .map((item: PackageItems) => ({
+          serviceItemId: item.packageServiceId ?? 0,
+          serviceName: item.packageServiceName ?? "",
+          code: item.packageServiceCode ?? "",
+          categoryId: item.packageServiceCategoryId ?? 0,
+          subCategoryId: item.packageServiceSubCategoryId ?? 0,
+          subSubCategoryId: item.packageServiceSubSubCategoryId ?? 0,
+          corporateAlias: "",
+          corporateCode: "",
+          qty: 1,
+          rate: 0,
+          grossAmt: 0,
+          discPer: 0,
+          discAmt: 0,
+          discountReason: "",
+          netAmt: 0,
+          doctorId: selectedDoctor?.value ?? 0,
+          rateListId: 0,
+          validityDays: 0,
+          sampleTypeId: 0,
+          isNonPayable: 0,
+          isUnderPackage: 1,
+          packageId: item.packageId,
+          isUrgent: isPackageUrgent,
+          remarks: "",
+          isOpdConsultation: 0,
+        }));
 
-        qty: 1,
-        rate: 0.0,
-        grossAmt: 0.0,
+      const packageCategoryPayload: PackagePayloadItem[] = resp.data
+        .filter((item: PackageItems) => item.packageServiceCategoryTypeId === 1)
+        .map((item: PackageItems) => ({
+          serviceItemId: item.packageServiceId ?? 0,
+          serviceName: item.packageServiceName ?? "",
+          code: item.packageServiceCode ?? "",
+          categoryId: item.packageServiceCategoryId ?? 0,
+          subCategoryId: item.packageServiceSubCategoryId ?? 0,
+          subSubCategoryId: item.packageServiceSubSubCategoryId ?? 0,
+          corporateAlias: "",
+          corporateCode: "",
+          qty: Number(item.qty ?? 1),
+          rate: 0,
+          grossAmt: 0,
+          discPer: 0,
+          discAmt: 0,
+          discountReason: "",
+          netAmt: 0,
+          doctorId: selectedDoctor?.value ?? 0,
+          rateListId: 0,
+          validityDays: 0,
+          sampleTypeId: 0,
+          isNonPayable: 0,
+          isUnderPackage: 1,
+          packageId: item.packageId,
+          isUrgent: isPackageUrgent,
+          remarks: "",
+          isOpdConsultation: 1,
+        }));
 
-        discPer: 0.0,
-        discAmt: 0.0,
-        discountReason: "",
+      setPackagePayload(packagePayload);
 
-        netAmt: 0,
+      setPackageCategoryPayload(packageCategoryPayload);
 
-        doctorId: selectedDoctor?.value ?? 0,
-        rateListId: 0,
-        validityDays: 0,
-        sampleTypeId: 0,
+      const mappedCategoryRows: ServiceBindingItem[] = [];
+      packageCategoryPayload.forEach(item => {
+        const qtyCount = Math.max(1, Number(item.qty) || 1);
+        for (let i = 0; i < qtyCount; i++) {
+          mappedCategoryRows.push({
+            rate: 0,
+            rateListId: 0,
+            isRateEditable: 0,
+            serviceName: item.serviceName,
+            code: item.code,
+            corporateAlias: "",
+            corporateCode: "",
+            validityDays: 0,
+            discountPer: 0,
+            discountReason: "",
+            isNonPayable: 0,
+            serviceItemId: item.serviceItemId,
+            corporateId: 0,
+            categoryTypeId: 1,
+            categoryId: item.categoryId,
+            subCategoryId: item.subCategoryId,
+            subSubCategoryId: item.subSubCategoryId,
+            isCorporateDiscount: 0,
+            gstPer: 0,
+            sampleTypeId: 0,
+            reportTypeId: 0,
+            doctorDepartmentIds: "",
+            isRequiredSeparatePerformingDoctor: 0,
+            doctorId: Number(item.doctorId),
+            doctorName: selectedDoctor?.label ?? "",
+            qty: 1,
+            dis: 0,
+            netAmount: 0,
+            isUrgent: item.isUrgent,
+            isUnderPackage: 1,
+            packageId: item.packageId,
+            remarks: "",
+            isDiscountLocked: 1,
+            isBookingServiceLocked: 1,
+            isDisabledItem: 1,
+            isOpdConsultation: 1,
+          });
+        }
+      });
 
-        isNonPayable: 0,
-        isUnderPackage: 1,
-        packageId: item?.packageId,
-
-        isUrgent: isPackageUrgent,
-        remarks: "",
-      }));
-
-      setPackagePayload(packPayload);
+      updateServiceTableItem(prev => [...prev, ...mappedCategoryRows]);
     } catch (err) {
       console.error("Error fetching package:", err);
     }
@@ -2245,9 +2342,16 @@ const OpdBilling = () => {
 
   // add duplicate service to table
   const addServiceToTable = async (item: ServiceItemList, overrideDoctorId?: number) => {
-    console.log("item", item);
     const doctorId =
       overrideDoctorId !== undefined ? overrideDoctorId : (selectedDoctor?.value ?? 0);
+    let doctorName = "";
+    if (overrideDoctorId !== undefined) {
+      const doc = doctorList.find(d => Number(d.doctorId) === overrideDoctorId);
+      doctorName = doc?.completeName || "";
+    } else {
+      doctorName = selectedDoctor?.label || "";
+    }
+
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
@@ -2279,7 +2383,9 @@ const OpdBilling = () => {
       return;
     }
 
-    const serviceRow = normalizeServiceRowForPaymentCollection(finalizeServiceRow(resp?.data));
+    const serviceRow = normalizeServiceRowForPaymentCollection(
+      finalizeServiceRow(resp?.data, { doctorId, doctorName })
+    );
 
     if (Number(serviceRow?.categoryTypeId) === 1) {
       const hasCategoryType1 = serviceDataTableItem.some(s => Number(s?.categoryTypeId) === 1);
@@ -2299,6 +2405,11 @@ const OpdBilling = () => {
 
   // service handler
   const selectedServiceHandler = async (item: ServiceItemList) => {
+    if (Number(item?.isPackageExpired) === 1) {
+      showWarning("Service is already expired");
+      return;
+    }
+
     setShowPopup(false);
     setSelectDoctorError("");
 
@@ -2364,7 +2475,12 @@ const OpdBilling = () => {
     }
 
     setShowDuplicateError("");
-    const serviceRow = normalizeServiceRowForPaymentCollection(finalizeServiceRow(resp?.data));
+    const serviceRow = normalizeServiceRowForPaymentCollection(
+      finalizeServiceRow(resp?.data, {
+        doctorId: Number(selectedDoctor?.value ?? 0),
+        doctorName: selectedDoctor?.label ?? "",
+      })
+    );
 
     if (Number(serviceRow?.categoryTypeId) === 1) {
       const hasCategoryType1 = serviceDataTableItem.some(s => Number(s?.categoryTypeId) === 1);
@@ -2653,9 +2769,30 @@ const OpdBilling = () => {
       delete serviceItemRemarksRef.current[removedItem.serviceItemId];
     }
 
-    const updatedItems = serviceDataTableItem.filter((_, index) => index !== rowIndex);
-    serviceDataTableItemRef.current = updatedItems;
-    SetServiceDataTableItem(updatedItems);
+    let updatedItems = serviceDataTableItem.filter((_, index) => index !== rowIndex);
+
+    if (Number(removedItem?.categoryTypeId) === 11) {
+      const parentPackageId = removedItem?.serviceItemId;
+      updatedItems = updatedItems.filter(s => Number(s?.packageId) !== parentPackageId);
+      // also clear package states
+      setPackagePayload([]);
+      setPackageCategoryPayload([]);
+    } else if (Number(removedItem?.packageId ?? 0) > 0) {
+      const targetPackageId = Number(removedItem?.packageId);
+      // Remove the parent package row and all other component rows belonging to the same package
+      updatedItems = updatedItems.filter(
+        s =>
+          !(
+            (Number(s?.categoryTypeId) === 11 && Number(s?.serviceItemId) === targetPackageId) ||
+            Number(s?.packageId) === targetPackageId
+          )
+      );
+      // also clear package states
+      setPackagePayload([]);
+      setPackageCategoryPayload([]);
+    }
+
+    updateServiceTableItem(updatedItems);
     setShowDuplicateError("");
     setIsPackageUrgent(0);
     calculateAndUpdateBillingDetails(updatedItems);
@@ -2699,6 +2836,8 @@ const OpdBilling = () => {
     setSelectedReferDoctor(null);
 
     // Reset services
+    setPackagePayload([]);
+    setPackageCategoryPayload([]);
     SetServiceDataTableItem([]);
     serviceDataTableItemRef.current = [];
     serviceItemRemarksRef.current = {};
@@ -3139,7 +3278,9 @@ const OpdBilling = () => {
   const getUserRegistrationResponse = async () => {
     try {
       // step 1: Validate rate first
-      const hasInvalidRate = serviceDataTableItem.some(s => !s?.rate || Number(s?.rate) <= 0);
+      const hasInvalidRate = serviceDataTableItem.some(
+        s => Number(s?.isUnderPackage ?? 0) !== 1 && (!s?.rate || Number(s?.rate) <= 0)
+      );
 
       if (hasInvalidRate) {
         showWarning("Please set rate of the service");
@@ -3399,6 +3540,7 @@ const OpdBilling = () => {
     servicePopupHandler,
     getPerformingDoctorOptions,
     performingDoctorChangeHandler,
+    rowDoctorChangeHandler,
     setOpdBillingFormData,
     setBillingValues,
     billingValues,

@@ -8,8 +8,6 @@ import React, { ChangeEvent, FormEvent, useState } from "react";
 
 const HoldInvestigationResult = React.memo(
   ({ isOpen, onClose, pId }: { isOpen: boolean; onClose: () => void; pId: number }) => {
-    console.log("pId", pId);
-
     const { loading, fetchApi } = useGlobalApi();
 
     const [holdReason, setHoldReason] = useState<string>("");
@@ -90,7 +88,9 @@ const HoldInvestigationResult = React.memo(
           className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         />
 
-        <div className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpen ? "opacity-full" : ""}`}>
+        <div
+          className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] ${isOpen ? "opacity-full" : ""}`}
+        >
           <div className="popup-header">
             <h2 className="popup-helper-text">Hold Reason</h2>
 

@@ -180,7 +180,6 @@ const DoctorConsultationNew = () => {
       },
       { component: "DoctorConsultationNew" }
     );
-    console.log("resp", resp?.data);
     return resp?.data ?? [];
   };
 

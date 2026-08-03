@@ -68,7 +68,6 @@ const UserReset = ({ isOpenTab, onCloseTab }) => {
 
   /*-------------------submit handler-------------- */
   const onsubmit = async data => {
-    console.log("data", data);
     const payload = {
       userId,
       currentPassword: data.currentPassword,
@@ -83,7 +82,6 @@ const UserReset = ({ isOpenTab, onCloseTab }) => {
       {},
       { component: "UserReset" }
     );
-    console.log("resp", resp);
 
     if (resp?.result) {
       setSuccessMessage(resp?.message ?? "Password updated successfully");

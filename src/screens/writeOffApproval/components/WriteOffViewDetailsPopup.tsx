@@ -68,7 +68,6 @@ const WriteOffViewDetailsPopup = ({
       { params: { writeOffId: Number(writeOffId ?? 0) } },
       { component: "WriteOffViewDetailsPopup" }
     );
-    console.log("resp of service item in writeoff", resp?.data);
     // setServiceItemDetails(resp?.data ?? []);
   };
 

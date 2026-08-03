@@ -98,7 +98,6 @@ const BillReceiptReprint = () => {
 
         Cell: ({ row }) => (
           <button
-            onClick={() => console.log(row.original)}
             className="w-9 h-9 rounded-full bg-blue-50 text-blue-600
           hover:bg-blue-600 hover:text-white duration-200"
           >
@@ -515,8 +514,6 @@ const BillReceiptReprint = () => {
   const inputChangeHandler = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setQueryData(prev => ({ ...prev, [name]: value.trim() }));
-
-    console.log(name, value);
   };
   const dateChangeHandler = (name: string, value: string) => {
     setQueryData(prev => ({
@@ -527,7 +524,6 @@ const BillReceiptReprint = () => {
 
   //   search key change handler
   const searchKeyChangeHandler = (e: ChangeEvent<HTMLInputElement>, headerName: string) => {
-    console.log(headerName, e.target.value);
     const value = e.target.value.trim().toLowerCase();
     if (!value) {
       setBillReceiptTableData(originalBillReceiptTableData);
