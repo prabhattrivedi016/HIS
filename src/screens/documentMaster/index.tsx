@@ -19,7 +19,7 @@ import { PatientDocumentItem } from "./types";
 type PatientDocumentFormItem = InferType<typeof PatientDocumentSchema>;
 
 const PatientDocumentMaster = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
 
   const documentCategoryList = usePickMaster("DocumentCategoryType")?.pickMasterValue ?? [];
 
@@ -70,7 +70,7 @@ const PatientDocumentMaster = () => {
 
   //  submit handler
   const submitHandler = async (payload: PatientDocumentFormItem) => {
-    debugger;
+    console.log("payload", payload);
     if (!payload?.documentName) return;
 
     const resp = await fetchApi(
@@ -83,7 +83,7 @@ const PatientDocumentMaster = () => {
       }
     );
     if (!resp?.result) {
-      showError(error?.message ?? "Something went wrong!");
+      showError(resp?.message ?? "Something went wrong!");
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
@@ -158,18 +158,18 @@ const PatientDocumentMaster = () => {
             <InputField label="Document Category" required>
               <select
                 className="input-field"
-                {...register("documentCategoryId")}
-                onChange={e => {
-                  const selectedId = e.target.value;
-
-                  const selectedCategory = documentCategoryList?.find(
-                    d => String(d.key) === selectedId
-                  );
-
-                  setValue("documentCategory", selectedCategory?.type || "");
-
-                  setValue("documentCategoryId", Number(selectedId));
-                }}
+                {...register("documentCategoryId", {
+                  valueAsNumber: true,
+                  onChange: e => {
+                    const selectedId = Number(e.target.value);
+                    const selectedCategory = documentCategoryList?.find(
+                      d => Number(d.key) === selectedId
+                    );
+                    setValue("documentCategory", selectedCategory?.value || "", {
+                      shouldValidate: true,
+                    });
+                  },
+                })}
               >
                 <option value={0}>--Select--</option>
                 {documentCategoryList?.map((d: PickMasterItem) => (
@@ -208,7 +208,7 @@ const PatientDocumentMaster = () => {
             </InputField>
 
             <InputField label="Status" required>
-              <select className="input-field" {...register("isActive")}>
+              <select className="input-field" {...register("isActive", { valueAsNumber: true })}>
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
@@ -216,11 +216,13 @@ const PatientDocumentMaster = () => {
             </InputField>
 
             <InputField label="Is Mandatory" required>
-              <select className="input-field" {...register("isMandatory")}>
+              <select className="input-field" {...register("isMandatory", { valueAsNumber: true })}>
                 <option value={1}>Yes</option>
                 <option value={0}>No</option>
               </select>
-              {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
+              {errors.isMandatory && (
+                <p className="input-field-error">{errors.isMandatory.message}</p>
+              )}
             </InputField>
           </div>
 

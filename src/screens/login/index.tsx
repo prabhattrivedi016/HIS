@@ -20,6 +20,7 @@ import Signup from "../signup";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 
+import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import { getAuthStorage } from "../../utils/authStorage";
 import { getVerificationFlags, isAccountFullyVerified } from "../../utils/authVerification";
@@ -28,6 +29,7 @@ import { InputError, PageItem, TabItem } from "./type";
 const Login = () => {
   const authContext = useContext(AuthContext);
   const roleContext = useContext(RoleContext);
+  const { setBranchId } = useContext(BranchContext);
   const loginFunc = authContext?.login;
   const updateUser = authContext?.updateUser;
   const logoutFunc = authContext?.logout;
@@ -157,6 +159,7 @@ const Login = () => {
 
       const storage = rememberMe ? localStorage : sessionStorage;
       const { accessToken, branchId, userId } = loginRes.data;
+      setBranchId(Number(branchId));
 
       storage.setItem("accessToken", accessToken);
 

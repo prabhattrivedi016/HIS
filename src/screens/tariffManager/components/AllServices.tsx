@@ -28,7 +28,7 @@ import EditableCell from "./EditTableCell";
 const GRID_COLS = "40px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr";
 
 const AllServices = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
 
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -144,20 +144,21 @@ const AllServices = () => {
   }, [categoryList]);
 
   //   category select handler
-  const categorySelectHandler = (option: SingleValue<SelectItem>) => {
+  const categorySelectHandler = async (option: SingleValue<SelectItem>) => {
+    console.log("option", option);
     if (!option) return;
     setSelectedCategory(option);
 
-    getSubCategory(option?.value);
+    await getSubCategory(option?.value);
   };
 
   //   get sub category
-  const getSubCategory = async (categoryId: number) => {
+  const getSubCategory = async (categoryIds: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SUB_CATEGORY_LIST,
       {},
-      { params: { categoryId } },
+      { params: { categoryIds } },
       { component: "AllServices" }
     );
     setSubCategoryList(resp?.data ?? []);
@@ -172,19 +173,19 @@ const AllServices = () => {
   }, [subCategoryList]);
 
   //  sub category select handler
-  const subCategorySelectHandler = (option: SingleValue<SelectItem>) => {
+  const subCategorySelectHandler = async (option: SingleValue<SelectItem>) => {
     setSelectedSubCategory(option);
     if (!option) return;
-    getSubSubCategory(option?.value);
+    await getSubSubCategory(option?.value);
   };
 
   //   sub sub category
-  const getSubSubCategory = async (subCategoryId: number) => {
+  const getSubSubCategory = async (subCategoryIds: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
       {},
-      { params: { subCategoryId } },
+      { params: { subCategoryIds } },
       { component: "AllServices" }
     );
     setSubSubCategoryList(resp?.data ?? []);
@@ -438,7 +439,7 @@ const AllServices = () => {
       { component: "AllServices" }
     );
     if (!resp?.result) {
-      showError(error?.message ?? "Something went wrong");
+      showError(resp?.message ?? "Something went wrong");
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
@@ -465,7 +466,7 @@ const AllServices = () => {
   return (
     <>
       <div className="card -mt-3">
-        <h2 className="card-title ">Tariff Search Details</h2>
+        {/* <h2 className="card-title ">Tariff Search Details</h2> */}
 
         <form>
           <div className="form-grid-4">

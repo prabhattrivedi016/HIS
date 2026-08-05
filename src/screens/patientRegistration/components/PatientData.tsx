@@ -30,6 +30,7 @@ import {
 import { FormProvider, useForm } from "react-hook-form";
 import Select, { StylesConfig } from "react-select";
 import Webcam from "react-webcam";
+import InputFieldModal from "@/components/inputFieldModal";
 import {
   BranchDetailsItem,
   CorporateItem,
@@ -39,6 +40,7 @@ import {
   PatientDataHandle,
   PatientDataProps,
   PatientDocumentPayloadItem,
+  SearchedPatientItem,
 } from "../types";
 import Address from "./Address";
 import {
@@ -134,6 +136,11 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     const [documentValidationErrors, setDocumentValidationErrors] = useState<
       Record<number, string>
     >({});
+
+    const [showPopup, setShowPopup] = useState(false);
+    const [patientList, setPatientList] = useState<SearchedPatientItem[]>([]);
+    const [activePatientIndex, setActivePatientIndex] = useState(0);
+    const searchTimeoutRef = useRef<any>(null);
 
     const documentFileStoreRef = useRef(documentFileStore);
     const patientDocumentPayloadRef = useRef(patientDocumentPayload);
@@ -583,13 +590,13 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       }
 
       showSuccess(resp?.message ?? "Patient registered successfully");
-      resetPatientForm();
+      const newPatientId = Number(resp?.data?.patientId);
 
-      if (resp?.data?.patientId && patientDocumentPayload.length > 0) {
+      if (newPatientId && patientDocumentPayload.length > 0) {
         const updatedDocumentPayload = patientDocumentPayload.map(
           (item: PatientDocumentPayloadItem) => ({
             ...item,
-            PatientId: Number(resp?.data?.patientId),
+            PatientId: newPatientId,
           })
         );
         setPatientDocumentPayload(updatedDocumentPayload);
@@ -622,6 +629,13 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
         setDocumentFileStore({});
         setPatientDocumentPayload([]);
+      }
+
+      if (newPatientId) {
+        await getEditPatientData(newPatientId);
+        onPatientLoaded?.("uhid");
+      } else {
+        resetPatientForm();
       }
     };
 
@@ -862,6 +876,75 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         getEditPatientData(selectedPatientIdFromProps);
       }
     }, [selectedPatientIdFromProps]);
+
+    const getPatientAddressByContact = async (contactNumber: string) => {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.SEARCH_PATIENT_MASTER,
+        {},
+        { params: { contactNumber, branchId } },
+        { component: "PatientData" }
+      );
+      const data = resp?.data ?? [];
+      if (data.length > 0) {
+        setPatientList(data);
+        setShowPopup(true);
+        setActivePatientIndex(0);
+      } else {
+        setPatientList([]);
+        setShowPopup(false);
+      }
+    };
+
+    const contactChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.trim();
+
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      if (value.length === 10) {
+        searchTimeoutRef.current = setTimeout(() => {
+          void getPatientAddressByContact(value);
+        }, 500);
+      } else {
+        setPatientList([]);
+        setShowPopup(false);
+      }
+    };
+
+    const contactKeyDownHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!showPopup || !patientList.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActivePatientIndex(prev => (prev + 1) % patientList.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActivePatientIndex(prev => (prev - 1 + patientList.length) % patientList.length);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const selected = patientList[activePatientIndex];
+        if (selected) {
+          void handleSelectPatient(selected);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setShowPopup(false);
+      }
+    };
+
+    const handleSelectPatient = async (patient: SearchedPatientItem) => {
+      setShowPopup(false);
+      if (patient?.PatientId) {
+        await getEditPatientData(patient.PatientId);
+        onPatientLoaded?.("uhid");
+      }
+    };
+
+    const getLabel = (item: SearchedPatientItem) => {
+      return `${item?.PatientName} (${item?.UHID})`;
+    };
 
     const getPatientDataByUHID = async (uhid: string) => {
       const trimmedUHID = String(uhid ?? "").trim();
@@ -1265,15 +1348,29 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                       </InputField>
                     )}
                     <InputField label="Contact No.(Self)" required>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="Enter Contact No.(Self)"
-                        {...register("SelfContactNumber")}
-                        maxLength={10}
-                        minLength={10}
-                        onInput={allowOnlyNumbers}
-                      />
+                      <div className="relative w-full">
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="Enter Contact No.(Self)"
+                          {...register("SelfContactNumber", {
+                            onChange: contactChangeHandler,
+                          })}
+                          onKeyDown={contactKeyDownHandler}
+                          maxLength={10}
+                          minLength={10}
+                          onInput={allowOnlyNumbers}
+                        />
+
+                        <InputFieldModal<SearchedPatientItem>
+                          showPopup={showPopup}
+                          data={patientList}
+                          activeIndex={activePatientIndex}
+                          setActiveIndex={setActivePatientIndex}
+                          onSelect={handleSelectPatient}
+                          getLabel={getLabel}
+                        />
+                      </div>
                       {errors.SelfContactNumber && (
                         <p className="input-field-error">{errors.SelfContactNumber.message}</p>
                       )}

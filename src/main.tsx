@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { BillingAmountProvider } from "./context/BillingAmountContext";
+import { BranchProvider } from "./context/BranchContext";
 import { PatientProvider } from "./context/PatientContext";
 import { RoleProvider } from "./context/RoleContext";
 import "./index.css";
@@ -37,15 +38,17 @@ if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <AuthProvider>
-          <BillingAmountProvider>
-            <RoleProvider>
-              <PatientProvider>
-                <App />
-              </PatientProvider>
-            </RoleProvider>
-          </BillingAmountProvider>
-        </AuthProvider>
+        <BranchProvider>
+          <AuthProvider>
+            <BillingAmountProvider>
+              <RoleProvider>
+                <PatientProvider>
+                  <App />
+                </PatientProvider>
+              </RoleProvider>
+            </BillingAmountProvider>
+          </AuthProvider>
+        </BranchProvider>
       </Provider>
       {/* React Query Devtools */}
       <ReactQueryDevtools initialIsOpen={false} />

@@ -569,6 +569,9 @@ const ENDPOINTS = {
 
   // package master
   CREATE_UPDATE_PACKAGE_MASTER: "Admin/createUpdatePackageMaster",
+
+  // opd appointment
+  SAVE_OPD_APPOINTMENT: "Patient/saveOPDAppointment",
 };
 
 export { ENDPOINTS };
