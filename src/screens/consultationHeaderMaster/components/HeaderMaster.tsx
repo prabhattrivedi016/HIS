@@ -48,6 +48,7 @@ const HeaderMaster = () => {
 
   const isDropdownLov = (dataTypeId: number) => {
     const selected = lovsList?.find((l: PickMasterItem) => Number(l?.key) === Number(dataTypeId));
+    console.log("LOV label:", selected?.value);
     return selected?.value?.toLowerCase() === "dropdown";
   };
 
@@ -1098,47 +1099,6 @@ const HeaderMaster = () => {
                                     emrControlDocumentImageNameChangeHandler(
                                       doc.DocumentId,
                                       e.target.value
-                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-2">
-                    <table className="w-full">
-                      <tbody>
-                        {emrControlDocuments.map(doc => (
-                          <tr key={doc.DocumentId} className="table-row">
-                            <td className="table-td">
-                              {doc.DocumentName}
-                              {doc.IsMandatory === 1 && <span className="text-red-500"> *</span>}
-                            </td>
-                            <td className="table-td">
-                              {doc.DocumentPath ? (
-                                <ImagePreview pathName={doc.DocumentPath} />
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td className="table-td">
-                              {doc.DocumentPath && <ImageDownload pathName={doc.DocumentPath} />}
-                            </td>
-                            <td className="table-td">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="file-upload max-w-50"
-                                onChange={e =>
-                                  emrControlDocumentFileChangeHandler(
-                                    doc.DocumentId,
-                                    e.target.files?.[0] ?? null
-                                  )
-                                }
-                              />
-                            </td>
-                            <td className="table-td">
-                              {doc.DocumentPath && (
-                                <button
-                                  type="button"
-                                  className="delete-icon"
-                                  onClick={() =>
-                                    deleteEmrControlDocumentHandler(
-                                      Number(watch("headerId")),
-                                      doc.DocumentId
                                     )
                                   }
                                 />
