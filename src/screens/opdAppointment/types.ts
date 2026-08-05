@@ -138,6 +138,20 @@ type DefaultCorporate = {
   isActive: number;
 };
 
+type SlotListItem = {
+  SlotTimingId: string;
+  AppointmentDate: string;
+  Day: string;
+  SlotStartTime: string;
+  SlotEndTime: string;
+  SlotStartDateTime: string;
+  SlotEndDateTime: string;
+  IsBooked: number;
+  IsExpired: number;
+  PatientId: number | null;
+  TokenNo: string | null;
+};
+
 export type {
   BranchDetailsItem,
   CityItem,
@@ -146,6 +160,7 @@ export type {
   DistrictItem,
   InsuranceListItem,
   PatientListItem,
+  SlotListItem,
   StateItem,
   VisitListItem,
 };

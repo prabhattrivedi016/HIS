@@ -511,3 +511,13 @@ export const ConditionOperatorOptions = [
 ] as const;
 
 export const AddNewTabIconTableHeader = ["#", "Icon Name", "Image"];
+
+export const AppointmentSlotDays = [
+  { label: "SUN", value: "Sunday" },
+  { label: "MON", value: "Monday" },
+  { label: "TUE", value: "Tuesday" },
+  { label: "WED", value: "Wednesday" },
+  { label: "THU", value: "Thursday" },
+  { label: "FRI", value: "Friday" },
+  { label: "SAT", value: "Saturday" },
+];

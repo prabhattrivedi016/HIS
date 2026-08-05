@@ -32,6 +32,7 @@ import {
   resolvePickValue,
 } from "../patientRegistration/components/dobHelper";
 import SearchPatientPopup from "../patientRegistration/components/SearchPatientPopup";
+import AppointmentSlot from "./components/AppointmentSlot";
 import {
   BranchDetailsItem,
   CityItem,
@@ -118,6 +119,7 @@ const OpdAppointment = () => {
   const searchTimeoutRef = useRef<any>(null);
 
   const [slots, setSlots] = useState("");
+  const [appDateTime, setAppDateTime] = useState("2026-08-10T05:49:05.078Z");
   const [source, setSource] = useState("Telephonic");
   const [visitType, setVisitType] = useState<number | string>("");
   const collectPrePaymentRef = useRef(false);
@@ -198,6 +200,8 @@ const OpdAppointment = () => {
 
   const [openSearchPatientPopup, setOpenSearchPatientPopup] = useState(false);
   const [renderSearchPatientPopup, setRenderSearchPatientPopup] = useState(false);
+  const [openAppointmentSlotPopup, setOpenAppointmentSlotPopup] = useState(false);
+  const [renderAppointmentSlotPopup, setRenderAppointmentSlotPopup] = useState(false);
   const [uhidSearchResetKey, setUhidSearchResetKey] = useState(0);
   const [showTable, setShowTable] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<OptionItem | null>(null);
@@ -567,7 +571,7 @@ const OpdAppointment = () => {
       Gender: patient.gender ?? patient.Gender ?? "",
       ContactNumber: patient.contactNumber ?? patient.ContactNumber ?? "",
       FullAddress: patient.fullAddress ?? patient.FullAddress ?? "",
-    } as PatientListItem;
+    } as unknown as PatientListItem;
 
     await handleSelectPatient(mappedPatient);
     return true;
@@ -603,7 +607,7 @@ const OpdAppointment = () => {
         ContactNumber: details.contactNumber ?? details.ContactNumber ?? "",
         FullAddress: details.fullAddress ?? details.FullAddress ?? "",
         Pincode: details.pincode ?? details.Pincode ?? "",
-      } as PatientListItem;
+      } as unknown as PatientListItem;
 
       await handleSelectPatient(mappedPatient);
     }
@@ -619,6 +623,37 @@ const OpdAppointment = () => {
     setTimeout(() => {
       setRenderSearchPatientPopup(false);
     }, 300);
+  };
+
+  const handleOpenAppointmentSlotPopup = () => {
+    if (!selectedDoctor?.value) return;
+    setOpenAppointmentSlotPopup(true);
+    setRenderAppointmentSlotPopup(true);
+  };
+
+  const closeAppointmentSlotHandler = () => {
+    setOpenAppointmentSlotPopup(false);
+    setTimeout(() => {
+      setRenderAppointmentSlotPopup(false);
+    }, 300);
+  };
+
+  const formatSlotLabel = (dateTimeStr: string, slotId: string) => {
+    if (!slotId || !dateTimeStr) return "Get Available Appointment slots";
+    try {
+      const date = dateTimeStr.split("T")[0]; // "2026-08-05"
+      const time = dateTimeStr.split("T")[1]; // "10:00:00"
+
+      const dateParts = date.split("-");
+      const formattedDate =
+        dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : date;
+
+      const formattedTime = time ? time.substring(0, 5) : "";
+
+      return `${formattedDate} (${formattedTime})`;
+    } catch (e) {
+      return dateTimeStr;
+    }
   };
 
   // option selectors
@@ -760,6 +795,7 @@ const OpdAppointment = () => {
     reset(defaultPatientRegistrationValues);
     setSource("");
     setSlots("");
+    setAppDateTime("2026-08-10T05:49:05.078Z");
     setVisitType("");
     setSelectedDoctor(null);
     setStateList([]);
@@ -835,7 +871,7 @@ const OpdAppointment = () => {
       patientId: Number(watchedPatientId || 0),
       branchId: Number(branchId || 1),
       doctorId: selectedDoctor ? Number(selectedDoctor.value) : 0,
-      appDateTime: "2026-08-10T05:49:05.078Z",
+      appDateTime: appDateTime,
       roleId: Number(roleId || 0),
       insuranceCompanyId: Number(watchedInsuranceCompanyId || 0),
       corporateId: Number(watchedCorporateId || 0),
@@ -856,6 +892,7 @@ const OpdAppointment = () => {
     priceList,
     slots,
     source,
+    appDateTime,
   ]);
 
   const billingPaymentDetails = useMemo(() => {
@@ -1177,8 +1214,6 @@ const OpdAppointment = () => {
           </div>
         </div>
         <div className="card flex flex-col">
-          {/* <h2 className="card-title">Patient Details</h2> */}
-
           <div className="form-grid-4">
             {/* Title + First Name */}
             <div className="flex gap-2">
@@ -1457,9 +1492,12 @@ const OpdAppointment = () => {
             <input
               type="text"
               className="input-field"
-              value={slots}
-              onChange={e => setSlots(e.target.value)}
               placeholder="Enter slots"
+              value={
+                slots ? formatSlotLabel(appDateTime, slots) : "Get Available Appointment slots"
+              }
+              readOnly
+              onClick={handleOpenAppointmentSlotPopup}
             />
           </InputField>
           <InputField label="Source Type">
@@ -1584,6 +1622,19 @@ const OpdAppointment = () => {
           showTable={showTable}
           setShowTable={setShowTable}
           onSelectPatient={handleSelectPatientFromPopup}
+        />
+      )}
+
+      {renderAppointmentSlotPopup && (
+        <AppointmentSlot
+          isOpen={openAppointmentSlotPopup}
+          onClose={closeAppointmentSlotHandler}
+          doctorId={selectedDoctor?.value!}
+          selectedSlotTimingId={slots}
+          onSelectSlot={(slotTimingId, slotStartDateTime) => {
+            setSlots(slotTimingId);
+            setAppDateTime(slotStartDateTime);
+          }}
         />
       )}
     </div>
