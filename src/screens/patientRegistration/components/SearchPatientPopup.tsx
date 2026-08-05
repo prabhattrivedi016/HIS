@@ -10,6 +10,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { BranchItem } from "@/types";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
+import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { SearchedPatientItem } from "../types";
@@ -207,6 +208,7 @@ const SearchPatientPopup = ({
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -217,6 +219,7 @@ const SearchPatientPopup = ({
                 name="middleName"
                 value={formData.middleName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -227,6 +230,7 @@ const SearchPatientPopup = ({
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -237,6 +241,7 @@ const SearchPatientPopup = ({
                 name="relativeName"
                 value={formData.relativeName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -247,6 +252,9 @@ const SearchPatientPopup = ({
                 name="contactNumber"
                 value={formData.contactNumber}
                 onChange={handleInputChange}
+                onInput={allowOnlyNumbers}
+                minLength={10}
+                maxLength={10}
               />
             </InputField>
 
@@ -257,6 +265,9 @@ const SearchPatientPopup = ({
                 name="emergencyContactNumber"
                 value={formData.emergencyContactNumber}
                 onChange={handleInputChange}
+                onInput={allowOnlyNumbers}
+                minLength={10}
+                maxLength={10}
               />
             </InputField>
 

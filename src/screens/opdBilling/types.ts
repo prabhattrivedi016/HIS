@@ -301,6 +301,8 @@ type PackagePayloadItem = {
   sampleTypeId: number;
   isNonPayable: number;
   isUnderPackage: number;
+  categoryTypeId: number;
+  labTypeId: number;
   packageId?: number;
   isUrgent: number;
   remarks?: string;
@@ -321,6 +323,8 @@ type OpdBillingItemPayload = {
   rateListId: number;
   validityDays: number;
   doctorId: number;
+  categoryTypeId: number;
+  labTypeId: number;
   performingDoctorId: number;
   qty: number;
   rate: number;

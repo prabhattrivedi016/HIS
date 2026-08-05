@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { IPDAdmissionTabName, IpdOpdTypeName, PageType } from "@/constants/constants";
 
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 
@@ -34,6 +35,10 @@ import { IpdAdmissionDetailsHandle } from "./types";
 
 const IPDAdmission = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const { rights: branchRights } = useAssignBranchRight();
+  const ispatientRegistartionChargeRequired =
+    Number(branchRights?.IsPatientRegistrationChargeRequired) === 1 ? 1 : 0;
+  const showRegistrationButton = ispatientRegistartionChargeRequired === 1;
 
   const patientDataRef = useRef<PatientDataHandle>(null);
 
@@ -349,7 +354,7 @@ const IPDAdmission = () => {
           key={`patient-data-${formResetKey}`}
           ref={patientDataRef}
           selectedPatientId={activePatientId}
-          showRegistrationButton={false}
+          showRegistrationButton={showRegistrationButton}
           onPayloadChange={setPatientRegistrationDetails}
           onPatientLoaded={handlePatientLoadedFromUhid}
         />

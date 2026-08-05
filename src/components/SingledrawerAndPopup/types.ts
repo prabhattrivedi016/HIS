@@ -74,7 +74,7 @@ type SampleManagementDocumentTableItem = {
 };
 
 type UhidGlobalSearchProps = {
-  onPatientSelect?: (patientId: number) => Promise<boolean> | boolean;
+  onPatientSelect?: (patientId: number) => Promise<boolean> | boolean | Promise<void>;
   minSearchLength?: number;
   placeholder?: string;
   className?: string;
