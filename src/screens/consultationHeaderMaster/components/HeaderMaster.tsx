@@ -26,6 +26,9 @@ type HeaderMasterPayload = HeaderMasterFormData & {
 /** control type id for "Image Uploader" — its documents are managed via
  * GET_EMR_CONTROL_DOCUMENT_MAPPING / UPLOAD_EMR_CONTROL_DOCUMENT instead of ListOfValues */
 const IMAGE_UPLOADER_CONTROL_TYPE_ID = 20;
+/** control type id for "Radio With Score" — each LOV row carries an extra integer score
+ * alongside its option text */
+const RADIO_WITH_SCORE_CONTROL_TYPE_ID = 26;
 
 const resolveHeaderIdFromResponse = (data: unknown): number => {
   if (!data || typeof data !== "object") return 0;
@@ -34,6 +37,7 @@ const resolveHeaderIdFromResponse = (data: unknown): number => {
 };
 
 const HeaderMaster = () => {
+  debugger;
   const { loading, fetchApi } = useGlobalApi();
   const queryClient = useQueryClient();
   const controlTypeList = usePickMaster("DoctorHeaderControlType")?.pickMasterValue ?? [];
@@ -62,6 +66,11 @@ const HeaderMaster = () => {
   // (either an existing header being edited, or one just created below in mutation.onSuccess)
   const [emrControlDocuments, setEmrControlDocuments] = useState<EmrControlDocumentItem[]>([]);
   const [emrControlDocumentFiles, setEmrControlDocumentFiles] = useState<Record<number, File>>({});
+  // "ImageName" sent alongside each document slot's file in UPLOAD_EMR_CONTROL_DOCUMENT — defaults
+  // to the slot's own DocumentName the first time a file is picked for it, but stays editable
+  const [emrControlDocumentImageNames, setEmrControlDocumentImageNames] = useState<
+    Record<number, string>
+  >({});
   const [isUploadingControlDocuments, setIsUploadingControlDocuments] = useState(false);
 
   const {
@@ -92,6 +101,14 @@ const HeaderMaster = () => {
   const watchControlTypeId = watch("controlTypeId");
   const isCustomControl = (watch("controlType") || "").trim().toLowerCase() === "custom";
   const isRadioControl = (watch("controlType") || "").trim().toLowerCase() === "radio";
+  const isRadioWithScoreControl = selectedControlId === RADIO_WITH_SCORE_CONTROL_TYPE_ID;
+  // TODO: switch to an id check (like RADIO_WITH_SCORE_CONTROL_TYPE_ID) once the numeric
+  // controlTypeId for this picklist entry is known — string matching alone wasn't reliable for
+  // "Radio With Score" either
+  const isEmojiScoreControl = (() => {
+    const normalized = (watch("controlType") || "").trim().toLowerCase();
+    return normalized.includes("emoji") && normalized.includes("score");
+  })();
   const addLookupHandler = () => {
     const val = lookupInput.trim();
     if (!val) {
@@ -131,6 +148,10 @@ const HeaderMaster = () => {
     });
   };
 
+  const emrControlDocumentImageNameChangeHandler = (documentId: number, imageName: string) => {
+    setEmrControlDocumentImageNames(prev => ({ ...prev, [documentId]: imageName }));
+  };
+
   const deleteEmrControlDocumentHandler = async (headerId: number, documentId: number) => {
     const resp = await fetchApi(
       "PATCH",
@@ -163,9 +184,14 @@ const HeaderMaster = () => {
 
     try {
       for (const [documentId, file] of entries) {
+        const slot = emrControlDocuments.find(d => d.DocumentId === Number(documentId));
+        const imageName =
+          emrControlDocumentImageNames[Number(documentId)] ?? slot?.DocumentName ?? "";
+
         const formData = new FormData();
         formData.append("HeaderId", String(headerId));
         formData.append("DocumentId", documentId);
+        formData.append("ImageName", imageName);
         formData.append("DocumentFile", file);
 
         const resp = await fetchApi(
@@ -244,6 +270,39 @@ const HeaderMaster = () => {
 
       return updated;
     });
+  };
+
+  const lovScoreChangeHandler = (index: number, rawValue: string) => {
+    setLovsItems(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        score: rawValue.trim() === "" ? undefined : Number(rawValue),
+      };
+      return updated;
+    });
+  };
+
+  const lovImageChangeHandler = (index: number, file: File | null) => {
+    if (!file) {
+      setLovsItems(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], base64Data: undefined, fileName: undefined };
+        return updated;
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : undefined;
+      setLovsItems(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], base64Data: dataUrl, fileName: file.name };
+        return updated;
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const lovKeyDownHandler = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
@@ -389,6 +448,29 @@ const HeaderMaster = () => {
         showWarning("Please enter value in LOVs");
         return;
       }
+    } else if (isRadioWithScoreControl) {
+      const hasInvalidLov = lovItems.some(
+        l => !l.value.trim() || l.score === undefined || l.score === null || Number.isNaN(l.score)
+      );
+
+      if (hasInvalidLov) {
+        showWarning("Please enter an option and a score for every row");
+        return;
+      }
+    } else if (isEmojiScoreControl) {
+      const hasInvalidLov = lovItems.some(
+        l =>
+          !l.value.trim() ||
+          l.score === undefined ||
+          l.score === null ||
+          Number.isNaN(l.score) ||
+          !l.base64Data
+      );
+
+      if (hasInvalidLov) {
+        showWarning("Please choose an image, score, and label text for every row");
+        return;
+      }
     }
     // optional validation
     if (selectedControlId === 10 && lookupItems.length === 0) {
@@ -405,12 +487,26 @@ const HeaderMaster = () => {
         selectedControlId === 3 ||
         selectedControlId === 4 ||
         selectedControlId === 9 ||
-        isRadioControl
-          ? lovItems.filter(item =>
-              isDropdownLov(item.dataTypeId) ? (item.options?.length ?? 0) > 0 : item.value.trim()
-            )
+        isRadioControl ||
+        isRadioWithScoreControl ||
+        isEmojiScoreControl
+          ? lovItems
+              .filter(item =>
+                isDropdownLov(item.dataTypeId) ? (item.options?.length ?? 0) > 0 : item.value.trim()
+              )
+              .map(item => ({
+                ...item,
+                score: item.score ?? 0,
+                base64Data: item.base64Data ?? "",
+              }))
           : selectedControlId === 10
-            ? lookupItems.map(v => ({ dataTypeId: 0, value: v, headerName: "" }))
+            ? lookupItems.map(v => ({
+                dataTypeId: 0,
+                value: v,
+                headerName: "",
+                score: 0,
+                base64Data: "",
+              }))
             : [],
       queries: isCustomControl && customQuery.trim() ? customQuery.trim() : "",
     };
@@ -466,6 +562,13 @@ const HeaderMaster = () => {
         dataTypeId: item?.dataTypeId || 0,
         value: item?.value || "",
         headerName: item?.headerName || "",
+        score:
+          item?.score !== undefined && item?.score !== null
+            ? Number(item.score)
+            : item?.Score !== undefined && item?.Score !== null
+              ? Number(item.Score)
+              : undefined,
+        base64Data: item?.base64Data || item?.Base64Data || undefined,
       }));
       setLovsItems(mappedItems);
     } else if (resp?.data && resp?.value) {
@@ -500,6 +603,7 @@ const HeaderMaster = () => {
 
     setEmrControlDocuments([]);
     setEmrControlDocumentFiles({});
+    setEmrControlDocumentImageNames({});
     if (Number(item?.controlTypeId) === IMAGE_UPLOADER_CONTROL_TYPE_ID) {
       await fetchEmrControlDocumentMapping(Number(item?.headerId));
     } else {
@@ -555,6 +659,7 @@ const HeaderMaster = () => {
     setCustomQuery("");
     setEmrControlDocuments([]);
     setEmrControlDocumentFiles({});
+    setEmrControlDocumentImageNames({});
   };
 
   return (
@@ -639,8 +744,20 @@ const HeaderMaster = () => {
             {selectedControlId === 3 ||
             selectedControlId === 4 ||
             selectedControlId === 9 ||
-            isRadioControl ? (
-              <InputField label="List Of Values" required>
+            isRadioControl ||
+            isRadioWithScoreControl ||
+            isEmojiScoreControl ? (
+              <InputField
+                label={
+                  isRadioWithScoreControl
+                    ? "Options & Scores"
+                    : isEmojiScoreControl
+                      ? "Emoji, Score & Label"
+                      : "List Of Values"
+                }
+                className="sm:col-span-2 lg:col-span-4"
+                required
+              >
                 <div className="border border-gray-200 rounded-xl bg-gray-50 p-1">
                   <table className="w-full">
                     <tbody>
@@ -775,6 +892,71 @@ const HeaderMaster = () => {
                                     </div>
                                   )}
                                 </div>
+                              ) : isRadioWithScoreControl ? (
+                                <div className="flex items-center gap-2 w-full">
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    style={{ flexGrow: 1, flexShrink: 1, minWidth: 0 }}
+                                    placeholder="Enter option text and press Enter to add more rows"
+                                    value={item.value}
+                                    onChange={e => lovValueChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    className="input-field text-center"
+                                    style={{ width: 90, flexGrow: 0, flexShrink: 0 }}
+                                    placeholder="Score"
+                                    value={item.score ?? ""}
+                                    onChange={e => lovScoreChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                </div>
+                              ) : isEmojiScoreControl ? (
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className="flex flex-col items-center gap-1 shrink-0">
+                                    {item.base64Data ? (
+                                      <img
+                                        src={item.base64Data}
+                                        alt=""
+                                        className="w-10 h-10 rounded-full border border-gray-200 object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-300">
+                                        <i className="fa-solid fa-image" />
+                                      </div>
+                                    )}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="text-[10px] w-20"
+                                      onChange={e =>
+                                        lovImageChangeHandler(index, e.target.files?.[0] ?? null)
+                                      }
+                                    />
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step={1}
+                                    className="input-field text-center"
+                                    style={{ width: 90, flexGrow: 0, flexShrink: 0 }}
+                                    placeholder="Score"
+                                    value={item.score ?? ""}
+                                    onChange={e => lovScoreChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    style={{ flexGrow: 1, flexShrink: 1, minWidth: 0 }}
+                                    placeholder="Enter label text and press Enter to add more rows"
+                                    value={item.value}
+                                    onChange={e => lovValueChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                </div>
                               ) : (
                                 <input
                                   type="text"
@@ -862,7 +1044,7 @@ const HeaderMaster = () => {
               </InputField>
             )}
             {selectedControlId === 20 && (
-              <InputField label="Image Upload">
+              <InputField label="Image Upload" className="sm:col-span-2 lg:col-span-4">
                 {!watch("headerId") ? (
                   <p className="input-field-error">
                     Save this header first, then choose files for each document slot below.
@@ -870,6 +1052,52 @@ const HeaderMaster = () => {
                 ) : emrControlDocuments.length === 0 ? (
                   <p className="text-sm text-gray-400">No document slots configured</p>
                 ) : (
+                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
+                    <div className="table-scroll-wrapper">
+                      <table className="base-table w-full">
+                        <thead className="table-head">
+                          <tr>
+                            <th className="table-th w-40">Document</th>
+                            <th className="table-th w-20 text-center">Preview</th>
+                            <th className="table-th w-24 text-center">Download</th>
+                            <th className="table-th min-w-[240px]">Image Name</th>
+                            <th className="table-th w-64">File</th>
+                            <th className="table-th w-16 text-center">Delete</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {emrControlDocuments.map(doc => (
+                            <tr key={doc.DocumentId} className="table-row">
+                              <td className="table-td font-medium">
+                                {doc.DocumentName}
+                                {doc.IsMandatory === 1 && <span className="text-red-500"> *</span>}
+                              </td>
+                              <td className="table-td text-center">
+                                {doc.DocumentPath ? (
+                                  <ImagePreview pathName={doc.DocumentPath} />
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
+                              </td>
+                              <td className="table-td text-center">
+                                {doc.DocumentPath ? (
+                                  <ImageDownload pathName={doc.DocumentPath} />
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
+                              </td>
+                              <td className="table-td">
+                                <input
+                                  type="text"
+                                  className="input-field !mb-0"
+                                  placeholder="Enter image name"
+                                  value={
+                                    emrControlDocumentImageNames[doc.DocumentId] ?? doc.ImageName
+                                  }
+                                  onChange={e =>
+                                    emrControlDocumentImageNameChangeHandler(
+                                      doc.DocumentId,
+                                      e.target.value
                   <div className="border border-gray-200 rounded-xl bg-gray-50 p-2">
                     <table className="w-full">
                       <tbody>
@@ -913,15 +1141,42 @@ const HeaderMaster = () => {
                                       doc.DocumentId
                                     )
                                   }
-                                >
-                                  <i className="fa-solid fa-trash"></i>
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                />
+                              </td>
+                              <td className="table-td">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="file-upload w-full"
+                                  onChange={e =>
+                                    emrControlDocumentFileChangeHandler(
+                                      doc.DocumentId,
+                                      e.target.files?.[0] ?? null
+                                    )
+                                  }
+                                />
+                              </td>
+                              <td className="table-td text-center">
+                                {doc.DocumentPath && (
+                                  <button
+                                    type="button"
+                                    className="delete-icon"
+                                    onClick={() =>
+                                      deleteEmrControlDocumentHandler(
+                                        Number(watch("headerId")),
+                                        doc.DocumentId
+                                      )
+                                    }
+                                  >
+                                    <i className="fa-solid fa-trash"></i>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                     {isUploadingControlDocuments && (
                       <p className="text-sm text-gray-400 mt-2">Uploading documents...</p>
                     )}

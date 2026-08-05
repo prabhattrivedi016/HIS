@@ -32,13 +32,12 @@ type MapToUserDrawerProps = {
   groupId: number | null;
 };
 
-interface UserGroupItem{
-
-    isGranted: number,
-    groupId: number,
-    userId: number,
-    groupName: string,
-    userName:string
+interface UserGroupItem {
+  isGranted: number;
+  groupId: number;
+  userId: number;
+  groupName: string;
+  userName: string;
 }
 
 export type {
@@ -47,16 +46,5 @@ export type {
   SearchHandlerProps,
   updateUserGroupStatusProps,
   UserGroupDrawerProps,
-  UserGroupItem
+  UserGroupItem,
 };
-
-
-
-
-{
-    "isGranted": 1,
-    "groupId": 12,
-    "userId": 5,
-    "groupName": "Front Office",
-    "userName": "abc   (admin)"
-}

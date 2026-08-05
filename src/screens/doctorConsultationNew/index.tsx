@@ -15,6 +15,7 @@ import {
   Scale,
   Stethoscope,
   Thermometer,
+  Upload,
   User,
   Wind,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import MedicineAssistantWidget from "./components/MedicineAssistantWidget";
 import PrintPreviewModal from "./components/PrintPreviewModal";
+import UploadDocumentModal from "./components/UploadDocumentModal";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
@@ -147,6 +149,7 @@ const DoctorConsultationNew = () => {
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
+  const [showUploadDocument, setShowUploadDocument] = useState<boolean>(false);
   // phones only — the full vitals chip row is too tall to show inline on a small screen, so it
   // starts collapsed behind a compact summary bar instead of pushing EMR Sections far below the fold
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
@@ -927,6 +930,14 @@ const DoctorConsultationNew = () => {
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:shrink-0 mt-1">
                         <button
                           type="button"
+                          onClick={() => setShowUploadDocument(true)}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                        >
+                          <Upload size={14} />
+                          Upload Document
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setSelectedPatient(null);
                             setLeftPanelVisible(true);
@@ -1182,6 +1193,10 @@ const DoctorConsultationNew = () => {
         vitals={vitalMasterList}
         vitalsData={vitalsData}
         allergy={allergySection}
+      />
+      <UploadDocumentModal
+        isOpen={showUploadDocument}
+        onClose={() => setShowUploadDocument(false)}
       />
       {selectedPatient && <MedicineAssistantWidget emrSectionsData={emrSectionsData} />}
     </div>

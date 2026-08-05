@@ -55,6 +55,47 @@ const DynamicControl = ({
   }
 
   if (schema.type === "table") {
+    if (!schema.label) {
+      return (
+        <div className={wrapperClass}>
+          <Renderer
+            schema={effectiveSchema}
+            value={value}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <InputField label={schema.label} className={wrapperClass}>
+        <Renderer
+          schema={effectiveSchema}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+      </InputField>
+    );
+  }
+
+  // MultiLevelInputGridControl/ComparisonGridControl/RadioScoreGroupControl/GonioscopyControl/
+  // OpticNerveExaminationControl/IntraOcularPressureControl/VisionControl/FrameDetailsControl/
+  // EyeRefractionControl already show their own title (or, for VisionControl/
+  // EyeRefractionControl, deliberately show none — the section's own h2 is enough), so wrapping
+  // any of them in the external label too would repeat/add a name
+  if (
+    schema.type === "multiLevelInputGrid" ||
+    schema.type === "comparisonGrid" ||
+    schema.type === "radioScoreGroup" ||
+    schema.type === "gonioscopy" ||
+    schema.type === "opticNerveExam" ||
+    schema.type === "intraOcularPressure" ||
+    schema.type === "vision" ||
+    schema.type === "frameDetails" ||
+    schema.type === "eyeRefraction"
+  ) {
     return (
       <div className={wrapperClass}>
         <Renderer

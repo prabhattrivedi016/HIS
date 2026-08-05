@@ -1,13 +1,18 @@
-import { Activity, Layers, ListChecks } from "lucide-react";
+import { Activity, Layers, ListChecks, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { FaTooth } from "react-icons/fa";
+import DentalExaminationTab, {
+  DentalExaminationValue,
+  isExaminationFilled,
+} from "./DentalExaminationTab";
 import ToothIcon, { toothCategoryForNumber } from "./ToothIcon";
 
 export type BiteGrade = "None" | "Mild" | "Moderate" | "Severe";
 export type ChartMarkType = "extraction" | "attachment";
 
 export interface DentalChartValue {
+  examination?: DentalExaminationValue;
   treatmentType?: string;
   bite?: Partial<Record<string, BiteGrade>>;
   chart?: {
@@ -67,6 +72,7 @@ const CHART_MODES: { key: ChartMarkType | "ipr"; label: string; dot: string }[] 
 ];
 
 const TABS = [
+  { key: "examination", label: "Examination", icon: Stethoscope },
   { key: "treatmentType", label: "Treatment type", icon: Layers },
   { key: "bite", label: "Bite analysis", icon: Activity },
   { key: "chart", label: "Dental chart", icon: FaTooth },
@@ -78,7 +84,7 @@ type TabKey = (typeof TABS)[number]["key"];
 const isBiteParamActive = (grade?: BiteGrade) => Boolean(grade && grade !== "None");
 
 const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModalProps) => {
-  const [activeTab, setActiveTab] = useState<TabKey>("treatmentType");
+  const [activeTab, setActiveTab] = useState<TabKey>("examination");
   const [mode, setMode] = useState<ChartMarkType | "ipr">("ipr");
 
   if (!isOpen) return null;
@@ -110,6 +116,7 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
   };
 
   const completedCount = [
+    isExaminationFilled(chartValue.examination),
     Boolean(chartValue.treatmentType),
     Object.values(chartValue.bite ?? {}).some(isBiteParamActive),
     Boolean(
@@ -129,7 +136,11 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
           const gapMarked = gapKey ? (chartValue.chart?.ipr ?? []).includes(gapKey) : false;
           const mark = chartValue.chart?.marks?.[tooth];
           const markColor =
-            mark === "extraction" ? BRAND_BLUE_MID : mark === "attachment" ? BRAND_BLUE_DARK : undefined;
+            mark === "extraction"
+              ? BRAND_BLUE_MID
+              : mark === "attachment"
+                ? BRAND_BLUE_DARK
+                : undefined;
 
           return (
             <div key={tooth} className="flex items-center">
@@ -193,7 +204,7 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
               </span>
               <h3 className="text-sm font-bold text-slate-700 tracking-wide">Dental Chart</h3>
               <span className="card-status card-status-pending !text-[10px] !px-2 !py-0.5">
-                {completedCount}/4 sections
+                {completedCount}/5 sections
               </span>
             </div>
             <button className="close-drawer-btn" onClick={onClose}>
@@ -218,6 +229,13 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-5">
+            {activeTab === "examination" && (
+              <DentalExaminationTab
+                value={chartValue.examination}
+                onChange={examination => patch({ examination })}
+              />
+            )}
+
             {activeTab === "treatmentType" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-5xl">
                 {TREATMENT_TYPES.map(t => {
@@ -238,7 +256,10 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
                           selected ? "bg-white" : "bg-slate-100"
                         }`}
                       >
-                        <FaTooth size={16} className={selected ? "text-[#0B5394]" : "text-slate-400"} />
+                        <FaTooth
+                          size={16}
+                          className={selected ? "text-[#0B5394]" : "text-slate-400"}
+                        />
                       </span>
                       <span>
                         <p className="text-sm font-bold text-slate-700">{t.label}</p>
@@ -298,7 +319,11 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-colors"
                         style={
                           mode === m.key
-                            ? { borderColor: BRAND_BLUE_MID, backgroundColor: "#eff6ff", color: BRAND_BLUE_DARK }
+                            ? {
+                                borderColor: BRAND_BLUE_MID,
+                                backgroundColor: "#eff6ff",
+                                color: BRAND_BLUE_DARK,
+                              }
                             : { borderColor: "#e2e8f0", backgroundColor: "white", color: "#64748b" }
                         }
                       >
@@ -308,7 +333,9 @@ const DentalChartModal = ({ isOpen, onClose, value, onChange }: DentalChartModal
                     ))}
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    {mode === "ipr" ? "Click the gap between two teeth" : "Click a tooth to mark it"}
+                    {mode === "ipr"
+                      ? "Click the gap between two teeth"
+                      : "Click a tooth to mark it"}
                   </p>
                 </div>
 
