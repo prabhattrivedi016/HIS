@@ -11,7 +11,6 @@ export const fetchOpdRefundReceiptData = async (
   fetchApi: FetchApiFn,
   responseData: Record<string, unknown>
 ) => {
-  console.log("responseData of opd refund receipt utils", responseData);
   const ftid = Number(
     responseData.ftid ?? responseData.FtId ?? responseData.FTDId ?? responseData.FtdId ?? 0
   );
@@ -19,11 +18,8 @@ export const fetchOpdRefundReceiptData = async (
     resolveVisitIdFromResponse(responseData) ||
     Number(responseData.visitId ?? responseData.VisitId ?? 0);
   const receiptId = Number(responseData.receiptId ?? responseData.receiptId ?? 0);
-  console.log("receiptId", receiptId);
   const isReceipt =
     responseData?.isReceipt === true || Number(responseData?.isReceipt ?? 0) === 1 ? 1 : 0;
-
-  console.log("isReceipt", isReceipt);
 
   const [receiptResult, paymentResult] = await Promise.allSettled([
     fetchApi(

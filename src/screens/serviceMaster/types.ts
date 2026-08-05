@@ -48,6 +48,8 @@ type ServiceTableItem = {
   isTeleConsultationService: number;
   isRequiredSeparatePerformingDoctor?: number;
   doctorDepartmentIds?: string;
+  isRegistrationCharge?: number;
+  registrationChargeValidityDays?: number;
 };
 
 type CategoryTypeItem = { categoryTypeId: number; categoryTypeName: string };

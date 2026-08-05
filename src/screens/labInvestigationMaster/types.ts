@@ -135,8 +135,20 @@ type DoctorDepartmentItem = {
   departmentType: string;
   isActive: number;
 };
+
+type CategoryItem = {
+  categoryId: number;
+  categoryName: string;
+  categoryTypeId: number;
+  categoryTypeName: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
 export type {
   AddLabInvestigationProps,
+  CategoryItem,
   CategoryListItem,
   DoctorDepartmentItem,
   EditablePopupData,

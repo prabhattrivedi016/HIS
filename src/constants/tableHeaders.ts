@@ -726,3 +726,21 @@ export const filterBillTableHeader = [
   "Paid Amount",
   "Type",
 ];
+export const ViewCreditNotePopupServiceTableHeader = [
+  "#",
+  "Service Name",
+  "Rate",
+  "Qty",
+  "Disc Amount",
+  "Net Amount",
+  "Credit Note (Amt)",
+  "Credit Note (%)",
+];
+
+export const AddPackageTableHeader = [
+  "#",
+  "Service Category",
+  "Service Name",
+  "Quantity",
+  "Remove",
+];

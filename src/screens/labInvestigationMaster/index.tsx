@@ -3,7 +3,6 @@ import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import ToggleButton from "@/components/toggleButton";
 import { ENDPOINTS } from "@/config/defaults";
-import { CATEGORY_ID } from "@/constants/constants";
 import { LabInvestigationTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess } from "@/utils/alert";
@@ -13,6 +12,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import Select, { SingleValue } from "react-select";
 import AddLabInvestigation from "./components/AddLabInvestigation";
 import {
+  CategoryItem,
   InvestigationTableItem,
   SelectItem,
   SubCategoryListItem,
@@ -38,7 +38,7 @@ const LabInvestigationMaster = () => {
     });
   }, [investigation]);
 
-  const [categoryName, setCategoryName] = useState<string>("");
+  const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
   const [subCategoryList, setSubCategoryList] = useState<SubCategoryListItem[]>([]);
@@ -63,11 +63,10 @@ const LabInvestigationMaster = () => {
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryIds: CATEGORY_ID?.categoryId } },
-      { component: "LabInvestigationMaster", silent: true }
+      { params: { categoryTypeIds: 3 } },
+      { component: "LabInvestigationMaster" }
     );
-    setCategoryName(resp?.data?.[0]?.categoryName ?? "Investigations");
-    setCategoryId(resp?.data?.[0]?.categoryId ?? 3);
+    setCategoryList(resp?.data ?? []);
   }, []);
 
   // sub category
@@ -246,6 +245,12 @@ const LabInvestigationMaster = () => {
 
     debouncedSearch(value);
   };
+
+  // category select handler
+  const categorySelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    setCategoryId(value);
+  };
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -273,7 +278,14 @@ const LabInvestigationMaster = () => {
 
         <div className="form-grid-4">
           <InputField label="Category" required>
-            <input value={categoryName!} readOnly className="input-field" />
+            <select className="input-field" onChange={categorySelectHandler}>
+              <option value="0">--Select--</option>
+              {categoryList?.map((item: CategoryItem) => (
+                <option key={item?.categoryId} value={item?.categoryId}>
+                  {item?.categoryName}
+                </option>
+              ))}
+            </select>
           </InputField>
 
           <InputField label="Sub Category" required>

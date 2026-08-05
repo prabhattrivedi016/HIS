@@ -695,7 +695,11 @@ const CreateUpdatePopup = ({
           popupName={printName}
           data={selectedPrintGroup}
           refreshData={refetch}
-          resetPrintGroupId={setSelectedPrintGroupId}
+          resetPrintGroupId={(val) => {
+            const id = typeof val === 'function' ? val(selectPrintGroupId) : val;
+            setSelectedPrintGroupId(id);
+            subSubCategoryForm.setValue("printGroupId", id);
+          }}
           resetData={setSelectedPrintGroup}
         />
       )}
@@ -707,6 +711,10 @@ const CreateUpdatePopup = ({
           onClose={closeDoctorDepartmentHandler}
           data={selectedDoctorDepartment}
           refreshDepartment={refetchDoctorDepartment}
+          resetDepartmentId={(val) => {
+            subSubCategoryForm.setValue("departmentId", val);
+          }}
+          resetData={setSelectedDoctorDepartment}
         />
       )}
 

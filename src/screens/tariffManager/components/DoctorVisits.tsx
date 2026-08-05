@@ -136,8 +136,6 @@ const DoctorVisits = () => {
 
   // visit type
   const getVisitType = async (categoryId: number) => {
-    console.log("categoryId", categoryId);
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_SERVICE_ITEM_LIST,
@@ -373,7 +371,7 @@ const DoctorVisits = () => {
         alias: row?.Alias ?? "",
         serviceCode: row?.ServiceCode ?? "",
 
-        doctorId: row?.DoctorId ?? 0,
+        doctorId: selectedDoctor?.value ?? 0,
         validityDays: row?.ValidityDays ?? 0,
 
         rate: isNaN(Number(row?.Rate)) ? 0 : Number(row?.Rate),

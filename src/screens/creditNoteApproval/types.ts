@@ -53,6 +53,7 @@ type CreditNoteApprovalItem = {
   TotalDiscountAmountOnBill?: number | null;
   TotalPatientPayableAmount?: number | null;
   TotalDiscountPerOnBill?: number | string | null;
+  BillNo?: string;
 };
 
 type creditNoteApprovalGridCard = {
@@ -136,9 +137,114 @@ type CreditNoteApprovalDetails = {
   CreditNoteReason: string;
   CreditNoteRemark: string;
 };
+
+type ApprovalDetails = {
+  CreditNoteId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  BillId: number;
+  BillNo: string;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  TotalBillAmount: number;
+  TotalDiscountAmountOnBill: number;
+  TotalDiscountPerOnBill: number;
+  TotalPaidAmount: number;
+  TotalBalanceAmount: number;
+  TotalCreditNoteAmount: number;
+  StatusId: number;
+  Status: string;
+  IsCreditNoteApproved: 1;
+  ApprovalFlowId: number;
+  ApprovalFlow: string;
+  IsAllApprovalRequired: number;
+  ApprovalLevelId: number;
+  ApprovalLevel: string;
+  Level1ApproverNames: string | null;
+  Level2ApproverNames: string | null;
+  Level3ApproverNames: string | null;
+  Level4ApproverNames: string | null;
+  IsLevel1Approve: number;
+  Level1ApprovedByName: string | null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: number | null;
+  Level2ApprovedByName: string | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApprovedByName: string | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApprovedByName: string | null;
+  Level4ApproveOn: string | null;
+  NextApprovalName: string | null;
+  NextApprovalLevel: number;
+  ApprovalRemarks: string;
+  CreditNoteApprovedID: number;
+  CreditNoteApprovedName: string;
+  CreditNoteReason: string;
+  CreditNoteRemark: string;
+};
+
+type ServiceTableItem = {
+  CreditNoteId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  BillId: number;
+  UHID: string;
+  TotalBillAmount: number;
+  TotalDiscountAmountOnBill: number;
+  TotalDiscountPerOnBill: number;
+  TotalPaidAmount: number;
+  TotalBalanceAmount: number;
+  TotalCreditNoteAmount: number;
+  IsCreditNoteApproved: number;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number | null;
+  Level2ApproveId: number | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+  FTDId: number;
+  ServiceItemId: number;
+  ServiceName: string;
+  Rate: number;
+  GrossAmt: number;
+  Qty: number;
+  CreditNotePer: number;
+  CreditNoteAmt: number;
+  DiscPer: number;
+  DiscAmt: number;
+  NetAmt: number;
+  CreditNoteApprovedID: 4;
+  CreditNoteApprovedName: string;
+  CreditNoteReason: string;
+  CreditNoteRemark: string;
+};
 export type {
+  ApprovalDetails,
   CreditNoteApprovalDetails,
   creditNoteApprovalGridCard,
   CreditNoteApprovalItem,
   creditNoteApprovalListCard,
+  ServiceTableItem,
 };

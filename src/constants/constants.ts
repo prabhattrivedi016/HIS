@@ -344,29 +344,6 @@ export enum VISIT_TYPE {
   IN_PATIENT = 2,
 }
 
-export const PatientRegistrationSaveButtons = [
-  { name: "save", value: "Save", type: "submit", color: "save" },
-  // { name: "CanOPDBilling", value: "Billing", type: "button", color: "save" },
-  // { name: "CanIVFAdmission", value: "IVF Registration", type: "button", color: "save" },
-  // { name: "CanIPDAdmission", value: "IPD Admission", type: "button", color: "save" },
-  // { name: "CanEmergencyAdmission", value: "Emergency Admission", type: "button", color: "save" },
-  // { name: "CanDialysisAdmission", value: "Dialysis Admission", type: "button", color: "save" },
-  // { name: "CanDayCareAdmission", value: "Daycare Admission", type: "button", color: "save" },
-  // { name: "CanOPDConsulationBooking", value: "OPD Consultation", type: "button", color: "save" },
-  { name: "cancel", value: "Cancel", type: "button", color: "cancel" },
-];
-
-export const PatientRegistrationUpdateButtons = [
-  { name: "CanUpdtaePatientregistration", value: "Update", type: "submit", color: "save" },
-  // { name: "CanOPDBilling", value: "OPD Billing", type: "button", color: "save" },
-  // { name: "CanIPDAdmission", value: "IPD Admission", type: "button", color: "save" },
-  // { name: "CanEmergencyAdmission", value: "Emergency Admission", type: "button", color: "save" },
-  // { name: "CanDialysisAdmission", value: "Dialysis Admission", type: "button", color: "save" },
-  // { name: "CanDayCareAdmission", value: "Daycare Admission", type: "button", color: "save" },
-  // { name: "CanOPDConsulationBooking", value: "OPD Consultation", type: "button", color: "save" },
-  { name: "cancel", value: "Cancel", type: "button", color: "cancel" },
-];
-
 export enum ButtonName {
   CAN_OPD_BILLING = "CanOPDBilling",
   CAN_IVF_ADMISSION = "CanIVFAdmission",
@@ -506,6 +483,7 @@ export enum PageType {
   OPD_REFUND = "OpdRefund",
   CREDIT_NOTE = "creditNote",
   WRITE_OFF = "writeOff",
+  IPD_ADMISSION = "IPDAdmission",
 }
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",
@@ -531,3 +509,5 @@ export const ConditionOperatorOptions = [
   { value: ">", label: "Greater Than (>)" },
   { value: ">=", label: "Greater Than Equals To (>=)" },
 ] as const;
+
+export const AddNewTabIconTableHeader = ["#", "Icon Name", "Image"];

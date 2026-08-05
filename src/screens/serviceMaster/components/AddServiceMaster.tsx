@@ -11,6 +11,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { SubCategoryListItem } from "@/screens/labInvestigationMaster/types";
 import { PickMasterItem, SelectItem } from "@/types";
 import { showWarning } from "@/utils/alert";
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   createUpdateServiceMasterFormItem,
   createUpdateServiceMasterSchema,
@@ -157,6 +158,8 @@ const AddServiceMaster = ({
       isActive: 1,
       isRequiredSeparatePerformingDoctor: 0,
       doctorDepartmentIds: "",
+      isRegistrationCharge: 0,
+      registrationChargeValidityDays: 0,
     },
   });
 
@@ -164,6 +167,7 @@ const AddServiceMaster = ({
   const isEdit = Boolean(watch("serviceItemId"));
   const selectedOpdTypeId = watch("opdConsultationTypeId");
   const isRequiredPerformingDoctor = Number(watch("isRequiredSeparatePerformingDoctor")) === 1;
+  const isRegistrationCharge = Number(watch("isRegistrationCharge")) === 1;
 
   const buttonTitle = isEdit ? "Update" : "Create";
 
@@ -462,6 +466,8 @@ const AddServiceMaster = ({
       isActive: data.isActive ?? 1,
       isRequiredSeparatePerformingDoctor: data.isRequiredSeparatePerformingDoctor ?? 0,
       doctorDepartmentIds: data.doctorDepartmentIds ?? "",
+      isRegistrationCharge: data.isRegistrationCharge ?? 0,
+      registrationChargeValidityDays: data?.registrationChargeValidityDays ?? 0,
     });
 
     setCategoryId(data.categoryId);
@@ -474,7 +480,7 @@ const AddServiceMaster = ({
       setSelectedCategory(cat);
       setCategoryTypeId(Number(cat.categoryTypeId));
     }
-  }, [data, categoryList]);
+  }, [data, categoryList, data?.registrationChargeValidityDays]);
 
   // sub category
 
@@ -625,6 +631,8 @@ const AddServiceMaster = ({
         isActive: 1,
         isRequiredSeparatePerformingDoctor: 0,
         doctorDepartmentIds: "",
+        isRegistrationCharge: 0,
+        registrationChargeValidityDays: 0,
       });
       onClose?.();
     }, 500);
@@ -876,6 +884,40 @@ const AddServiceMaster = ({
                     </InputField>
                   </>
                 )}
+
+                <InputField label="Registration Chargable">
+                  <select
+                    className="input-field"
+                    {...register("isRegistrationCharge", {
+                      onChange: e => {
+                        const val = Number(e.target.value);
+                        if (val === 0) {
+                          setValue("registrationChargeValidityDays", 0);
+                        }
+                      },
+                    })}
+                  >
+                    <option value={1}>Yes</option>
+                    <option value={0}>No</option>
+                  </select>
+                </InputField>
+
+                <div className={isRegistrationCharge ? "" : "hidden"}>
+                  <InputField label="Registration Validity (days)" required>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Enter registration validity"
+                      {...register("registrationChargeValidityDays")}
+                      onInput={allowOnlyNumbers}
+                    />
+                    {errors?.registrationChargeValidityDays && (
+                      <p className="input-field-error">
+                        {errors?.registrationChargeValidityDays?.message}
+                      </p>
+                    )}
+                  </InputField>
+                </div>
 
                 <InputField label="Status">
                   <select className="input-field" {...register("isActive")}>

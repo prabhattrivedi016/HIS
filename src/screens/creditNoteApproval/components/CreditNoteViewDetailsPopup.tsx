@@ -1,50 +1,14 @@
+import CentralPopup from "@/components/centralPopup";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { OpDiscountApprovalLevelTableHeader } from "@/constants/tableHeaders";
+import {
+  OpDiscountApprovalLevelTableHeader,
+  ViewCreditNotePopupServiceTableHeader,
+} from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-
-type CreditNoteDetailType = {
-  TokenNo?: string;
-  UHID?: string;
-  PatientName?: string;
-  Age?: string;
-  Gender?: string;
-  CorporateName?: string;
-  Status?: string;
-  TotalBillAmount?: number;
-  BillDiscountPercentage?: number;
-  TotalDiscountAmountOnBill?: number;
-  TotalPatientPayableAmount?: number;
-  DiscountApprovedName?: string;
-  DiscountReason?: string;
-  Remark?: string;
-  ApprovalLevel?: string | number;
-  IsAllApprovalRequired?: number;
-  ApprovalFlow?: string;
-  ApprovedPercentage?: number;
-  ApprovalRemarks?: string;
-  IsDiscountApproved?: number;
-  IsDiscountApprovalRequired?: number;
-  Level1ApproverNames?: string;
-  IsLevel1Approve?: number | string;
-  Level1ApprovedByName?: string;
-  Level1ApproveOn?: string;
-  Level2ApproverNames?: string;
-  IsLevel2Approve?: number | string;
-  Level2ApprovedByName?: string;
-  Level2ApproveOn?: string;
-  Level3ApproverNames?: string;
-  IsLevel3Approve?: number | string;
-  Level3ApprovedByName?: string;
-  Level3ApproveOn?: string;
-  Level4ApproverNames?: string;
-  IsLevel4Approve?: number | string;
-  Level4ApprovedByName?: string;
-  Level4ApproveOn?: string;
-};
+import { ApprovalDetails, ServiceTableItem } from "../types";
 
 const formatValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "-";
@@ -81,123 +45,115 @@ const CreditNoteViewDetailsPopup = ({
   onClose: () => void;
   creditNoteId: number;
 }) => {
-  console.log("creditNoteId from view details popup", creditNoteId);
   const { loading, fetchApi } = useGlobalApi();
-  const [detail, setDetail] = useState<CreditNoteDetailType | null>(null);
+  const [canShowPopup, setCanShowPopup] = useState(false);
+  const [approvalDetails, setApprovalDetails] = useState<ApprovalDetails | null>(null);
+  const [serviceItemDetails, setServiceItemDetails] = useState<ServiceTableItem[]>([]);
 
   useScrollLock(isOpen);
 
-  useEffect(() => {
-    const recordId = Number(creditNoteId ?? 0);
-    if (!isOpen || !recordId) return;
+  const getApprovalDetails = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CREDIT_NOTE_REQUEST_APPROVAL_DETAILS,
+      {},
+      { params: { creditNoteId: Number(creditNoteId ?? 0) } },
+      { component: "CreditNoteViewDetailsPopup" }
+    );
+    setCanShowPopup(true);
+    setApprovalDetails(resp?.data?.[0]);
+  };
 
-    let isActive = true;
-
-    const getApprovalDetails = async () => {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID,
-        {},
-        { params: { creditNoteId: recordId } },
-        { component: "CreditNoteViewDetailsPopup" }
-      );
-
-      console.log("resp", resp?.data);
-
-      if (isActive) {
-        setDetail(resp?.data?.[0] ?? null);
-      }
-    };
-
-    void getApprovalDetails();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isOpen, creditNoteId]);
+  const getServiceItemTable = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID,
+      {},
+      { params: { creditNoteId: Number(creditNoteId ?? 0) } },
+      { component: "CreditNoteViewDetailsPopup" }
+    );
+    setServiceItemDetails(resp?.data ?? []);
+  };
 
   useEffect(() => {
-    if (!isOpen) {
-      setDetail(null);
+    if (creditNoteId && isOpen) {
+      getApprovalDetails();
+      getServiceItemTable();
     }
-  }, [isOpen]);
+  }, [creditNoteId, isOpen]);
 
   const patientDetails = [
-    { label: "Token No", value: detail?.TokenNo },
-    { label: "UHID", value: detail?.UHID },
-    { label: "Patient Name", value: detail?.PatientName },
+    { label: "Patient Name", value: approvalDetails?.PatientName },
+    { label: "Token No", value: approvalDetails?.TokenNo },
+    { label: "UHID", value: approvalDetails?.UHID },
+
+    { label: "Visit Id", value: approvalDetails?.VisitId },
     {
       label: "Age/Gender",
-      value: detail?.Age ? `${detail.Age} / ${detail?.Gender ?? ""}` : detail?.Gender,
+      value: approvalDetails?.Age
+        ? `${approvalDetails.Age} / ${approvalDetails?.Gender ?? ""}`
+        : approvalDetails?.Gender,
     },
-    { label: "Corporate", value: detail?.CorporateName },
-    { label: "Status", value: detail?.Status },
+    { label: "Bill Id", value: approvalDetails?.BillId },
+    { label: "Status", value: approvalDetails?.Status },
   ];
 
   const billingDetails = [
-    { label: "Total Bill Amount", value: detail?.TotalBillAmount },
-    { label: "Bill Discount (%)", value: detail?.BillDiscountPercentage },
-    { label: "Total Discount Amount", value: detail?.TotalDiscountAmountOnBill },
-    { label: "Total Payable Amount", value: detail?.TotalPatientPayableAmount },
-    { label: "Discount Approved Name", value: detail?.DiscountApprovedName },
-    { label: "Discount Reason", value: detail?.DiscountReason },
-    { label: "Remark", value: detail?.Remark },
+    { label: "Total Bill Amount", value: approvalDetails?.TotalBillAmount },
+    { label: "Total Discount Amount on Bill", value: approvalDetails?.TotalDiscountAmountOnBill },
+    { label: "Total Discount (%) on Bill", value: approvalDetails?.TotalDiscountPerOnBill },
+    { label: "Total Paid Amount", value: approvalDetails?.TotalPaidAmount },
+    { label: "Total Balance Amount", value: approvalDetails?.TotalBalanceAmount },
+    { label: "Total Credit Note Amount", value: approvalDetails?.TotalCreditNoteAmount },
+
+    { label: "Credit Note Approved Name", value: approvalDetails?.CreditNoteApprovedName },
+    { label: "Credit Note Reason", value: approvalDetails?.CreditNoteReason },
+    { label: "Credit Note Remark", value: approvalDetails?.CreditNoteRemark },
   ];
 
   const approvalLevels = [
     {
       level: "Level 1",
-      approverNames: detail?.Level1ApproverNames,
-      isApprove: detail?.IsLevel1Approve,
-      approvedBy: detail?.Level1ApprovedByName,
-      approvedOn: detail?.Level1ApproveOn,
+      approverNames: approvalDetails?.Level1ApproverNames,
+      isApprove: approvalDetails?.IsLevel1Approve,
+      approvedBy: approvalDetails?.Level1ApprovedByName,
+      approvedOn: approvalDetails?.Level1ApproveOn,
     },
     {
       level: "Level 2",
-      approverNames: detail?.Level2ApproverNames,
-      isApprove: detail?.IsLevel2Approve,
-      approvedBy: detail?.Level2ApprovedByName,
-      approvedOn: detail?.Level2ApproveOn,
+      approverNames: approvalDetails?.Level2ApproverNames,
+      isApprove: approvalDetails?.IsLevel2Approve,
+      approvedBy: approvalDetails?.Level2ApprovedByName,
+      approvedOn: approvalDetails?.Level2ApproveOn,
     },
     {
       level: "Level 3",
-      approverNames: detail?.Level3ApproverNames,
-      isApprove: detail?.IsLevel3Approve,
-      approvedBy: detail?.Level3ApprovedByName,
-      approvedOn: detail?.Level3ApproveOn,
+      approverNames: approvalDetails?.Level3ApproverNames,
+      isApprove: approvalDetails?.IsLevel3Approve,
+      approvedBy: approvalDetails?.Level3ApprovedByName,
+      approvedOn: approvalDetails?.Level3ApproveOn,
     },
     {
       level: "Level 4",
-      approverNames: detail?.Level4ApproverNames,
-      isApprove: detail?.IsLevel4Approve,
-      approvedBy: detail?.Level4ApprovedByName,
-      approvedOn: detail?.Level4ApproveOn,
+      approverNames: approvalDetails?.Level4ApproverNames,
+      isApprove: approvalDetails?.IsLevel4Approve,
+      approvedBy: approvalDetails?.Level4ApprovedByName,
+      approvedOn: approvalDetails?.Level4ApproveOn,
     },
   ].filter(level => splitApproverNames(level.approverNames).length > 0);
 
   const showApprovalTable = true;
 
-  if (!isOpen) return null;
+  if (!isOpen || !canShowPopup) return null;
 
-  return createPortal(
-    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
-      <div
-        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      />
-
-      <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-260 ${
-          isOpen ? "opacity-full" : ""
-        }`}
-      >
-        <div className="popup-header min-w-0">
-          <h2 className="popup-helper-text truncate">Patient Booking Details</h2>
-
-          <button type="button" onClick={onClose} className="close-drawer-btn shrink-0 ml-3">
-            ×
-          </button>
-        </div>
-
+  return (
+    <CentralPopup
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Credit Note Details"
+      className="lg:min-w-250"
+    >
+      <>
         {/* patient details */}
         <div className="card w-full mb-1">
           <h3 className="card-header text-lg font-semibold italic">Patient Details</h3>
@@ -230,30 +186,32 @@ const CreditNoteViewDetailsPopup = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 mb-1">
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">Approval Level :</span>
-                <span className="truncate">{formatValue(detail?.ApprovalLevel)}</span>
+                <span className="truncate">{formatValue(approvalDetails?.ApprovalLevel)}</span>
               </div>
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">All Approval Reqired :</span>
                 <span className="truncate">
-                  {formatValue(detail?.IsAllApprovalRequired === 1 ? "Yes" : "No")}
+                  {formatValue(approvalDetails?.IsAllApprovalRequired === 1 ? "Yes" : "No")}
                 </span>
               </div>
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">Approval Flow :</span>
-                <span className="truncate">{formatValue(detail?.ApprovalFlow)}</span>
+                <span className="truncate">{formatValue(approvalDetails?.ApprovalFlow)}</span>
               </div>
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">Approved Discount (%) :</span>
-                <span className="truncate">{formatValue(detail?.ApprovedPercentage ?? 0)}</span>
+                <span className="truncate">
+                  {formatValue(approvalDetails?.ApprovedPercentage ?? 0)}
+                </span>
               </div>
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">Approval Remarks :</span>
-                <span className="truncate">{formatValue(detail?.ApprovalRemarks)}</span>
+                <span className="truncate">{formatValue(approvalDetails?.ApprovalRemarks)}</span>
               </div>
               <div className="flex flex-row gap-1">
                 <span className="name-header whitespace-nowrap">Approval Status :</span>
                 <span className="truncate">
-                  {formatValue(detail?.IsDiscountApproved === 1 ? "Yes" : "No")}
+                  {formatValue(approvalDetails?.IsDiscountApproved === 1 ? "Yes" : "No")}
                 </span>
               </div>
             </div>
@@ -306,11 +264,57 @@ const CreditNoteViewDetailsPopup = ({
             </div>
           </div>
         )}
-      </div>
+        {/* service table */}
+        {showApprovalTable && (
+          <div className="table-container">
+            <div className="table-scroll-wrapper">
+              <div className="table-size">
+                <table className="base-table w-full">
+                  <thead className="table-head">
+                    <tr>
+                      {ViewCreditNotePopupServiceTableHeader.map((h: string, index: number) => (
+                        <th key={index} className="table-th ">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceItemDetails.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={ViewCreditNotePopupServiceTableHeader.length}
+                          className="table-empty"
+                        >
+                          No data found
+                        </td>
+                      </tr>
+                    )}
 
-      {!!loading && <CustomLoader isLoading={loading} />}
-    </div>,
-    document.body
+                    {serviceItemDetails.map((level, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">
+                          <ApproverNamesCell value={level?.ServiceName} />
+                        </td>
+                        <td className="table-td">{formatValue(level?.Rate)}</td>
+                        <td className="table-td">{formatValue(level?.Qty)}</td>
+                        <td className="table-td">{formatValue(level?.DiscAmt)}</td>
+                        <td className="table-td">{formatValue(level?.NetAmt)}</td>
+                        <td className="table-td">{formatValue(level?.CreditNoteAmt)}</td>
+                        <td className="table-td">{formatValue(level?.CreditNotePer) + " %"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!!loading && <CustomLoader isLoading={loading} />}
+      </>
+    </CentralPopup>
   );
 };
 

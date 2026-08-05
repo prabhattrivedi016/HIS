@@ -150,8 +150,8 @@ export const writeOffApprovalConfig = {
         keyFromApi: "CanApprove",
       },
       {
-        label: "Credit Note Approved",
-        keyFromApi: "IsCreditNoteApproved",
+        label: "Write Off Approved",
+        keyFromApi: "IsWriteOffApproved",
       },
       {
         label: "Write Off Approved Name",

@@ -13,12 +13,17 @@ import { formatDisplayDate } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import FilterBillPopup from "./components/FilterBillPopup";
 import { ApprovalList, BillDetailsItem, CreditNoteBillDetailItem } from "./types";
 
 const CreditNote = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const vistiIdFromCreditGeneration = location?.state?.item?.VisitId ?? 0;
+  const creditNoteIdFromCreditGeneration = location?.state?.item?.CreditNoteId ?? 0;
+  const shouldSaveButtonVisible = vistiIdFromCreditGeneration > 0 ? true : false;
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const roleId = useContext(RoleContext)?.roleId ?? 2;
   const [billNumberValue, setBillNumberValue] = useState<string>("");
@@ -31,6 +36,8 @@ const CreditNote = () => {
   const [creditNotePerAmount, setCreditNotePreAmount] = useState<number>(0);
   const [isSubmitClicked, setIsSubmitClicked] = useState(false);
   const [totalSumAmount, setTotalSumAmount] = useState<number>(0);
+  const [valueDisable, setValueDisable] = useState<boolean>(false);
+  const [checkedCreditList, setCheckedCreditList] = useState<CreditNoteBillDetailItem[]>([]);
 
   const [patientDetails, setPatientDetails] = useState({
     patientId: "",
@@ -46,6 +53,7 @@ const CreditNote = () => {
     serviceName: "",
     totalBillAmount: "",
     totalDiscountOnBill: "",
+    totalNetAmount: "",
     totalPaidAmount: "",
     totalBalanceAmount: "",
     totalCreditNoteAmount: "",
@@ -65,6 +73,68 @@ const CreditNote = () => {
     totalCreditNoteAmount: "",
   });
 
+  /*
+   */
+
+  const getCreditNoteDetails = async (
+    creditNoteId: number,
+    currentTableList: CreditNoteBillDetailItem[]
+  ) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID,
+      {},
+      { params: { creditNoteId } },
+      { component: "CreditNote" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No data found");
+      setValueDisable(false);
+      return;
+    }
+    setValueDisable(true);
+    setCreditNoteApprovalValues({
+      totalCreditNoteAmount: Number(resp?.data?.[0]?.TotalCreditNoteAmount),
+      creditNoteApprovedID: Number(resp?.data?.[0]?.CreditNoteApprovedID),
+      creditNoteApprovedName: resp?.data?.[0]?.CreditNoteApprovedName,
+      creditNoteReason: resp?.data?.[0]?.CreditNoteReason,
+      creditNoteRemark: resp?.data?.[0]?.CreditNoteRemark,
+    });
+    const detailsList = resp?.data ?? [];
+    setCheckedCreditList(detailsList);
+
+    const updatedList = currentTableList.map(billItem => {
+      const match = detailsList.find(
+        (d: any) => Number(d.ServiceItemId) === Number(billItem.ServiceItemId)
+      );
+      if (match) {
+        return {
+          ...billItem,
+          isChecked: true,
+          creditNoteAmount: Number(match.CreditNoteAmt ?? match.WriteOffAmt ?? 0),
+          creditNotePer: Number(match.CreditNotePer ?? match.WriteOffPer ?? 0),
+          isNavigatedDisabled: true,
+        };
+      }
+      return billItem;
+    });
+
+    setCreditNoteTableList(updatedList);
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      const billData = await getBillDetailsForCreditNote(Number(vistiIdFromCreditGeneration));
+      if (billData && creditNoteIdFromCreditGeneration) {
+        await getCreditNoteDetails(Number(creditNoteIdFromCreditGeneration), billData);
+      }
+    };
+
+    if (vistiIdFromCreditGeneration) {
+      void loadData();
+    }
+  }, [vistiIdFromCreditGeneration, creditNoteIdFromCreditGeneration]);
+
   // bill details for credit note
   const getBillDetailsForCreditNote = async (visitId: number) => {
     const resp = await fetchApi(
@@ -77,7 +147,7 @@ const CreditNote = () => {
     if (!resp?.result) {
       showWarning(resp?.message ?? "No data found");
       setShowTable(false);
-      return;
+      return null;
     }
     setShowTable(true);
     setPatientDetails({
@@ -94,23 +164,27 @@ const CreditNote = () => {
       serviceName: resp?.data?.[0]?.ServiceName,
       totalBillAmount: resp?.data?.[0]?.TotalBillAmount,
       totalDiscountOnBill: resp?.data?.[0]?.TotalDiscountAmountOnBill,
+      totalNetAmount: resp?.data?.[0]?.TotalNetAmount,
       totalPaidAmount: resp?.data?.[0]?.TotalPaidAmount,
       totalBalanceAmount: resp?.data?.[0]?.TotalBalanceAmount,
       totalCreditNoteAmount: resp?.data?.[0]?.TotalCreditNoteAmt,
     });
 
-    setCreditNoteTableList(
-      (resp?.data ?? []).map((item: CreditNoteBillDetailItem) => ({
-        ...item,
-        isChecked: true,
-        creditNoteAmount: 0,
-        creditNotePer: 0,
-      }))
-    );
+    const isNavigated = Number(vistiIdFromCreditGeneration) > 0;
+    const initialList = (resp?.data ?? []).map((item: CreditNoteBillDetailItem) => ({
+      ...item,
+      isChecked: !isNavigated,
+      creditNoteAmount: 0,
+      creditNotePer: 0,
+    }));
+
+    setCreditNoteTableList(initialList);
     setCreditNoteApprovalValues(prev => ({
       ...prev,
       totalCreditNoteAmount: 0,
     }));
+
+    return initialList;
   };
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -173,9 +247,97 @@ const CreditNote = () => {
       }));
   };
 
+  // update status of generation
+  const updateCreditGeneration = async () => {
+    if (!creditNoteIdFromCreditGeneration) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.COLLECT_CREDIT_NOTE_REQUEST,
+      { creditNoteId: Number(creditNoteIdFromCreditGeneration) },
+      {},
+      { component: "CreditNote" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.data ?? "failed to update");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setPatientDetails({
+      patientId: "",
+      patientName: "",
+      uhid: "",
+      dob: "",
+      VisitId: "",
+      billNo: "",
+      billId: "",
+      billDate: "",
+      doctorName: "",
+      corporateName: "",
+      serviceName: "",
+      totalBillAmount: "",
+      totalDiscountOnBill: "",
+      totalNetAmount: "",
+      totalPaidAmount: "",
+      totalBalanceAmount: "",
+      totalCreditNoteAmount: "",
+    });
+
+    setCreditNoteApprovalValues({
+      totalCreditNoteAmount: 0,
+      creditNoteApprovedID: 0,
+      creditNoteApprovedName: "",
+      creditNoteReason: "",
+      creditNoteRemark: "",
+    });
+    setErrors({
+      creditNoteApprovedID: "",
+      creditNoteReason: "",
+      totalCreditNoteAmount: "",
+    });
+    setCreditNoteTableList([]);
+    setShowTable(false);
+    setValueDisable(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
+
   // button click handler
   const buttonClickHandler = async (value: string) => {
     switch (value) {
+      case "save":
+        setIsSubmitClicked(true);
+
+        if (!validateCreditNoteApproval()) {
+          return;
+        }
+        const payload = {
+          visitDetails: createVistiDetailsPayload(),
+          billingItems: createBillingDetailsPaylaod(),
+        };
+
+        const amount =
+          payload.billingItems?.reduce((total, item) => total + Number(item.creditNoteAmt), 0) ?? 0;
+
+        if (amount < creditNoteApprovalValeus.totalCreditNoteAmount) {
+          showWarning("Credit note amount cannot be greater than total selected credit amount");
+          return;
+        }
+
+        if (!payload) return;
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.SAVE_CREDIT_NOTE,
+          payload,
+          {},
+          { component: "CreditNote" }
+        );
+        if (!resp?.result) {
+          showWarning(resp?.data ?? "failed to save");
+          return;
+        }
+        await updateCreditGeneration();
+
+        break;
+
       case "sendForApproval": {
         setIsSubmitClicked(true);
 
@@ -222,6 +384,7 @@ const CreditNote = () => {
           serviceName: "",
           totalBillAmount: "",
           totalDiscountOnBill: "",
+          totalNetAmount: "",
           totalPaidAmount: "",
           totalBalanceAmount: "",
           totalCreditNoteAmount: "",
@@ -241,6 +404,8 @@ const CreditNote = () => {
         });
         setCreditNoteTableList([]);
         setShowTable(false);
+        setValueDisable(false);
+        navigate(location.pathname, { replace: true, state: null });
 
         break;
       }
@@ -355,7 +520,6 @@ const CreditNote = () => {
     }
 
     const percentage = Number(((totalCreditAmount / totalSumAmount) * 100).toFixed(2));
-    console.log("percentage", percentage);
     if (percentage > 100) {
       showWarning("Credit % can not be more than 100 %");
       setCreditNoteApprovalValues(prev => ({
@@ -463,12 +627,19 @@ const CreditNote = () => {
             <InputField label="Bill Number" required>
               <div className="flex flex-row gap-2">
                 <input
-                  className="input-field"
+                  className={
+                    vistiIdFromCreditGeneration > 0 ? "disabled-input-field" : "input-field"
+                  }
                   placeholder="Press Enter to search bills"
                   onChange={e => setBillNumberValue(e.target.value.trim())}
                   onKeyDown={handleKeyDown}
+                  disabled={vistiIdFromCreditGeneration > 0}
                 />
-                <SearchIconButton onClick={handleOpenPopup} className="" />
+                <SearchIconButton
+                  onClick={handleOpenPopup}
+                  className={vistiIdFromCreditGeneration > 0 ? "disabled-search-icon" : ""}
+                  disabled={vistiIdFromCreditGeneration > 0}
+                />
               </div>
             </InputField>
 
@@ -476,10 +647,11 @@ const CreditNote = () => {
               <>
                 <InputField label="Credit Note Approved By" required>
                   <select
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     name="creditNoteApprovedID"
                     value={creditNoteApprovalValeus.creditNoteApprovedID}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   >
                     <option value={0}>Select</option>
 
@@ -497,11 +669,12 @@ const CreditNote = () => {
 
                 <InputField label="Credit Note Reason" required>
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     placeholder="Enter credit note reason"
                     name="creditNoteReason"
                     value={creditNoteApprovalValeus?.creditNoteReason}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   />
                   {isSubmitClicked && errors.creditNoteReason && (
                     <p className="input-field-error">{errors.creditNoteReason}</p>
@@ -510,21 +683,23 @@ const CreditNote = () => {
 
                 <InputField label="Credit Note Remark">
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     placeholder="Enter credit note remark"
                     name="creditNoteRemark"
                     value={creditNoteApprovalValeus?.creditNoteRemark}
                     onChange={inputChangeHandler}
+                    disabled={valueDisable}
                   />
                 </InputField>
 
                 <InputField label="Credit Note Amount" required>
                   <input
-                    className="input-field"
+                    className={valueDisable ? "disabled-input-field" : "input-field"}
                     name="totalCreditNoteAmount"
                     value={creditNoteApprovalValeus.totalCreditNoteAmount}
                     onChange={adjustAmountChangeHandler}
                     onInput={allowOnlyNumbers}
+                    disabled={valueDisable}
                   />
                   {isSubmitClicked && errors.totalCreditNoteAmount && (
                     <p className="input-field-error">{errors.totalCreditNoteAmount}</p>
@@ -566,7 +741,6 @@ const CreditNote = () => {
                   <span className="name-header whitespace-nowrap">Corporate Name:</span>
                   <span className="truncate">{patientDetails?.corporateName}</span>
                 </div>
-
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Bill Amount:</span>
                   <span className="truncate">{patientDetails?.totalBillAmount}</span>
@@ -574,6 +748,10 @@ const CreditNote = () => {
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Discount On Bill:</span>
                   <span className="truncate">{patientDetails?.totalDiscountOnBill}</span>
+                </div>
+                <div className="flex flex-row gap-1">
+                  <span className="name-header whitespace-nowrap">Total Net Amount:</span>
+                  <span className="truncate">{patientDetails?.totalNetAmount}</span>
                 </div>
                 <div className="flex flex-row gap-1">
                   <span className="name-header whitespace-nowrap">Total Paid Amount:</span>
@@ -624,6 +802,7 @@ const CreditNote = () => {
                               className="input-field-checkbox h-4 w-4"
                               checked={item.isChecked}
                               onChange={e => itemCheckboxHandler(e, item)}
+                              disabled={item.isNavigatedDisabled || vistiIdFromCreditGeneration > 0}
                             />
                           </td>
 
@@ -643,12 +822,21 @@ const CreditNote = () => {
                             <input
                               type="text"
                               className={`${
-                                item.isChecked ? "input-field" : "disabled-input-field"
+                                item.isChecked &&
+                                !item.isNavigatedDisabled &&
+                                vistiIdFromCreditGeneration === 0
+                                  ? "input-field disabled cursor-not-allowed"
+                                  : "disabled-input-field cursor-not-allowed"
                               } max-w-30 max-h-8`}
                               value={item.creditNoteAmount}
                               onInput={allowOnlyNumbers}
                               onChange={e => creditAmountChangeHandler(e, item)}
-                              readOnly={!item.isChecked}
+                              readOnly={
+                                !item.isChecked ||
+                                item.isNavigatedDisabled ||
+                                vistiIdFromCreditGeneration > 0
+                              }
+                              disabled={item.isNavigatedDisabled || vistiIdFromCreditGeneration > 0}
                             />
                           </td>
                         </tr>
@@ -674,7 +862,11 @@ const CreditNote = () => {
 
         {!!loading && <CustomLoader isLoading={loading} />}
       </div>
-      <GlobalFooterButtons pageType={PageType?.CREDIT_NOTE} onButtonClick={buttonClickHandler} />
+      <GlobalFooterButtons
+        pageType={PageType?.CREDIT_NOTE}
+        shouldSaveButtonVisible={shouldSaveButtonVisible}
+        onButtonClick={buttonClickHandler}
+      />
     </div>
   );
 };

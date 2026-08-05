@@ -10,6 +10,8 @@ export type AssignBranchRight = {
   IsOPDRefundApprovalRequired: number;
   IsCreditNoteApprovalRequired: number;
   IsWriteOffApprovalRequired: number;
+  IsMedicationOrderOnGenericNameOnly: number;
+  IsPatientRegistrationChargeRequired: number;
 };
 
 type FetchAssignBranchRightPayload = {

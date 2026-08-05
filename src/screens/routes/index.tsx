@@ -42,12 +42,14 @@ import MicroReportMaster from "../microReportMaster";
 import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
+import OpdAppointment from "../opdAppointment";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
+import PackageMaster from "../packageMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import ProcedureMaster from "../procedureMaster";
@@ -71,6 +73,7 @@ import VendorMaster from "../vendorMaster";
 import VitalMaster from "../vitalmaster";
 import WriteOff from "../writeOff";
 import WriteOffApproval from "../writeOffApproval";
+import WriteOffGeneration from "../writeOffGeneration";
 
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
@@ -145,4 +148,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "credit-note-approval": <CreditNoteApproval />,
   "write-off-approval": <WriteOffApproval />,
   "credit-note-generation": <CreditNoteGeneration />,
+  "write-off-generation": <WriteOffGeneration />,
+  "package-master": <PackageMaster />,
+  "opd-appointment": <OpdAppointment />,
 };

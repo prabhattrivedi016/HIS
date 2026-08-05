@@ -6,7 +6,6 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { createPortal } from "react-dom";
 
 const LRRemarkPopup = ({ isOpen, onClose, data }) => {
-  console.log("data", data);
   const { loading, error, fetchApi } = useGlobalApi();
 
   useScrollLock(isOpen);

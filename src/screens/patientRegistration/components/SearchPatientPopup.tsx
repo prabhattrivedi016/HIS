@@ -10,6 +10,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { BranchItem } from "@/types";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
+import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { SearchedPatientItem } from "../types";
@@ -114,7 +115,7 @@ const SearchPatientPopup = ({
       const canProceed = await onSelectPatient(item);
       if (!canProceed) return;
     } else {
-      onSelectPatientId?.(item?.patientId ?? null);
+      onSelectPatientId?.(item?.PatientId ?? null);
     }
 
     onClose();
@@ -207,6 +208,7 @@ const SearchPatientPopup = ({
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -217,6 +219,7 @@ const SearchPatientPopup = ({
                 name="middleName"
                 value={formData.middleName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -227,6 +230,7 @@ const SearchPatientPopup = ({
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -237,6 +241,7 @@ const SearchPatientPopup = ({
                 name="relativeName"
                 value={formData.relativeName}
                 onChange={handleInputChange}
+                onInput={allowOnlyText}
               />
             </InputField>
 
@@ -247,6 +252,9 @@ const SearchPatientPopup = ({
                 name="contactNumber"
                 value={formData.contactNumber}
                 onChange={handleInputChange}
+                onInput={allowOnlyNumbers}
+                minLength={10}
+                maxLength={10}
               />
             </InputField>
 
@@ -257,6 +265,9 @@ const SearchPatientPopup = ({
                 name="emergencyContactNumber"
                 value={formData.emergencyContactNumber}
                 onChange={handleInputChange}
+                onInput={allowOnlyNumbers}
+                minLength={10}
+                maxLength={10}
               />
             </InputField>
 
@@ -330,29 +341,26 @@ const SearchPatientPopup = ({
                           onDoubleClick={() => selectPatientHandler(item)}
                         >
                           <td className="table-td">{idx + 1}</td>
-                          <td className="table-td">{item?.title || "-"}</td>
+                          <td className="table-td">{item?.Title || "-"}</td>
                           <td className="table-td max-w-50 wrap-break-word">
-                            {item?.patientName || "-"}
+                            {item?.PatientName || "-"}
                           </td>
-                          <td className="table-td">{item?.uhid || "-"}</td>
-                          <td className="table-td">{item?.dob || "-"}</td>
-                          <td className="table-td">{item?.gender || "-"}</td>
-                          <td className="table-td">{item?.relativeName || "-"}</td>
-                          <td className="table-td">{item?.contactNumber || "-"}</td>
+                          <td className="table-td">{item?.UHID || "-"}</td>
+                          <td className="table-td">{item?.DOB || "-"}</td>
+                          <td className="table-td">{item?.Gender || "-"}</td>
+                          <td className="table-td">{item?.RelativeName || "-"}</td>
+                          <td className="table-td">{item?.ContactNumber || "-"}</td>
                           <td className="table-td max-w-40 wrap-break-word">
-                            {item?.fullAddress || "-"}
+                            {item?.FullAddress || "-"}
                           </td>
-                          <td className="table-td">{item?.registrationDate || "-"}</td>
-                          <td className="table-td">{item?.ipdNo || "-"}</td>
+                          <td className="table-td">{item?.RegistrationDate || "-"}</td>
+                          <td className="table-td">{item?.IPDNo || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-              {/* <p className="input-field-error font-semibold text-center">
-                💠 Please double click to select a patient
-              </p> */}
             </div>
           </Animation>
         )}

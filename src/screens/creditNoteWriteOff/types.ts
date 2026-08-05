@@ -48,6 +48,7 @@ type CreditNoteBillDetailItem = {
   creditNoteAmount?: number;
   isChecked?: boolean;
   creditNotePer?: number;
+  isNavigatedDisabled?: boolean;
 };
 
 type ApprovalList = {

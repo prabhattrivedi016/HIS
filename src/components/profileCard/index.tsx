@@ -201,6 +201,10 @@ const GridView = ({
               case "Approve":
                 btnClass = "grid-active-btn";
                 break;
+
+              case "Generation":
+                btnClass = "grid-active-btn";
+                break;
               case "Cancel":
                 btnClass = "grid-edit-btn";
                 break;

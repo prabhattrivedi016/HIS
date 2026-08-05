@@ -472,8 +472,6 @@ const SampleManagement = () => {
 
   // sample reject handler
   const rejectSampleHandler = (item: SampleManagementTableData) => {
-    console.log("reject button is clicked");
-
     setRejectItem(item);
     setRenderRejectPopup(true);
     setOpenRejectPopup(true);

@@ -33,7 +33,7 @@ const EditIconButton = ({
       aria-label={title}
     >
       <i
-        className={`fa-solid fa-edit text-xl ${className} icon-color-button active:scale-90 cursor-pointer transition-transform duration-150`}
+        className={`fa-solid fa-edit text-xl ${className} text-blue-500 active:scale-90 cursor-pointer transition-transform duration-150`}
       />
     </button>
   );

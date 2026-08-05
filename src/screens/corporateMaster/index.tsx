@@ -103,8 +103,6 @@ const CorporateMaster = () => {
     isActive: number;
     corporateId?: number;
   }) => {
-    console.log("corporateId", corporateId);
-
     if (!corporateId) return;
     await fetchApi(
       "PATCH",

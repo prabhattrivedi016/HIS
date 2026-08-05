@@ -238,7 +238,6 @@ const AddNewBedMaster = ({
 
   // submit handler
   const onSubmit = async (formData: BranchMasterFormItem) => {
-    console.log("formData", formData);
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_BED_MASTER,

@@ -101,7 +101,7 @@ const BranchRightMapping = () => {
       {/* table */}
       <div className="table-container -mt-2">
         <div className="table-scroll-wrapper ">
-          <div className="table-size lg:min-h-70 lg:max-h-60">
+          <div className="table-size lg:min-h-100 lg:max-h-100">
             <table className="base-table ">
               <thead className="table-head">
                 <tr>

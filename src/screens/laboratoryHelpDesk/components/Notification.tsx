@@ -14,7 +14,6 @@ const Notification = ({
   onClose: () => void;
   data: LaboratoryHelpDeskItem;
 }) => {
-  console.log("data of notification", data);
   useScrollLock(isOpen);
   return createPortal(
     <div className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}>

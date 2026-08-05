@@ -554,6 +554,7 @@ const ENDPOINTS = {
   GET_CREDIT_NOTE_REQUEST_DETAILS_BY_CREDIT_NOTE_ID:
     "Patient/getCreditNoteRequestDetailsByCreditNoteId",
   GET_CREDIT_NOTE_REQUEST_APPROVAL_DETAILS: "Patient/getCreditNoteRequestApprovalDetails",
+  SAVE_CREDIT_NOTE: "Patient/saveCreditNote",
   // write off
   GET_BILL_FOR_WRITE_OFF: "Patient/getBillForWriteOff",
   GET_BILL_DETAILS_FOR_WRITE_OFF: "Patient/getBillDetailsForWriteOff",
@@ -564,6 +565,13 @@ const ENDPOINTS = {
   GET_WRITE_OFF_REQUEST_LIST_FOR_APPROVAL: "Patient/getWriteOffRequestListForApproval",
   GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID: "Patient/getWriteOffRequestDetailsByWriteOffId",
   GET_WRITE_OFF_REQUEST_APPROVAL_DETAILS: "Patient/getWriteOffRequestApprovalDetails",
+  SAVE_WRITE_OFF: "Patient/saveWriteOff",
+
+  // package master
+  CREATE_UPDATE_PACKAGE_MASTER: "Admin/createUpdatePackageMaster",
+
+  // opd appointment
+  SAVE_OPD_APPOINTMENT: "Patient/saveOPDAppointment",
 };
 
 export { ENDPOINTS };

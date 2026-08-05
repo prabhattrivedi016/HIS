@@ -1,0 +1,133 @@
+type CreditNoteGenerationItem = {
+  CreditNoteId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  BillId: number;
+  BillNo: string;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  TotalCreditNoteAmount: 200.0;
+  IsCreditNoteApproved: number;
+  IsCreditNoteCreated: number;
+  ApprovalRemarks: string;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number | null;
+  Level2ApproveId: number | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: number | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  Status: string | null;
+  StatusId: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+  FlagId: number;
+  CanApprove: number;
+  CreditNoteApprovedID: number;
+  CreditNoteApprovedName: string;
+  CreditNoteReason: string;
+  CreditNoteRemark: string;
+};
+
+type CreditNoteGenerationGridCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  cardLeftTop: { label: string; value: string | number | null }[];
+  cardRightTop: { label: string; action: string }[];
+  cardAvatar: string | null;
+  cardId: { label: string; value: string | number | null }[];
+  cardTitle: { label: string; value: string | number | null }[];
+  cardFooter: { label: string; value: string | number | null }[];
+  buttonSection: { label: string; action: string }[];
+};
+
+type CreditNoteGenerationListCard = {
+  type: string;
+  cardType: string;
+  cardViewType: string;
+  id: number;
+  listLeftButton: { label: string; action: string }[];
+  columns: {
+    label: string;
+    keyFromApi: string;
+    value: string | number | null;
+    isSortable?: boolean;
+    isSearchable?: boolean;
+    allowColumnFilter?: boolean;
+    isMasked?: boolean;
+  }[];
+};
+type CreditNoteGenerationDetails = {
+  CreditNoteId: number;
+  TokenNo: string;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  BillId: number;
+  UHID: string;
+  TotalBillAmount: number;
+  TotalDiscountAmountOnBill: number;
+  TotalDiscountPerOnBill: number;
+  TotalPaidAmount: number;
+  TotalBalanceAmount: number;
+  TotalCreditNoteAmount: number;
+  IsCreditNoteApproved: number;
+  IsLevel1Approve: string | null;
+  Level1ApproveId: number | null;
+  Level1ApproveOn: string | null;
+  IsLevel2Approve: string | null;
+  Level2ApproveId: number | null;
+  Level2ApproveOn: string | null;
+  IsLevel3Approve: string | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: string | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string | null;
+  LastModifiedOn: string | null;
+  FTDId: number;
+  ServiceItemId: number;
+  ServiceName: string;
+  Rate: string;
+  GrossAmt: string;
+  Qty: number;
+  CreditNotePer: number;
+  CreditNoteAmt: number;
+  DiscPer: number;
+  DiscAmt: number;
+  NetAmt: number;
+  CreditNoteApprovedID: number;
+  CreditNoteApprovedName: string;
+  CreditNoteReason: string;
+  CreditNoteRemark: string;
+};
+export type {
+  CreditNoteGenerationDetails,
+  CreditNoteGenerationGridCard,
+  CreditNoteGenerationItem,
+  CreditNoteGenerationListCard,
+};

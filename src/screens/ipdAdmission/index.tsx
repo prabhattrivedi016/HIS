@@ -2,17 +2,16 @@ import CustomLoader from "@/components/customLoader";
 
 import { ENDPOINTS } from "@/config/defaults";
 
-import { IPDAdmissionTabName, IpdOpdTypeName } from "@/constants/constants";
+import { IPDAdmissionTabName, IpdOpdTypeName, PageType } from "@/constants/constants";
 
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { NavLink } from "react-router-dom";
-
-import Buttons from "../opdBilling/components/Buttons";
 
 import PatientData from "../patientRegistration/components/PatientData";
 
@@ -28,6 +27,7 @@ import IpdAdmissionDetails from "./components/IpdAdmissionDetails";
 
 import { buildIpdPatientSummary, buildSaveIpdAdmissionPayload } from "./helpers";
 
+import GlobalFooterButtons from "@/components/globalButtons/GlobalFooterButtons";
 import IpdOpdDocument from "@/components/SingledrawerAndPopup/components/IpdOpdDocument";
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
 import { IpdOpdDocumentHandle } from "@/components/SingledrawerAndPopup/types";
@@ -35,6 +35,10 @@ import { IpdAdmissionDetailsHandle } from "./types";
 
 const IPDAdmission = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const { rights: branchRights } = useAssignBranchRight();
+  const ispatientRegistartionChargeRequired =
+    Number(branchRights?.IsPatientRegistrationChargeRequired) === 1 ? 1 : 0;
+  const showRegistrationButton = ispatientRegistartionChargeRequired === 1;
 
   const patientDataRef = useRef<PatientDataHandle>(null);
 
@@ -118,7 +122,7 @@ const IPDAdmission = () => {
 
   const handleSelectPatient = useCallback(
     async (item: SearchedPatientItem) => {
-      const patientId = Number(item?.patientId ?? 0);
+      const patientId = Number(item?.PatientId ?? 0);
 
       if (!patientId) {
         setSearchPatientError("Invalid patient selected.");
@@ -350,14 +354,17 @@ const IPDAdmission = () => {
           key={`patient-data-${formResetKey}`}
           ref={patientDataRef}
           selectedPatientId={activePatientId}
-          showRegistrationButton={false}
+          showRegistrationButton={showRegistrationButton}
           onPayloadChange={setPatientRegistrationDetails}
           onPatientLoaded={handlePatientLoadedFromUhid}
         />
       </div>
 
       <div className={activeTab === IPDAdmissionTabName.IPD_ADIMISSION ? "" : "hidden"}>
-        <IpdAdmissionDetails ref={admissionDetailsRef} />
+        <IpdAdmissionDetails
+          ref={admissionDetailsRef}
+          patientDetails={patientRegistrationDetails}
+        />
       </div>
 
       <div className={activeTab === IPDAdmissionTabName.IPD_DOCUMENT ? "" : "hidden"}>
@@ -463,8 +470,6 @@ const IPDAdmission = () => {
 
       {renderTabs()}
 
-      <Buttons onButtonClick={buttonClickHandler} />
-
       {renderSearchPatientPopup && (
         <SearchPatientPopup
           isOpen={openSearchPatientPopup}
@@ -475,6 +480,9 @@ const IPDAdmission = () => {
           selectionErrorMessage={searchPatientError}
         />
       )}
+
+      {/* buttons */}
+      <GlobalFooterButtons pageType={PageType?.IPD_ADMISSION} onButtonClick={buttonClickHandler} />
 
       {loading && <CustomLoader isLoading={loading} />}
     </div>

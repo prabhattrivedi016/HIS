@@ -19,7 +19,12 @@ export const shouldShowCancelButton = (item?: OPDiscountItem | null) => !!item;
 export const isApproveButtonDisabled = (item?: OPDiscountItem | null) => {
   if (!item) return true;
 
-  return isBookingCancelled(item) || isPaymentCollected(item) || isDiscountApproved(item);
+  return (
+    isBookingCancelled(item) ||
+    isPaymentCollected(item) ||
+    isDiscountApproved(item) ||
+    canApproveDiscount(item)
+  );
 };
 
 export const isCancelButtonDisabled = (item?: OPDiscountItem | null) => {
@@ -29,9 +34,6 @@ export const isCancelButtonDisabled = (item?: OPDiscountItem | null) => {
 };
 
 export const getApproveDisabledWarning = (item?: OPDiscountItem | null): string | null => {
-  console.log("item", item);
-  console.log("item.CanApprove", item?.CanApprove);
-  console.log("item.FlagId", item?.FlagId);
   if (!item) return null;
 
   if (item.CanApprove === 0 && item.FlagId === 0) {

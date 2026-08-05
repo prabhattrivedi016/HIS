@@ -33,7 +33,6 @@ const resetFormData = () => ({
 });
 
 const ObservationPopup = ({ isOpen, onClose, data, onSuccess }: ObservationPopupProps) => {
-  console.log("data", data);
   const { loading, error, fetchApi } = useGlobalApi();
 
   const observationField = usePickMaster("ObservationFieldType");
@@ -110,7 +109,6 @@ const ObservationPopup = ({ isOpen, onClose, data, onSuccess }: ObservationPopup
     }
     const fieldTypeLabel =
       observationTypeField.find(f => Number(f.key) === Number(data.fieldTypeId))?.value || "";
-    console.log("fieldTypeLabel", fieldTypeLabel);
 
     reset({
       observationName: data.observationName ?? "",

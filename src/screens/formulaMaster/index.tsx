@@ -269,7 +269,6 @@ const FormulaMaster = () => {
   const editHandler = async (item: FormulaTable) => {
     setIsEditMode(true);
     setEditingObservationId(item?.observationId ?? null);
-    console.log("item", item);
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_FORMULA_BY_OBSERVATION_ID,
@@ -277,7 +276,6 @@ const FormulaMaster = () => {
       { params: { observationId: item?.observationId } },
       { component: "FormulaMaster" }
     );
-    console.log("resp", resp?.data?.[0]);
 
     const obj = ObservationSelectOption.find(o => o?.value === item?.observationId);
     setFormula(resp?.data?.[0]?.formulaText);

@@ -3,25 +3,20 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
+import InputFieldModal from "@/components/inputFieldModal";
 import { ENDPOINTS } from "@/config/defaults";
 import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showWarning } from "@/utils/alert";
 import { allowOnlyText } from "@/utils/inputValidationHandler";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Select, { StylesConfig } from "react-select";
 import { InsuranceItem } from "../../branchMaster/types";
 import {
   getDefaultAdvanceLedgerDetails,
   normalizeAdvanceLedgerDetails,
 } from "../../patientAdvance/utils/patientAdvanceUtils";
-import {
-  CategoryItem,
-  OpdBillingSectionProps,
-  OptionItem,
-  ServiceBindingItem,
-  ServiceItemList,
-} from "../types";
+import { CategoryItem, OpdBillingSectionProps, OptionItem, ServiceBindingItem } from "../types";
 import { sanitizeQtyDraft } from "./helperFunction";
 
 const OpdBillingSection = ({
@@ -90,6 +85,7 @@ const OpdBillingSection = ({
   hasDiscountApplied = false,
   bookingDetails = null,
   isPaymentCollectionMode = false,
+  rowDoctorChangeHandler,
 }: OpdBillingSectionProps) => {
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
 
@@ -177,6 +173,7 @@ const OpdBillingSection = ({
             onChange={insuranceSelectHandler}
             className={hasSelectedService ? "disabled-input-field" : "input-field"}
             disabled={hasSelectedService}
+            value={selectedInsurance ?? 0}
           >
             <option value={0}>Self</option>
             {insuranceList.map((item: InsuranceItem) => (
@@ -205,6 +202,7 @@ const OpdBillingSection = ({
           )}
         </InputField>
 
+        {/* Doctor selection: the flag to prevent duplicate registration charge service additions is managed in the parent OpdBilling (index.tsx) doctorSelectHandler */}
         <InputField label="Doctor">
           <Select<OptionItem, false>
             ref={doctorRef as React.RefObject<never>}
@@ -338,7 +336,7 @@ const OpdBillingSection = ({
         </InputField>
 
         <div>
-          <InputField>
+          <InputField label="">
             <div className="relative w-full">
               <input
                 ref={serviceInputRef}
@@ -348,26 +346,20 @@ const OpdBillingSection = ({
                 onChange={serviceItemHandler}
                 onKeyDown={serviceInputKeyDownHandler}
               />
+
               <i
                 className="fa-solid fa-magnifying-glass input-search-icon input-search-icon-right"
                 aria-hidden="true"
               />
-              {showPopup && serviceNameList?.length > 0 && (
-                <div className="input-popup-bg">
-                  {serviceNameList.map((s: ServiceItemList, index: number) => (
-                    <div
-                      key={index}
-                      className={`input-popup-row ${
-                        index === activeServiceIndex ? "bg-gray-200" : ""
-                      }`}
-                      onMouseEnter={() => setActiveServiceIndex(index)}
-                      onClick={() => selectedServiceHandler(s)}
-                    >
-                      {s?.name}
-                    </div>
-                  ))}
-                </div>
-              )}
+
+              <InputFieldModal
+                showPopup={showPopup}
+                data={serviceNameList}
+                activeIndex={activeServiceIndex}
+                setActiveIndex={setActiveServiceIndex}
+                onSelect={selectedServiceHandler}
+                getLabel={item => item.name}
+              />
             </div>
           </InputField>
           <div className="flex flex-row gap-2 justify-center items-center">
@@ -385,22 +377,27 @@ const OpdBillingSection = ({
         <div className="w-full">
           <div className="flex flex-wrap items-center gap-6 px-3 py-2 text-md justify-between">
             <div className="flex items-center gap-1 text-orange-500">
-              <span className="w-3 h-3 rounded-full bg-orange-400"></span>
+              <span className="w-3 h-3 rounded-full opd-zero-rate border border-orange-300"></span>
               Rate Not Set
             </div>
 
+            <div className="flex items-center gap-1 text-purple-500">
+              <span className="w-3 h-3 rounded-full opd-package border border-purple-300"></span>
+              Consultation Under Package
+            </div>
+
             <div className="flex items-center gap-1 text-blue-500">
-              <span className="w-3 h-3 rounded-full bg-blue-400"></span>
+              <span className="w-3 h-3 rounded-full opd-non-payable border border-blue-300"></span>
               Corporate Non-Payable
             </div>
 
             <div className="flex items-center gap-1 text-gray-500">
-              <span className="w-3 h-3 rounded-full bg-gray-400"></span>
+              <span className="w-3 h-3 rounded-full opd-corporate-discount border border-gray-300"></span>
               Corporate Wise Discount
             </div>
 
             <div className="flex items-center gap-1 text-pink-400">
-              <span className="w-3 h-3 rounded-full bg-pink-300"></span>
+              <span className="w-3 h-3 rounded-full opd-privileged-card-discount border border-pink-300"></span>
               Privileged Card Discount
               <span className="text-red-500 ml-1">ⓘ</span>
             </div>
@@ -437,10 +434,23 @@ const OpdBillingSection = ({
                         const isBookingServiceLocked =
                           Number(item?.isBookingServiceLocked ?? 0) === 1;
 
+                        const rowBgClass =
+                          Number(item?.isOpdConsultation ?? 0) === 1
+                            ? "opd-package"
+                            : Number(item?.rate ?? 0) === 0
+                              ? "opd-zero-rate"
+                              : Number(item?.isNonPayable ?? 0) === 1
+                                ? "opd-non-payable"
+                                : Number(item?.isCorporateDiscount ?? 0) === 1
+                                  ? "opd-corporate-discount"
+                                  : Number(item?.isPrivilegedCardDiscount ?? 0) === 1
+                                    ? "opd-privileged-card-discount"
+                                    : "";
+
                         return (
                           <tr
                             key={idx}
-                            className="table-row"
+                            className={`table-row ${rowBgClass}`}
                             onDoubleClick={() => {
                               if (!isBookingServiceLocked) {
                                 deleteHandler(idx);
@@ -475,16 +485,52 @@ const OpdBillingSection = ({
                               </div>
                             </td>
                             <td className="table-td">{item?.code || "-"}</td>
-                            <td className="table-td">{selectedDoctor?.label}</td>
+                            <td className="table-td max-w-35">
+                              {Number(item?.categoryTypeId) === 1 &&
+                              Number(item?.isUnderPackage ?? 0) === 1 ? (
+                                <div className="min-w-25">
+                                  <Select<OptionItem, false>
+                                    value={
+                                      item?.doctorId
+                                        ? doctorSelectOption.find(
+                                            opt => Number(opt.value) === Number(item.doctorId)
+                                          ) || null
+                                        : null
+                                    }
+                                    options={doctorSelectOption}
+                                    placeholder="Select doctor"
+                                    isSearchable
+                                    isClearable
+                                    onChange={option => {
+                                      rowDoctorChangeHandler?.(
+                                        idx,
+                                        option ? Number(option.value) : 0,
+                                        option ? option.label : ""
+                                      );
+                                    }}
+                                    styles={SelectStyles as StylesConfig<OptionItem, false>}
+                                    menuPortalTarget={document.body}
+                                    menuPosition="fixed"
+                                  />
+                                </div>
+                              ) : (
+                                item?.doctorName || "-"
+                              )}
+                            </td>
 
                             <td className="table-td wrap-break-word max-w-30">
                               {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
                                 <select
-                                  className="input-field max-w-50 max-h-10"
-                                  value={Number(item?.doctorId ?? 0)}
+                                  className={`input-field max-w-50 max-h-10 ${
+                                    isPaymentCollectionMode || isBookingServiceLocked
+                                      ? "disabled-input-field cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                  value={Number(item?.performingDoctorId ?? 0)}
                                   onChange={e =>
                                     performingDoctorChangeHandler(idx, Number(e.target.value))
                                   }
+                                  disabled={isPaymentCollectionMode || isBookingServiceLocked}
                                 >
                                   <option value={0}>Select doctor</option>
                                   {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
@@ -547,7 +593,9 @@ const OpdBillingSection = ({
                                 }`}
                                 value={item?.discountPer ?? 0}
                                 onChange={e => discountPercentageChangeHandler(e, idx)}
-                                disabled={isDiscountLocked}
+                                disabled={
+                                  isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
+                                }
                               />
                             </td>
                             <td className="table-td">
@@ -559,7 +607,9 @@ const OpdBillingSection = ({
                                 }`}
                                 value={item?.dis ?? 0}
                                 onChange={e => discountChangeHandler(e, idx)}
-                                disabled={isDiscountLocked}
+                                disabled={
+                                  isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
+                                }
                               />
                             </td>
                             <td className="table-td input-field-error">
@@ -568,10 +618,15 @@ const OpdBillingSection = ({
 
                             <td className="table-td">
                               <input
-                                className="input-field max-w-40 max-h-10"
+                                className={`input-field max-w-40 max-h-10 ${
+                                  Number(item?.isDisabledItem ?? 0) === 1
+                                    ? "disabled-input-field cursor-not-allowed"
+                                    : ""
+                                }`}
                                 value={item?.remarks ?? ""}
                                 onChange={e => remarksChangeHandler(e, idx)}
                                 placeholder="Enter remarks"
+                                disabled={Number(item?.isDisabledItem ?? 0) === 1}
                               />
                             </td>
                             <td className="table-td">
@@ -582,6 +637,7 @@ const OpdBillingSection = ({
                                   (item as { isUrgent?: number | string | null })?.isUrgent
                                 )}
                                 onChange={e => urgentChangeHandler(e, idx)}
+                                disabled={Number(item?.isDisabledItem ?? 0) === 1}
                               />
                             </td>
                           </tr>

@@ -189,7 +189,7 @@
     hover:border-gray-300
     focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 focus:shadow-none
     disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed;
- }
+}
 
 .input-dob {
   @apply [&::-webkit-datetime-edit]:uppercase

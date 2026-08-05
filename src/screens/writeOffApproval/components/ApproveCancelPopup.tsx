@@ -1,12 +1,11 @@
+import CentralPopup from "@/components/centralPopup";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { showWarning } from "@/utils/alert";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { WriteOffApprovalItem } from "../types";
 
 const formatValue = (value: unknown) => {
@@ -28,15 +27,34 @@ const ApproveCancelPopup = ({
   item: WriteOffApprovalItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
+  const [writeOffDetails, setWriteOffDetails] = useState<any | null>(null);
+
+  // get approval details by Id
+  const getWriteOffDetailsById = async (writeOffId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_WRITE_OFF_REQUEST_DETAILS_BY_WRITE_OFF_ID,
+      {},
+      { params: { writeOffId } },
+      { component: "ApproveCancelPopup" }
+    );
+    setWriteOffDetails(resp?.data?.[0]);
+  };
+
+  useEffect(() => {
+    if (item && item.WriteOffId) {
+      getWriteOffDetailsById(item.WriteOffId);
+    }
+  }, [item]);
+
   const [cancelFormData, setCancelFormData] = useState({
-    bookingId: 0,
+    writeOffId: 0,
     cancelReason: "",
   });
 
   const [approveFormData, setApproveFormData] = useState({
-    bookingId: 0,
+    writeOffId: 0,
     flag: 0,
-    approvedPer: "",
     approvalRemarks: "",
   });
 
@@ -45,31 +63,22 @@ const ApproveCancelPopup = ({
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const requestedDiscountPer = Number(item?.TotalDiscountPerOnBill ?? 0);
-
   useEffect(() => {
     if (!isOpen || !item) return;
 
+    const recordId = Number(item.WriteOffId ?? 0);
+
     setCancelFormData({
-      bookingId: Number(item.BookingId ?? 0),
+      writeOffId: recordId,
       cancelReason: "",
     });
 
-    if (!item?.TotalApprovedDiscountPerOnBill) {
-      setApproveFormData({
-        bookingId: Number(item.BookingId ?? 0),
-        flag: item?.FlagId ?? 0,
-        approvedPer: String(item?.TotalDiscountPerOnBill ?? 0),
-        approvalRemarks: item?.ApprovalRemarks ?? "",
-      });
-    } else {
-      setApproveFormData({
-        bookingId: Number(item.BookingId ?? 0),
-        flag: item?.FlagId ?? 0,
-        approvedPer: String(item?.TotalApprovedDiscountPerOnBill ?? 0),
-        approvalRemarks: item?.ApprovalRemarks ?? "",
-      });
-    }
+    setApproveFormData({
+      writeOffId: recordId,
+      flag: item?.FlagId ?? 0,
+      approvalRemarks: item?.ApprovalRemarks ?? "",
+    });
+
     setCancelError("");
     setApproveError("");
     setSuccessMessage("");
@@ -85,30 +94,6 @@ const ApproveCancelPopup = ({
     setErrorMessage("");
   };
 
-  const approveChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    let value = rawValue.replace(/[^0-9.]/g, "");
-    const dotIndex = value.indexOf(".");
-    if (dotIndex !== -1) {
-      value = `${value.slice(0, dotIndex + 1)}${value.slice(dotIndex + 1).replace(/\./g, "")}`;
-    }
-
-    const numericValue = Number(value);
-    const isValidNumber = value !== "" && value !== "." && Number.isFinite(numericValue);
-
-    if (isValidNumber && requestedDiscountPer > 0 && numericValue > requestedDiscountPer) {
-      showWarning(`Approved discount cannot exceed requested discount (${requestedDiscountPer}%)`);
-      return;
-    }
-
-    setApproveFormData(prev => ({
-      ...prev,
-      approvedPer: String(value),
-    }));
-    setApproveError("");
-    setErrorMessage("");
-  };
-
   const approvalRemarksChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     setApproveFormData(prev => ({
       ...prev,
@@ -117,16 +102,8 @@ const ApproveCancelPopup = ({
   };
 
   const validateApproveForm = () => {
-    if (!String(approveFormData.approvedPer ?? "").trim()) {
-      setApproveError("Please enter approve percentage");
-      return false;
-    }
-
-    if (
-      !Number.isFinite(Number(approveFormData.approvedPer)) ||
-      Number(approveFormData.approvedPer) <= 0
-    ) {
-      setApproveError("Please enter a valid approve percentage");
+    if (!String(approveFormData.approvalRemarks ?? "").trim()) {
+      setApproveError("Please enter approval remarks");
       return false;
     }
 
@@ -144,8 +121,16 @@ const ApproveCancelPopup = ({
     return true;
   };
 
+  const isApproved =
+    Number(item?.IsWriteOffApproved) === 1 || Number(writeOffDetails?.IsWriteOffApproved) === 1;
+  const isCancelled = Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
+
+  const isApproveDisabled = isApproved || isCancelled;
+  const isCancelDisabled = isCancelled;
+
   const approveSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isApproveDisabled) return;
     setErrorMessage("");
     setSuccessMessage("");
 
@@ -156,11 +141,10 @@ const ApproveCancelPopup = ({
     try {
       const resp = await fetchApi(
         "PATCH",
-        ENDPOINTS.APPROVE_OPD_BOOKING_DISCOUNT,
+        ENDPOINTS.APPROVE_WRITE_OFF_REQUEST,
         {
-          bookingId: Number(approveFormData.bookingId),
+          writeOffId: Number(approveFormData.writeOffId),
           flag: Number(approveFormData.flag),
-          approvedPer: Number(approveFormData.approvedPer),
           approvalRemarks: String(approveFormData.approvalRemarks).trim(),
         },
         {},
@@ -168,23 +152,24 @@ const ApproveCancelPopup = ({
       );
 
       if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while approving discount");
+        setErrorMessage(resp?.message ?? "Failed while approving write off");
         return;
       }
 
-      setSuccessMessage(resp?.message ?? "Discount approved successfully");
+      setSuccessMessage(resp?.message ?? "Write off approved successfully");
       setTimeout(() => {
         onSuccess?.();
         onClose?.();
       }, 500);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed while approving discount");
+      setErrorMessage("Failed while approving write off");
     }
   };
 
   const cancelSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isCancelDisabled) return;
     setErrorMessage("");
     setSuccessMessage("");
 
@@ -195,9 +180,9 @@ const ApproveCancelPopup = ({
     try {
       const resp = await fetchApi(
         "PATCH",
-        ENDPOINTS.CANCEL_OPD_BOOKING,
+        ENDPOINTS.CANCEL_WRITE_OFF_REQUEST,
         {
-          bookingId: Number(cancelFormData.bookingId),
+          writeOffId: Number(cancelFormData.writeOffId),
           cancelReason: String(cancelFormData.cancelReason).trim(),
         },
         {},
@@ -205,18 +190,18 @@ const ApproveCancelPopup = ({
       );
 
       if (!resp?.result) {
-        setErrorMessage(resp?.message ?? "Failed while cancelling booking");
+        setErrorMessage(resp?.message ?? "Failed while cancelling write off");
         return;
       }
 
-      setSuccessMessage(resp?.message ?? "Booking cancelled successfully");
+      setSuccessMessage(resp?.message ?? "Write off cancelled successfully");
       setTimeout(() => {
         onSuccess?.();
         onClose?.();
       }, 500);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed while cancelling booking");
+      setErrorMessage("Failed while cancelling write off");
     }
   };
 
@@ -225,41 +210,25 @@ const ApproveCancelPopup = ({
       case "approve": {
         return (
           <form onSubmit={approveSubmitHandler}>
-            <div className="form-grid-3 mt-1">
-              <InputField label="Requested Discount Percentage">
-                <input
-                  type="text"
-                  placeholder="Enter requested discount percentage"
-                  onChange={approveChangeHandler}
-                  className="disabled-input-field cursor-not-allowed max-w-60"
-                  value={item?.TotalDiscountPerOnBill ?? 0}
-                  disabled={true}
-                />
-              </InputField>
-              <InputField label="Approve Percentage" required>
-                <input
-                  type="text"
-                  placeholder="Enter approve percentage"
-                  onChange={approveChangeHandler}
-                  className="input-field"
-                  value={approveFormData.approvedPer}
-                />
-                {!!approveError && <p className="input-field-error">{approveError}</p>}
-              </InputField>
-
-              <InputField label="Approval Remark">
+            <div className="form-grid-1 mt-1">
+              <InputField label="Approval Remark" required>
                 <input
                   type="text"
                   placeholder="Enter approval remark"
                   onChange={approvalRemarksChangeHandler}
                   className="input-field"
                   value={approveFormData.approvalRemarks}
+                  disabled={isApproveDisabled}
                 />
                 {!!approveError && <p className="input-field-error">{approveError}</p>}
               </InputField>
             </div>
             <div className="form-actions-responsive mt-5">
-              <button type="submit" className="save-btn">
+              <button
+                type="submit"
+                className="save-btn disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isApproveDisabled}
+              >
                 Approve
               </button>
             </div>
@@ -269,7 +238,7 @@ const ApproveCancelPopup = ({
       case "cancel": {
         return (
           <form onSubmit={cancelSubmitHandler}>
-            <div className="form-grid-2 mt-1">
+            <div className="form-grid-1 mt-1">
               <InputField label="Cancel Reason" required>
                 <input
                   type="text"
@@ -277,12 +246,17 @@ const ApproveCancelPopup = ({
                   className="input-field"
                   value={cancelFormData.cancelReason}
                   onChange={cancelChangeHandler}
+                  disabled={isCancelDisabled}
                 />
                 {!!cancelError && <p className="input-field-error">{cancelError}</p>}
               </InputField>
             </div>
             <div className="form-actions-responsive mt-5">
-              <button type="submit" className="save-btn">
+              <button
+                type="submit"
+                className="save-btn disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isCancelDisabled}
+              >
                 Cancel
               </button>
             </div>
@@ -296,100 +270,95 @@ const ApproveCancelPopup = ({
 
   useScrollLock(isOpen);
 
-  return createPortal(
-    <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
-      <div
-        className={`popup-bg-overlay ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      />
-
-      <div
-        className={`central-popup overflow-auto max-h-[calc(100vh-20px)] w-[92vw] lg:min-w-200 ${
-          isOpen ? "opacity-full" : ""
-        }`}
-      >
-        <div className="popup-header min-w-0">
-          <h2 className="popup-helper-text truncate">
-            {popupType === "approve"
-              ? "Approve Discount"
-              : popupType === "cancel"
-                ? "Cancel Discount"
-                : ""}
-          </h2>
-
-          <button type="button" onClick={onClose} className="close-drawer-btn shrink-0 ml-3">
-            ×
-          </button>
-        </div>
-
+  return (
+    <CentralPopup
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        popupType === "approve"
+          ? "Approve Write Off"
+          : popupType === "cancel"
+            ? "Cancel Write Off"
+            : ""
+      }
+    >
+      <>
         {!!successMessage && <SuccessMessage text={successMessage} />}
         {!!errorMessage && <ErrorMessage text={errorMessage} />}
 
         <div className="w-full card grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-1 mb-2">
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Patient Name:</span>
-            <span className="truncate">{formatValue(item?.PatientName)}</span>
+            <span className="truncate">{item?.PatientName}</span>
           </div>
-
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Token No:</span>
-            <span className="truncate">{formatValue(item?.TokenNo)}</span>
+            <span className="truncate">{item?.TokenNo}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">UHID:</span>
-            <span className="truncate">{formatValue(item?.UHID)}</span>
+            <span className="truncate">{item?.UHID}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Age / Gender:</span>
-            <span className="truncate">{formatValue(item?.Age + "/" + item?.Gender)}</span>
+            <span className="truncate">{item?.Age + "/" + item?.Gender}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Discount Approved By:</span>
-            <span className="truncate">{formatValue(item?.DiscountApprovedName)}</span>
+            <span className="name-header whitespace-nowrap">Bill No:</span>
+            <span className="truncate">{item?.BillNo}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Discount Reason:</span>
-            <span className="truncate">{formatValue(item?.DiscountReason)}</span>
+            <span className="name-header whitespace-nowrap">Write Off Approved Name:</span>
+            <span className="truncate">{writeOffDetails?.WriteOffApprovedName}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Remark:</span>
-            <span className="truncate">{formatValue(item?.Remark)}</span>
+            <span className="name-header whitespace-nowrap">Write Off Reason:</span>
+            <span className="truncate">{writeOffDetails?.WriteOffReason}</span>
+          </div>
+          <div className="flex flex-row gap-1">
+            <span className="name-header whitespace-nowrap">Write Off Remark:</span>
+            <span className="truncate">{writeOffDetails?.WriteOffRemark}</span>
           </div>
         </div>
 
         <div className="w-full card grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-1 -mt-1">
-          <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Corporate Name:</span>
-            <span className="truncate">{formatValue(item?.CorporateName)}</span>
-          </div>
+          {/* <div className="flex flex-row gap-1">
+            <span className="name-header whitespace-nowrap">Service Name:</span>
+            <span className="truncate">{writeOffDetails?.ServiceName}</span>
+          </div> */}
 
           <div className="flex flex-row gap-1 ">
             <span className="name-header whitespace-nowrap">Total Bill Amount:</span>
-            <span className="truncate">{formatValue(item?.TotalBillAmount)}</span>
+            <span className="truncate">{writeOffDetails?.TotalBillAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Total Discount Amount:</span>
-            <span className="truncate">{formatValue(item?.TotalDiscountAmountOnBill)}</span>
+            <span className="truncate">{writeOffDetails?.TotalDiscountAmountOnBill}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Patient Payable Amount:</span>
-            <span className="truncate">{formatValue(item?.TotalPatientPayableAmount)}</span>
+            <span className="name-header whitespace-nowrap">Total Paid Amount:</span>
+            <span className="truncate">{writeOffDetails?.TotalPaidAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
-            <span className="name-header whitespace-nowrap">Total Discount Percentage:</span>
-            <span className="truncate">{formatValue(item?.TotalDiscountPerOnBill)}</span>
+            <span className="name-header whitespace-nowrap">Total Balance Amount:</span>
+            <span className="truncate">{writeOffDetails?.TotalBalanceAmount}</span>
+          </div>
+          <div className="flex flex-row gap-1">
+            <span className="name-header whitespace-nowrap">Total Write Off Amount:</span>
+            <span className="truncate">{writeOffDetails?.TotalWriteOffAmount}</span>
           </div>
           <div className="flex flex-row gap-1">
             <span className="name-header whitespace-nowrap">Status:</span>
-            <span className="truncate">{formatValue(item?.Status)}</span>
+            <span className="truncate">{item?.Status}</span>
           </div>
         </div>
 
         {renderComponent()}
-      </div>
 
-      {!!loading && <CustomLoader isLoading={loading} />}
-    </div>,
-    document.body
+        {/* loading */}
+        {loading && <CustomLoader isLoading={loading} />}
+      </>
+    </CentralPopup>
   );
 };
 
