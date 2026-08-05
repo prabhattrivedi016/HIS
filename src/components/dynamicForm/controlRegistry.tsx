@@ -28,11 +28,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
-import MedicineListControl from "./MedicineListControl";
 import ComparisonGridControl from "./ComparisonGridControl";
+import GonioscopyControl from "./GonioscopyControl";
+import MedicineListControl from "./MedicineListControl";
+import IntraOcularPressureControl from "./IntraOcularPressureControl";
 import MultiLevelInputGridControl from "./MultiLevelInputGridControl";
+import OpticNerveExaminationControl from "./OpticNerveExaminationControl";
 import OrderSetDrawer from "./OrderSetDrawer";
 import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
+import RadioScoreGroupControl from "./RadioScoreGroupControl";
 import { TableFieldInput } from "./TableFieldInput";
 import { ControlSchema, OptionSchema, PreviousVisitEntry } from "./types";
 
@@ -361,6 +365,42 @@ const RadioControl = ({ schema, value, onChange }: ControlRenderProps) => (
         >
           {selected && <Check size={13} />}
           {opt.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+// "EmojiScore" — each option carries an image (a data: URL, e.g. a Wong-Baker pain-face scale
+// icon) plus a numeric score alongside its label, sourced from GET_DOCTOR_HEARDER_LOVS'
+// base64Data/score fields
+const EmojiScoreControl = ({ schema, value, onChange }: ControlRenderProps) => (
+  <div className={mergeClass("flex flex-wrap gap-2", schema)}>
+    {schema.options?.map((opt, i) => {
+      const selected = value === opt.value;
+      return (
+        <button
+          key={opt.key ?? i}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          title={opt.label}
+          className={`flex flex-col items-center gap-1 w-20 px-2 py-2 rounded-lg border transition-all active:scale-95 ${
+            selected
+              ? "bg-blue-50 border-blue-400 shadow-sm"
+              : "bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+          }`}
+        >
+          {opt.imageUrl ? (
+            <img src={opt.imageUrl} alt={opt.label} className="w-12 h-12 object-contain" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-100" />
+          )}
+          <span className="text-[11px] font-medium text-gray-700 text-center leading-tight truncate w-full">
+            {opt.label}
+          </span>
+          {opt.score !== undefined && (
+            <span className="text-[10px] font-semibold text-blue-500">{opt.score}</span>
+          )}
         </button>
       );
     })}
@@ -1500,6 +1540,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   dropdown: DropdownControl,
   "search-dropdown": SearchDropdownControl,
   radio: RadioControl,
+  emojiScore: EmojiScoreControl,
   "checkbox-list": CheckboxListControl,
   richtext: RichTextControl,
   dynamicContent: DynamicContentControl,
@@ -1511,6 +1552,10 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   dentalChart: DentalChartControl,
   multiLevelInputGrid: MultiLevelInputGridControl,
   comparisonGrid: ComparisonGridControl,
+  radioScoreGroup: RadioScoreGroupControl,
+  gonioscopy: GonioscopyControl,
+  opticNerveExam: OpticNerveExaminationControl,
+  intraOcularPressure: IntraOcularPressureControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

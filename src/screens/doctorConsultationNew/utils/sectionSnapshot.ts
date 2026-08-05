@@ -25,12 +25,33 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("check")) return "switch";
   if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
     return "dropdown";
+  // "Radio With Score" (each option carries its own integer score, e.g. NIPS/APGAR-style scored
+  // assessments) is distinct from a plain "Radio" — must come first, since both contain "radio"
+  if (key.includes("radio") && key.includes("score")) return "radioScore";
   if (key.includes("radio")) return "radio";
+  // "EmojiScore" (each option carries an image + score, e.g. a Wong-Baker pain-face scale) —
+  // options come back from GET_DOCTOR_HEARDER_LOVS with a base64Data image alongside value/score
+  if (key.includes("emoji") && key.includes("score")) return "emojiScore";
   if (key.includes("lookup")) return "lookup";
   if (key.includes("image")) return "imageUpload";
   if (key.includes("dental")) return "dentalChart";
   if (key.includes("multilevel")) return "multiLevelInputGrid";
   if (key.includes("comparison")) return "comparisonGrid";
+  // some comparison-grid-shaped headers ship with their own uniquely-named ControlType instead of
+  // the generic "Comparison Grid" (same reasoning as "Radio With Score" above) — route those here
+  // too. Add a new line like these for any future one-off comparison-grid ControlType name.
+  // "Optic Nerve Examination" (ControlTypeId 27) is its own dedicated two-panel control (see
+  // opticNerveExamConfig.ts) — it's the only header for this exam, there's no separate "Optic
+  // Disc" header to pair it with, so it can't reuse the plain single-table comparisonGrid shape.
+  if (key.includes("optic") && key.includes("nerve")) return "opticNerveExam";
+  if (key.includes("optic") && key.includes("disc")) return "comparisonGrid";
+  if (key.includes("visual") && key.includes("field")) return "comparisonGrid";
+  if (key.includes("macula")) return "comparisonGrid";
+  if (key.includes("gonioscopy")) return "gonioscopy";
+  // "Intra Ocular Pressure" logs repeated dated readings over time (a trend chart), not a fixed
+  // row list — see config/intraOcularPressureConfig.ts
+  if (key.includes("intraocular") && key.includes("pressure")) return "intraOcularPressure";
+  if (key.includes("iop")) return "intraOcularPressure";
   // anything else with a registered generic-attribute-group config (e.g. "Diagnosis",
   // "Procedure") becomes that repeatable-attribute card widget — everything else (including
   // plain "Text Box" or any unrecognized/typo'd control type) safely falls back to plain text,
@@ -54,8 +75,23 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
         "dentalChart",
         "multiLevelInputGrid",
         "comparisonGrid",
+        "radioScore",
+        "gonioscopy",
+        "opticNerveExam",
+        "intraOcularPressure",
       ].includes(mapControlType(h.controlType))
   );
+
+/**
+ * A section made entirely of "Radio With Score" headers (e.g. NIPS Score: Facial Expression /
+ * Cry / Breathing patterns / Arms / Legs / State of arousal, each its own scored-radio header)
+ * renders as ONE combined scored-assessment control instead of one control per header — same
+ * architectural slot as isCardGroupSection, just for this specific shape. A new scored assessment
+ * (APGAR, any other X/Y-point scale) needs zero code changes: create the section, add headers to
+ * it with ControlType "Radio With Score" and their option/score rows via Header Master, done.
+ */
+export const isRadioScoreGroupSection = (headers: SectionHeaderMappingRecord[]): boolean =>
+  headers.length > 0 && headers.every(h => mapControlType(h.controlType) === "radioScore");
 
 /**
  * Applies a past-visit snapshot's values back into the current section's live data blob — the
@@ -87,6 +123,18 @@ export const applySnapshotToSectionData = (
     });
 
     return setByPath(data, `section_${sectionId}.group`, convertedRows);
+  }
+
+  if (isRadioScoreGroupSection(headers)) {
+    return values.reduce(
+      (acc, entry) =>
+        setByPath(
+          acc,
+          `section_${sectionId}.radioScoreGroup.header_${entry.headerId}`,
+          entry.value
+        ),
+      data
+    );
   }
 
   return values.reduce(

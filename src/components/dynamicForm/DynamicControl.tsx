@@ -80,9 +80,17 @@ const DynamicControl = ({
     );
   }
 
-  // MultiLevelInputGridControl/ComparisonGridControl already show their own title, so wrapping
-  // either in the external label too would show the header's name twice
-  if (schema.type === "multiLevelInputGrid" || schema.type === "comparisonGrid") {
+  // MultiLevelInputGridControl/ComparisonGridControl/RadioScoreGroupControl/GonioscopyControl/
+  // OpticNerveExaminationControl/IntraOcularPressureControl already show their own title, so
+  // wrapping any of them in the external label too would show the name twice
+  if (
+    schema.type === "multiLevelInputGrid" ||
+    schema.type === "comparisonGrid" ||
+    schema.type === "radioScoreGroup" ||
+    schema.type === "gonioscopy" ||
+    schema.type === "opticNerveExam" ||
+    schema.type === "intraOcularPressure"
+  ) {
     return (
       <div className={wrapperClass}>
         <Renderer

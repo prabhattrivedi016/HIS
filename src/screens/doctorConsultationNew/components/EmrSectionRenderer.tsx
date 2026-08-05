@@ -30,6 +30,7 @@ import { EmrSectionAnswerEntry } from "../types";
 import {
   applySnapshotToSectionData,
   isCardGroupSection,
+  isRadioScoreGroupSection,
   mapControlType,
 } from "../utils/sectionSnapshot";
 import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
@@ -64,9 +65,18 @@ interface EmrSectionRendererProps {
 }
 
 const needsOptions = (dynamicType: string) =>
-  dynamicType === "radio" || dynamicType === "dropdown" || dynamicType === "checkbox-list";
+  dynamicType === "radio" ||
+  dynamicType === "dropdown" ||
+  dynamicType === "checkbox-list" ||
+  dynamicType === "radioScore" ||
+  dynamicType === "emojiScore";
 const isFullWidth = (dynamicType: string) =>
-  dynamicType === "richtext" || dynamicType === "medicineList" || dynamicType === "comparisonGrid";
+  dynamicType === "richtext" ||
+  dynamicType === "medicineList" ||
+  dynamicType === "comparisonGrid" ||
+  dynamicType === "gonioscopy" ||
+  dynamicType === "opticNerveExam" ||
+  dynamicType === "intraOcularPressure";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -227,7 +237,19 @@ const EmrSectionRenderer = ({
       { component: "EmrSectionRenderer", silent: true }
     );
     const raw: any[] = Array.isArray(resp?.data) ? resp.data : [];
-    const options = raw.map(item => ({ label: item?.value ?? "", value: item?.value ?? "" }));
+    const options = raw.map(item => {
+      const rawScore = item?.score ?? item?.Score;
+      const imageUrl = item?.base64Data ?? item?.Base64Data;
+      return {
+        label: item?.value ?? "",
+        value: item?.value ?? "",
+        score:
+          rawScore !== undefined && rawScore !== null && rawScore !== ""
+            ? Number(rawScore)
+            : undefined,
+        imageUrl: imageUrl || undefined,
+      };
+    });
     if (options.length > 0) return options;
 
     // no real LOVs configured for this header yet — fall back to a name-matched dummy list
@@ -364,6 +386,10 @@ const EmrSectionRenderer = ({
               "dentalChart",
               "multiLevelInputGrid",
               "comparisonGrid",
+              "radioScore",
+              "gonioscopy",
+              "opticNerveExam",
+              "intraOcularPressure",
             ].includes(mapControlType(h.controlType))
           )
             return false;
@@ -401,6 +427,9 @@ const EmrSectionRenderer = ({
   // instead of N separate always-visible fields. Computed outside cardSchema too since the
   // completion badge below needs to know it reads a different data path for such sections.
   const isCardGroup = isCardGroupSection(headers);
+  // a section made entirely of "Radio With Score" headers (e.g. NIPS Score) renders as one
+  // combined live-scored control instead — see isRadioScoreGroupSection in ../utils/sectionSnapshot
+  const isRadioScoreGroup = isRadioScoreGroupSection(headers);
 
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
@@ -425,6 +454,10 @@ const EmrSectionRenderer = ({
         "dentalChart",
         "multiLevelInputGrid",
         "comparisonGrid",
+        "radioScore",
+        "gonioscopy",
+        "opticNerveExam",
+        "intraOcularPressure",
       ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
@@ -445,7 +478,22 @@ const EmrSectionRenderer = ({
 
     let controls: ControlSchema[];
 
-    if (isCardGroup) {
+    if (isRadioScoreGroup) {
+      controls = [
+        {
+          key: `section_${sectionId}_radioScoreGroup`,
+          label: displayName || sectionName,
+          type: "radioScoreGroup",
+          dataPath: `section_${sectionId}.radioScoreGroup`,
+          colSpan: 4,
+          rows: headers.map(h => ({
+            key: `header_${h.headerId}`,
+            label: h.displayName || h.headerName,
+            options: lovsByHeaderId[h.headerId] ?? [],
+          })),
+        },
+      ];
+    } else if (isCardGroup) {
       const columns: TableColumnSchema[] = headers.map(h => {
         const { dynamicType, options, asyncSearch } = resolveHeaderRender(h);
         return {
@@ -536,6 +584,9 @@ const EmrSectionRenderer = ({
 
         const isMultiLevelGrid = dynamicType === "multiLevelInputGrid";
         const isComparisonGrid = dynamicType === "comparisonGrid";
+        const isGonioscopy = dynamicType === "gonioscopy";
+        const isOpticNerveExam = dynamicType === "opticNerveExam";
+        const isIntraOcularPressure = dynamicType === "intraOcularPressure";
 
         return {
           key: `header_${h.headerId}`,
@@ -555,7 +606,9 @@ const EmrSectionRenderer = ({
                   ? multiLevelGridHeaderIds.length <= 1
                     ? 4
                     : 2
-                  : dynamicType === "radio" || dynamicType === "checkbox-list"
+                  : dynamicType === "radio" ||
+                      dynamicType === "checkbox-list" ||
+                      dynamicType === "emojiScore"
                     ? 2
                     : 1,
           conditionalDisplay,
@@ -568,7 +621,14 @@ const EmrSectionRenderer = ({
           previousVisitsEnabled: isTable
             ? (behavior?.table?.previousVisitsEnabled ?? false)
             : undefined,
-          gridConfigName: isMultiLevelGrid || isComparisonGrid ? h.headerName : undefined,
+          gridConfigName:
+            isMultiLevelGrid ||
+            isComparisonGrid ||
+            isGonioscopy ||
+            isOpticNerveExam ||
+            isIntraOcularPressure
+              ? h.headerName
+              : undefined,
           textFavouritesEnabled: isTextLikeType(dynamicType)
             ? (behavior?.text?.favouritesEnabled ?? false)
             : undefined,
@@ -595,10 +655,12 @@ const EmrSectionRenderer = ({
   }, [
     headers,
     isCardGroup,
+    isRadioScoreGroup,
     lovsByHeaderId,
     dataSourceOptionsByHeaderId,
     tableColumnsByHeaderId,
     tableHeaderIds,
+    multiLevelGridHeaderIds,
     sectionId,
     sectionName,
     displayName,
@@ -614,11 +676,20 @@ const EmrSectionRenderer = ({
       const groupValue = getByPath(data, `section_${sectionId}.group`);
       return Array.isArray(groupValue) && groupValue.length > 0 ? 1 : 0;
     }
+    if (isRadioScoreGroup) {
+      const groupValue = getByPath(data, `section_${sectionId}.radioScoreGroup`) as
+        | Record<string, unknown>
+        | undefined;
+      return headers.filter(h => {
+        const value = groupValue?.[`header_${h.headerId}`];
+        return value !== undefined && value !== null && String(value).trim() !== "";
+      }).length;
+    }
     return headers.filter(h => {
       const value = getByPath(data, `section_${sectionId}.header_${h.headerId}`);
       return value !== undefined && value !== null && String(value).trim() !== "";
     }).length;
-  }, [headers, data, sectionId, isCardGroup]);
+  }, [headers, data, sectionId, isCardGroup, isRadioScoreGroup]);
   const sectionPercent = totalFields ? Math.round((filledFields / totalFields) * 100) : 0;
 
   useEffect(() => {
@@ -662,6 +733,53 @@ const EmrSectionRenderer = ({
       ];
     }
 
+    if (isRadioScoreGroup) {
+      const groupValue = getByPath(data, `section_${sectionId}.radioScoreGroup`) as
+        | Record<string, unknown>
+        | undefined;
+      if (!groupValue) return [];
+
+      let totalScore = 0;
+      const rowEntries = headers
+        .map(h => {
+          const rowOptions = lovsByHeaderId[h.headerId] ?? [];
+          const selectedValue = groupValue[`header_${h.headerId}`];
+          const matchedOption = rowOptions.find(opt => opt.value === selectedValue);
+          if (matchedOption?.score) totalScore += matchedOption.score;
+          return {
+            headerRecord: h,
+            value: matchedOption ? matchedOption.label : selectedValue,
+          };
+        })
+        .filter(({ value }) => value !== undefined && value !== null && String(value).trim() !== "")
+        .map(({ headerRecord: h, value }) => ({
+          sectionId,
+          sectionName: label,
+          headerId: h.headerId,
+          headerName: h.displayName || h.headerName,
+          controlType: h.controlType,
+          controlTypeId: h.controlTypeId,
+          value,
+        }));
+
+      if (rowEntries.length === 0) return [];
+
+      // the aggregate score itself (the whole point of a scored assessment) — reported as its own
+      // synthetic entry, same reasoning as card-group's synthetic headerId 0 entry above
+      return [
+        ...rowEntries,
+        {
+          sectionId,
+          sectionName: label,
+          headerId: 0,
+          headerName: `${label} — Total Score`,
+          controlType: "radioScoreGroup",
+          controlTypeId: 0,
+          value: totalScore,
+        },
+      ];
+    }
+
     return headers
       .map(h => ({
         headerRecord: h,
@@ -677,7 +795,16 @@ const EmrSectionRenderer = ({
         controlTypeId: h.controlTypeId,
         value,
       }));
-  }, [isCardGroup, headers, data, sectionId, sectionName, displayName]);
+  }, [
+    isCardGroup,
+    isRadioScoreGroup,
+    lovsByHeaderId,
+    headers,
+    data,
+    sectionId,
+    sectionName,
+    displayName,
+  ]);
 
   useEffect(() => {
     onEntriesChange?.(sectionId, reportedEntries);

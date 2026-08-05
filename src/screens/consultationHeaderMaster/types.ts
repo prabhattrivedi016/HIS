@@ -5,6 +5,10 @@ type ListOfLovsItem = {
   options?: string[];
   /** original file name, used only for the "Download" action of image-upload rows (control type 20) */
   fileName?: string;
+  /** "Radio With Score"/"EmojiScore" rows only — the integer score assigned to this option */
+  score?: number;
+  /** "EmojiScore" rows only — the chosen face/emoji image, as a base64 data URL */
+  base64Data?: string;
 };
 
 /** one document slot returned by GET_EMR_CONTROL_DOCUMENT_MAPPING for a header of
@@ -16,6 +20,8 @@ type EmrControlDocumentItem = {
   DocumentCode: string;
   DocumentPath: string;
   IsMandatory: number;
+  /** the name last saved via UPLOAD_EMR_CONTROL_DOCUMENT's "ImageName" field, if any */
+  ImageName?: string;
 };
 
 type HeaderMasterItem = {
