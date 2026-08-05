@@ -14,6 +14,9 @@ export interface OpticNerveExamRowValue {
 export interface OpticNerveExamValue {
   rows?: Record<string, OpticNerveExamRowValue>;
   additionalNotes?: string;
+  /** right panel's per-eye notes, shown below the reference diagram */
+  rightOpticDiscNotes?: string;
+  leftOpticDiscNotes?: string;
 }
 
 interface OpticNerveExaminationControlProps {
@@ -185,6 +188,27 @@ const OpticNerveExaminationControl = ({
           {renderPanel(config.rightRows, true, config.rightLeadingColumnLabel)}
           <div className="p-4 border-t border-slate-100">
             <OpticDiscDiagram />
+          </div>
+          <div className="px-3 pb-3">
+            <div className="table-td bg-slate-50 text-slate-500 font-semibold text-[11px] uppercase tracking-wide text-center py-1.5 rounded">
+              NOTES
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <input
+                type="text"
+                className="input-field !mb-0"
+                placeholder="Right Optic Disc Notes"
+                value={examValue.rightOpticDiscNotes ?? ""}
+                onChange={e => patch({ rightOpticDiscNotes: e.target.value })}
+              />
+              <input
+                type="text"
+                className="input-field !mb-0"
+                placeholder="Left Optic Disc Notes"
+                value={examValue.leftOpticDiscNotes ?? ""}
+                onChange={e => patch({ leftOpticDiscNotes: e.target.value })}
+              />
+            </div>
           </div>
         </div>
       </div>

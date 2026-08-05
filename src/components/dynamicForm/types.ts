@@ -22,6 +22,17 @@ export interface RadioScoreGroupRow {
   options: OptionSchema[];
 }
 
+export interface CompactFormGroupRow {
+  key: string;
+  label: string;
+  /** "emojiScore" | "checkbox-list" | "textarea" | anything else renders as a plain text row */
+  dynamicType: string;
+  options?: OptionSchema[];
+  /** rows sharing the same pairKey render side by side on one row instead of each getting its
+   * own full-width row — see config/compactFormSections.ts */
+  pairKey?: string;
+}
+
 export interface OptionsRule {
   targetDataPath: string;
   optionsByValue: Record<string, OptionSchema[]>;
@@ -103,6 +114,8 @@ export interface ControlSchema {
   gridConfigName?: string;
 
   rows?: RadioScoreGroupRow[];
+
+  compactRows?: CompactFormGroupRow[];
 }
 
 export interface CardSchema {

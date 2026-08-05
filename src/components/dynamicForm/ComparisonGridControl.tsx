@@ -114,12 +114,14 @@ const ComparisonGridControl = ({ schema, value, onChange }: ComparisonGridContro
     }
 
     if (row.type === "lensCataract") {
-      const grade1Key = side === "right" ? "rightGrade1" : "leftGrade1";
-      const grade2Key = side === "right" ? "rightGrade2" : "leftGrade2";
+      type LensGradeKey = "rightGrade1" | "leftGrade1" | "rightGrade2" | "leftGrade2";
+      const grade1Key: LensGradeKey = side === "right" ? "rightGrade1" : "leftGrade1";
+      const grade2Key: LensGradeKey = side === "right" ? "rightGrade2" : "leftGrade2";
+      const gradeKeys: LensGradeKey[] = [grade1Key, grade2Key];
       return (
         <div className="space-y-1">
           <div className="flex gap-1">
-            {[grade1Key, grade2Key].map(gradeKey => (
+            {gradeKeys.map(gradeKey => (
               <select
                 key={gradeKey}
                 className="input-field !mb-0"

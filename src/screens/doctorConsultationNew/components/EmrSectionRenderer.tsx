@@ -1,11 +1,13 @@
 import DynamicFormRenderer from "@/components/dynamicForm/DynamicFormRenderer";
 import {
   CardSchema,
+  CompactFormGroupRow,
   ControlSchema,
   OptionSchema,
   TableColumnSchema,
 } from "@/components/dynamicForm/types";
 import { getByPath } from "@/components/dynamicForm/utils/path";
+import { resolveCompactFormSectionConfig } from "@/config/compactFormSections";
 import { ENDPOINTS } from "@/config/defaults";
 import { getDummyLovFallback } from "@/config/dummyHeaderLovs";
 import { EmrDataSourceConfig, resolveHeaderBehavior } from "@/config/emrHeaderBehavior";
@@ -30,6 +32,7 @@ import { EmrSectionAnswerEntry } from "../types";
 import {
   applySnapshotToSectionData,
   isCardGroupSection,
+  isCompactFormGroupSection,
   isRadioScoreGroupSection,
   mapControlType,
 } from "../utils/sectionSnapshot";
@@ -76,7 +79,10 @@ const isFullWidth = (dynamicType: string) =>
   dynamicType === "comparisonGrid" ||
   dynamicType === "gonioscopy" ||
   dynamicType === "opticNerveExam" ||
-  dynamicType === "intraOcularPressure";
+  dynamicType === "intraOcularPressure" ||
+  dynamicType === "vision" ||
+  dynamicType === "frameDetails" ||
+  dynamicType === "eyeRefraction";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -390,6 +396,10 @@ const EmrSectionRenderer = ({
               "gonioscopy",
               "opticNerveExam",
               "intraOcularPressure",
+              "emojiScore",
+              "vision",
+              "frameDetails",
+              "eyeRefraction",
             ].includes(mapControlType(h.controlType))
           )
             return false;
@@ -430,6 +440,9 @@ const EmrSectionRenderer = ({
   // a section made entirely of "Radio With Score" headers (e.g. NIPS Score) renders as one
   // combined live-scored control instead — see isRadioScoreGroupSection in ../utils/sectionSnapshot
   const isRadioScoreGroup = isRadioScoreGroupSection(headers);
+  // a section whose NAME matches config/compactFormSections.ts (e.g. Pain Assessment) renders as
+  // one dense label-left/field-right layout instead — see isCompactFormGroupSection
+  const isCompactFormGroup = isCompactFormGroupSection(sectionName, headers);
 
   const cardSchema: CardSchema = useMemo(() => {
     const rulesByHeaderId = new Map(attributeConditions.map(a => [a.targetHeaderId, a.conditions]));
@@ -458,6 +471,10 @@ const EmrSectionRenderer = ({
         "gonioscopy",
         "opticNerveExam",
         "intraOcularPressure",
+        "emojiScore",
+        "vision",
+        "frameDetails",
+        "eyeRefraction",
       ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
@@ -539,6 +556,29 @@ const EmrSectionRenderer = ({
           previousVisitsData: primaryHeaderBehavior?.table?.previousVisitsData,
         },
       ];
+    } else if (isCompactFormGroup) {
+      const rowPairRules = resolveCompactFormSectionConfig(sectionName)?.rowPairRules ?? [];
+      const compactRows: CompactFormGroupRow[] = headers.map(h => {
+        const { dynamicType, options } = resolveHeaderRender(h);
+        return {
+          key: `header_${h.headerId}`,
+          label: h.displayName || h.headerName,
+          dynamicType,
+          options,
+          pairKey: rowPairRules.find(rule => rule.match(h.headerName))?.pairKey,
+        };
+      });
+
+      controls = [
+        {
+          key: `section_${sectionId}_compactFormGroup`,
+          label: displayName || sectionName,
+          type: "compactFormGroup",
+          dataPath: `section_${sectionId}`,
+          colSpan: 4,
+          compactRows,
+        },
+      ];
     } else {
       controls = headers.map(h => {
         const { behavior, dynamicType, isTable, options, asyncSearch } = resolveHeaderRender(h);
@@ -587,6 +627,9 @@ const EmrSectionRenderer = ({
         const isGonioscopy = dynamicType === "gonioscopy";
         const isOpticNerveExam = dynamicType === "opticNerveExam";
         const isIntraOcularPressure = dynamicType === "intraOcularPressure";
+        const isVision = dynamicType === "vision";
+        const isFrameDetails = dynamicType === "frameDetails";
+        const isEyeRefraction = dynamicType === "eyeRefraction";
 
         return {
           key: `header_${h.headerId}`,
@@ -626,7 +669,10 @@ const EmrSectionRenderer = ({
             isComparisonGrid ||
             isGonioscopy ||
             isOpticNerveExam ||
-            isIntraOcularPressure
+            isIntraOcularPressure ||
+            isVision ||
+            isFrameDetails ||
+            isEyeRefraction
               ? h.headerName
               : undefined,
           textFavouritesEnabled: isTextLikeType(dynamicType)
@@ -656,6 +702,7 @@ const EmrSectionRenderer = ({
     headers,
     isCardGroup,
     isRadioScoreGroup,
+    isCompactFormGroup,
     lovsByHeaderId,
     dataSourceOptionsByHeaderId,
     tableColumnsByHeaderId,

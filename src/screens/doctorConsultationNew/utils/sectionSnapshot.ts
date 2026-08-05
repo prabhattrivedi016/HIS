@@ -1,4 +1,5 @@
 import { setByPath } from "@/components/dynamicForm/utils/path";
+import { resolveCompactFormSectionConfig } from "@/config/compactFormSections";
 import { resolveGenericAttributeGroupColumns } from "@/config/genericAttributeGroups";
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
@@ -52,6 +53,14 @@ export const mapControlType = (controlType: string): string => {
   // row list — see config/intraOcularPressureConfig.ts
   if (key.includes("intraocular") && key.includes("pressure")) return "intraOcularPressure";
   if (key.includes("iop")) return "intraOcularPressure";
+  // "Vision" is its own dedicated Right/Left visual-acuity control — see config/visionConfig.ts
+  if (key.includes("vision")) return "vision";
+  // "Frame Details" (spectacle fitting) — see config/frameDetailsConfig.ts
+  if (key.includes("frame") && key.includes("detail")) return "frameDetails";
+  // "Eye Refraction" (Objective/Subjective refraction grids) — a SEPARATE header from "Frame
+  // Details" even though both live under the same "Eye Refraction" section — see
+  // config/eyeRefractionConfig.ts
+  if (key.includes("eye") && key.includes("refraction")) return "eyeRefraction";
   // anything else with a registered generic-attribute-group config (e.g. "Diagnosis",
   // "Procedure") becomes that repeatable-attribute card widget — everything else (including
   // plain "Text Box" or any unrecognized/typo'd control type) safely falls back to plain text,
@@ -60,9 +69,6 @@ export const mapControlType = (controlType: string): string => {
   return "text";
 };
 
-/** mirrors EmrSectionRenderer's own isCardGroup check — a section renders as one repeatable
- * card-group control (instead of one control per header) when every header in it is non-table
- * and there's more than one of them */
 export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boolean =>
   headers.length > 1 &&
   headers.every(
@@ -79,6 +85,10 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
         "gonioscopy",
         "opticNerveExam",
         "intraOcularPressure",
+        "emojiScore",
+        "vision",
+        "frameDetails",
+        "eyeRefraction",
       ].includes(mapControlType(h.controlType))
   );
 
@@ -92,6 +102,17 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
  */
 export const isRadioScoreGroupSection = (headers: SectionHeaderMappingRecord[]): boolean =>
   headers.length > 0 && headers.every(h => mapControlType(h.controlType) === "radioScore");
+
+/**
+ * A section whose NAME matches a config/compactFormSections.ts rule (Pain Assessment being the
+ * first) renders as one dense "label-left, field-right" layout instead of the generic
+ * one-card-per-header grid — purely a layout choice, same underlying `section_X.header_Y` storage
+ * as a normal section, so it's independent of isCardGroupSection/isRadioScoreGroupSection above.
+ */
+export const isCompactFormGroupSection = (
+  sectionName: string,
+  headers: SectionHeaderMappingRecord[]
+): boolean => headers.length > 1 && Boolean(resolveCompactFormSectionConfig(sectionName));
 
 /**
  * Applies a past-visit snapshot's values back into the current section's live data blob — the

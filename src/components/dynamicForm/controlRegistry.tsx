@@ -31,10 +31,14 @@ import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
 import ComparisonGridControl from "./ComparisonGridControl";
 import GonioscopyControl from "./GonioscopyControl";
 import MedicineListControl from "./MedicineListControl";
+import CompactFormGroupControl from "./CompactFormGroupControl";
+import EyeRefractionControl from "./EyeRefractionControl";
+import FrameDetailsControl from "./FrameDetailsControl";
 import IntraOcularPressureControl from "./IntraOcularPressureControl";
 import MultiLevelInputGridControl from "./MultiLevelInputGridControl";
 import OpticNerveExaminationControl from "./OpticNerveExaminationControl";
 import OrderSetDrawer from "./OrderSetDrawer";
+import VisionControl from "./VisionControl";
 import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
 import RadioScoreGroupControl from "./RadioScoreGroupControl";
 import { TableFieldInput } from "./TableFieldInput";
@@ -1556,6 +1560,10 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   gonioscopy: GonioscopyControl,
   opticNerveExam: OpticNerveExaminationControl,
   intraOcularPressure: IntraOcularPressureControl,
+  compactFormGroup: CompactFormGroupControl,
+  vision: VisionControl,
+  frameDetails: FrameDetailsControl,
+  eyeRefraction: EyeRefractionControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;
