@@ -598,3 +598,60 @@ select:-webkit-autofill {
   height: 0 !important;
   display: none !important;
 }
+
+/* hide scroll bar */
+/* Hide scrollbar for Chrome, Edge and Safari */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar for IE and old Edge */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+}
+
+/* Appointment slot styles */
+.slot-available {
+  background-color: #7bde6e !important;
+  border-color: #6acb5d !important;
+  color: #1e4612 !important;
+}
+
+.slot-available-dot {
+  color: #7bde6e !important;
+}
+
+.slot-selected {
+  background-color: #f3d836 !important;
+  border-color: #e2c725 !important;
+  color: #333333 !important;
+}
+
+.slot-selected-dot {
+  color: #f3d836 !important;
+}
+
+.slot-booked {
+  background-color: #9071f7 !important;
+  border-color: #8060e6 !important;
+  color: #ffffff !important;
+}
+
+.slot-booked-dot {
+  color: #9071f7 !important;
+}
+
+.slot-expired {
+  background-color: #ccc !important;
+  border-color: #bbb !important;
+  color: #666666 !important;
+}
+
+.slot-expired-dot {
+  color: #ccc !important;
+}

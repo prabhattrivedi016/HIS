@@ -43,6 +43,7 @@ import MicroResultEntry from "../microResultEntry";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdAppointment from "../opdAppointment";
+import OpdAppointmentConfirmation from "../opdAppointmentConfirmation";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
 import OpdRefund from "../opdRefund";
@@ -151,4 +152,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "write-off-generation": <WriteOffGeneration />,
   "package-master": <PackageMaster />,
   "opd-appointment": <OpdAppointment />,
+  "opd-appointment-confirmation": <OpdAppointmentConfirmation />,
 };
