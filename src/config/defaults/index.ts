@@ -574,6 +574,9 @@ const ENDPOINTS = {
   SAVE_OPD_APPOINTMENT: "Patient/saveOPDAppointment",
   GET_DOCTOR_APPOINTMENT_SLOTS: "Patient/getDoctorAppointmentSlots",
   GET_DOCTOR_APPOINTMENT_PRE_BOOKING_DETAILS: "Patient/GetDoctorAppointmentPreBookingDetails",
+  CANCEL_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/cancelDoctorAppointmentPreBooking",
+  RESCHEDULE_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/rescheduleDoctorAppointmentPreBooking",
+  CONFIRM_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/confirmDoctorAppointmentPreBooking",
 };
 
 export { ENDPOINTS };

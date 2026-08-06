@@ -17,7 +17,7 @@ interface AppointmentSlotProps {
   onClose: () => void;
   doctorId: number;
   selectedSlotTimingId: string;
-  onSelectSlot: (slotTimingId: string, slotStartDateTime: string) => void;
+  onSelectSlot: (slotId: string, appDateTime: string) => void;
 }
 
 const AppointmentSlot = ({
@@ -58,6 +58,7 @@ const AppointmentSlot = ({
   const { data: appointmentLists = [] } = useQuery({
     queryKey: ["appointmentSlots", selectedDate, doctorId],
     queryFn: getAppointmentLists,
+    enabled: isOpen && doctorId > 0,
   });
 
   const [localSelectedSlot, setLocalSelectedSlot] = useState<SlotListItem | null>(null);

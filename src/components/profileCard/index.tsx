@@ -199,7 +199,6 @@ const GridView = ({
                 btnClass = "grid-active-btn";
                 break;
               case "Approve":
-                btnClass = "grid-active-btn";
                 break;
 
               case "Generation":
@@ -210,8 +209,14 @@ const GridView = ({
                 break;
               case "Paymemnt Collection":
               case "Payment Collection":
+              case "Confirm":
                 btnClass = "grid-active-btn";
                 break;
+
+              case "Reschedule":
+                btnClass = "grid-reschedule-btn";
+                break;
+
               default:
                 btnClass = "";
             }

@@ -55,6 +55,10 @@
   @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#9891ae] text-white cursor-pointer active:scale-95;
 }
 
+.grid-reschedule-btn {
+  @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#A52A2A] text-white cursor-pointer active:scale-95;
+}
+
 .grid-map-user-btn {
   @apply w-full px-4 py-2 rounded-lg font-semibold transition-all bg-[#840000] text-white cursor-pointer active:scale-95;
 }
