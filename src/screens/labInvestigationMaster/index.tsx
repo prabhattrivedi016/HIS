@@ -41,6 +41,12 @@ const LabInvestigationMaster = () => {
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
+  const categoryName = useMemo(() => {
+    if (!categoryId || !categoryList?.length) return "";
+    const selected = categoryList.find(c => Number(c.categoryId) === Number(categoryId));
+    return selected ? selected.categoryName : "";
+  }, [categoryId, categoryList]);
+
   const [subCategoryList, setSubCategoryList] = useState<SubCategoryListItem[]>([]);
   const [selectSubCategory, setSelectedSubCategory] = useState<SelectItem | null>(null);
 

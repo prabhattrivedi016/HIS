@@ -66,6 +66,7 @@
 .grid-active-btn:disabled,
 .grid-edit-btn:disabled,
 .grid-map-user-btn:disabled,
+.grid-reschedule-btn:disabled,
 .grid-default-btn:disabled {
   @apply cursor-not-allowed opacity-60 active:scale-100;
 }

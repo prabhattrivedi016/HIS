@@ -1,3 +1,5 @@
+import HideShowColumn from "@/components/buttonsPopup";
+import DownloadPopup from "@/components/buttonsPopup/components/DownloadPopup";
 import CustomLoader from "@/components/customLoader";
 import PageHeader from "@/components/pageHeader";
 import GridView from "@/components/profileCard";
@@ -10,19 +12,34 @@ import { useConfigMaster } from "@/hooks/useConfigMaster";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import AppointmentSlot from "@/screens/opdAppointment/components/AppointmentSlot";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { exportListViewData } from "@/utils/exportUtils";
+import { filteredData } from "@/utils/filteredData";
 import { transformDataWithConfig } from "@/utils/utilities";
-import { useCallback, useContext, useEffect, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import OpdAppointmentCancelPopup from "./components/OpdAppointmentCancelPopup";
 import {
-  handleApproveButtonClick,
   handleCancelButtonClick,
-  isApproveButtonDisabled,
+  handleConfirmButtonClick,
+  handleRescheduleButtonClick,
   isCancelButtonDisabled,
-  shouldShowApproveButton,
+  isConfirmButtonDisabled,
+  isRescheduleButtonDisabled,
   shouldShowCancelButton,
+  shouldShowConfirmButton,
+  shouldShowRescheduleButton,
 } from "./components/opdAppointmentConfirmationAction";
+import OpdAppointmentConfirmationActionPopup from "./components/OpdAppointmentConfirmationActionPopup";
 import OpdAppointmentConfirmationPopup from "./components/OpdAppointmentConfirmationSearchPopup";
+import ViewDetailsPopup from "./components/ViewDetailsPopup";
 import {
   OpdAppointmentConfirmationGridCard,
   OpdAppointmentConfirmationItem,
@@ -58,6 +75,44 @@ const OpdAppointmentConfirmation = () => {
 
   const [hasFetched, setHasFetched] = useState(false);
   const [cardView, setCardView] = useState(VIEWTYPE.GRID);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+  const [gridActionOpen, setGridActionOpen] = useState(false);
+  const [gridActionBookingId, setGridActionBookingId] = useState<number | null>(null);
+  const [gridActionPopup, setGridActionPopup] = useState<DOMRect | null>(null);
+
+  const handleCardView = useCallback((view: string) => {
+    setCardView(view);
+  }, []);
+
+  const gridActionHandler = useCallback(
+    (bookingId: number, rect: DOMRect) => {
+      if (gridActionOpen && gridActionBookingId === bookingId) {
+        setGridActionOpen(false);
+        return;
+      }
+
+      setGridActionPopup(rect);
+      setGridActionBookingId(bookingId);
+      setGridActionOpen(true);
+    },
+    [gridActionOpen, gridActionBookingId]
+  );
+
+  const gridConfirmHandler = useCallback(
+    (item: OpdAppointmentConfirmationItem) => {
+      navigate("/opd-billing", {
+        state: {
+          uhid: item?.UHID,
+          bookingId: item?.AppId,
+          tokenNo: item?.TokenNo,
+          patientId: Number(item?.PatientId),
+          isPreBooking: true,
+          item,
+        },
+      });
+    },
+    [navigate]
+  );
 
   const [filterModalOpen, setFilterModalOpen] = useState<boolean>(false);
   const [queryValue, setQueryValue] = useState({
@@ -65,7 +120,9 @@ const OpdAppointmentConfirmation = () => {
     fromDate: today,
     toDate: today,
     dateTypeId: 1,
-    doctorId: 1,
+    doctorId: 0,
+    tokenNo: "",
+    sourceType: "",
   });
 
   const getOpdAppointmentConfirmationList = useCallback(
@@ -94,6 +151,15 @@ const OpdAppointmentConfirmation = () => {
     },
     [activeConfig]
   );
+
+  const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState<boolean>(false);
+  const [selectedItemForView, setSelectedItemForView] =
+    useState<OpdAppointmentConfirmationItem | null>(null);
+
+  const openViewPopup = useCallback((item: OpdAppointmentConfirmationItem) => {
+    setSelectedItemForView(item);
+    setViewDetailsModalOpen(true);
+  }, []);
 
   const [cancelModalOpen, setCancelModalOpen] = useState<boolean>(false);
   const [selectedItemForCancel, setSelectedItemForCancel] =
@@ -167,8 +233,101 @@ const OpdAppointmentConfirmation = () => {
     void getOpdAppointmentConfirmationList(queryValue);
   }, [activeConfig, getOpdAppointmentConfirmationList, queryValue]);
 
+  const hideShowBtnRef = useRef<HTMLElement>(null);
+  const downloadBtnRef = useRef<HTMLElement>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hideShowColumn, setHideShowColumn] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+  const [onDownload, setOnDownload] = useState(false);
+  const [downloadPopup, setDownloadPopup] = useState<{ top: number; left: number } | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    await getOpdAppointmentConfirmationList(queryValue);
+    setSearchQuery("");
+  }, [getOpdAppointmentConfirmationList, queryValue]);
+
+  const searchHandler = useCallback(
+    (keyInput: string, selectedValue = "") => {
+      const value = keyInput?.toLowerCase()?.trim();
+      setSearchQuery(keyInput);
+
+      filteredData({
+        value,
+        selectedValue,
+        listData: opdAppointmentConfirmationtListData as never,
+        gridData: opdAppointmentConfirmationGridData as never,
+        setListFilteredData: setListFilteredData as never,
+        setGridFilteredData: setGridFilteredData as never,
+      });
+    },
+    [opdAppointmentConfirmationGridData, opdAppointmentConfirmationtListData]
+  );
+
+  useEffect(() => {
+    if (listFilteredData.length > 0) {
+      const visibility: Record<string, boolean> = {};
+      listFilteredData[0].columns.forEach(col => {
+        visibility[col.label] = true;
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [listFilteredData]);
+
+  const columnNames = useMemo(() => {
+    if (cardView === VIEWTYPE.LIST && listFilteredData.length > 0) {
+      return [
+        listFilteredData[0]?.listLeftButton?.[0]?.label || "Action",
+        ...(listFilteredData[0]?.columns?.map(col => col.label) || []),
+      ];
+    }
+    return [];
+  }, [cardView, listFilteredData]);
+
+  const downloadHandler = () => {
+    if (!downloadBtnRef.current) return;
+    const rect = downloadBtnRef.current.getBoundingClientRect();
+    setDownloadPopup({
+      top: rect.bottom + window.scrollY - 12,
+      left: rect.left + window.scrollX + 12,
+    });
+    setOnDownload(prev => !prev);
+  };
+
+  const hideShowHandler = useCallback(() => {
+    if (hideShowBtnRef.current) {
+      const rect = hideShowBtnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.bottom + 5, left: rect.left });
+    }
+    setHideShowColumn(prev => !prev);
+  }, []);
+
+  const filterDropDown = opdAppointmentConfirmationtListData?.[0]?.columns;
+
+  const isGridButtonDisabled = useCallback(
+    (action: string, id: number) => {
+      const item = rawItemMap[id];
+      if (!item) return true;
+
+      if (action === "toggleAppointmentConfirmation") {
+        return isConfirmButtonDisabled(item);
+      }
+
+      if (action === "toggleAppointmentReschedule") {
+        return isRescheduleButtonDisabled(item);
+      }
+
+      if (action === "toggleCancelAppointment") {
+        return isCancelButtonDisabled(item);
+      }
+
+      return false;
+    },
+    [rawItemMap]
+  );
+
   // filter popup modal
-  const onFilterDiscountApproval = useCallback(() => {
+  const onFilterOpdAppointmentApproval = useCallback(() => {
     setFilterModalOpen(true);
   }, []);
 
@@ -188,25 +347,28 @@ const OpdAppointmentConfirmation = () => {
   // grid button click handler
   const customButtonClickHandler = useCallback(
     (action: string, id: number) => {
-      console.log("action", action);
       const item = rawItemMap[id];
 
       if (!item) return;
 
       if (action === "toggleAppointmentConfirmation") {
-        navigate("/opd-billing", {
-          state: {
-            bookingId: Number(item.AppId),
-            tokenNo: item.TokenNo,
-            uhid: item.UHID,
-            patientId: Number(item.PatientId),
-          },
+        handleConfirmButtonClick(item, selected => {
+          navigate("/opd-billing", {
+            state: {
+              uhid: item?.UHID,
+              bookingId: item?.AppId,
+              tokenNo: item?.TokenNo,
+              patientId: Number(item?.PatientId),
+              isPreBooking: true,
+              item,
+            },
+          });
         });
         return;
       }
 
       if (action === "toggleAppointmentReschedule") {
-        openReschedulePopup(item);
+        handleRescheduleButtonClick(item, openReschedulePopup);
         return;
       }
 
@@ -214,7 +376,7 @@ const OpdAppointmentConfirmation = () => {
         handleCancelButtonClick(item, openCancelPopup);
       }
     },
-    [rawItemMap]
+    [rawItemMap, openReschedulePopup, openCancelPopup]
   );
 
   // render action menu
@@ -231,27 +393,42 @@ const OpdAppointmentConfirmation = () => {
       return (
         <ul className="text-sm">
           <li>
-            {/* <button
+            <button
               type="button"
-              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700"
-              onClick={() => runAction(viewHandler)}
+              className="w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50"
+              onClick={() => runAction(openViewPopup)}
             >
               View
-            </button> */}
+            </button>
           </li>
-          {shouldShowApproveButton(item) && (
+          {shouldShowConfirmButton(item) && (
             <li>
               <button
                 type="button"
-                aria-disabled={isApproveButtonDisabled(item)}
+                aria-disabled={isConfirmButtonDisabled(item)}
                 className={`w-full text-left px-3 py-2 text-gray-700 ${
-                  isApproveButtonDisabled(item)
+                  isConfirmButtonDisabled(item)
                     ? "opacity-60 cursor-not-allowed"
                     : "hover:bg-blue-50"
                 }`}
-                onClick={() => handleApproveButtonClick(item, () => runAction(openApprovePopup))}
+                onClick={() =>
+                  handleConfirmButtonClick(item, selected => {
+                    runAction(() => {
+                      navigate("/opd-billing", {
+                        state: {
+                          bookingId: Number(selected.AppId),
+                          tokenNo: selected.TokenNo,
+                          uhid: selected.UHID,
+                          patientId: Number(selected.PatientId),
+                          isPreBooking: true,
+                          item: selected,
+                        },
+                      });
+                    });
+                  })
+                }
               >
-                Approve
+                Confirm
               </button>
             </li>
           )}
@@ -262,7 +439,7 @@ const OpdAppointmentConfirmation = () => {
                 aria-disabled={isCancelButtonDisabled(item)}
                 className={`w-full text-left px-3 py-2 text-gray-700 ${
                   isCancelButtonDisabled(item)
-                    ? "opacity-60 cursor-not-allowed"
+                    ? "opacity-60 cursor-not-allowed "
                     : "hover:bg-blue-50"
                 }`}
                 onClick={() => handleCancelButtonClick(item, () => runAction(openCancelPopup))}
@@ -271,12 +448,19 @@ const OpdAppointmentConfirmation = () => {
               </button>
             </li>
           )}
-          {item.IsCancel !== 1 && (
+          {shouldShowRescheduleButton(item) && (
             <li>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50"
-                onClick={() => runAction(openReschedulePopup)}
+                aria-disabled={isRescheduleButtonDisabled(item)}
+                className={`w-full text-left px-3 py-2 text-gray-700 ${
+                  isRescheduleButtonDisabled(item)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-blue-50"
+                }`}
+                onClick={() =>
+                  handleRescheduleButtonClick(item, () => runAction(openReschedulePopup))
+                }
               >
                 Reschedule
               </button>
@@ -285,12 +469,12 @@ const OpdAppointmentConfirmation = () => {
         </ul>
       );
     },
-    [rawItemMap]
+    [rawItemMap, openCancelPopup, openReschedulePopup]
   );
 
   const renderComponent = (view: string) => {
     if (!activeConfig || !hasFetched) {
-      return <div className="initial-message">Loading OP Discount Approval...</div>;
+      return <div className="initial-message">Loading opd appointment confirmation...</div>;
     }
 
     if (view === VIEWTYPE.GRID) {
@@ -302,11 +486,11 @@ const OpdAppointmentConfirmation = () => {
             <GridView
               key={item.id}
               data={item}
-              // cardRightTopBtn={gridActionHandler}
+              cardRightTopBtn={gridActionHandler}
               onCustomButtonClick={customButtonClickHandler}
               // shouldShowButton={shouldShowGridButton}
               // getCustomButtonLabel={getGridButtonLabel}
-              // isButtonDisabled={isGridButtonDisabled}
+              isButtonDisabled={isGridButtonDisabled}
             />
           ))}
         </div>
@@ -320,8 +504,8 @@ const OpdAppointmentConfirmation = () => {
         <div className="list-view-page-layout">
           <ListView
             data={listFilteredData}
-            // columnVisibility={columnVisibility}
-            // renderRowActionMenu={renderRowActionMenu}
+            columnVisibility={columnVisibility}
+            renderRowActionMenu={renderRowActionMenu}
           />
         </div>
       );
@@ -334,19 +518,20 @@ const OpdAppointmentConfirmation = () => {
     <div className="master-page-size">
       <PageHeader
         title="Opd Appointment Confirmation"
-        // view={cardView}
-        // onCardView={handleCardView}
+        view={cardView}
+        onCardView={handleCardView}
         buttonTitle=""
         showAddButton={false}
-        // onRefresh={handleRefresh}
-        // onSearch={searchHandler}
-        // onAddNew={() => {}}
-        // onDownload={downloadHandler}
-        // onFilter={filterDropDown}
-        // onToggleColumnModal={hideShowHandler}
-        // hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
-        // downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
-        onFilterDiscountApproval={onFilterDiscountApproval}
+        onRefresh={handleRefresh}
+        onSearch={searchHandler}
+        searchValue={searchQuery}
+        onAddNew={() => {}}
+        onDownload={downloadHandler}
+        onFilter={filterDropDown}
+        onToggleColumnModal={hideShowHandler}
+        hideShowBtnRef={hideShowBtnRef as RefObject<HTMLElement>}
+        downloadBtnRef={downloadBtnRef as RefObject<HTMLElement>}
+        onFilterDiscountApproval={onFilterOpdAppointmentApproval}
       />
 
       <div className="w-full">{renderComponent(cardView)}</div>
@@ -377,6 +562,48 @@ const OpdAppointmentConfirmation = () => {
         selectedSlotTimingId=""
         onSelectSlot={handleSelectSlot}
       />
+
+      {gridActionOpen && gridActionBookingId ? (
+        <OpdAppointmentConfirmationActionPopup
+          bookingId={gridActionBookingId}
+          rawItemMap={rawItemMap}
+          anchorRect={gridActionPopup}
+          onClose={() => setGridActionOpen(false)}
+          onConfirm={gridConfirmHandler}
+          onCancel={openCancelPopup}
+          onReschedule={openReschedulePopup}
+          onView={openViewPopup}
+        />
+      ) : null}
+
+      <ViewDetailsPopup
+        isOpen={viewDetailsModalOpen}
+        onClose={() => setViewDetailsModalOpen(false)}
+        item={selectedItemForView}
+      />
+
+      {hideShowColumn && popupPos && (
+        <HideShowColumn
+          columnNames={columnNames}
+          anchorRef={hideShowBtnRef as RefObject<HTMLElement>}
+          position={popupPos}
+          onClose={() => setHideShowColumn(false)}
+          columnVisibility={columnVisibility}
+          setColumnVisibility={setColumnVisibility}
+        />
+      )}
+
+      {onDownload && downloadPopup && (
+        <DownloadPopup
+          anchorRef={downloadBtnRef as RefObject<HTMLElement>}
+          position={downloadPopup}
+          onClose={() => setOnDownload(false)}
+          onDownloadExcel={() => {
+            exportListViewData(listFilteredData, "OpdAppointmentConfirmationList", "excel");
+            setOnDownload(false);
+          }}
+        />
+      )}
     </div>
   );
 };
