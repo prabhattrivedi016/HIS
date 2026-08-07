@@ -187,6 +187,12 @@ const GridView = ({
 
             switch (btn?.label) {
               case "Active":
+              case "Opd Billing":
+              case "Approve":
+              case "Generation":
+              case "Paymemnt Collection":
+              case "Payment Collection":
+              case "Confirm":
                 btnClass = "grid-active-btn";
                 break;
               case "Edit":
@@ -195,22 +201,9 @@ const GridView = ({
               case "Map User":
                 btnClass = "grid-map-user-btn";
                 break;
-              case "Opd Billing":
-                btnClass = "grid-active-btn";
-                break;
-              case "Approve":
-                break;
 
-              case "Generation":
-                btnClass = "grid-active-btn";
-                break;
               case "Cancel":
                 btnClass = "grid-edit-btn";
-                break;
-              case "Paymemnt Collection":
-              case "Payment Collection":
-              case "Confirm":
-                btnClass = "grid-active-btn";
                 break;
 
               case "Reschedule":

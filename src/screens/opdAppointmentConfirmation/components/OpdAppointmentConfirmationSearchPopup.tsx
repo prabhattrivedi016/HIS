@@ -5,6 +5,7 @@ import { SelectStyles } from "@/components/customSelect";
 import { ENDPOINTS } from "@/config/defaults";
 import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { usePickMaster } from "@/hooks/usePickMaster";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { OptionItem } from "@/types";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import Select, { StylesConfig } from "react-select";
 
 const OpdAppointmentConfirmationPopup = ({ isOpen, onClose, onApply, initialValues }) => {
   const branchList = useGetBranchList()?.branchList?.data ?? [];
+  const sourceTypeList = usePickMaster("OPDAppointmentSourceType")?.pickMasterValue ?? [];
   const [filterValues, setFilterValues] = useState(initialValues);
 
   const { fetchApi } = useGlobalApi();
@@ -70,6 +72,27 @@ const OpdAppointmentConfirmationPopup = ({ isOpen, onClose, onApply, initialValu
     setFilterValues(prev => ({ ...prev, toDate: value }));
   };
 
+  const dateTypeIdChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    setFilterValues(prev => ({
+      ...prev,
+      dateTypeId: Number(e.target.value),
+    }));
+  };
+
+  const tokenNoChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setFilterValues(prev => ({
+      ...prev,
+      tokenNo: e.target.value,
+    }));
+  };
+
+  const sourceTypeChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    setFilterValues(prev => ({
+      ...prev,
+      sourceType: e.target.value,
+    }));
+  };
+
   const submitHandler = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -125,6 +148,45 @@ const OpdAppointmentConfirmationPopup = ({ isOpen, onClose, onApply, initialValu
 
           <InputField label="To Date">
             <CustomDateInput value={filterValues.toDate} onChange={toDateChangeHandler} />
+          </InputField>
+
+          <InputField label="Date Type">
+            <select
+              className="input-field"
+              value={filterValues.dateTypeId}
+              onChange={dateTypeIdChangeHandler}
+              name="dateTypeId"
+            >
+              <option value={1}>Registration Date wise</option>
+              <option value={2}>Appointment Date wise</option>
+            </select>
+          </InputField>
+
+          <InputField label="Token No">
+            <input
+              type="text"
+              placeholder="Enter token no"
+              className="input-field"
+              value={filterValues.tokenNo}
+              onChange={tokenNoChangeHandler}
+              name="tokenNo"
+            />
+          </InputField>
+
+          <InputField label="Source Type">
+            <select
+              className="input-field"
+              value={filterValues.sourceType}
+              onChange={sourceTypeChangeHandler}
+              name="sourceType"
+            >
+              <option value="">--Select--</option>
+              {sourceTypeList.map((item: any) => (
+                <option key={item.id} value={item.value}>
+                  {item.value}
+                </option>
+              ))}
+            </select>
           </InputField>
         </div>
 

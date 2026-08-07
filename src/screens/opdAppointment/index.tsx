@@ -5,11 +5,15 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
-import InputFieldModal from "@/components/inputFieldModal";
+import OpdAppointmentReceipt, {
+  openOpdAppointmentReceiptInNewTab,
+} from "@/components/reportTemplates/OpdAppointmentReceipt";
+import PateintListssByContact from "@/components/SingledrawerAndPopup/components/PateintListsByContact";
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
+import useGetBranchList from "@/hooks/useGetBranchList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
@@ -21,7 +25,7 @@ import {
 } from "@/validation/patientRegistrationSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import Select, { StylesConfig } from "react-select";
@@ -48,20 +52,81 @@ const OpdAppointment = () => {
   const { loading, fetchApi } = useGlobalApi();
   const { branchId } = useContext(BranchContext);
 
+  const [printReceiptData, setPrintReceiptData] = useState<any>(null);
+  const [printPaymentModes, setPrintPaymentModes] = useState<any[]>([]);
+  const [triggerPrint, setTriggerPrint] = useState<boolean>(false);
+
+  const handlePrintReceipt = async (saveResp: any) => {
+    try {
+      const appId = Number(
+        saveResp?.appId ?? saveResp?.data?.appId ?? saveResp?.data?.id ?? saveResp?.data ?? 0
+      );
+      if (!appId) return;
+
+      const preBookingResp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_DOCTOR_APPOINTMENT_PRE_BOOKING_DETAILS,
+        {},
+        { params: { id: appId } },
+        { component: "OpdAppointment", silent: true }
+      );
+
+      const preBookingData = Array.isArray(preBookingResp?.data)
+        ? preBookingResp?.data[0]
+        : preBookingResp?.data;
+      if (!preBookingData) return;
+
+      const lenderId = Number(
+        saveResp?.lenderId ??
+          saveResp?.ledgerId ??
+          saveResp?.data?.lenderId ??
+          saveResp?.data?.ledgerId ??
+          0
+      );
+      const receiptId = Number(saveResp?.receiptId ?? saveResp?.data?.receiptId ?? 0);
+
+      let paymentModes: any[] = [];
+      if (lenderId && receiptId) {
+        const patientId = Number(preBookingData?.PatientId ?? preBookingData?.patientId ?? 0);
+        const paymentModesResp = await fetchApi(
+          "GET",
+          ENDPOINTS.GET_PATIENT_ADVANCE_RECEIPT_LIST,
+          {},
+          { params: { patientId, receiptId } },
+          { component: "OpdAppointment", silent: true }
+        );
+        paymentModes = paymentModesResp?.data || [];
+      }
+
+      setPrintReceiptData(preBookingData);
+      setPrintPaymentModes(paymentModes);
+      setTriggerPrint(true);
+
+      const printWin = window.open("", "_blank");
+      setTimeout(() => {
+        openOpdAppointmentReceiptInNewTab(printWin);
+        setTriggerPrint(false);
+      }, 800);
+    } catch (err) {
+      console.error("Print receipt error:", err);
+    }
+  };
+
+  const branchLists = useGetBranchList()?.branchList?.data ?? [];
+
   const titleList = usePickMaster("Title")?.pickMasterValue ?? [];
 
   const genderList = usePickMaster("Gender")?.pickMasterValue ?? [];
   const roleId = useContext(RoleContext)?.roleId;
 
   const [visitDetailsPayload, setVisitDetailsPaylaod] = useState({
-    patientId: 0,
     branchId,
     doctorId: 0,
-    appDateTime: "2026-08-10T05:49:05.078Z",
+    appDateTime: "",
     roleId,
     insuranceCompanyId: 0,
     corporateId: 0,
-    serviceItemId: 0,
+    serviceItemId: 120833,
     serviceName: "",
     amount: 0,
     slotId: 0,
@@ -121,7 +186,7 @@ const OpdAppointment = () => {
   const [slots, setSlots] = useState("");
   const [appDateTime, setAppDateTime] = useState("2026-08-10T05:49:05.078Z");
   const [source, setSource] = useState("Telephonic");
-  const [visitType, setVisitType] = useState<number | string>("");
+  const [visitType, setVisitType] = useState<number | string>(120833);
   const collectPrePaymentRef = useRef(false);
   const isUpdatingAgeDob = useRef(false);
 
@@ -313,7 +378,7 @@ const OpdAppointment = () => {
   };
 
   // country
-  const getCountry = async () => {
+  const getCountry = useCallback(async () => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_COUNTRY_MASTER,
@@ -324,10 +389,10 @@ const OpdAppointment = () => {
     const list = (resp?.data ?? []) as CountryItem[];
     setCountryList(list);
     return list;
-  };
+  }, []);
 
   // state
-  const getState = async (countryId: number) => {
+  const getState = useCallback(async (countryId: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_STATE_MASTER,
@@ -338,10 +403,10 @@ const OpdAppointment = () => {
     const list = (resp?.data ?? []) as StateItem[];
     setStateList(list);
     return list;
-  };
+  }, []);
 
   // district
-  const getDistrict = async (stateId: number) => {
+  const getDistrict = useCallback(async (stateId: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_DISTRICT_MASTER,
@@ -352,10 +417,10 @@ const OpdAppointment = () => {
     const list = (resp?.data ?? []) as DistrictItem[];
     setDistrictList(list);
     return list;
-  };
+  }, []);
 
   // city
-  const getCity = async (districtId: number) => {
+  const getCity = useCallback(async (districtId: number) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_CITY_MASTER,
@@ -366,7 +431,7 @@ const OpdAppointment = () => {
     const list = (resp?.data ?? []) as CityItem[];
     setCityList(list);
     return list;
-  };
+  }, []);
 
   const [countryList, setCountryList] = useState<CountryItem[]>([]);
   const [stateList, setStateList] = useState<StateItem[]>([]);
@@ -733,46 +798,46 @@ const OpdAppointment = () => {
     return corporateSelectOption.find(c => Number(c.value) === Number(watchedCorporateId)) || null;
   }, [corporateSelectOption, watchedCorporateId]);
 
+  const loadDefaults = useCallback(async () => {
+    const countries = await getCountry();
+    if (branchDetails?.defaultCountryId) {
+      const countryId = Number(branchDetails.defaultCountryId);
+      const stateId = Number(branchDetails.defaultStateId);
+      const districtId = Number(branchDetails.defaultDistrictId);
+      const cityId = Number(branchDetails.defaultCityId);
+      const insuranceId = Number(branchDetails.defaultInsuranceCompanyId);
+      const corporateId = Number(branchDetails.defaultCorporateId);
+
+      const stateListResult = await getState(countryId);
+      const districtListResult = await getDistrict(stateId);
+      const cityListResult = await getCity(districtId);
+
+      const countryName = countries.find(c => Number(c.countryId) === countryId)?.countryName || "";
+      const stateName = stateListResult.find(s => Number(s.stateId) === stateId)?.stateName || "";
+      const districtName =
+        districtListResult.find(d => Number(d.districtId) === districtId)?.districtName || "";
+      const cityName = cityListResult.find(c => Number(c.cityId) === cityId)?.cityName || "";
+
+      setValue("CountryId", countryId);
+      setValue("Country", countryName);
+      setValue("StateId", stateId);
+      setValue("State", stateName);
+      setValue("DistrictId", districtId);
+      setValue("District", districtName);
+      setValue("CityId", cityId);
+      setValue("City", cityName);
+      setValue("InsuranceCompanyId", insuranceId);
+      setValue("CorporateId", corporateId);
+    }
+  }, [branchDetails, getCountry, getState, getDistrict, getCity, setValue]);
+
   useEffect(() => {
-    const loadDefaults = async () => {
-      const countries = await getCountry();
-      if (branchDetails?.defaultCountryId) {
-        const countryId = Number(branchDetails.defaultCountryId);
-        const stateId = Number(branchDetails.defaultStateId);
-        const districtId = Number(branchDetails.defaultDistrictId);
-        const cityId = Number(branchDetails.defaultCityId);
-        const insuranceId = Number(branchDetails.defaultInsuranceCompanyId);
-        const corporateId = Number(branchDetails.defaultCorporateId);
-
-        const stateListResult = await getState(countryId);
-        const districtListResult = await getDistrict(stateId);
-        const cityListResult = await getCity(districtId);
-
-        const countryName =
-          countries.find(c => Number(c.countryId) === countryId)?.countryName || "";
-        const stateName = stateListResult.find(s => Number(s.stateId) === stateId)?.stateName || "";
-        const districtName =
-          districtListResult.find(d => Number(d.districtId) === districtId)?.districtName || "";
-        const cityName = cityListResult.find(c => Number(c.cityId) === cityId)?.cityName || "";
-
-        setValue("CountryId", countryId);
-        setValue("Country", countryName);
-        setValue("StateId", stateId);
-        setValue("State", stateName);
-        setValue("DistrictId", districtId);
-        setValue("District", districtName);
-        setValue("CityId", cityId);
-        setValue("City", cityName);
-        setValue("InsuranceCompanyId", insuranceId);
-        setValue("CorporateId", corporateId);
-      }
-    };
     if (branchDetails) {
       void loadDefaults();
     } else {
       void getCountry();
     }
-  }, [branchDetails]);
+  }, [branchDetails, loadDefaults]);
 
   // doctor lists
   const getDoctorList = async () => {
@@ -780,7 +845,7 @@ const OpdAppointment = () => {
       "GET",
       ENDPOINTS.GET_DOCTOR_MASTER,
       {},
-      { params: { isActive: 1 } },
+      { params: { isActive: 1, isDoctorUnit: 0 } },
       { component: "OpdAppointment" }
     );
     return resp?.data ?? [];
@@ -796,13 +861,16 @@ const OpdAppointment = () => {
     setSource("");
     setSlots("");
     setAppDateTime("2026-08-10T05:49:05.078Z");
-    setVisitType("");
+    setVisitType("120833");
     setSelectedDoctor(null);
     setStateList([]);
     setDistrictList([]);
     setCityList([]);
     setShowPaymentDetailsSection(false);
     setUhidSearchResetKey(prev => prev + 1);
+    if (branchDetails) {
+      void loadDefaults();
+    }
   };
 
   const doctorSelectOption = useMemo(() => {
@@ -863,12 +931,9 @@ const OpdAppointment = () => {
     enabled: Boolean(visitType),
   });
 
-  const watchedPatientId = watch("PatientId");
-
   useEffect(() => {
     setVisitDetailsPaylaod(prev => ({
       ...prev,
-      patientId: Number(watchedPatientId || 0),
       branchId: Number(branchId || 1),
       doctorId: selectedDoctor ? Number(selectedDoctor.value) : 0,
       appDateTime: appDateTime,
@@ -882,7 +947,6 @@ const OpdAppointment = () => {
       sourceType: source || "",
     }));
   }, [
-    watchedPatientId,
     branchId,
     selectedDoctor,
     roleId,
@@ -915,103 +979,102 @@ const OpdAppointment = () => {
   // create paylaod
   const createPayload = (patientPayload: any) => {
     return {
-      PatientId: Number(patientPayload.PatientId || 0),
-      BranchId: Number(branchId || 1),
+      patientId: Number(patientPayload.PatientId || 0),
+      branchId: Number(branchId || 1),
+      roleId,
 
-      Title: patientPayload.Title || "",
-      FirstName: patientPayload.FirstName || "",
-      MiddleName: patientPayload.MiddleName || "",
-      LastName: patientPayload.LastName || "",
+      title: patientPayload.Title || "",
+      firstName: patientPayload.FirstName || "",
+      middleName: patientPayload.MiddleName || "",
+      lastName: patientPayload.LastName || "",
 
-      AgeYears: Number(patientPayload.AgeYears || 0),
-      AgeMonths: Number(patientPayload.AgeMonths || 0),
-      AgeDays: Number(patientPayload.AgeDays || 0),
+      ageYears: Number(patientPayload.AgeYears || 0),
+      ageMonths: Number(patientPayload.AgeMonths || 0),
+      ageDays: Number(patientPayload.AgeDays || 0),
 
-      Dob: patientPayload.Dob || "",
-      Gender: patientPayload.Gender || "",
+      dob: patientPayload.Dob || "",
+      gender: patientPayload.Gender || "",
 
-      MaritalStatus: patientPayload.MaritalStatus || "",
-      Relation: patientPayload.Relation || "",
-      RelativeName: patientPayload.RelativeName || "",
+      // relation: patientPayload.Relation || "",
+      // relativeName: patientPayload.RelativeName || "",
 
-      IdProofName: patientPayload.IdProofName || "",
-      IdProofNumber: patientPayload.IdProofNumber || "",
+      // IdProofName: patientPayload.IdProofName || "",
+      // IdProofNumber: patientPayload.IdProofNumber || "",
 
-      SelfContactNumber: patientPayload.SelfContactNumber || "",
-      EmergencyContactNumber: patientPayload.EmergencyContactNumber || "",
+      selfContactNumber: patientPayload.SelfContactNumber || "",
+      // EmergencyContactNumber: patientPayload.EmergencyContactNumber || "",
 
-      Email: patientPayload.Email || "",
-      PrivilegedCardNumber: patientPayload.PrivilegedCardNumber || "",
+      // Email: patientPayload.Email || "",
+      // PrivilegedCardNumber: patientPayload.PrivilegedCardNumber || "",
 
-      Address: patientPayload.Address || "",
+      address: patientPayload.Address || "",
 
-      CountryId: Number(patientPayload.CountryId || 0),
-      Country: patientPayload.Country || "",
+      countryId: Number(patientPayload.CountryId || 0),
+      country: patientPayload.Country || "",
 
-      StateId: Number(patientPayload.StateId || 0),
-      State: patientPayload.State || "",
+      stateId: Number(patientPayload.StateId || 0),
+      state: patientPayload.State || "",
 
-      DistrictId: Number(patientPayload.DistrictId || 0),
-      District: patientPayload.District || "",
+      districtId: Number(patientPayload.DistrictId || 0),
+      district: patientPayload.District || "",
 
-      CityId: Number(patientPayload.CityId || 0),
-      City: patientPayload.City || "",
+      cityId: Number(patientPayload.CityId || 0),
+      city: patientPayload.City || "",
 
-      InsuranceCompanyId: Number(patientPayload.InsuranceCompanyId || 0),
-      CorporateId: Number(patientPayload.CorporateId || 0),
+      insuranceCompanyId: Number(patientPayload.InsuranceCompanyId || 0),
+      corporateId: Number(patientPayload.CorporateId || 0),
 
-      CardNo: patientPayload.CardNo || "",
+      // CardNo: patientPayload.CardNo || "",
 
-      PatientImageFile: patientPayload.PatientImageFile || null,
+      // PatientImageFile: patientPayload.PatientImageFile || null,
 
-      IsVaccination: Number(patientPayload.IsVaccination || 0),
+      // IsVaccination: Number(patientPayload.IsVaccination || 0),
 
-      VipPatient: patientPayload.VipPatient || "",
+      // VipPatient: patientPayload.VipPatient || "",
 
-      PolicyNo: patientPayload.PolicyNo || "",
-      PolicyCardNo: patientPayload.PolicyCardNo || "",
-      ExpiryDate: patientPayload.ExpiryDate || "",
-      CardHolder: patientPayload.CardHolder || "",
-      ReferalDate: patientPayload.ReferalDate || "",
-      ReferalNo: patientPayload.ReferalNo || "",
-      OnlinePtId: Number(patientPayload.OnlinePtId || 0),
-      HealthId: patientPayload.HealthId || "",
-      HealthIdNumber: patientPayload.HealthIdNumber || "",
-      LandlineNo: patientPayload.LandlineNo || "",
-      BirthPlace: patientPayload.BirthPlace || "",
-      Religion: patientPayload.Religion || "",
-      RelationPhone: patientPayload.RelationPhone || "",
-      RelationAge: patientPayload.RelationAge || "",
-      RelationGender: patientPayload.RelationGender || "",
-      EMG_FirstName: patientPayload.EMG_FirstName || "",
-      EMG_LastName: patientPayload.EMG_LastName || "",
-      EMG_Relation: patientPayload.EMG_Relation || "",
-      EMG_MobileNo: patientPayload.EMG_MobileNo || "",
-      EMG_ResidentNo: patientPayload.EMG_ResidentNo || "",
-      EMG_Address: patientPayload.EMG_Address || "",
-      IsInternational: Number(patientPayload.IsInternational || 0),
-      Locality: patientPayload.Locality || "",
-      PassportNumber: patientPayload.PassportNumber || "",
-      InternationalNo: patientPayload.InternationalNo || "",
-      MembershipNo: patientPayload.MembershipNo || "",
-      PatientType: patientPayload.PatientType || "",
-      IdentityMark: patientPayload.IdentityMark || "",
-      IdentityMark2: patientPayload.IdentityMark2 || "",
-      ReferenceType: patientPayload.ReferenceType || "",
-      Remarks: patientPayload.Remarks || "",
-      ipdNumber: patientPayload.ipdNumber || "",
-      Pincode: patientPayload.Pincode || "",
-      UniqueId: patientPayload.UniqueId || "",
-      UhidOrBarcode: patientPayload.UhidOrBarcode || "",
+      // PolicyNo: patientPayload.PolicyNo || "",
+      // PolicyCardNo: patientPayload.PolicyCardNo || "",
+      // ExpiryDate: patientPayload.ExpiryDate || "",
+      // CardHolder: patientPayload.CardHolder || "",
+      // ReferalDate: patientPayload.ReferalDate || "",
+      // ReferalNo: patientPayload.ReferalNo || "",
+      // OnlinePtId: Number(patientPayload.OnlinePtId || 0),
+      // HealthId: patientPayload.HealthId || "",
+      // HealthIdNumber: patientPayload.HealthIdNumber || "",
+      // LandlineNo: patientPayload.LandlineNo || "",
+      // BirthPlace: patientPayload.BirthPlace || "",
+      // Religion: patientPayload.Religion || "",
+      // RelationPhone: patientPayload.RelationPhone || "",
+      // RelationAge: patientPayload.RelationAge || "",
+      // RelationGender: patientPayload.RelationGender || "",
+      // EMG_FirstName: patientPayload.EMG_FirstName || "",
+      // EMG_LastName: patientPayload.EMG_LastName || "",
+      // EMG_Relation: patientPayload.EMG_Relation || "",
+      // EMG_MobileNo: patientPayload.EMG_MobileNo || "",
+      // EMG_ResidentNo: patientPayload.EMG_ResidentNo || "",
+      // EMG_Address: patientPayload.EMG_Address || "",
+      // IsInternational: Number(patientPayload.IsInternational || 0),
+      // Locality: patientPayload.Locality || "",
+      // PassportNumber: patientPayload.PassportNumber || "",
+      // InternationalNo: patientPayload.InternationalNo || "",
+      // MembershipNo: patientPayload.MembershipNo || "",
+      // PatientType: patientPayload.PatientType || "",
+      // IdentityMark: patientPayload.IdentityMark || "",
+      // IdentityMark2: patientPayload.IdentityMark2 || "",
+      // ReferenceType: patientPayload.ReferenceType || "",
+      // Remarks: patientPayload.Remarks || "",
+      // ipdNumber: patientPayload.ipdNumber || "",
+      // Pincode: patientPayload.Pincode || "",
+      // UniqueId: patientPayload.UniqueId || "",
+      // UhidOrBarcode: patientPayload.UhidOrBarcode || "",
     };
   };
 
   // create appointment paylaod
-  const createAppointmentPaylaod = (newPatientId: number) => {
+  const createAppointmentPaylaod = () => {
     return {
       visitDetails: {
         ...visitDetailsPayload,
-        patientId: newPatientId,
       },
       paymentDetails: [],
     };
@@ -1049,22 +1112,10 @@ const OpdAppointment = () => {
                 formData.append(key, value === null || value === undefined ? "" : String(value));
               });
 
-              const regResp = await fetchApi(
-                "POST",
-                ENDPOINTS.CREATE_UPDATE_PATIENT_MASTER,
-                formData,
-                { headers: { "Content-Type": "multipart/form-data" } },
-                { component: "OpdAppointment" }
-              );
-
-              if (!regResp?.result) {
-                showWarning(regResp?.message ?? "Failed to save patient registration.");
-                return;
-              }
-
-              const newPatientId = Number(regResp?.data?.patientId || patientPayload.PatientId);
-
-              const appointmentPayload = createAppointmentPaylaod(newPatientId);
+              const appointmentPayload = {
+                ...createAppointmentPaylaod(),
+                patientDetails: createPayload(patientPayload),
+              };
 
               const saveResp = await fetchApi(
                 "POST",
@@ -1079,6 +1130,7 @@ const OpdAppointment = () => {
                 return;
               }
               showSuccess(saveResp?.message ?? "Data saved successfully");
+              await handlePrintReceipt(saveResp);
               resetForm();
             } catch (err) {
               console.error(err);
@@ -1120,21 +1172,6 @@ const OpdAppointment = () => {
                 formData.append(key, value === null || value === undefined ? "" : String(value));
               });
 
-              const regResp = await fetchApi(
-                "POST",
-                ENDPOINTS.CREATE_UPDATE_PATIENT_MASTER,
-                formData,
-                { headers: { "Content-Type": "multipart/form-data" } },
-                { component: "OpdAppointment" }
-              );
-
-              if (!regResp?.result) {
-                showWarning(regResp?.message ?? "Failed to save patient registration.");
-                return;
-              }
-
-              const newPatientId = Number(regResp?.data?.patientId || patientPayload.PatientId);
-
               const billingPayload = billingDetailsRef.current?.getPayload?.();
               const paymentDetails = ((billingPayload?.payments as any[]) || []).map(payment => ({
                 ...payment,
@@ -1144,9 +1181,9 @@ const OpdAppointment = () => {
               const appointmentPayload = {
                 visitDetails: {
                   ...visitDetailsPayload,
-                  patientId: newPatientId,
                 },
                 paymentDetails,
+                patientDetails: payload,
               };
 
               const saveResp = await fetchApi(
@@ -1156,13 +1193,13 @@ const OpdAppointment = () => {
                 {},
                 { component: "OpdAppointment" }
               );
-              console.log("resp", saveResp);
 
               if (!saveResp?.result) {
                 showWarning(saveResp?.message ?? "Failed to save appointment.");
                 return;
               }
               showSuccess(saveResp?.message ?? "Data saved successfully");
+              await handlePrintReceipt(saveResp);
               resetForm();
             } catch (err) {
               console.error(err);
@@ -1170,17 +1207,24 @@ const OpdAppointment = () => {
             }
           },
           validationErrors => {
-            console.log("validationErrors", validationErrors);
             showWarning("Please fill in all required fields.");
           }
         )();
         break;
       }
       default: {
-        console.log("invalid type");
         break;
       }
     }
+  };
+
+  // branch change handler
+  const branchChangeHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    setVisitDetailsPaylaod(prev => ({
+      ...prev,
+      branchId: Number(value),
+    }));
   };
 
   return (
@@ -1360,13 +1404,14 @@ const OpdAppointment = () => {
                   })}
                 />
 
-                <InputFieldModal<PatientListItem>
+                <PateintListssByContact<PatientListItem>
                   showPopup={showPopup}
                   data={patientList}
                   activeIndex={activePatientIndex}
                   setActiveIndex={setActivePatientIndex}
                   onSelect={handleSelectPatient}
                   getLabel={getLabel}
+                  onClose={() => setShowPopup(false)}
                 />
               </div>
               {errors.SelfContactNumber?.message && (
@@ -1471,6 +1516,15 @@ const OpdAppointment = () => {
       </div>
       <div className="card mt-1 ">
         <div className="form-grid-4">
+          <InputField label="Branches" required>
+            <select className="input-field" value={branchId} onChange={branchChangeHandler}>
+              {branchLists.map(b => (
+                <option key={b?.branchId} value={b?.branchId}>
+                  {b?.branchName}
+                </option>
+              ))}
+            </select>
+          </InputField>
           <InputField label="Doctor" required>
             <Select<OptionItem, false>
               value={selectedDoctor}
@@ -1553,7 +1607,7 @@ const OpdAppointment = () => {
                 if (e.target.value) setVisitTypeError("");
               }}
             >
-              <option value="">--Select--</option>
+              <option value={0}>--Select--</option>
               {visitList?.map((item: VisitListItem) => (
                 <option key={item.serviceItemId} value={item?.serviceItemId}>
                   {item?.name}
@@ -1636,6 +1690,16 @@ const OpdAppointment = () => {
             setAppDateTime(slotStartDateTime);
           }}
         />
+      )}
+      {printReceiptData && (
+        <div style={{ display: "none" }}>
+          <OpdAppointmentReceipt
+            printOnMount={triggerPrint}
+            patientDetails={printReceiptData}
+            paymentModeList={printPaymentModes}
+            paidAmt={Number(printReceiptData.Amount || printReceiptData.ReceiptAmount || 0)}
+          />
+        </div>
       )}
     </div>
   );

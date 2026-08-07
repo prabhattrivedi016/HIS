@@ -2,6 +2,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { OptionItem, SelectStyles } from "@/components/customSelect";
+import PateintListssByContact from "@/components/SingledrawerAndPopup/components/PateintListsByContact";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
@@ -30,7 +31,6 @@ import {
 import { FormProvider, useForm } from "react-hook-form";
 import Select, { StylesConfig } from "react-select";
 import Webcam from "react-webcam";
-import InputFieldModal from "@/components/inputFieldModal";
 import {
   BranchDetailsItem,
   CorporateItem,
@@ -1362,13 +1362,14 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                           onInput={allowOnlyNumbers}
                         />
 
-                        <InputFieldModal<SearchedPatientItem>
+                        <PateintListssByContact<SearchedPatientItem>
                           showPopup={showPopup}
                           data={patientList}
                           activeIndex={activePatientIndex}
                           setActiveIndex={setActivePatientIndex}
                           onSelect={handleSelectPatient}
                           getLabel={getLabel}
+                          onClose={() => setShowPopup(false)}
                         />
                       </div>
                       {errors.SelfContactNumber && (

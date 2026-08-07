@@ -168,7 +168,7 @@ const AppointmentSlot = ({
 
                 {/* Slot List */}
 
-                <div className="p-2 space-y-2 overflow-y-auto hide-scrollbar  max-h-[500px]">
+                <div className="p-2 space-y-2 overflow-y-auto hide-scrollbar  max-h-100">
                   {slots.map(slot => {
                     const isBooked = slot.IsBooked === 1;
                     const isExpired = slot.IsExpired === 1;
