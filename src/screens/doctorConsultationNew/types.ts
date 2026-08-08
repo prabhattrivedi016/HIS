@@ -67,29 +67,18 @@ type EmrSectionAnswerEntry = {
   headerId: number;
   headerName: string;
   controlType: string;
-  /** numeric control type id (0 for a card-group entry, which represents a whole section/group
-   * rather than one real header) */
   controlTypeId: number;
   value: unknown;
 };
 
-/** one entry in the save payload's dynamic attribute list — every attribute the consultation
- * captures (vital, allergy, an EMR section header, or anything added later) is normalized to
- * this same shape, so the payload never needs a new named field when a new attribute is added */
 type ConsultationAttributeEntry = {
-  /** groups entries by kind, e.g. "vital" | "allergy" | "emrSection" */
   attributeType: string;
-  /** stable unique key within attributeType, e.g. `vital_12`, `emrSection_3_45` */
   attributeCode: string;
   label: string;
   value: unknown;
-  /** "emrSection" entries only — the EMR section this attribute's headers belong to */
   sectionId?: number;
 };
 
-/** produces the ConsultationAttributeEntry[] for one attribute kind — add a new function of
- * this shape and register it in DoctorConsultationNew's attributeBuilders list to add a new
- * attribute to the save payload without touching the payload shape itself */
 type AttributeBuilder = () => ConsultationAttributeEntry[];
 
 type EmrAudit = {

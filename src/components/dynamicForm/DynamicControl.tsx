@@ -94,7 +94,8 @@ const DynamicControl = ({
     schema.type === "intraOcularPressure" ||
     schema.type === "vision" ||
     schema.type === "frameDetails" ||
-    schema.type === "eyeRefraction"
+    schema.type === "eyeRefraction" ||
+    schema.type === "treatmentObjectives"
   ) {
     return (
       <div className={wrapperClass}>

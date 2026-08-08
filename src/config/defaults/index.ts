@@ -337,6 +337,10 @@ const ENDPOINTS = {
   GET_ALL_EMR_SECTIONS: "EMR/getEMRSectionMaster",
   CREATE_UPDATE_EMR_SECTION: "EMR/createUpdateEMRSectionMaster",
   GET_EMR_SECTION_HEADER_MAPPING: "EMR/getEMRSectionHeaderMapping",
+  // flat list of every header mapping (across all sections) actually assigned to a doctor for a
+  // given patient type — used to derive the doctor's own section nav list (grouped by SectionId)
+  // instead of the unfiltered "every active section" list GET_ALL_EMR_SECTIONS returns
+  GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR: "EMR/getEMRSectionHeaderMappingByDoctorId",
 
   // emr controls — mapping EMR Sections to a doctor or department
   GET_EMR_SECTION_DEPARTMENT_MAPPING: "EMR/getEMRSectionDepartmentMapping",

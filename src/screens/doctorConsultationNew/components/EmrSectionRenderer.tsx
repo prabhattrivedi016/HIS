@@ -33,8 +33,10 @@ import {
   applySnapshotToSectionData,
   isCardGroupSection,
   isCompactFormGroupSection,
+  isEmptyValue,
   isRadioScoreGroupSection,
   mapControlType,
+  pruneEmptyValue,
 } from "../utils/sectionSnapshot";
 import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
 
@@ -82,7 +84,8 @@ const isFullWidth = (dynamicType: string) =>
   dynamicType === "intraOcularPressure" ||
   dynamicType === "vision" ||
   dynamicType === "frameDetails" ||
-  dynamicType === "eyeRefraction";
+  dynamicType === "eyeRefraction" ||
+  dynamicType === "treatmentObjectives";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -400,6 +403,7 @@ const EmrSectionRenderer = ({
               "vision",
               "frameDetails",
               "eyeRefraction",
+              "treatmentObjectives",
             ].includes(mapControlType(h.controlType))
           )
             return false;
@@ -475,6 +479,7 @@ const EmrSectionRenderer = ({
         "vision",
         "frameDetails",
         "eyeRefraction",
+        "treatmentObjectives",
       ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
@@ -630,6 +635,7 @@ const EmrSectionRenderer = ({
         const isVision = dynamicType === "vision";
         const isFrameDetails = dynamicType === "frameDetails";
         const isEyeRefraction = dynamicType === "eyeRefraction";
+        const isTreatmentObjectives = dynamicType === "treatmentObjectives";
 
         return {
           key: `header_${h.headerId}`,
@@ -672,7 +678,8 @@ const EmrSectionRenderer = ({
             isIntraOcularPressure ||
             isVision ||
             isFrameDetails ||
-            isEyeRefraction
+            isEyeRefraction ||
+            isTreatmentObjectives
               ? h.headerName
               : undefined,
           textFavouritesEnabled: isTextLikeType(dynamicType)
@@ -733,8 +740,8 @@ const EmrSectionRenderer = ({
       }).length;
     }
     return headers.filter(h => {
-      const value = getByPath(data, `section_${sectionId}.header_${h.headerId}`);
-      return value !== undefined && value !== null && String(value).trim() !== "";
+      const value = pruneEmptyValue(getByPath(data, `section_${sectionId}.header_${h.headerId}`));
+      return !isEmptyValue(value);
     }).length;
   }, [headers, data, sectionId, isCardGroup, isRadioScoreGroup]);
   const sectionPercent = totalFields ? Math.round((filledFields / totalFields) * 100) : 0;
@@ -830,9 +837,9 @@ const EmrSectionRenderer = ({
     return headers
       .map(h => ({
         headerRecord: h,
-        value: getByPath(data, `section_${sectionId}.header_${h.headerId}`),
+        value: pruneEmptyValue(getByPath(data, `section_${sectionId}.header_${h.headerId}`)),
       }))
-      .filter(({ value }) => value !== undefined && value !== null && String(value).trim() !== "")
+      .filter(({ value }) => !isEmptyValue(value))
       .map(({ headerRecord: h, value }) => ({
         sectionId,
         sectionName: label,

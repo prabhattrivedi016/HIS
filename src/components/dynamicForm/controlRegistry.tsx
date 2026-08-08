@@ -38,6 +38,7 @@ import IntraOcularPressureControl from "./IntraOcularPressureControl";
 import MultiLevelInputGridControl from "./MultiLevelInputGridControl";
 import OpticNerveExaminationControl from "./OpticNerveExaminationControl";
 import OrderSetDrawer from "./OrderSetDrawer";
+import TreatmentObjectivesControl from "./TreatmentObjectivesControl";
 import VisionControl from "./VisionControl";
 import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
 import RadioScoreGroupControl from "./RadioScoreGroupControl";
@@ -1564,6 +1565,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   vision: VisionControl,
   frameDetails: FrameDetailsControl,
   eyeRefraction: EyeRefractionControl,
+  treatmentObjectives: TreatmentObjectivesControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

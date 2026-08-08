@@ -1163,6 +1163,7 @@ const DoctorConsultationNew = () => {
                 doctorId={selectedPatient?.DoctorId}
                 patientId={selectedPatient?.PatientId}
                 visitId={selectedPatient?.VisitId}
+                usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
               />
             </div>

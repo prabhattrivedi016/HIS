@@ -50,6 +50,10 @@ interface ConsultationEmrSectionsProps {
   doctorId?: number;
   patientId?: number;
   visitId?: number;
+  /** which patient type's sections/headers this doctor has assigned (e.g. selectedPatient.TypeId
+   * — 1 for OPD) — filters GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR the same way it's filtered
+   * server-side; defaults to 1 (OPD) if not passed */
+  usedForPatientTypeId?: number;
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
 }
 
@@ -312,6 +316,7 @@ const ConsultationEmrSections = ({
   doctorId,
   patientId,
   visitId,
+  usedForPatientTypeId,
   onSectionsChange,
 }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
@@ -460,32 +465,45 @@ const ConsultationEmrSections = ({
     }
   };
 
+  // this doctor's own section list, derived by grouping the flat per-header mapping list
+  // (GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR) down to its unique SectionIds — replaces the old
+  // "every active section in the system" list GET_ALL_EMR_SECTIONS returned, which wasn't scoped
+  // to what this doctor actually has assigned for this patient type
   const getAllEmrSections = async (): Promise<EmrSectionMappingTableItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_EMR_SECTIONS,
+      ENDPOINTS.GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR,
       {},
-      { params: { isActive: 1 } },
+      { params: { doctorId, usedForPatientTypeId: usedForPatientTypeId ?? 1 } },
       { component: "ConsultationEmrSections", silent: true }
     );
     const raw: any[] = resp?.data ?? [];
-    return raw
-      .map(s => ({
-        sectionId: s.SectionId,
-        sectionName: s.SectionName,
-        displayName: s.DisplayName,
-        isActive: s.IsActive,
+
+    const bySectionId = new Map<number, EmrSectionMappingTableItem>();
+    raw.forEach(m => {
+      if (bySectionId.has(m.SectionId)) return;
+      bySectionId.set(m.SectionId, {
+        sectionId: m.SectionId,
+        sectionName: m.SectionName,
+        // section nav pills/titles show SectionName, not SectionDisplayName — every render site
+        // already falls back to sectionName via `displayName || sectionName`, so setting this to
+        // sectionName here is the one place that needs to change
+        displayName: m.SectionName,
+        isActive: 1,
         mappingId: 0,
-        sequenceNo: 0,
-      }))
-      .filter(s => Number(s.isActive) === 1);
+        sequenceNo: m.SectionSequenceNo ?? 0,
+      });
+    });
+
+    return Array.from(bySectionId.values()).sort((a, b) => a.sequenceNo - b.sequenceNo);
   };
 
   const { data: mappedSections = [], isLoading: sectionsLoading } = useQuery<
     EmrSectionMappingTableItem[]
   >({
-    queryKey: ["consultationEmrSections"],
+    queryKey: ["consultationEmrSections", doctorId, usedForPatientTypeId],
     queryFn: getAllEmrSections,
+    enabled: doctorId != null,
   });
 
   useEffect(() => {
