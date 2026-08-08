@@ -74,7 +74,8 @@ const needsOptions = (dynamicType: string) =>
   dynamicType === "dropdown" ||
   dynamicType === "checkbox-list" ||
   dynamicType === "radioScore" ||
-  dynamicType === "emojiScore";
+  dynamicType === "emojiScore" ||
+  dynamicType === "dentalTreatmentType";
 const isFullWidth = (dynamicType: string) =>
   dynamicType === "richtext" ||
   dynamicType === "medicineList" ||
@@ -85,7 +86,8 @@ const isFullWidth = (dynamicType: string) =>
   dynamicType === "vision" ||
   dynamicType === "frameDetails" ||
   dynamicType === "eyeRefraction" ||
-  dynamicType === "treatmentObjectives";
+  dynamicType === "treatmentObjectives" ||
+  dynamicType === "dentalTreatmentType";
 const isTextLikeType = (dynamicType: string) =>
   dynamicType === "text" || dynamicType === "textarea" || dynamicType === "richtext";
 
@@ -249,6 +251,7 @@ const EmrSectionRenderer = ({
     const options = raw.map(item => {
       const rawScore = item?.score ?? item?.Score;
       const imageUrl = item?.base64Data ?? item?.Base64Data;
+      const description = item?.Description ?? item?.description;
       return {
         label: item?.value ?? "",
         value: item?.value ?? "",
@@ -257,6 +260,7 @@ const EmrSectionRenderer = ({
             ? Number(rawScore)
             : undefined,
         imageUrl: imageUrl || undefined,
+        description: description || undefined,
       };
     });
     if (options.length > 0) return options;
@@ -404,6 +408,7 @@ const EmrSectionRenderer = ({
               "frameDetails",
               "eyeRefraction",
               "treatmentObjectives",
+              "dentalTreatmentType",
             ].includes(mapControlType(h.controlType))
           )
             return false;
@@ -480,6 +485,7 @@ const EmrSectionRenderer = ({
         "frameDetails",
         "eyeRefraction",
         "treatmentObjectives",
+        "dentalTreatmentType",
       ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType

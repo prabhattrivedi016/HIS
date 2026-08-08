@@ -412,6 +412,46 @@ const EmojiScoreControl = ({ schema, value, onChange }: ControlRenderProps) => (
   </div>
 );
 
+// "Dental Treatment Type" — each option carries an image + a short description alongside its
+// label, sourced from GET_DOCTOR_HEARDER_LOVS' base64Data/Description fields (set via Header
+// Master's "Image, Value & Description" LOV editor for this control type). Single-select, same
+// toggle-off-on-reclick interaction as DentalChartModal's own "Treatment type" tab tiles.
+const DentalTreatmentTypeControl = ({ schema, value, onChange }: ControlRenderProps) => (
+  <div className={mergeClass("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3", schema)}>
+    {schema.options?.map((opt, i) => {
+      const selected = value === opt.value;
+      return (
+        <button
+          key={opt.key ?? i}
+          type="button"
+          onClick={() => onChange(selected ? undefined : opt.value)}
+          className={`flex items-start gap-3 text-left rounded-xl border p-4 transition-colors ${
+            selected
+              ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+              : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+          }`}
+        >
+          {opt.imageUrl ? (
+            <img
+              src={opt.imageUrl}
+              alt={opt.label}
+              className="w-10 h-10 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-gray-100 shrink-0" />
+          )}
+          <span>
+            <p className="text-sm font-bold text-gray-700">{opt.label}</p>
+            {opt.description && (
+              <p className="text-[11px] text-gray-400 mt-0.5">{opt.description}</p>
+            )}
+          </span>
+        </button>
+      );
+    })}
+  </div>
+);
+
 // multiple selectable options driven by the header's own List Of Values — distinct from
 // SwitchControl (a single on/off toggle) and from RadioControl (single-select)
 const CheckboxListControl = ({ schema, value, onChange }: ControlRenderProps) => {
@@ -1546,6 +1586,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   "search-dropdown": SearchDropdownControl,
   radio: RadioControl,
   emojiScore: EmojiScoreControl,
+  dentalTreatmentType: DentalTreatmentTypeControl,
   "checkbox-list": CheckboxListControl,
   richtext: RichTextControl,
   dynamicContent: DynamicContentControl,

@@ -18,9 +18,6 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("currency")) return "currency";
   if (key.includes("check") && key.includes("list")) return "checkbox-list";
   if (key.includes("check")) return "switch";
-  // "radio" must be checked before the generic "dropdown" rule below — a ControlType name that
-  // happens to contain both "radio" and "select" (e.g. "Radio Select") would otherwise match the
-  // dropdown rule first and silently render as a <select> instead of radio buttons.
   if (key.includes("radio") && key.includes("score")) return "radioScore";
   if (key.includes("radio")) return "radio";
   if (key.includes("dropdown") || key.includes("select") || key.includes("combo"))
@@ -28,11 +25,9 @@ export const mapControlType = (controlType: string): string => {
   if (key.includes("emoji") && key.includes("score")) return "emojiScore";
   if (key.includes("lookup")) return "lookup";
   if (key.includes("image")) return "imageUpload";
-  // "Treatment Objectives" must be checked before the generic "dental" rule below — a header
-  // named e.g. "Dental Treatment Objectives" contains both substrings, and this is the more
-  // specific match (a plain "dental"-only ControlType, e.g. "Dental Chart", still falls through
-  // to dentalChart as before).
   if (key.includes("treatment") && key.includes("objective")) return "treatmentObjectives";
+  if (key.includes("dental") && key.includes("treatment") && key.includes("type"))
+    return "dentalTreatmentType";
   if (key.includes("dental")) return "dentalChart";
   if (key.includes("multilevel")) return "multiLevelInputGrid";
   if (key.includes("comparison")) return "comparisonGrid";
@@ -73,6 +68,7 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
         "frameDetails",
         "eyeRefraction",
         "treatmentObjectives",
+        "dentalTreatmentType",
       ].includes(mapControlType(h.controlType))
   );
 
