@@ -90,11 +90,21 @@ type PackageDetailsItem = {
   isMultipleVisitAllow: number;
   visitDuration: number;
   visitDurationType: string;
+  rate?: number;
+};
+
+type RateListItem = {
+  rateListId: number;
+  rateListName: string;
+  applicableDate: string;
+  expiryDate: string;
+  isActive: number;
 };
 
 export type {
   CategoryItem,
   PackageDetailsItem,
+  RateListItem,
   ServiceTableItem,
   SubcategoryItem,
   SubSubCategoryItem,

@@ -747,11 +747,3 @@ export const ViewCreditNotePopupServiceTableHeader = [
   "Credit Note (Amt)",
   "Credit Note (%)",
 ];
-
-export const AddPackageTableHeader = [
-  "#",
-  "Service Category",
-  "Service Name",
-  "Quantity",
-  "Remove",
-];

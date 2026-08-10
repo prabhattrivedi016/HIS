@@ -56,6 +56,7 @@ const PackageMaster = () => {
       setSelectedcategoryId(0);
       setSelectedSubcategory(null);
       setSelectedSubSubcategory(null);
+      setShowtable(false);
       return;
     }
     setSelectedcategoryId(value);
@@ -208,7 +209,7 @@ const PackageMaster = () => {
         Number(selectedSubSubCategory?.value ?? 0),
         debouncedServiceName
       ),
-    enabled: serviceName.trim().length > 2,
+    enabled: selectedcategoryId > 0 || serviceName.trim().length > 2,
   });
 
   // status update handler
@@ -224,12 +225,7 @@ const PackageMaster = () => {
       showWarning(resp?.message ?? "Failed to update status");
       return;
     }
-    await getServiceItemList?.(
-      selectedcategoryId,
-      Number(selectedSubCategory?.value ?? 0),
-      Number(selectedSubSubCategory?.value ?? 0),
-      debouncedServiceName
-    );
+    void refetchPackageList();
 
     showSuccess(resp?.message ?? "Data saved successfully");
   };
