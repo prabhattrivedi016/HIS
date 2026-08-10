@@ -60,6 +60,7 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
         "multiLevelInputGrid",
         "comparisonGrid",
         "radioScore",
+        "radio",
         "gonioscopy",
         "opticNerveExam",
         "intraOcularPressure",
@@ -72,8 +73,18 @@ export const isCardGroupSection = (headers: SectionHeaderMappingRecord[]): boole
       ].includes(mapControlType(h.controlType))
   );
 
-export const isRadioScoreGroupSection = (headers: SectionHeaderMappingRecord[]): boolean =>
-  headers.length > 0 && headers.every(h => mapControlType(h.controlType) === "radioScore");
+// a plain "Radio" header (mapControlType -> "radio", distinct from "Radio Score" -> "radioScore")
+// is otherwise a single standalone question (renders via RadioControl) — but a SECTION of several
+// of them (e.g. "Bite analysis": Overjet/Overbite/Crossbite/... each graded None-Severe) is the
+// same "themed set of graded rows" pattern radioScore sections already use, so 2+ "radio" headers
+// group the same way instead of falling through to isCardGroupSection's repeatable-row grid. A
+// lone "radio" header (length 1) is unaffected — that's still just one independent question.
+export const isRadioScoreGroupSection = (headers: SectionHeaderMappingRecord[]): boolean => {
+  if (headers.length === 0) return false;
+  const types = headers.map(h => mapControlType(h.controlType));
+  if (headers.length === 1) return types[0] === "radioScore";
+  return types.every(t => t === "radioScore" || t === "radio");
+};
 
 export const isCompactFormGroupSection = (
   sectionName: string,

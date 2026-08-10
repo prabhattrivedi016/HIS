@@ -24,6 +24,81 @@ const formatSnapshotValue = (value: unknown): string => {
   return String(value);
 };
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+// a card-group/genericAttributeGroup header's value (Chief Complaints, Family History, Procedure,
+// Diagnosis, etc.) is an array of row-objects, e.g. [{ Complaints: "...", Duration: "...",
+// Severity: "..." }] — worth expanding into its own mini-table of real columns/values instead of
+// collapsing to "N item(s)", the same way the live control itself renders that row
+const isRowArray = (value: unknown): value is Record<string, unknown>[] =>
+  Array.isArray(value) && value.length > 0 && value.every(isPlainObject);
+
+// internal bookkeeping keys aren't meant for display: "__ComplaintsId"-style keys are the
+// matched-LOV-option id CardGroupControl stores alongside a field's display value, and a plain
+// "id" is just that entry's own identifier (MedicineListEntry.id, MedicineDoseScheduleRow.id, ...)
+const isDisplayKey = (key: string) => key !== "id" && !key.startsWith("__");
+
+const rowArrayColumns = (rows: Record<string, unknown>[]): string[] => {
+  const keys = new Set<string>();
+  rows.forEach(row =>
+    Object.keys(row)
+      .filter(isDisplayKey)
+      .forEach(key => keys.add(key))
+  );
+  return Array.from(keys);
+};
+
+const titleCaseKey = (key: string) =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, c => c.toUpperCase())
+    .trim();
+
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+// a cell can itself hold an array of row-objects — e.g. a medicine entry's "schedule"
+// (dose/frequency/duration/route per tapering step) — so this renders its own header row of real
+// column names, same as the outer table, recursing however deep the nesting goes instead of
+// falling through to formatCellValue's raw JSON.stringify dump.
+const NestedRowTable = ({ rows }: { rows: Record<string, unknown>[] }) => {
+  const columns = rowArrayColumns(rows);
+  return (
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="border-b border-slate-100">
+          {columns.map(key => (
+            <th
+              key={key}
+              className="pr-4 py-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap"
+            >
+              {titleCaseKey(key)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((entry, idx) => (
+          <tr key={idx} className="border-b border-slate-50 last:border-b-0">
+            {columns.map(key => (
+              <td key={key} className="pr-4 py-1 align-top whitespace-nowrap">
+                {renderCell(entry[key])}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
+const renderCell = (value: unknown) =>
+  isRowArray(value) ? <NestedRowTable rows={value} /> : formatCellValue(value);
+
 /**
  * Per-section "past visit" tab strip — pick a past visit date, select which of its fields to
  * bring over, Copy to Current. Same interaction PreviousInvestigationsPanel already established
@@ -32,7 +107,10 @@ const formatSnapshotValue = (value: unknown): string => {
  * at 6 recent visits) and EmrSectionHistoryDrawer (uncapped, inside "Past Visits") so both stay
  * behaviorally identical.
  */
-const PreviousSectionVisitsStrip = ({ snapshots, onCopyToCurrent }: PreviousSectionVisitsStripProps) => {
+const PreviousSectionVisitsStrip = ({
+  snapshots,
+  onCopyToCurrent,
+}: PreviousSectionVisitsStripProps) => {
   const [activeSnapshotId, setActiveSnapshotId] = useState(snapshots[0]?.id ?? "");
   const [selectedHeaderIds, setSelectedHeaderIds] = useState<Set<number>>(new Set());
 
@@ -138,24 +216,36 @@ const PreviousSectionVisitsStrip = ({ snapshots, onCopyToCurrent }: PreviousSect
                 </td>
               </tr>
             ) : (
-              rows.map(r => (
-                <tr
-                  key={r.headerId}
-                  className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 transition-colors"
-                >
-                  <td className="px-4 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedHeaderIds.has(r.headerId)}
-                      onChange={() => toggleOne(r.headerId)}
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-[12.5px] text-slate-700">{r.headerName}</td>
-                  <td className="px-4 py-2 text-[12.5px] text-slate-600">
-                    {formatSnapshotValue(r.value)}
-                  </td>
-                </tr>
-              ))
+              rows.map(r => {
+                const rowArray = isRowArray(r.value) ? r.value : undefined;
+
+                return (
+                  <tr
+                    key={r.headerId}
+                    className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 transition-colors"
+                  >
+                    <td className="px-4 py-2 align-top">
+                      <input
+                        type="checkbox"
+                        checked={selectedHeaderIds.has(r.headerId)}
+                        onChange={() => toggleOne(r.headerId)}
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-[12.5px] text-slate-700 align-top whitespace-nowrap">
+                      {r.headerName}
+                    </td>
+                    <td className="px-4 py-2 text-[12.5px] text-slate-600">
+                      {rowArray ? (
+                        <div className="overflow-x-auto">
+                          <NestedRowTable rows={rowArray} />
+                        </div>
+                      ) : (
+                        formatSnapshotValue(r.value)
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

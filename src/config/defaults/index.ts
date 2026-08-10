@@ -362,7 +362,8 @@ const ENDPOINTS = {
   // useEmrSectionHistoryStore (localStorage) instead — see that file for the exact entry shapes.
   // GET_EMR_SECTION_HISTORY:   params { patientId, sectionId } -> EmrSectionVisitSnapshotEntry[]
   //   (no separate save endpoint — this is just a reshaped query over existing
-  //   SAVE_CONSULTATION_EMR submissions, filtered to the "emrSection" attribute matching sectionId)
+  //   SAVE_PATIENT_CONSULTATION submissions, filtered to consultationHeadersData rows in that
+  //   sectionId)
   // GET_EMR_SECTION_EDIT_LOG:  params { patientId, sectionId } -> EmrSectionEditLogEntry[]
   // SAVE_EMR_SECTION_EDIT_LOG: body EmrSectionEditLogEntry (minus id) -> { result, message }
   //   (frontend doesn't call this yet — logEdit() in useEmrSectionHistoryStore only writes
@@ -371,23 +372,23 @@ const ENDPOINTS = {
   GET_EMR_SECTION_EDIT_LOG: "EMR/getEMRSectionEditLog",
   SAVE_EMR_SECTION_EDIT_LOG: "EMR/saveEMRSectionEditLog",
 
-  // patient visit reports (uploaded image/PDF reports + freehand annotations) and doctor visit
-  // notes (rich text + freehand working space) — NOT YET IMPLEMENTED on the backend. The frontend
-  // already calls these; until matching routes exist, calls fail and the UI falls back to its
-  // local browser cache (useVisitReportsStore / useDoctorNotesStore, both persisted to localStorage).
-  // GET_PATIENT_VISIT_REPORTS:   params { patientId, visitId } -> { result, data: VisitReportDocument[] }
-  //   VisitReportDocument: { id, patientId, visitId, fileName, uploadedOn, updatedOn,
-  //     pages: { pageNumber, dataUrl, strokes: ReportAnnotationStroke[] }[] }
-  //   ReportAnnotationStroke: { id, tool, points: number[], color, strokeWidth }
-  // SAVE_PATIENT_VISIT_REPORT:   body VisitReportDocument (upsert by id) -> { result, message }
-  // DELETE_PATIENT_VISIT_REPORT: params { id } -> { result, message }
+  // patient visit reports (uploaded image/PDF reports + freehand annotations): persisted through
+  // the generic SAVE_PATIENT_CONSULTATION/consultationHeadersData pipeline like every other EMR
+  // header (see ImageUploadControl in controlRegistry.tsx) — NOT through a dedicated endpoint.
+  // A dedicated per-report GET/SAVE/DELETE endpoint was attempted earlier and confirmed 404 on the
+  // backend; do not reintroduce calls to "EMR/getPatientVisitReport(s)"/"savePatientVisitReport"/
+  // "deletePatientVisitReport" without confirming the backend actually implements them.
+  // Do NOT reuse UPLOAD_EMR_CONTROL_DOCUMENT/GET_EMR_CONTROL_DOCUMENT_MAPPING for this — those are
+  // shared, header-level document slots (the same template every patient sees for that header);
+  // writing a patient's annotated copy through them would leak onto every other patient's image.
+  //
+  // doctor visit notes (rich text + freehand working space) — NOT YET IMPLEMENTED on the backend.
+  // The frontend already calls these; until matching routes exist, calls fail and the UI falls
+  // back to its local browser cache (useDoctorNotesStore, persisted to localStorage).
   // GET_DOCTOR_VISIT_NOTE:       params { patientId, visitId } -> { result, data: DoctorNoteEntry | null }
   //   DoctorNoteEntry: { patientId, visitId, content, imageSrc, imageTransform: { x, y, scaleX, scaleY },
   //     strokes: ReportAnnotationStroke[], updatedOn }
   // SAVE_DOCTOR_VISIT_NOTE:      body DoctorNoteEntry (upsert by patientId+visitId) -> { result, message }
-  GET_PATIENT_VISIT_REPORTS: "EMR/getPatientVisitReports",
-  SAVE_PATIENT_VISIT_REPORT: "EMR/savePatientVisitReport",
-  DELETE_PATIENT_VISIT_REPORT: "EMR/deletePatientVisitReport",
   GET_DOCTOR_VISIT_NOTE: "EMR/getDoctorVisitNote",
   SAVE_DOCTOR_VISIT_NOTE: "EMR/saveDoctorVisitNote",
 
@@ -447,7 +448,14 @@ const ENDPOINTS = {
   CREATE_UPDATE_PATIENT_ALLERGY_DETAILS: "EMR/createUpdatePatientAllergyDetails",
   DELETE_PATIENT_ALLERGY: "EMR/deletePatientAllergy",
   DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
-  SAVE_CONSULTATION_EMR: "EMR/saveConsultationEmr",
+  // consultation save/load — confirmed real contract (see backend-reference/DentalChart):
+  // SAVE_PATIENT_CONSULTATION body PatientConsultationPayload -> { result, message }
+  // GET_DOCTOR_CONSULTATION_BY_VISIT_ID params { visitId } -> consultationHeadersData rows for
+  //   that visit, each headerValue a JSON string to JSON.parse back. Nothing calls this yet —
+  //   ConsultationEmrSections' `data` state starts empty and is never hydrated from a previous
+  //   save; wire it up on mount once the exact response shape is confirmed.
+  SAVE_PATIENT_CONSULTATION: "EMR/savePatientConsultation",
+  GET_DOCTOR_CONSULTATION_BY_VISIT_ID: "EMR/getDoctorConsultationByVisitId",
 
   // diagnosis master
   GET_DIAGNOSIS_MASTER_LIST: "EMR/getDiagnosisMasterList",

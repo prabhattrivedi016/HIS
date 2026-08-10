@@ -14,7 +14,6 @@ import { EmrDataSourceConfig, resolveHeaderBehavior } from "@/config/emrHeaderBe
 import {
   resolveGenericAttributeGroupColumns,
   resolveGenericAttributeGroupNameColumnKey,
-  resolveGenericAttributeGroupPreviousVisits,
 } from "@/config/genericAttributeGroups";
 import { INVESTIGATION_ORDER_TYPES } from "@/config/investigationOrderTypes";
 import { AuthContext } from "@/context/AuthContext";
@@ -45,7 +44,15 @@ interface EmrSectionRendererProps {
   sectionName: string;
   displayName?: string;
   data: Record<string, unknown>;
-  onDataChange: (data: Record<string, unknown>) => void;
+  // accepts an updater function too (both call sites pass the raw setState dispatcher) — every
+  // EmrSectionRenderer instance's hydrate-on-load effect needs this form specifically: with up to
+  // ~10 sections' effects all firing in the same batch, each reading `data` from its own stale
+  // render closure and calling onDataChange(newValue) would race — whichever section's effect
+  // fires last wins, silently discarding every other section's hydrated data. The functional form
+  // reads the true latest state at apply time instead of a snapshot from when the effect scheduled.
+  onDataChange: (
+    data: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)
+  ) => void;
   onHeadersLoaded?: (headers: SectionHeaderMappingRecord[]) => void;
   doctorId?: number;
   patientId?: number;
@@ -67,7 +74,41 @@ interface EmrSectionRendererProps {
    * read a card-group section's data (an array of rows under section_X.group, keyed by
    * header_<headerId> per column) rather than one value per header path */
   onEntriesChange?: (sectionId: number, entries: EmrSectionAnswerEntry[]) => void;
+  /** this section's previously-saved values from GET_DOCTOR_CONSULTATION_BY_VISIT_ID (already
+   * JSON.parsed and grouped by sectionId in ConsultationEmrSections) — applied into `data` once,
+   * on load, via the same applySnapshotToSectionData the History drawer's "restore" already uses */
+  savedHeaderValues?: EmrSectionVisitSnapshotEntry["values"];
+  /** headerId -> that header's real DataId from the last GET_DOCTOR_CONSULTATION_BY_VISIT_ID load
+   * — attached to reportedEntries so the next save sends it back for an upsert instead of always
+   * inserting a new row (see ConsultationEmrSections' savedDataIdsByHeaderId) */
+  savedDataIdsByHeaderId?: Map<number, number>;
 }
+
+// control types whose value is a structured object/array (not a plain scalar) — a header
+// explicitly configured as one of these always renders as that (never silently downgraded by a
+// behavior rule's controlTypeOverride), is excluded from card-group/data-source-list handling,
+// and is skipped by the edit audit trail below (a full-object diff isn't a meaningful "field
+// changed from X to Y" entry, and logging one on every keystroke is what blew out localStorage's
+// quota — see the dentalChart/vision/etc. entries this list already excludes elsewhere)
+const HARD_CONTROL_TYPES = [
+  "table",
+  "medicineList",
+  "genericAttributeGroup",
+  "imageUpload",
+  "dentalChart",
+  "multiLevelInputGrid",
+  "comparisonGrid",
+  "radioScore",
+  "gonioscopy",
+  "opticNerveExam",
+  "intraOcularPressure",
+  "emojiScore",
+  "vision",
+  "frameDetails",
+  "eyeRefraction",
+  "treatmentObjectives",
+  "dentalTreatmentType",
+];
 
 const needsOptions = (dynamicType: string) =>
   dynamicType === "radio" ||
@@ -79,6 +120,7 @@ const needsOptions = (dynamicType: string) =>
 const isFullWidth = (dynamicType: string) =>
   dynamicType === "richtext" ||
   dynamicType === "medicineList" ||
+  dynamicType === "dentalChart" ||
   dynamicType === "comparisonGrid" ||
   dynamicType === "gonioscopy" ||
   dynamicType === "opticNerveExam" ||
@@ -134,6 +176,8 @@ const EmrSectionRenderer = ({
   accent,
   onProgressChange,
   onEntriesChange,
+  savedHeaderValues,
+  savedDataIdsByHeaderId,
 }: EmrSectionRendererProps) => {
   const sectionAccent = accent ?? {
     grad: "from-[#0B5394] to-[#1C7EC2]",
@@ -184,6 +228,27 @@ const EmrSectionRenderer = ({
   useEffect(() => {
     if (headers.length > 0) onHeadersLoaded?.(headers);
   }, [headers]);
+
+  // hydrate once from this visit's previously-saved values, as soon as this section's headers are
+  // available (applySnapshotToSectionData needs them to know whether this is a plain/card-group/
+  // radioScoreGroup section). Guarded so it only ever applies once per mount — after that, `data`
+  // reflects the doctor's own edits and must not be silently overwritten by the initial snapshot.
+  //
+  // Uses onDataChange's functional-update form deliberately: every section on the page mounts and
+  // runs this same effect at roughly the same time, each starting from whatever `data` looked like
+  // when ITS OWN render was scheduled. Calling onDataChange(newValue) with a plain object races —
+  // whichever section's effect happens to commit last wins, silently discarding every other
+  // section's hydrated data (only ever ends up with the last section's changes applied on top of
+  // an empty `data`). The updater form is applied against the true latest state, so all ~10
+  // sections' hydrations stack correctly regardless of firing order.
+  const hasHydratedRef = useRef(false);
+  useEffect(() => {
+    if (hasHydratedRef.current) return;
+    if (headersLoading || headers.length === 0) return;
+    if (!savedHeaderValues || savedHeaderValues.length === 0) return;
+    hasHydratedRef.current = true;
+    onDataChange(prev => applySnapshotToSectionData(prev, sectionId, headers, savedHeaderValues));
+  }, [headersLoading, headers, savedHeaderValues, sectionId, onDataChange]);
 
   const getConditionalConfig = async (): Promise<SectionAttributeCondition[]> => {
     const resp = await fetchApi(
@@ -390,28 +455,7 @@ const EmrSectionRenderer = ({
     () =>
       headers
         .filter(h => {
-          if (
-            [
-              "table",
-              "medicineList",
-              "genericAttributeGroup",
-              "imageUpload",
-              "dentalChart",
-              "multiLevelInputGrid",
-              "comparisonGrid",
-              "radioScore",
-              "gonioscopy",
-              "opticNerveExam",
-              "intraOcularPressure",
-              "emojiScore",
-              "vision",
-              "frameDetails",
-              "eyeRefraction",
-              "treatmentObjectives",
-              "dentalTreatmentType",
-            ].includes(mapControlType(h.controlType))
-          )
-            return false;
+          if (HARD_CONTROL_TYPES.includes(mapControlType(h.controlType))) return false;
           const dataSource = resolveHeaderBehavior(h.headerName)?.dataSource;
           return Boolean(dataSource) && !dataSource!.searchParamKey;
         })
@@ -468,25 +512,6 @@ const EmrSectionRenderer = ({
       // a behavior rule's controlTypeOverride only applies to headers with neither control type.
       // (otherwise a header named e.g. "Medicines" with ControlType "Medicines List" would get
       // silently downgraded to a plain dropdown by the header-name-matched "medicine-picker" rule)
-      const HARD_CONTROL_TYPES = [
-        "table",
-        "medicineList",
-        "genericAttributeGroup",
-        "imageUpload",
-        "dentalChart",
-        "multiLevelInputGrid",
-        "comparisonGrid",
-        "radioScore",
-        "gonioscopy",
-        "opticNerveExam",
-        "intraOcularPressure",
-        "emojiScore",
-        "vision",
-        "frameDetails",
-        "eyeRefraction",
-        "treatmentObjectives",
-        "dentalTreatmentType",
-      ];
       const dynamicType = HARD_CONTROL_TYPES.includes(mappedType)
         ? mappedType
         : (behavior?.controlTypeOverride ?? mappedType);
@@ -563,8 +588,6 @@ const EmrSectionRenderer = ({
           nameColumnKey: masterHeaderEntry
             ? `header_${masterHeaderEntry.header.headerId}`
             : undefined,
-          previousVisitsEnabled: primaryHeaderBehavior?.table?.previousVisitsEnabled ?? false,
-          previousVisitsData: primaryHeaderBehavior?.table?.previousVisitsData,
         },
       ];
     } else if (isCompactFormGroup) {
@@ -598,7 +621,6 @@ const EmrSectionRenderer = ({
         // single self-contained repeatable-attribute card widget — CardGroupControl reused
         // directly, driven by genericAttributeGroups.ts's columns instead of sibling headers
         if (dynamicType === "genericAttributeGroup") {
-          const previousVisits = resolveGenericAttributeGroupPreviousVisits(h.controlType);
           return {
             key: `header_${h.headerId}`,
             label: h.displayName || h.headerName,
@@ -612,8 +634,6 @@ const EmrSectionRenderer = ({
             masterEntryConfig: behavior?.table?.masterEntry,
             orderSetConfig: behavior?.table?.orderSet,
             nameColumnKey: resolveGenericAttributeGroupNameColumnKey(h.controlType),
-            previousVisitsEnabled: Boolean(previousVisits),
-            previousVisitsData: previousVisits,
           };
         }
 
@@ -673,9 +693,6 @@ const EmrSectionRenderer = ({
           orderSetConfig: isTable ? behavior?.table?.orderSet : undefined,
           favouritesEnabled:
             isTable || isMultiLevelGrid ? (behavior?.table?.favouritesEnabled ?? true) : undefined,
-          previousVisitsEnabled: isTable
-            ? (behavior?.table?.previousVisitsEnabled ?? false)
-            : undefined,
           gridConfigName:
             isMultiLevelGrid ||
             isComparisonGrid ||
@@ -693,6 +710,7 @@ const EmrSectionRenderer = ({
             : undefined,
           textLarge: dynamicType === "textarea" ? (behavior?.text?.large ?? false) : undefined,
           doctorId,
+          doctorName: authUser?.userName,
           patientId,
           visitId,
           controlTypeId: h.controlTypeId,
@@ -726,11 +744,24 @@ const EmrSectionRenderer = ({
     displayName,
     attributeConditions,
     doctorId,
+    authUser,
     patientId,
     visitId,
   ]);
 
-  const totalFields = isCardGroup ? 1 : headers.length;
+  // an uploaded image is supplementary/optional (same treatment ImageUploadControl already gets
+  // everywhere else — its own store, excluded from LOV loading, excluded from the edit-log audit)
+  // — it never gates whether the rest of a mixed section (e.g. Diagnosis: a required "DIAGNOSIS"
+  // genericAttributeGroup plus an optional "Diagnosis Image") counts as complete. Only relevant to
+  // the plain-headers branch below: a card-group/radioScoreGroup section is always uniformly one
+  // type (isCardGroupSection/isRadioScoreGroupSection already exclude imageUpload from grouping),
+  // so mixed sections only ever fall through to the generic per-header path.
+  const progressHeaders = useMemo(
+    () => headers.filter(h => mapControlType(h.controlType) !== "imageUpload"),
+    [headers]
+  );
+
+  const totalFields = isCardGroup ? 1 : progressHeaders.length;
   const filledFields = useMemo(() => {
     if (isCardGroup) {
       const groupValue = getByPath(data, `section_${sectionId}.group`);
@@ -745,11 +776,11 @@ const EmrSectionRenderer = ({
         return value !== undefined && value !== null && String(value).trim() !== "";
       }).length;
     }
-    return headers.filter(h => {
+    return progressHeaders.filter(h => {
       const value = pruneEmptyValue(getByPath(data, `section_${sectionId}.header_${h.headerId}`));
       return !isEmptyValue(value);
     }).length;
-  }, [headers, data, sectionId, isCardGroup, isRadioScoreGroup]);
+  }, [progressHeaders, headers, data, sectionId, isCardGroup, isRadioScoreGroup]);
   const sectionPercent = totalFields ? Math.round((filledFields / totalFields) * 100) : 0;
 
   useEffect(() => {
@@ -789,6 +820,9 @@ const EmrSectionRenderer = ({
           controlType: "card-group",
           controlTypeId: masterHeaderEntry?.header.controlTypeId ?? 0,
           value: readableRows,
+          dataId: masterHeaderEntry
+            ? savedDataIdsByHeaderId?.get(masterHeaderEntry.header.headerId)
+            : undefined,
         },
       ];
     }
@@ -820,6 +854,7 @@ const EmrSectionRenderer = ({
           controlType: h.controlType,
           controlTypeId: h.controlTypeId,
           value,
+          dataId: savedDataIdsByHeaderId?.get(h.headerId),
         }));
 
       if (rowEntries.length === 0) return [];
@@ -854,6 +889,7 @@ const EmrSectionRenderer = ({
         controlType: h.controlType,
         controlTypeId: h.controlTypeId,
         value,
+        dataId: savedDataIdsByHeaderId?.get(h.headerId),
       }));
   }, [
     isCardGroup,
@@ -864,6 +900,7 @@ const EmrSectionRenderer = ({
     sectionId,
     sectionName,
     displayName,
+    savedDataIdsByHeaderId,
   ]);
 
   useEffect(() => {
@@ -883,6 +920,12 @@ const EmrSectionRenderer = ({
     const previous = previousValuesRef.current;
     if (previous) {
       headers.forEach(h => {
+        // a structured control's value is a nested object/array, not a single scalar — a full
+        // old/new snapshot of it isn't a meaningful "field changed" audit entry, and logging one
+        // on every keystroke/click is what exceeds localStorage's quota for these controls
+        // (dentalChart, vision, table, etc.)
+        if (HARD_CONTROL_TYPES.includes(mapControlType(h.controlType))) return;
+
         const oldValue = previous[h.headerId];
         const newValue = currentValues[h.headerId];
         if (oldValue === newValue) return;
@@ -924,7 +967,7 @@ const EmrSectionRenderer = ({
   }
 
   const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
-    onDataChange(applySnapshotToSectionData(data, sectionId, headers, values));
+    onDataChange(prev => applySnapshotToSectionData(prev, sectionId, headers, values));
   };
 
   return (

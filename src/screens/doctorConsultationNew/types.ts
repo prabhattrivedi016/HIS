@@ -69,54 +69,66 @@ type EmrSectionAnswerEntry = {
   controlType: string;
   controlTypeId: number;
   value: unknown;
+  /** this header's DataId from the last GET_DOCTOR_CONSULTATION_BY_VISIT_ID load, if it was ever
+   * saved before — undefined for a header that's never been saved, in which case the next save
+   * must send dataId 0 so the backend inserts a new row instead of updating someone else's */
+  dataId?: number;
 };
 
-type ConsultationAttributeEntry = {
-  attributeType: string;
-  attributeCode: string;
-  label: string;
-  value: unknown;
-  sectionId?: number;
-};
+// matches the real backend contract for api/EMR/savePatientConsultation /
+// api/EMR/getDoctorConsultationByVisitId (confirmed working — see backend-reference/DentalChart).
 
-type AttributeBuilder = () => ConsultationAttributeEntry[];
-
-type EmrAudit = {
-  createdBy: number;
-  createdByName: string;
-  createdOn: string;
-  lastUpdatedBy: number;
-  lastUpdatedByName: string;
-  lastUpdatedOn: string;
-};
-
-type EmrConsultationPayload = {
-  id: string;
-  version: string;
-
-  patientId: number;
-  patientName: string;
+type ConsultationDetails = {
   doctorId: number;
-  doctorName: string;
-  typeId: number;
-  typeName: string;
+  patientId: number;
   visitId: number;
-  uhid: string;
-  appointmentNo: number;
+  visitTypeId: number;
+  /** 0 | 1 */
+  isFileClosed: number;
+};
 
-  attributes: ConsultationAttributeEntry[];
+type ConsultationHeaderDataEntry = {
+  /** 0 for a new row — the backend assigns a real id, returned by getDoctorConsultationByVisitId
+   * for a proper upsert on the next save */
+  dataId: number;
+  sectionId: number;
+  headerId: number;
+  controlTypeId: number;
+  templateId: number;
+  /** always JSON.stringify(value), regardless of whether the underlying value is a plain string,
+   * a number, or a structured object/array — the backend JSON.parses it back uniformly */
+  headerValue: string;
+};
 
-  audit: EmrAudit;
+type PatientConsultationPayload = {
+  consultationDetails: ConsultationDetails;
+  consultationHeadersData: ConsultationHeaderDataEntry[];
+};
+
+/** one row exactly as GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns it — PascalCase, unlike every
+ * other type in this file, because it's the raw wire shape straight off the API response rather
+ * than something a builder here constructs */
+type RawConsultationHeaderRow = {
+  DataId: number;
+  DoctorId: number;
+  PatientId: number;
+  VisitId: number;
+  SectionId: number;
+  HeaderId: number;
+  ControlTypeId: number;
+  TemplateId: number;
+  /** JSON.stringify'd — JSON.parse before use, same convention as ConsultationHeaderDataEntry */
+  HeaderValue: string;
 };
 
 export type {
   AllergyRecordEntry,
   AllergySection,
-  AttributeBuilder,
-  ConsultationAttributeEntry,
-  EmrAudit,
-  EmrConsultationPayload,
+  ConsultationDetails,
+  ConsultationHeaderDataEntry,
   EmrSectionAnswerEntry,
+  PatientConsultationPayload,
   PatientItem,
+  RawConsultationHeaderRow,
   VitalEntry,
 };

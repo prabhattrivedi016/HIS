@@ -1,7 +1,4 @@
-import { PreviousVisitEntry, TableColumnSchema } from "@/components/dynamicForm/types";
-import { PATIENT_DIAGNOSIS_HISTORY } from "@/data/diagnosisVisitHistory";
-import { PATIENT_FAMILY_HISTORY } from "@/data/familyHistoryVisitHistory";
-import { PATIENT_PROCEDURE_HISTORY } from "@/data/procedureVisitHistory";
+import { TableColumnSchema } from "@/components/dynamicForm/types";
 
 /**
  * Columns for a header whose ControlType is its own distinct value (e.g. "Diagnosis",
@@ -21,19 +18,11 @@ interface GenericAttributeGroupRule {
    * columns[0] when unset. Needed when the meaningful field isn't listed first, e.g. Family
    * History's "Condition" column sits after "Relationship" in the intended visual order. */
   nameColumnKey?: string;
-  /** dummy/mock past-visit data powering this group's "Previous Visits" panel — same reasoning
-   * as the option lists above, until a real per-header history endpoint exists */
-  previousVisits?: PreviousVisitEntry[];
 }
 
 const normalize = (v: string) => (v || "").trim().toLowerCase();
 
 const asOptions = (values: string[]) => values.map(v => ({ label: v, value: v }));
-
-const asPreviousVisits = <T extends { id: string }>(
-  history: { visitDate: string; entries: T[] }[]
-): PreviousVisitEntry[] =>
-  history.map(v => ({ visitDate: v.visitDate, rows: v.entries as (T & { id: string })[] }));
 
 const STATUS_OPTIONS = [
   "Preparation",
@@ -62,15 +51,18 @@ const GENERIC_ATTRIBUTE_GROUP_RULES: GenericAttributeGroupRule[] = [
   {
     match: raw => normalize(raw).includes("diagnos"),
     columns: [
-      { key: "diagnosisType", label: "Diagnosis Type", dataTypeId: 5, options: asOptions(CONDITION_OPTIONS) },
+      {
+        key: "diagnosisType",
+        label: "Diagnosis Type",
+        dataTypeId: 5,
+        options: asOptions(CONDITION_OPTIONS),
+      },
       { key: "status", label: "Status", dataTypeId: 5, options: asOptions(STATUS_OPTIONS) },
       { key: "remarks", label: "Remarks", dataTypeId: 4 },
     ],
-    previousVisits: asPreviousVisits(PATIENT_DIAGNOSIS_HISTORY),
   },
   {
     match: raw => normalize(raw).includes("procedure"),
-    previousVisits: asPreviousVisits(PATIENT_PROCEDURE_HISTORY),
     columns: [
       {
         key: "procedure",
@@ -98,7 +90,6 @@ const GENERIC_ATTRIBUTE_GROUP_RULES: GenericAttributeGroupRule[] = [
   {
     match: raw => normalize(raw).includes("family"),
     nameColumnKey: "condition",
-    previousVisits: asPreviousVisits(PATIENT_FAMILY_HISTORY),
     columns: [
       {
         key: "relationship",
@@ -118,7 +109,12 @@ const GENERIC_ATTRIBUTE_GROUP_RULES: GenericAttributeGroupRule[] = [
       { key: "sex", label: "Sex", dataTypeId: 5, options: asOptions(["Male", "Female", "Other"]) },
       { key: "status", label: "Status", dataTypeId: 5, options: asOptions(STATUS_OPTIONS) },
       { key: "date", label: "Date", dataTypeId: 3 },
-      { key: "condition", label: "Condition", dataTypeId: 5, options: asOptions(CONDITION_OPTIONS) },
+      {
+        key: "condition",
+        label: "Condition",
+        dataTypeId: 5,
+        options: asOptions(CONDITION_OPTIONS),
+      },
       { key: "conditionText", label: "Condition Text", dataTypeId: 1 },
       { key: "onsetAge", label: "Onset Age (yrs)", dataTypeId: 2 },
       {
@@ -131,7 +127,9 @@ const GENERIC_ATTRIBUTE_GROUP_RULES: GenericAttributeGroupRule[] = [
   },
 ];
 
-const resolveGenericAttributeGroup = (rawControlType: string): GenericAttributeGroupRule | undefined =>
+const resolveGenericAttributeGroup = (
+  rawControlType: string
+): GenericAttributeGroupRule | undefined =>
   GENERIC_ATTRIBUTE_GROUP_RULES.find(r => r.match(rawControlType));
 
 export const resolveGenericAttributeGroupColumns = (
@@ -141,7 +139,3 @@ export const resolveGenericAttributeGroupColumns = (
 export const resolveGenericAttributeGroupNameColumnKey = (
   rawControlType: string
 ): string | undefined => resolveGenericAttributeGroup(rawControlType)?.nameColumnKey;
-
-export const resolveGenericAttributeGroupPreviousVisits = (
-  rawControlType: string
-): PreviousVisitEntry[] | undefined => resolveGenericAttributeGroup(rawControlType)?.previousVisits;
