@@ -110,6 +110,11 @@ const HeaderMaster = () => {
     const normalized = (watch("controlType") || "").trim().toLowerCase();
     return normalized.includes("emoji") && normalized.includes("score");
   })();
+  // TODO: switch to an id check once the numeric controlTypeId for this picklist entry is known
+  const isDentalTreatmentTypeControl = (() => {
+    const normalized = (watch("controlType") || "").trim().toLowerCase();
+    return normalized.includes("dental") && normalized.includes("treatment");
+  })();
   const addLookupHandler = () => {
     const val = lookupInput.trim();
     if (!val) {
@@ -280,6 +285,14 @@ const HeaderMaster = () => {
         ...updated[index],
         score: rawValue.trim() === "" ? undefined : Number(rawValue),
       };
+      return updated;
+    });
+  };
+
+  const lovDescriptionChangeHandler = (index: number, description: string) => {
+    setLovsItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], Description: description };
       return updated;
     });
   };
@@ -472,6 +485,13 @@ const HeaderMaster = () => {
         showWarning("Please choose an image, score, and label text for every row");
         return;
       }
+    } else if (isDentalTreatmentTypeControl) {
+      const hasInvalidLov = lovItems.some(l => !l.value.trim() || !l.base64Data);
+
+      if (hasInvalidLov) {
+        showWarning("Please choose an image and enter a value for every row");
+        return;
+      }
     }
     // optional validation
     if (selectedControlId === 10 && lookupItems.length === 0) {
@@ -482,6 +502,7 @@ const HeaderMaster = () => {
       showWarning("Please enter a query");
       return;
     }
+
     const payload: HeaderMasterPayload = {
       ...data,
       ListOfValues:
@@ -490,7 +511,8 @@ const HeaderMaster = () => {
         selectedControlId === 9 ||
         isRadioControl ||
         isRadioWithScoreControl ||
-        isEmojiScoreControl
+        isEmojiScoreControl ||
+        isDentalTreatmentTypeControl
           ? lovItems
               .filter(item =>
                 isDropdownLov(item.dataTypeId) ? (item.options?.length ?? 0) > 0 : item.value.trim()
@@ -499,6 +521,7 @@ const HeaderMaster = () => {
                 ...item,
                 score: item.score ?? 0,
                 base64Data: item.base64Data ?? "",
+                Description: item.Description ?? "",
               }))
           : selectedControlId === 10
             ? lookupItems.map(v => ({
@@ -507,26 +530,11 @@ const HeaderMaster = () => {
                 headerName: "",
                 score: 0,
                 base64Data: "",
+                Description: "",
               }))
             : [],
       queries: isCustomControl && customQuery.trim() ? customQuery.trim() : "",
     };
-    // const payload: HeaderMasterPayload = {
-    //   ...data,
-    //   ListOfValues:
-    //     selectedControlId === 3 || selectedControlId === 4 || selectedControlId === 9
-    //       ? lovItems.filter(item => item.value.trim())
-    //       : selectedControlId === 10
-    //       ? lookupItems.map(v => ({ dataTypeId: 0, value: v, headerName: "" }))
-    //       : [],
-    // };
-    // const payload: HeaderMasterPayload = {
-    //   ...data,
-    //   ListOfValues:
-    //     selectedControlId === 3 || selectedControlId === 4 || selectedControlId === 9
-    //       ? lovItems.filter(item => item.value.trim())
-    //       : [],
-    // };
 
     mutation.mutate(payload);
   };
@@ -570,6 +578,7 @@ const HeaderMaster = () => {
               ? Number(item.Score)
               : undefined,
         base64Data: item?.base64Data || item?.Base64Data || undefined,
+        Description: item?.Description || item?.description || undefined,
       }));
       setLovsItems(mappedItems);
     } else if (resp?.data && resp?.value) {
@@ -747,14 +756,17 @@ const HeaderMaster = () => {
             selectedControlId === 9 ||
             isRadioControl ||
             isRadioWithScoreControl ||
-            isEmojiScoreControl ? (
+            isEmojiScoreControl ||
+            isDentalTreatmentTypeControl ? (
               <InputField
                 label={
                   isRadioWithScoreControl
                     ? "Options & Scores"
                     : isEmojiScoreControl
                       ? "Emoji, Score & Label"
-                      : "List Of Values"
+                      : isDentalTreatmentTypeControl
+                        ? "Image, Value & Description"
+                        : "List Of Values"
                 }
                 className="sm:col-span-2 lg:col-span-4"
                 required
@@ -955,6 +967,50 @@ const HeaderMaster = () => {
                                     placeholder="Enter label text and press Enter to add more rows"
                                     value={item.value}
                                     onChange={e => lovValueChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                </div>
+                              ) : isDentalTreatmentTypeControl ? (
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className="flex flex-col items-center gap-1 shrink-0">
+                                    {item.base64Data ? (
+                                      <img
+                                        src={item.base64Data}
+                                        alt=""
+                                        className="w-10 h-10 rounded-lg border border-gray-200 object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-gray-300">
+                                        <i className="fa-solid fa-image" />
+                                      </div>
+                                    )}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="text-[10px] w-20"
+                                      onChange={e =>
+                                        lovImageChangeHandler(index, e.target.files?.[0] ?? null)
+                                      }
+                                    />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    style={{ flexGrow: 1, flexShrink: 1, minWidth: 0 }}
+                                    placeholder="Value"
+                                    value={item.value}
+                                    onChange={e => lovValueChangeHandler(index, e.target.value)}
+                                    onKeyDown={e => lovKeyDownHandler(e, index)}
+                                  />
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    style={{ flexGrow: 1, flexShrink: 1, minWidth: 0 }}
+                                    placeholder="Description"
+                                    value={item.Description ?? ""}
+                                    onChange={e =>
+                                      lovDescriptionChangeHandler(index, e.target.value)
+                                    }
                                     onKeyDown={e => lovKeyDownHandler(e, index)}
                                   />
                                 </div>

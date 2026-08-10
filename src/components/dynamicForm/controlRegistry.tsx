@@ -1,11 +1,8 @@
 import TextEditor from "@/components/ckEditor";
 import { SelectStyles } from "@/components/customSelect";
-import { PATIENT_INVESTIGATION_HISTORY } from "@/data/investigationVisitHistory";
 import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
-import DentalChartModal, {
-  DentalChartValue,
-} from "@/screens/doctorConsultationNew/components/DentalChartModal";
 import ReportAnnotatorModal from "@/screens/doctorConsultationNew/components/ReportAnnotatorModal";
+import { useVisitReportsStore, VisitReportDocument } from "@/store/useVisitReportsStore";
 import { showWarning } from "@/utils/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
@@ -23,12 +20,12 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { FaTooth } from "react-icons/fa";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import AddMasterEntryDrawer from "./AddMasterEntryDrawer";
 import ComparisonGridControl from "./ComparisonGridControl";
+import DentalChartControl from "./DentalChartControl";
 import GonioscopyControl from "./GonioscopyControl";
 import MedicineListControl from "./MedicineListControl";
 import CompactFormGroupControl from "./CompactFormGroupControl";
@@ -38,16 +35,11 @@ import IntraOcularPressureControl from "./IntraOcularPressureControl";
 import MultiLevelInputGridControl from "./MultiLevelInputGridControl";
 import OpticNerveExaminationControl from "./OpticNerveExaminationControl";
 import OrderSetDrawer from "./OrderSetDrawer";
+import TreatmentObjectivesControl from "./TreatmentObjectivesControl";
 import VisionControl from "./VisionControl";
-import PreviousVisitsTablePanel from "./PreviousVisitsTablePanel";
 import RadioScoreGroupControl from "./RadioScoreGroupControl";
 import { TableFieldInput } from "./TableFieldInput";
-import { ControlSchema, OptionSchema, PreviousVisitEntry } from "./types";
-
-const INVESTIGATION_VISIT_HISTORY: PreviousVisitEntry[] = PATIENT_INVESTIGATION_HISTORY.map(v => ({
-  visitDate: v.visitDate,
-  rows: v.orders,
-}));
+import { ControlSchema, OptionSchema } from "./types";
 
 export interface ControlRenderProps {
   schema: ControlSchema;
@@ -405,6 +397,46 @@ const EmojiScoreControl = ({ schema, value, onChange }: ControlRenderProps) => (
           {opt.score !== undefined && (
             <span className="text-[10px] font-semibold text-blue-500">{opt.score}</span>
           )}
+        </button>
+      );
+    })}
+  </div>
+);
+
+// "Dental Treatment Type" — each option carries an image + a short description alongside its
+// label, sourced from GET_DOCTOR_HEARDER_LOVS' base64Data/Description fields (set via Header
+// Master's "Image, Value & Description" LOV editor for this control type). Single-select,
+// toggle-off on reclick.
+const DentalTreatmentTypeControl = ({ schema, value, onChange }: ControlRenderProps) => (
+  <div className={mergeClass("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3", schema)}>
+    {schema.options?.map((opt, i) => {
+      const selected = value === opt.value;
+      return (
+        <button
+          key={opt.key ?? i}
+          type="button"
+          onClick={() => onChange(selected ? undefined : opt.value)}
+          className={`flex items-start gap-3 text-left rounded-xl border p-4 transition-colors ${
+            selected
+              ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+              : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+          }`}
+        >
+          {opt.imageUrl ? (
+            <img
+              src={opt.imageUrl}
+              alt={opt.label}
+              className="w-10 h-10 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-gray-100 shrink-0" />
+          )}
+          <span>
+            <p className="text-sm font-bold text-gray-700">{opt.label}</p>
+            {opt.description && (
+              <p className="text-[11px] text-gray-400 mt-0.5">{opt.description}</p>
+            )}
+          </span>
         </button>
       );
     })}
@@ -799,15 +831,6 @@ const TableControl = ({ schema, value, onChange }: ControlRenderProps) => {
         schema
       )}
     >
-      {schema.previousVisitsEnabled && (
-        <PreviousVisitsTablePanel
-          columns={columns}
-          visits={schema.previousVisitsData ?? INVESTIGATION_VISIT_HISTORY}
-          onApply={handleApplyOrderSet}
-          emptyLabel="No investigations recorded for this visit"
-        />
-      )}
-
       {/* toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 gap-y-2 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
         <button
@@ -1069,9 +1092,56 @@ const RichTextControl = ({ schema, value, onChange }: ControlRenderProps) => (
   </div>
 );
 //Control TypeId -- 20 case start-------------------------------------------------------------------
-const ImageUploadControl = ({ schema }: ControlRenderProps) => {
+const ImageUploadControl = ({ schema, value, onChange }: ControlRenderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const headerId = Number(schema.key.replace(/^header_/, "")) || undefined;
+  const { patientId, visitId } = schema;
+
+  const setHeaderReports = useVisitReportsStore(state => state.setHeaderReports);
+  // select the raw (referentially stable) array and filter it in the render body — filtering
+  // inside the selector itself would hand useSyncExternalStore a new array on every call and
+  // trip React's "getSnapshot should be cached" infinite-loop guard
+  const allReports = useVisitReportsStore(state => state.reports);
+  const reports = useMemo(
+    () =>
+      allReports.filter(
+        r => r.patientId === patientId && r.visitId === visitId && r.headerId === headerId
+      ),
+    [allReports, patientId, visitId, headerId]
+  );
+
+  // one-time: seed the live editing store from this header's saved value (the last-saved-to-
+  // backend state) instead of only ever re-seeding fresh copies of the header's shared template
+  // images — `justSeededRef` tells the sync effect below to skip its very next run, since this
+  // seed's Zustand update hasn't propagated back into `reports` yet on this same render pass
+  const hasInitializedRef = useRef(false);
+  const justSeededRef = useRef(false);
+  const lastSyncedRef = useRef("");
+  useEffect(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+    if (patientId == null || visitId == null || !headerId) return;
+    const hydrated = Array.isArray(value) ? (value as VisitReportDocument[]) : [];
+    if (hydrated.length === 0) return;
+    justSeededRef.current = true;
+    lastSyncedRef.current = JSON.stringify(hydrated);
+    setHeaderReports(patientId, visitId, headerId, hydrated);
+  }, [value, patientId, visitId, headerId, setHeaderReports]);
+
+  // ongoing: whenever the live editing store's reports for this header change (upload, delete,
+  // draw + save), push them into the dynamic form's own data so this header's images ride along
+  // in the normal save payload (consultationHeadersData) exactly like every other control's
+  // value — no separate endpoint for this control type
+  useEffect(() => {
+    if (justSeededRef.current) {
+      justSeededRef.current = false;
+      return;
+    }
+    const serialized = JSON.stringify(reports);
+    if (serialized === lastSyncedRef.current) return;
+    lastSyncedRef.current = serialized;
+    onChange(reports);
+  }, [reports, onChange]);
 
   return (
     <>
@@ -1090,8 +1160,8 @@ const ImageUploadControl = ({ schema }: ControlRenderProps) => {
       <ReportAnnotatorModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        patientId={schema.patientId}
-        visitId={schema.visitId}
+        patientId={patientId}
+        visitId={visitId}
         headerId={headerId}
         controlTypeId={schema.controlTypeId}
       />
@@ -1099,42 +1169,6 @@ const ImageUploadControl = ({ schema }: ControlRenderProps) => {
   );
 };
 //Control Id --20 cse end-----------------------------------------------------------
-
-const DentalChartControl = ({ schema, value, onChange }: ControlRenderProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const chartValue = (value as DentalChartValue) ?? {};
-  const hasData = Boolean(
-    chartValue.treatmentType ||
-    Object.values(chartValue.bite ?? {}).some(g => g && g !== "None") ||
-    Object.keys(chartValue.chart?.marks ?? {}).length ||
-    (chartValue.chart?.ipr ?? []).length ||
-    chartValue.plan?.packagePrice ||
-    chartValue.plan?.notes
-  );
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={mergeClass(
-          "save-btn !w-auto !px-4 !py-2 !text-xs flex items-center gap-1.5",
-          schema
-        )}
-      >
-        <FaTooth size={14} />
-        {hasData ? "Edit Dental Chart" : "Open Dental Chart"}
-      </button>
-
-      <DentalChartModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        value={chartValue}
-        onChange={onChange}
-      />
-    </>
-  );
-};
 
 const DynamicContentControl = ({ schema }: ControlRenderProps) => (
   <div
@@ -1301,14 +1335,6 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
         schema
       )}
     >
-      {schema.previousVisitsEnabled && schema.previousVisitsData && (
-        <PreviousVisitsTablePanel
-          columns={columns}
-          visits={schema.previousVisitsData}
-          onApply={handleApplyOrderSet}
-        />
-      )}
-
       {/* shared entry form — fills one record at a time */}
       <div className="p-4 bg-white/40 border-b border-slate-100">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -1545,6 +1571,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   "search-dropdown": SearchDropdownControl,
   radio: RadioControl,
   emojiScore: EmojiScoreControl,
+  dentalTreatmentType: DentalTreatmentTypeControl,
   "checkbox-list": CheckboxListControl,
   richtext: RichTextControl,
   dynamicContent: DynamicContentControl,
@@ -1564,6 +1591,7 @@ export const CONTROL_REGISTRY: Record<string, React.FC<ControlRenderProps>> = {
   vision: VisionControl,
   frameDetails: FrameDetailsControl,
   eyeRefraction: EyeRefractionControl,
+  treatmentObjectives: TreatmentObjectivesControl,
 };
 
 export const DEFAULT_CONTROL = TextControl;

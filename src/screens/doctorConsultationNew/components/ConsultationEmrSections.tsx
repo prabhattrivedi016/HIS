@@ -1,10 +1,17 @@
+import { getByPath } from "@/components/dynamicForm/utils/path";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
+import {
+  isDependentSectionName,
+  isTriggerHeaderName,
+  matchesDependentSectionValue,
+} from "@/config/dependentSections";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import {
   EmrSectionMappingTableItem,
   SectionHeaderMappingRecord,
 } from "@/screens/emrControls/types";
+import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
 import { useEmrSectionLayout } from "@/store/useEmrSectionLayout";
 import "@/styles/emr.css";
 import { showError, showSuccess } from "@/utils/alert";
@@ -40,7 +47,7 @@ import {
   useState,
 } from "react";
 import { useInView } from "react-intersection-observer";
-import { EmrSectionAnswerEntry } from "../types";
+import { EmrSectionAnswerEntry, RawConsultationHeaderRow } from "../types";
 import CircularProgress from "./CircularProgress";
 import EmrSectionHistoryDrawer from "./EmrSectionHistoryDrawer";
 import EmrSectionRenderer from "./EmrSectionRenderer";
@@ -50,6 +57,10 @@ interface ConsultationEmrSectionsProps {
   doctorId?: number;
   patientId?: number;
   visitId?: number;
+  /** which patient type's sections/headers this doctor has assigned (e.g. selectedPatient.TypeId
+   * — 1 for OPD) — filters GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR the same way it's filtered
+   * server-side; defaults to 1 (OPD) if not passed */
+  usedForPatientTypeId?: number;
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
 }
 
@@ -312,6 +323,7 @@ const ConsultationEmrSections = ({
   doctorId,
   patientId,
   visitId,
+  usedForPatientTypeId,
   onSectionsChange,
 }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
@@ -427,6 +439,66 @@ const ConsultationEmrSections = ({
     };
   }, [doctorId]);
 
+  // load this visit's previously-saved header values (if any) so reopening a visit shows what was
+  // already answered instead of starting blank — GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns one
+  // flat row per header, HeaderValue a JSON string (mirrors the shape SAVE_PATIENT_CONSULTATION
+  // sends); grouped here by SectionId since that's how EmrSectionRenderer consumes a snapshot
+  // (applySnapshotToSectionData already handles a card-group/radioScoreGroup section's different
+  // internal storage shape — see utils/sectionSnapshot.ts)
+  const [savedHeaderRows, setSavedHeaderRows] = useState<RawConsultationHeaderRow[]>([]);
+
+  useEffect(() => {
+    if (visitId == null) {
+      setSavedHeaderRows([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const resp = await fetchApi<{ data?: RawConsultationHeaderRow[] }>(
+        "GET",
+        ENDPOINTS.GET_DOCTOR_CONSULTATION_BY_VISIT_ID,
+        {},
+        { params: { visitId } },
+        { component: "ConsultationEmrSections", silent: true }
+      );
+      if (cancelled) return;
+      setSavedHeaderRows(resp?.data ?? []);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visitId]);
+
+  const savedHeaderValuesBySectionId = useMemo(() => {
+    const map = new Map<number, EmrSectionVisitSnapshotEntry["values"]>();
+    savedHeaderRows.forEach(row => {
+      let value: unknown;
+      try {
+        value = JSON.parse(row.HeaderValue);
+      } catch {
+        // not valid JSON (shouldn't happen — SAVE_PATIENT_CONSULTATION always JSON.stringifies
+        // headerValue) — fall back to the raw string rather than dropping the row
+        value = row.HeaderValue;
+      }
+      const bucket = map.get(row.SectionId) ?? [];
+      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      map.set(row.SectionId, bucket);
+    });
+    return map;
+  }, [savedHeaderRows]);
+
+  // headerId -> this header's real DataId from the last load, so the next save can send it back
+  // for an upsert instead of always sending dataId 0 (which would insert a duplicate row every
+  // time an already-saved header is edited and re-saved) — headerId is unique across sections
+  // (each Header Master row belongs to exactly one section), so a flat map is enough
+  const savedDataIdsByHeaderId = useMemo(() => {
+    const map = new Map<number, number>();
+    savedHeaderRows.forEach(row => map.set(row.HeaderId, row.DataId));
+    return map;
+  }, [savedHeaderRows]);
+
   const hasUnsavedFavorites = useMemo(() => {
     if (favoriteSectionIds.length !== savedFavoriteSectionIds.length) return true;
     const savedSet = new Set(savedFavoriteSectionIds);
@@ -460,32 +532,45 @@ const ConsultationEmrSections = ({
     }
   };
 
+  // this doctor's own section list, derived by grouping the flat per-header mapping list
+  // (GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR) down to its unique SectionIds — replaces the old
+  // "every active section in the system" list GET_ALL_EMR_SECTIONS returned, which wasn't scoped
+  // to what this doctor actually has assigned for this patient type
   const getAllEmrSections = async (): Promise<EmrSectionMappingTableItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_EMR_SECTIONS,
+      ENDPOINTS.GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR,
       {},
-      { params: { isActive: 1 } },
+      { params: { doctorId, usedForPatientTypeId: usedForPatientTypeId ?? 1 } },
       { component: "ConsultationEmrSections", silent: true }
     );
     const raw: any[] = resp?.data ?? [];
-    return raw
-      .map(s => ({
-        sectionId: s.SectionId,
-        sectionName: s.SectionName,
-        displayName: s.DisplayName,
-        isActive: s.IsActive,
+
+    const bySectionId = new Map<number, EmrSectionMappingTableItem>();
+    raw.forEach(m => {
+      if (bySectionId.has(m.SectionId)) return;
+      bySectionId.set(m.SectionId, {
+        sectionId: m.SectionId,
+        sectionName: m.SectionName,
+        // section nav pills/titles show SectionName, not SectionDisplayName — every render site
+        // already falls back to sectionName via `displayName || sectionName`, so setting this to
+        // sectionName here is the one place that needs to change
+        displayName: m.SectionName,
+        isActive: 1,
         mappingId: 0,
-        sequenceNo: 0,
-      }))
-      .filter(s => Number(s.isActive) === 1);
+        sequenceNo: m.SectionSequenceNo ?? 0,
+      });
+    });
+
+    return Array.from(bySectionId.values()).sort((a, b) => a.sequenceNo - b.sequenceNo);
   };
 
   const { data: mappedSections = [], isLoading: sectionsLoading } = useQuery<
     EmrSectionMappingTableItem[]
   >({
-    queryKey: ["consultationEmrSections"],
+    queryKey: ["consultationEmrSections", doctorId, usedForPatientTypeId],
     queryFn: getAllEmrSections,
+    enabled: doctorId != null,
   });
 
   useEffect(() => {
@@ -510,10 +595,6 @@ const ConsultationEmrSections = ({
     return Math.round((progress.filled / progress.total) * 100);
   };
 
-  const answeredCount = mappedSections.filter(s => isSectionAnswered(s.sectionId)).length;
-  const total = mappedSections.length || 1;
-  const percent = Math.round((answeredCount / total) * 100);
-
   const accentBySectionId = useMemo(() => {
     const map = new Map<number, (typeof SECTION_ACCENTS)[number]>();
     mappedSections.forEach((s, idx) =>
@@ -528,13 +609,60 @@ const ConsultationEmrSections = ({
     return map;
   }, [mappedSections]);
 
-  // Favourites always render first; selecting a tab never changes its position.
+  // Favourites always render first; selecting a tab never changes its position. Dependent
+  // sections (config/dependentSections.ts — e.g. "Treatment plan for Fixed braces") are excluded
+  // here so they never get their own nav pill; they're spliced back into the render-only list
+  // below, inline right after whichever section holds their trigger header.
   const orderedSections = useMemo(() => {
+    const navSections = mappedSections.filter(s => !isDependentSectionName(s.sectionName));
     const favoriteIds = new Set(favoriteSectionIds);
-    const favorites = mappedSections.filter(s => favoriteIds.has(s.sectionId));
-    const rest = mappedSections.filter(s => !favoriteIds.has(s.sectionId));
+    const favorites = navSections.filter(s => favoriteIds.has(s.sectionId));
+    const rest = navSections.filter(s => !favoriteIds.has(s.sectionId));
     return [...favorites, ...rest];
   }, [mappedSections, favoriteSectionIds]);
+
+  // which section holds the trigger header (e.g. "Dental Treatment Type"), and what's its
+  // currently answered value — found from headers/data already loaded for other reasons, so this
+  // needs no extra API call
+  const dependentTrigger = useMemo(() => {
+    for (const [sectionIdStr, headers] of Object.entries(headersBySection)) {
+      const header = headers.find(h => isTriggerHeaderName(h.headerName));
+      if (header) return { sectionId: Number(sectionIdStr), headerId: header.headerId };
+    }
+    return undefined;
+  }, [headersBySection]);
+
+  const dependentTriggerValue = dependentTrigger
+    ? (getByPath(
+        data,
+        `section_${dependentTrigger.sectionId}.header_${dependentTrigger.headerId}`
+      ) as string | undefined)
+    : undefined;
+
+  const visibleDependentSection = useMemo(() => {
+    if (!dependentTriggerValue) return undefined;
+    return mappedSections.find(
+      s =>
+        isDependentSectionName(s.sectionName) &&
+        matchesDependentSectionValue(s.sectionName, dependentTriggerValue)
+    );
+  }, [mappedSections, dependentTriggerValue]);
+
+  // the actual render list — orderedSections (nav-visible) plus the one currently-relevant
+  // dependent section spliced in right after its trigger's section, if any is selected
+  const renderSections = useMemo(() => {
+    if (!visibleDependentSection || !dependentTrigger) return orderedSections;
+    const result: EmrSectionMappingTableItem[] = [];
+    orderedSections.forEach(section => {
+      result.push(section);
+      if (section.sectionId === dependentTrigger.sectionId) result.push(visibleDependentSection);
+    });
+    return result;
+  }, [orderedSections, visibleDependentSection, dependentTrigger]);
+
+  const answeredCount = renderSections.filter(s => isSectionAnswered(s.sectionId)).length;
+  const total = renderSections.length || 1;
+  const percent = Math.round((answeredCount / total) * 100);
 
   // scroll-progress rail/bar — where the active section sits among all of them, used to give
   // both layouts a distinct "how far through the list" visual tied to the scrollspy behavior
@@ -698,12 +826,14 @@ const ConsultationEmrSections = ({
             </div>
           </div>
 
-          {/* ── all sections, scrolled together — left nav highlight follows scroll position ── */}
+          {/* ── all sections, scrolled together — left nav highlight follows scroll position ──
+              renderSections (not orderedSections) so the currently-relevant dependent section, if
+              any, renders inline here even though it has no nav pill above */}
           <div
             ref={setScrollContainerRef}
             className="emr-content flex-1 min-w-0 p-4 min-h-72 max-h-[760px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
           >
-            {orderedSections.map(section => {
+            {renderSections.map(section => {
               const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
               const isActive = section.sectionId === activeSectionId;
               return (
@@ -732,6 +862,8 @@ const ConsultationEmrSections = ({
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
                     onProgressChange={handleSectionProgress}
                     onEntriesChange={handleSectionEntries}
+                    savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
+                    savedDataIdsByHeaderId={savedDataIdsByHeaderId}
                   />
                 </SectionCard>
               );
@@ -890,12 +1022,14 @@ const ConsultationEmrSections = ({
             />
           </div>
 
-          {/* ── all sections, scrolled together — tab highlight follows scroll position ── */}
+          {/* ── all sections, scrolled together — tab highlight follows scroll position ──
+              renderSections (not orderedSections) so the currently-relevant dependent section, if
+              any, renders inline here even though it has no nav tab above */}
           <div
             ref={setScrollContainerRef}
             className="emr-content p-4 min-h-72 max-h-[720px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
           >
-            {orderedSections.map(section => {
+            {renderSections.map(section => {
               const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
               const isActive = section.sectionId === activeSectionId;
               return (
@@ -924,6 +1058,8 @@ const ConsultationEmrSections = ({
                     onOpenHistory={() => setHistorySectionId(section.sectionId)}
                     onProgressChange={handleSectionProgress}
                     onEntriesChange={handleSectionEntries}
+                    savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
+                    savedDataIdsByHeaderId={savedDataIdsByHeaderId}
                   />
                 </SectionCard>
               );
@@ -939,7 +1075,6 @@ const ConsultationEmrSections = ({
         sections={mappedSections}
         headersBySection={headersBySection}
         initialSectionId={historySectionId ?? mappedSections[0]?.sectionId ?? 0}
-        data={data}
         onDataChange={setData}
       />
 

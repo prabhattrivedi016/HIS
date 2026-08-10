@@ -5,7 +5,6 @@ import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
 import { useDoseMasterList } from "@/hooks/useDoseMasterList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
-import PreviousSectionVisitsStrip from "@/screens/doctorConsultationNew/components/PreviousSectionVisitsStrip";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -14,7 +13,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import DoseMasterModal from "./DoseMasterModal";
 import OrderSetDrawer from "./OrderSetDrawer";
-import PreviousMedicinesPanel from "./PreviousMedicinesPanel";
 import TaperingStepModal from "./TaperingStepModal";
 import { ControlSchema, OptionSchema, TableOrderSetConfig } from "./types";
 import VariableDoseModal from "./VariableDoseModal";
@@ -416,12 +414,6 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     mergeMedicines(pastEntries.map(e => ({ ...e, id: crypto.randomUUID() })));
   };
 
-  const handleStripCopy = (values: { headerId: number; value: unknown }[]) => {
-    const matched = values.find(v => v.headerId === headerId)?.value;
-    const pastEntries = Array.isArray(matched) ? (matched as MedicineListEntry[]) : [];
-    mergeMedicines(pastEntries.map(e => ({ ...e, id: crypto.randomUUID() })));
-  };
-
   const updateEntry = (entryId: string, patch: Partial<MedicineListEntry>) => {
     onChange(entries.map(e => (e.id === entryId ? { ...e, ...patch } : e)));
   };
@@ -525,17 +517,6 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      {recentSnapshots.length > 0 && (
-        <div className="p-2 border-b border-slate-100">
-          <PreviousSectionVisitsStrip
-            snapshots={recentSnapshots}
-            onCopyToCurrent={handleStripCopy}
-          />
-        </div>
-      )}
-
-      <PreviousMedicinesPanel onApply={mergeMedicines} />
-
       {/* toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 gap-y-2 px-3 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-white border-b border-slate-200">
         <div className="flex items-center gap-2">

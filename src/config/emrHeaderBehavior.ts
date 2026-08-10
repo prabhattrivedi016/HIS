@@ -1,13 +1,9 @@
 import {
   OptionSchema,
-  PreviousVisitEntry,
   TableMasterEntryConfig,
   TableOrderSetConfig,
 } from "@/components/dynamicForm/types";
 import { ENDPOINTS } from "@/config/defaults";
-import { PATIENT_DIAGNOSIS_HISTORY } from "@/data/diagnosisVisitHistory";
-import { PATIENT_FAMILY_HISTORY } from "@/data/familyHistoryVisitHistory";
-import { PATIENT_PROCEDURE_HISTORY } from "@/data/procedureVisitHistory";
 
 /**
  * Single place to declare "special" EMR header behavior — anything beyond a plain field with
@@ -50,13 +46,6 @@ export interface EmrTableBehaviorConfig {
   masterEntry?: TableMasterEntryConfig;
   orderSet?: TableOrderSetConfig;
   columnDataSources?: EmrColumnDataSourceRule[];
-  /** default false — set true to show the "Previous Visits" copy-forward button */
-  previousVisitsEnabled?: boolean;
-  /** dummy/mock past-visit data for the "Previous Visits" panel above — only read when
-   * previousVisitsEnabled is true. Used by the multi-header card-group path (several real
-   * headers sharing one section, e.g. Family History configured as Relationship/Sex/Status/...);
-   * the single self-contained-header path reads its own data from genericAttributeGroups.ts */
-  previousVisitsData?: PreviousVisitEntry[];
 }
 
 export interface EmrTextBehaviorConfig {
@@ -83,11 +72,6 @@ export interface EmrHeaderBehaviorRule {
 
 const normalize = (headerName: string) => (headerName || "").trim().toLowerCase();
 
-const asPreviousVisits = <T extends { id: string }>(
-  history: { visitDate: string; entries: T[] }[]
-): PreviousVisitEntry[] =>
-  history.map(v => ({ visitDate: v.visitDate, rows: v.entries as (T & { id: string })[] }));
-
 /** no dedicated "Condition Master"/"Family History Master" endpoint exists, so both Family
  * History rules below reuse the Diagnosis master + order set — a family history condition is the
  * same kind of catalog entry as a diagnosis */
@@ -107,8 +91,6 @@ const CONDITION_STYLE_MASTER_TABLE_CONFIG: EmrTableBehaviorConfig = {
     nameField: "orderSetName",
     itemsField: "items",
   },
-  previousVisitsEnabled: true,
-  previousVisitsData: asPreviousVisits(PATIENT_FAMILY_HISTORY),
 };
 
 /** "shortName (name)" when a short name exists, else just "name" — falls back to name for the value too */
@@ -193,7 +175,6 @@ export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
           },
         },
       ],
-      previousVisitsEnabled: true,
     },
   },
   {
@@ -243,8 +224,6 @@ export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
         nameField: "orderSetName",
         itemsField: "items",
       },
-      previousVisitsEnabled: true,
-      previousVisitsData: asPreviousVisits(PATIENT_DIAGNOSIS_HISTORY),
     },
   },
   {
@@ -268,8 +247,6 @@ export const EMR_HEADER_BEHAVIOR_RULES: EmrHeaderBehaviorRule[] = [
         nameField: "orderSetName",
         itemsField: "items",
       },
-      previousVisitsEnabled: true,
-      previousVisitsData: asPreviousVisits(PATIENT_PROCEDURE_HISTORY),
     },
   },
   {

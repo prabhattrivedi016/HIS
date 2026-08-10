@@ -15,6 +15,12 @@ export interface ReportPage {
   pageNumber: number;
   dataUrl: string;
   strokes: ReportAnnotationStroke[];
+  /** the base image + strokes composited into one flat PNG (recomputed on every save from the
+   * live Konva stage) — this, not `dataUrl` + `strokes` separately, is what any plain <img> (the
+   * sidebar thumbnail here, and eventually whatever a real backend endpoint stores/returns as
+   * "the image") should show, so a sketch survives anywhere strokes aren't re-rendered live.
+   * Undefined until the first save — falls back to the plain `dataUrl` until then. */
+  flattenedDataUrl?: string;
 }
 
 export interface VisitReportDocument {
@@ -46,13 +52,21 @@ interface VisitReportsState {
   }) => VisitReportDocument;
   updatePages: (id: string, pages: ReportPage[]) => void;
   removeReport: (id: string) => void;
-  getReports: (patientId: number, visitId: number) => VisitReportDocument[];
-  setReports: (patientId: number, visitId: number, documents: VisitReportDocument[]) => void;
+  /** replaces this one header's reports (for this patient+visit) with `documents`, leaving every
+   * other header's reports untouched — used to seed the store from a hydrated
+   * savedHeaderValues entry (the last-saved-to-backend state) without wiping out whatever's
+   * locally cached for a different Image Uploader control on the same visit */
+  setHeaderReports: (
+    patientId: number,
+    visitId: number,
+    headerId: number | undefined,
+    documents: VisitReportDocument[]
+  ) => void;
 }
 
 export const useVisitReportsStore = create<VisitReportsState>()(
   persist(
-    (set, get) => ({
+    set => ({
       reports: [],
 
       addReport: entry => {
@@ -82,16 +96,16 @@ export const useVisitReportsStore = create<VisitReportsState>()(
       removeReport: id =>
         set(state => ({ reports: state.reports.filter(report => report.id !== id) })),
 
-      getReports: (patientId, visitId) =>
-        get()
-          .reports.filter(report => report.patientId === patientId && report.visitId === visitId)
-          .sort((a, b) => a.uploadedOn.localeCompare(b.uploadedOn)),
-
-      setReports: (patientId, visitId, documents) =>
+      setHeaderReports: (patientId, visitId, headerId, documents) =>
         set(state => ({
           reports: [
             ...state.reports.filter(
-              report => !(report.patientId === patientId && report.visitId === visitId)
+              report =>
+                !(
+                  report.patientId === patientId &&
+                  report.visitId === visitId &&
+                  report.headerId === headerId
+                )
             ),
             ...documents,
           ],

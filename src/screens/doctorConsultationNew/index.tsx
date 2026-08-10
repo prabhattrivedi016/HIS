@@ -26,7 +26,6 @@ import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
-import { useVisitReportsStore } from "@/store/useVisitReportsStore";
 import { showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -41,9 +40,9 @@ import UploadDocumentModal from "./components/UploadDocumentModal";
 import VitalInsights from "./components/VitalInsights";
 import {
   AllergySection,
-  AttributeBuilder,
-  EmrConsultationPayload,
+  ConsultationHeaderDataEntry,
   EmrSectionAnswerEntry,
+  PatientConsultationPayload,
   PatientItem,
 } from "./types";
 
@@ -130,10 +129,6 @@ const DoctorConsultationNew = () => {
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
   const addVisitSnapshot = useEmrSectionHistoryStore(s => s.addVisitSnapshot);
-  // "imageUpload" sections save through their own store/endpoint (SAVE_PATIENT_VISIT_REPORT) —
-  // read here too so a single saveConsultationEmr call can also carry them, instead of the main
-  // payload silently omitting whatever's in the Patient Reports panel
-  const allVisitReports = useVisitReportsStore(s => s.reports);
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -161,7 +156,6 @@ const DoctorConsultationNew = () => {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
-  const [consultationId, setConsultationId] = useState("");
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
@@ -321,141 +315,53 @@ const DoctorConsultationNew = () => {
     vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
   );
 
-  const buildVitalAttributes: AttributeBuilder = () => {
-    const filled = vitalMasterList.filter(
-      (v: VitalMasterItem) => (vitalsData[v.vitalId] ?? "").trim() !== ""
-    );
-    if (filled.length === 0) return [];
+  // matches the real backend contract (api/EMR/savePatientConsultation) — one flat row per EMR
+  // header, headerValue always a JSON string (JSON.stringify'd regardless of the underlying
+  // value's own type, so the backend can uniformly JSON.parse it back on load rather than having
+  // to guess whether a given headerValue is raw text or JSON-encoded text). dataId 0 means "new
+  // row, let the backend assign one" — GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns each header's
+  // real dataId once saved, for a proper upsert on the next save.
+  //
+  // vitals/allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
+  // attribute-type concept) — they aren't sent here. Vitals currently have no save endpoint at
+  // all; allergy has one (SAVE_PATIENT_ALLERGY) but isn't wired up yet — flagging rather than
+  // silently dropping data callers might expect saved.
+  const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
+    if (!selectedPatient) return null;
 
-    return [
-      {
-        attributeType: "vital",
-        attributeCode: "Vital",
-        label: "Vital",
-        value: filled.map((v: VitalMasterItem) => ({
-          vitalId: v.vitalId,
-          vitalName: v.vitalName,
-          value: vitalsData[v.vitalId],
-          unitName: v.unitName,
-        })),
-      },
-    ];
-  };
-
-  const buildAllergyAttributes: AttributeBuilder = () =>
-    allergySection
-      ? [
-          {
-            attributeType: "allergy",
-            attributeCode: "allergy",
-            label: "Allergy",
-            value: allergySection,
-          },
-        ]
-      : [];
-
-  const buildEmrSectionAttributes: AttributeBuilder = () => {
-    const bySectionId = new Map<
-      number,
-      { sectionName: string; entries: EmrSectionAnswerEntry[] }
-    >();
-    emrSectionsData.forEach(e => {
-      const bucket = bySectionId.get(e.sectionId) ?? { sectionName: e.sectionName, entries: [] };
-      bucket.entries.push(e);
-      bySectionId.set(e.sectionId, bucket);
-    });
-
-    return Array.from(bySectionId.entries()).map(([sectionId, { sectionName, entries }]) => ({
-      attributeType: "emrSection",
-      attributeCode: sectionName.replace(/[^a-zA-Z0-9]/g, ""),
-      label: sectionName,
-      sectionId,
-      value: entries.map(e => ({
+    const consultationHeadersData: ConsultationHeaderDataEntry[] = emrSectionsData
+      // headerId 0 is a synthetic frontend-only row (e.g. a radioScoreGroup section's aggregate
+      // "Total Score", card-group's masterless-group fallback) — no such header exists in Header
+      // Master, so sending it as a real headerId would either violate a FK constraint or save
+      // meaningless orphan data now that this hits a real backend.
+      .filter(e => e.headerId > 0)
+      .map(e => ({
+        dataId: e.dataId ?? 0,
+        sectionId: e.sectionId,
         headerId: e.headerId,
-        headerName: e.headerName,
-        controlType: e.controlType,
         controlTypeId: e.controlTypeId,
-        value: e.value,
-      })),
-    }));
-  };
-
-  // "imageUpload" controls (the Patient Reports panel) manage their own store scoped only by
-  // patientId/visitId, not by section/header — so unlike buildEmrSectionAttributes, this is one
-  // flat attribute for the whole visit rather than one per section
-  const buildImageUploadAttributes: AttributeBuilder = () => {
-    if (!selectedPatient) return [];
-    const reports = allVisitReports.filter(
-      r => r.patientId === selectedPatient.PatientId && r.visitId === selectedPatient.VisitId
-    );
-    if (reports.length === 0) return [];
-
-    return [
-      {
-        attributeType: "imageUpload",
-        attributeCode: "patientReports",
-        label: "Patient Reports",
-        value: reports,
-      },
-    ];
-  };
-
-  // Register a new builder here to add another attribute to the save payload —
-  // the payload shape itself never has to change.
-  const attributeBuilders: AttributeBuilder[] = [
-    buildVitalAttributes,
-    buildAllergyAttributes,
-    buildEmrSectionAttributes,
-    buildImageUploadAttributes,
-  ];
-
-  const emrPayload: EmrConsultationPayload | null = useMemo(() => {
-    if (!selectedPatient || !consultationId) return null;
-
-    const now = new Date().toISOString();
+        templateId: 0,
+        headerValue: JSON.stringify(e.value),
+      }));
 
     return {
-      id: consultationId,
-      version: "1.0",
-
-      patientId: selectedPatient.PatientId,
-      patientName: selectedPatient.PatientName,
-      doctorId: selectedPatient.DoctorId,
-      doctorName: selectedPatient.DoctorName,
-      typeId: selectedPatient.TypeId,
-      typeName: selectedPatient.TypeName,
-      visitId: selectedPatient.VisitId,
-      uhid: selectedPatient.UHID,
-      appointmentNo: selectedPatient.AppointmentNo,
-
-      attributes: attributeBuilders.flatMap(build => build()),
-
-      audit: {
-        createdBy: authUser?.userId ?? 0,
-        createdByName: authUser?.userName ?? "",
-        createdOn: now,
-        lastUpdatedBy: authUser?.userId ?? 0,
-        lastUpdatedByName: authUser?.userName ?? "",
-        lastUpdatedOn: now,
+      consultationDetails: {
+        doctorId: selectedPatient.DoctorId,
+        patientId: selectedPatient.PatientId,
+        visitId: selectedPatient.VisitId,
+        visitTypeId: selectedPatient.TypeId,
+        isFileClosed: 0,
       },
+      consultationHeadersData,
     };
-  }, [
-    selectedPatient,
-    consultationId,
-    vitalMasterList,
-    vitalsData,
-    allergySection,
-    emrSectionsData,
-    allVisitReports,
-    authUser,
-  ]);
+  }, [selectedPatient, emrSectionsData]);
 
   const handleFinalSave = async () => {
-    if (!emrPayload) return;
+    if (!consultationPayload) return;
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.SAVE_CONSULTATION_EMR,
-      emrPayload,
+      ENDPOINTS.SAVE_PATIENT_CONSULTATION,
+      consultationPayload,
       {},
       { component: "DoctorConsultationNew" }
     );
@@ -724,7 +630,6 @@ const DoctorConsultationNew = () => {
                       key={`${item.VisitId}-${item.DoctorId}-${item.Id}-${item.AppointmentNo}`}
                       onClick={() => {
                         setSelectedPatient(item);
-                        setConsultationId(crypto.randomUUID());
                         setLeftPanelVisible(false);
                         setAllergySection(null);
                       }}
@@ -1163,6 +1068,7 @@ const DoctorConsultationNew = () => {
                 doctorId={selectedPatient?.DoctorId}
                 patientId={selectedPatient?.PatientId}
                 visitId={selectedPatient?.VisitId}
+                usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
               />
             </div>

@@ -27,10 +27,11 @@ interface EmrSectionHistoryDrawerProps {
   headersBySection: Record<number, SectionHeaderMappingRecord[]>;
   /** which section to show first — the one the History button was clicked from */
   initialSectionId: number;
-  /** the live EMR data blob, and its setter — needed so "Copy to Current" on a past visit can
-   * write straight back into whichever section is currently selected in this drawer */
-  data: Record<string, unknown>;
-  onDataChange: (data: Record<string, unknown>) => void;
+  /** setter for the live EMR data blob — needed so "Copy to Current" on a past visit can write
+   * straight back into whichever section is currently selected in this drawer */
+  onDataChange: (
+    data: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)
+  ) => void;
 }
 
 type TabKey = "visits" | "editLog";
@@ -123,7 +124,6 @@ const EmrSectionHistoryDrawer = ({
   sections,
   headersBySection,
   initialSectionId,
-  data,
   onDataChange,
 }: EmrSectionHistoryDrawerProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("visits");
@@ -163,7 +163,14 @@ const EmrSectionHistoryDrawer = ({
             patientId ?? 0
           )
         : realVisitSnapshots,
-    [isVisitsDummy, selectedHeaders, selectedSectionId, selectedSection, patientId, realVisitSnapshots]
+    [
+      isVisitsDummy,
+      selectedHeaders,
+      selectedSectionId,
+      selectedSection,
+      patientId,
+      realVisitSnapshots,
+    ]
   );
   const editLog = useMemo(
     () =>
@@ -174,7 +181,9 @@ const EmrSectionHistoryDrawer = ({
   );
 
   const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
-    onDataChange(applySnapshotToSectionData(data, selectedSectionId, selectedHeaders, values));
+    onDataChange(prev =>
+      applySnapshotToSectionData(prev, selectedSectionId, selectedHeaders, values)
+    );
   };
 
   if (!isOpen) return null;
@@ -273,17 +282,30 @@ const EmrSectionHistoryDrawer = ({
               ) : (
                 <ul className="flex flex-col gap-2">
                   {editLog.map(entry => (
-                    <li key={entry.id} className="border border-gray-100 rounded-lg px-3 py-2 bg-gray-50/60">
+                    <li
+                      key={entry.id}
+                      className="border border-gray-100 rounded-lg px-3 py-2 bg-gray-50/60"
+                    >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-gray-700">{entry.headerName}</span>
-                        <span className="text-[11px] text-gray-400">{formatDateTime(entry.changedOn)}</span>
+                        <span className="text-xs font-semibold text-gray-700">
+                          {entry.headerName}
+                        </span>
+                        <span className="text-[11px] text-gray-400">
+                          {formatDateTime(entry.changedOn)}
+                        </span>
                       </div>
                       <div className="text-xs text-gray-600 mt-0.5">
-                        <span className="text-red-500 line-through">{formatValue(entry.oldValue)}</span>
+                        <span className="text-red-500 line-through">
+                          {formatValue(entry.oldValue)}
+                        </span>
                         {" → "}
-                        <span className="text-emerald-600 font-medium">{formatValue(entry.newValue)}</span>
+                        <span className="text-emerald-600 font-medium">
+                          {formatValue(entry.newValue)}
+                        </span>
                       </div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">by {entry.changedByName || "Unknown"}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">
+                        by {entry.changedByName || "Unknown"}
+                      </div>
                     </li>
                   ))}
                 </ul>

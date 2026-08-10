@@ -11,9 +11,11 @@ export interface OptionSchema {
   value: unknown;
   group?: string;
   score?: number;
-  /** "EmojiScore" options only — a data: URL image (e.g. a face/pain-scale icon) shown above the
+  /** "EmojiScore"/"Dental Treatment Type" options only — a data: URL image shown alongside the
    * option's label instead of a plain radio bullet */
   imageUrl?: string;
+  /** "Dental Treatment Type" options only — the short subtitle shown under the option's label */
+  description?: string;
 }
 
 export interface RadioScoreGroupRow {
@@ -55,12 +57,6 @@ export interface TableMasterEntryConfig {
   tableName: string;
 }
 
-export interface PreviousVisitEntry {
-  /** ISO date, e.g. "2026-03-23" */
-  visitDate: string;
-  rows: { id: string; [key: string]: unknown }[];
-}
-
 export interface TableOrderSetConfig {
   listEndpoint: string;
   saveEndpoint: string;
@@ -96,10 +92,10 @@ export interface ControlSchema {
   masterEntryConfig?: TableMasterEntryConfig;
   orderSetConfig?: TableOrderSetConfig;
 
-  previousVisitsEnabled?: boolean;
-
-  previousVisitsData?: PreviousVisitEntry[];
   doctorId?: number;
+  /** logged-in doctor's display name — "Dental chart" treatment-plan cards show this as
+   * "Treating Dr" */
+  doctorName?: string;
   patientId?: number;
   visitId?: number;
 

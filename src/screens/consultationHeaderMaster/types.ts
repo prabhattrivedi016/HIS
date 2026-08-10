@@ -9,6 +9,7 @@ type ListOfLovsItem = {
   score?: number;
   /** "EmojiScore" rows only — the chosen face/emoji image, as a base64 data URL */
   base64Data?: string;
+  Description?: string;
 };
 
 /** one document slot returned by GET_EMR_CONTROL_DOCUMENT_MAPPING for a header of

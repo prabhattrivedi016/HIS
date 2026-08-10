@@ -5,7 +5,6 @@ import {
   ReportAnnotationStroke,
   ReportAnnotationTool,
   ReportPage,
-  VisitReportDocument,
   useVisitReportsStore,
 } from "@/store/useVisitReportsStore";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -21,7 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import type Konva from "konva";
+import { ChangeEvent, RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import DoctorNoteEditor from "./DoctorNoteEditor";
 import ReportAnnotationCanvas from "./ReportAnnotationCanvas";
@@ -89,6 +89,19 @@ const ReportAnnotatorModal = ({
   const fetchApiRef = useRef(fetchApi);
   fetchApiRef.current = fetchApi;
 
+  // one Konva stage ref per page, created lazily and reused across renders (a plain useRef map,
+  // not one useRef per page, since draftPages' length varies per document) — lets handleSave read
+  // each page's live stage.toDataURL() to flatten the image + strokes it's currently showing
+  const stageRefsMap = useRef(new Map<number, RefObject<Konva.Stage | null>>());
+  const getStageRef = (pageNumber: number) => {
+    let ref = stageRefsMap.current.get(pageNumber);
+    if (!ref) {
+      ref = { current: null };
+      stageRefsMap.current.set(pageNumber, ref);
+    }
+    return ref;
+  };
+
   const selectedReport = reports.find(report => report.id === selectedId) ?? null;
 
   // keep this visit's report list in sync with the header's current default template images
@@ -121,13 +134,6 @@ const ReportAnnotatorModal = ({
 
         removeReport(report.id);
         setSelectedId(prev => (prev === report.id ? null : prev));
-        await fetchApiRef.current(
-          "DELETE",
-          ENDPOINTS.DELETE_PATIENT_VISIT_REPORT,
-          {},
-          { params: { id: report.id } },
-          { component: "ReportAnnotatorModal", silent: true }
-        );
       }
       if (cancelled) return;
 
@@ -152,7 +158,7 @@ const ReportAnnotatorModal = ({
         const dataUrl = fileRes?.data?.base64Data;
         if (!dataUrl) continue;
 
-        const created = addReport({
+        addReport({
           patientId,
           visitId,
           headerId,
@@ -160,14 +166,6 @@ const ReportAnnotatorModal = ({
           fileName: doc.DocumentName,
           pages: [{ pageNumber: 1, dataUrl }],
         });
-
-        await fetchApiRef.current(
-          "POST",
-          ENDPOINTS.SAVE_PATIENT_VISIT_REPORT,
-          created,
-          {},
-          { component: "ReportAnnotatorModal", silent: true }
-        );
       }
     };
 
@@ -216,17 +214,6 @@ const ReportAnnotatorModal = ({
       reader.readAsDataURL(file);
     });
 
-  const syncReportToServer = async (document: VisitReportDocument) => {
-    const res = await fetchApi<{ result: boolean }>(
-      "POST",
-      ENDPOINTS.SAVE_PATIENT_VISIT_REPORT,
-      document,
-      {},
-      { component: "ReportAnnotatorModal", silent: true }
-    );
-    return !!res?.result;
-  };
-
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -238,7 +225,6 @@ const ReportAnnotatorModal = ({
 
     setIsImporting(true);
     let lastCreatedId: string | null = null;
-    let allSynced = true;
 
     try {
       for (const file of Array.from(files)) {
@@ -253,7 +239,6 @@ const ReportAnnotatorModal = ({
             pages,
           });
           lastCreatedId = created.id;
-          if (!(await syncReportToServer(created))) allSynced = false;
         } else {
           const dataUrl = await readImageFile(file);
           const created = addReport({
@@ -265,11 +250,9 @@ const ReportAnnotatorModal = ({
             pages: [{ pageNumber: 1, dataUrl }],
           });
           lastCreatedId = created.id;
-          if (!(await syncReportToServer(created))) allSynced = false;
         }
       }
       if (lastCreatedId) setSelectedId(lastCreatedId);
-      if (!allSynced) showWarning("Saved locally — syncing to server failed for one or more files");
     } catch {
       showError("Could not import one or more files");
     } finally {
@@ -287,32 +270,28 @@ const ReportAnnotatorModal = ({
 
   const handleSave = async () => {
     if (!selectedReport) return;
-    updatePages(selectedReport.id, draftPages);
-    setIsDirty(false);
 
-    const synced = await syncReportToServer({
-      ...selectedReport,
-      pages: draftPages,
-      updatedOn: new Date().toISOString(),
+    // bake each page's strokes into its base image now, at full (unzoomed) resolution, so "the
+    // image" is correct wherever it's shown as a plain <img> instead of through this live canvas
+    // — the sidebar thumbnail below, and eventually whatever a real backend endpoint stores and
+    // later returns as "the image" (it can stay completely unaware strokes exist at all)
+    const flattenedPages = draftPages.map(page => {
+      const stage = stageRefsMap.current.get(page.pageNumber)?.current;
+      if (!stage) return page;
+      const pixelRatio = scale > 0 ? 1 / scale : 1;
+      return { ...page, flattenedDataUrl: stage.toDataURL({ pixelRatio }) };
     });
-    if (synced) showSuccess("Annotations saved");
-    else showWarning("Saved locally — syncing to server failed, will retry on next save");
+
+    updatePages(selectedReport.id, flattenedPages);
+    setIsDirty(false);
+    showSuccess("Annotations saved — click the page's main Save to persist them");
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedReport) return;
     const deletedId = selectedReport.id;
     removeReport(deletedId);
     setSelectedId(reports.find(r => r.id !== deletedId)?.id ?? null);
-
-    const res = await fetchApi<{ result: boolean }>(
-      "DELETE",
-      ENDPOINTS.DELETE_PATIENT_VISIT_REPORT,
-      {},
-      { params: { id: deletedId } },
-      { component: "ReportAnnotatorModal", silent: true }
-    );
-    if (!res?.result) showWarning("Removed locally — syncing the deletion to server failed");
   };
 
   const zoomBy = (delta: number) => {
@@ -415,7 +394,7 @@ const ReportAnnotatorModal = ({
                       }`}
                     >
                       <img
-                        src={report.pages[0]?.dataUrl}
+                        src={report.pages[0]?.flattenedDataUrl ?? report.pages[0]?.dataUrl}
                         alt={report.fileName}
                         className="w-full h-20 object-cover bg-slate-100"
                       />
@@ -542,6 +521,7 @@ const ReportAnnotatorModal = ({
                             color={color}
                             strokeWidth={strokeWidth}
                             scale={scale}
+                            stageRef={getStageRef(page.pageNumber)}
                             onImageSize={index === 0 ? handleFirstPageSize : undefined}
                           />
                         </div>
