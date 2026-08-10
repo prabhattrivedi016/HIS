@@ -235,11 +235,13 @@ export default function OpdAppointmentReceipt({
   patientDetails,
   paymentModeList = [],
   paidAmt,
+  receiptId,
 }: {
   printOnMount?: boolean;
   patientDetails: any;
   paymentModeList?: any[];
   paidAmt: number;
+  receiptId?: number;
 }) {
   const { fetchApi } = useGlobalApi();
 
@@ -284,6 +286,9 @@ export default function OpdAppointmentReceipt({
   const todayTime = today.toLocaleTimeString();
 
   if (!patientDetails) return null;
+
+  const hasReceipt =
+    Number(receiptId ?? patientDetails?.ReceiptId ?? patientDetails?.receiptId ?? 0) > 0;
 
   // normalize payment modes
   const activePaymentModes =
@@ -376,6 +381,10 @@ export default function OpdAppointmentReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
+                    <td style={{ verticalAlign: "top" }}>Token No.</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.TokenNo}</td>
+                  </tr>
+                  <tr>
                     <td style={{ width: "130px", verticalAlign: "top" }}>UHID</td>
                     <td style={{ verticalAlign: "top" }}>
                       : {patientDetails?.UHID || patientDetails?.Uhid || "-"}
@@ -397,10 +406,6 @@ export default function OpdAppointmentReceipt({
                       : {patientDetails?.RelativeName || "-"}
                     </td>
                   </tr> */}
-                  <tr>
-                    <td style={{ verticalAlign: "top" }}>Address</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address || "-"}</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -417,13 +422,14 @@ export default function OpdAppointmentReceipt({
                       : {patientDetails?.Age} / {patientDetails?.Gender}
                     </td>
                   </tr>
-                  <tr>
-                    <td style={{ verticalAlign: "top" }}>Token No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.TokenNo}</td>
-                  </tr>
+
                   <tr>
                     <td style={{ verticalAlign: "top" }}>Doctor Name</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.DoctorName}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ verticalAlign: "top" }}>Address</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address || "-"}</td>
                   </tr>
                   {/* <tr>
                     <td style={{ verticalAlign: "top" }}>Corporate</td>
@@ -476,94 +482,114 @@ export default function OpdAppointmentReceipt({
                 </td>
                 <td
                   style={{ padding: "2px 5px", borderRight: "1px solid #000" }}
-                >{`₹ ${paidAmt}`}</td>
+                >{`₹ ${patientDetails?.Amount || 0}`}</td>
               </tr>
             </tbody>
           </table>
 
-          <div
-            style={{
-              fontWeight: "bold",
-              marginBottom: "2px",
-              fontSize: "14px",
-              textAlign: "center",
-              fontStyle: "italic",
-            }}
-          >
-            Receipt Details:
-          </div>
+          {hasReceipt && (
+            <>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "2px",
+                  fontSize: "14px",
+                  textAlign: "center",
+                  fontStyle: "italic",
+                }}
+              >
+                Receipt Details:
+              </div>
 
-          {/* Receipt Table */}
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              border: "1px solid #000",
-              marginBottom: "10px",
-              textAlign: "center",
-            }}
-          >
-            <thead>
-              <tr style={{ borderBottom: "1px solid #000" }}>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt Date & Time
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt No
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Amount
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Payment Mode
-                </th>
-                <th style={{ padding: "4px 5px", fontWeight: "bold" }}>Collected By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activePaymentModes.map((receipt: any, index: number) => (
-                <tr key={index}>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {patientDetails?.CreatedOn || todayDate}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.ReceiptNo || receipt?.receiptNo || "-"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 5px",
-                      borderRight: "1px solid #000",
-                    }}
-                  >
-                    {receipt?.Amount || receipt?.amount || 0}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.PaymentModeName || receipt?.paymentModeName || "-"}
-                  </td>
-                  <td style={{ padding: "4px 5px" }}>
-                    {receipt?.UserName || receipt?.createdBy || "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
-              Received with thanks an amount of {numberToWords(paidAmt)} .
-            </div>
+              {/* Receipt Table */}
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  border: "1px solid #000",
+                  marginBottom: "10px",
+                  textAlign: "center",
+                }}
+              >
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #000" }}>
+                    <th
+                      style={{
+                        padding: "4px 5px",
+                        borderRight: "1px solid #000",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Receipt Date & Time
+                    </th>
+                    <th
+                      style={{
+                        padding: "4px 5px",
+                        borderRight: "1px solid #000",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Receipt No
+                    </th>
+                    <th
+                      style={{
+                        padding: "4px 5px",
+                        borderRight: "1px solid #000",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Amount
+                    </th>
+                    <th
+                      style={{
+                        padding: "4px 5px",
+                        borderRight: "1px solid #000",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Payment Mode
+                    </th>
+                    <th style={{ padding: "4px 5px", fontWeight: "bold" }}>Collected By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activePaymentModes.map((receipt: any, index: number) => (
+                    <tr key={index}>
+                      <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                        {patientDetails?.CreatedOn || todayDate}
+                      </td>
+                      <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                        {receipt?.ReceiptNo || receipt?.receiptNo || "-"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "4px 5px",
+                          borderRight: "1px solid #000",
+                        }}
+                      >
+                        {receipt?.Amount || receipt?.amount || 0}
+                      </td>
+                      <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                        {receipt?.PaymentModeName || receipt?.paymentModeName || "-"}
+                      </td>
+                      <td style={{ padding: "4px 5px" }}>
+                        {receipt?.UserName || receipt?.createdBy || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
+                  Received with thanks an amount of {numberToWords(paidAmt)} .
+                </div>
 
-            <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
-              Total Amount: {`₹ ${paidAmt}`}
-            </div>
-          </div>
+                <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
+                  Total Amount: {`₹ ${paidAmt}`}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Footer Area */}
           <div

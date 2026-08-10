@@ -88,6 +88,7 @@ const OpdAppointment = () => {
       let paymentModes: any[] = [];
       if (lenderId && receiptId) {
         const patientId = Number(preBookingData?.PatientId ?? preBookingData?.patientId ?? 0);
+        if (receiptId < 1) return;
         const paymentModesResp = await fetchApi(
           "GET",
           ENDPOINTS.GET_PATIENT_ADVANCE_RECEIPT_LIST,
@@ -272,6 +273,8 @@ const OpdAppointment = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<OptionItem | null>(null);
   const [doctorError, setDoctorError] = useState("");
   const [visitTypeError, setVisitTypeError] = useState("");
+  const [slotError, setSlotError] = useState("");
+  const [sourceError, setSourceError] = useState("");
 
   const sourceTypeList = usePickMaster("OPDAppointmentSourceType")?.pickMasterValue ?? [];
 
@@ -868,6 +871,10 @@ const OpdAppointment = () => {
     setCityList([]);
     setShowPaymentDetailsSection(false);
     setUhidSearchResetKey(prev => prev + 1);
+    setDoctorError("");
+    setVisitTypeError("");
+    setSlotError("");
+    setSourceError("");
     if (branchDetails) {
       void loadDefaults();
     }
@@ -1094,6 +1101,20 @@ const OpdAppointment = () => {
       hasError = true;
     } else {
       setVisitTypeError("");
+    }
+
+    if (!slots) {
+      setSlotError("Slot is required.");
+      hasError = true;
+    } else {
+      setSlotError("");
+    }
+
+    if (!source) {
+      setSourceError("Source Type is required.");
+      hasError = true;
+    } else {
+      setSourceError("");
     }
 
     switch (type) {
@@ -1542,7 +1563,7 @@ const OpdAppointment = () => {
             />
             {doctorError && <p className="input-field-error">{doctorError}</p>}
           </InputField>
-          <InputField label="Slots">
+          <InputField label="Slots" required>
             <input
               type="text"
               className="input-field"
@@ -1553,12 +1574,16 @@ const OpdAppointment = () => {
               readOnly
               onClick={handleOpenAppointmentSlotPopup}
             />
+            {slotError && <p className="input-field-error">{slotError}</p>}
           </InputField>
-          <InputField label="Source Type">
+          <InputField label="Source Type" required>
             <select
               className="input-field"
               value={source}
-              onChange={e => setSource(e.target.value)}
+              onChange={e => {
+                setSource(e.target.value);
+                if (e.target.value) setSourceError("");
+              }}
             >
               <option value="">--Select--</option>
               {sourceTypeList?.map((item: PickMasterItem) => (
@@ -1567,6 +1592,7 @@ const OpdAppointment = () => {
                 </option>
               ))}
             </select>
+            {sourceError && <p className="input-field-error">{sourceError}</p>}
           </InputField>
 
           {/* Insurance Company*/}
@@ -1688,6 +1714,7 @@ const OpdAppointment = () => {
           onSelectSlot={(slotTimingId, slotStartDateTime) => {
             setSlots(slotTimingId);
             setAppDateTime(slotStartDateTime);
+            setSlotError("");
           }}
         />
       )}
@@ -1696,8 +1723,17 @@ const OpdAppointment = () => {
           <OpdAppointmentReceipt
             printOnMount={triggerPrint}
             patientDetails={printReceiptData}
-            paymentModeList={printPaymentModes}
-            paidAmt={Number(printReceiptData.Amount || printReceiptData.ReceiptAmount || 0)}
+            paymentModeList={
+              Number(printReceiptData?.ReceiptId ?? printReceiptData?.receiptId ?? 0) > 0
+                ? printPaymentModes
+                : []
+            }
+            paidAmt={
+              Number(printReceiptData?.ReceiptId ?? printReceiptData?.receiptId ?? 0) > 0
+                ? Number(printReceiptData.Amount || printReceiptData.ReceiptAmount || 0)
+                : 0
+            }
+            receiptId={Number(printReceiptData?.ReceiptId ?? printReceiptData?.receiptId ?? 0)}
           />
         </div>
       )}
