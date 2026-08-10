@@ -8,7 +8,6 @@ import InputFieldModal from "@/components/inputFieldModal";
 import RightSideDrawer from "@/components/rightSideDrawer";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
-import { AddPackageTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { SelectItem } from "@/types";
@@ -24,6 +23,7 @@ import Select from "react-select";
 import {
   CategoryItem,
   PackageDetailsItem,
+  RateListItem,
   ServiceTableItem,
   SubcategoryItem as SubCategoryItem,
   SubSubCategoryItem,
@@ -64,6 +64,7 @@ const AddPackageMaster = ({
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number>(0);
   const [selectedSearchCategoryId, setSelectedSearchCategoryId] = useState<number>(0);
   const [localPackageServices, setLocalPackageServices] = useState<PackageDetailsItem[]>([]);
+  const [selectedRateListId, setSelectedRateListId] = useState<number>(0);
   const initializedRef = useRef<boolean>(false);
 
   // Service search states
@@ -407,6 +408,20 @@ const AddPackageMaster = ({
       visitDurationType: "",
     };
 
+    if (selectedRateListId) {
+      void (async () => {
+        try {
+          const tariffs = await getRatesByRateList(newItem, selectedRateListId);
+          const rate = tariffs.length > 0 ? Number(tariffs[0]?.Rate ?? 0) : 0;
+          setLocalPackageServices(prev =>
+            prev.map(p => (p.packageServiceId === newItem.packageServiceId ? { ...p, rate } : p))
+          );
+        } catch (error) {
+          console.error("Error fetching rate for new item:", error);
+        }
+      })();
+    }
+
     setLocalPackageServices(prev => [...prev, newItem]);
     setSelectedService(null);
     setSelectedServiceName("");
@@ -547,6 +562,7 @@ const AddPackageMaster = ({
     if (!isOpen) {
       initializedRef.current = false;
       setLocalPackageServices([]);
+      setSelectedRateListId(0);
     }
   }, [isOpen]);
 
@@ -638,6 +654,68 @@ const AddPackageMaster = ({
         return p.packageServiceCode !== item.packageServiceCode;
       })
     );
+  };
+
+  // rate list
+  const getRateList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_RATE_LIST_MASTER,
+      {},
+      { params: { isActive: 1 } },
+      { component: "AddPackageMaster" }
+    );
+    console.log("resp", resp?.data);
+    return resp?.data ?? [];
+  };
+  const { data: rateList } = useQuery({
+    queryKey: ["getRateList"],
+    queryFn: getRateList,
+  });
+
+  // rates of services according to rate list
+  const getRatesByRateList = async (item: PackageDetailsItem, rateListId: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_TARIFF_MASTER,
+      {},
+      {
+        params: {
+          rateListId,
+          patientType: "OPD",
+          categoryId: item?.packageServiceCategoryId,
+          serviceItemId: item?.packageServiceId,
+        },
+      },
+      { component: "AddPackageMaster" }
+    );
+    return resp?.data ?? [];
+  };
+
+  // rate list select handler
+  const rateListSelectHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    setSelectedRateListId(value);
+    if (!value) {
+      setLocalPackageServices(prev => prev.map(item => ({ ...item, rate: undefined })));
+      return;
+    }
+
+    try {
+      const updatedServices = await Promise.all(
+        localPackageServices.map(async service => {
+          const tariffs = await getRatesByRateList(service, value);
+          const rate = tariffs.length > 0 ? Number(tariffs[0]?.Rate ?? 0) : 0;
+          return {
+            ...service,
+            rate,
+          };
+        })
+      );
+      setLocalPackageServices(updatedServices);
+    } catch (error) {
+      console.error("Error fetching rates for services:", error);
+    }
   };
 
   return (
@@ -882,46 +960,73 @@ const AddPackageMaster = ({
 
         {/* package table */}
         {!!localPackageServices && localPackageServices.length > 0 ? (
-          <div className="table-container m-1 ">
-            <div className="table-scroll-wrapper ">
-              <div className="table-size lg:min-h-60 lg:max-h-60">
-                <table className="base-table ">
-                  <thead className="table-head">
-                    <tr>
-                      {AddPackageTableHeader.map((header, index) => (
-                        <th key={index} className="table-th ">
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {localPackageServices.length === 0 ? (
+          <div className="card m-1">
+            <InputField label="Rate List">
+              <select
+                className="input-field max-w-60"
+                value={selectedRateListId}
+                onChange={rateListSelectHandler}
+              >
+                <option value={0}>--Select--</option>
+                {rateList?.map((r: RateListItem) => (
+                  <option key={r.rateListId} value={r.rateListId}>
+                    {r.rateListName}
+                  </option>
+                ))}
+              </select>
+            </InputField>
+            <div className="table-container m-1 ">
+              <div className="table-scroll-wrapper ">
+                <div className="table-size lg:min-h-60 lg:max-h-60">
+                  <table className="base-table ">
+                    <thead className="table-head">
                       <tr>
-                        <td colSpan={AddPackageTableHeader.length} className="table-empty">
-                          No records found
-                        </td>
+                        {[
+                          "#",
+                          "Service Category",
+                          "Service Name",
+                          "Quantity",
+                          `Rate (Total: ${localPackageServices.reduce(
+                            (sum, item) => sum + Number(item?.rate ?? 0) * Number(item?.qty ?? 1),
+                            0
+                          )})`,
+                          "Remove",
+                        ].map((header, index) => (
+                          <th key={index} className="table-th ">
+                            {header}
+                          </th>
+                        ))}
                       </tr>
-                    ) : (
-                      localPackageServices.map((item: PackageDetailsItem, idx: number) => (
-                        <tr key={item?.packageServiceId} className="table-row">
-                          <td className="table-td">{idx + 1}</td>
-                          <td className="table-td">{item?.packageServiceCategory ?? "-"}</td>
-                          <td className="table-td">{item?.packageServiceName ?? "-"}</td>
-                          <td className="table-td">{item?.qty ?? 1}</td>
-                          <td>
-                            <RemoveIconButton onClick={() => removeButtonHandler(item)} />
+                    </thead>
+
+                    <tbody>
+                      {localPackageServices.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="table-empty">
+                            No records found
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        localPackageServices.map((item: PackageDetailsItem, idx: number) => (
+                          <tr key={item?.packageServiceId} className="table-row">
+                            <td className="table-td">{idx + 1}</td>
+                            <td className="table-td">{item?.packageServiceCategory ?? "-"}</td>
+                            <td className="table-td">{item?.packageServiceName ?? "-"}</td>
+                            <td className="table-td">{item?.qty ?? 1}</td>
+                            <td className="table-td">{item?.rate ?? 0}</td>
+                            <td>
+                              <RemoveIconButton onClick={() => removeButtonHandler(item)} />
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-            <div className="form-actions-responsive">
-              <SubmitButton label="Update" type="submit" />
+              <div className="form-actions-responsive">
+                <SubmitButton label="Update" type="submit" />
+              </div>
             </div>
           </div>
         ) : (
