@@ -108,6 +108,7 @@ const OpdAppointmentConfirmation = () => {
           patientId: Number(item?.PatientId),
           isPreBooking: true,
           item,
+          opdAppointmentConfirmation: item,
         },
       });
     },
@@ -361,6 +362,7 @@ const OpdAppointmentConfirmation = () => {
               patientId: Number(item?.PatientId),
               isPreBooking: true,
               item,
+              opdAppointmentConfirmation: item,
             },
           });
         });
@@ -422,6 +424,7 @@ const OpdAppointmentConfirmation = () => {
                           patientId: Number(selected.PatientId),
                           isPreBooking: true,
                           item: selected,
+                          opdAppointmentConfirmation: selected,
                         },
                       });
                     });
@@ -474,7 +477,7 @@ const OpdAppointmentConfirmation = () => {
 
   const renderComponent = (view: string) => {
     if (!activeConfig || !hasFetched) {
-      return <div className="initial-message">Loading opd appointment confirmation...</div>;
+      return <div className="initial-message">Loading OPD appointment confirmation...</div>;
     }
 
     if (view === VIEWTYPE.GRID) {
@@ -517,7 +520,7 @@ const OpdAppointmentConfirmation = () => {
   return (
     <div className="master-page-size">
       <PageHeader
-        title="Opd Appointment Confirmation"
+        title="OPD Appointment Confirmation"
         view={cardView}
         onCardView={handleCardView}
         buttonTitle=""

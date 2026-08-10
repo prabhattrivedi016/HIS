@@ -139,6 +139,7 @@ type PatientDataHandle = {
   validateForm: () => Promise<boolean>;
   loadPatientById: (patientId: number) => Promise<void>;
   applyApiFieldErrors: (errors: Record<string, string[] | string>) => void;
+  prefillPatientDetails: (details: Record<string, any>) => Promise<void>;
 };
 type ButtonProps = {
   onButtonClick?: (name: string) => void;

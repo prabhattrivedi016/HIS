@@ -56,6 +56,16 @@ import { getMandatoryDocumentErrors } from "./documentValidation";
 import OtherDetails from "./OtherDetails";
 import { SaveButtons } from "./patientButtons";
 
+const convertDDMMYYYYToYYYYMMDD = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split(" ")[0].split("-");
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+};
+
 const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png"];
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 
@@ -936,8 +946,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
     const handleSelectPatient = async (patient: SearchedPatientItem) => {
       setShowPopup(false);
-      if (patient?.PatientId) {
-        await getEditPatientData(patient.PatientId);
+      const patientId = Number(patient?.PatientId ?? (patient as any)?.patientId ?? 0);
+      if (patientId) {
+        await getEditPatientData(patientId);
         onPatientLoaded?.("uhid");
       }
     };
@@ -1093,8 +1104,115 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
             });
           });
         },
+        prefillPatientDetails: async (details: Record<string, any>) => {
+          setDocumentFileStore({});
+          setPatientDocumentPayload([]);
+          setDocumentValidationErrors({});
+
+          setCapturedImageFile(null);
+          setCapturedImagePreview(null);
+          clearExistingImagePreview();
+
+          const mappedTitle = resolvePickValue(titleList, details?.Title ?? details?.title, {
+            mr: ["mr", "Mr", "MR.", "MR"],
+            mrs: ["mrs", "Mrs", "MRS.", "MRS"],
+            miss: ["miss", "ms", "MISS.", "MS.", "MISS", "MS"],
+            dr: ["dr", "doctor", "doc", "DR.", "DR"],
+            master: ["master", "MASTER.", "MASTER"],
+            mx: ["mx"],
+            bo: ["bo", "babyof", "sonof", "daughterof", "wardof", "careof", "co"],
+          });
+
+          const mappedGender = resolvePickValue(
+            patientGenderList,
+            details?.Gender ?? details?.gender,
+            {
+              male: ["male", "MALE", "Male", "m", "M"],
+              female: ["female", "FEMALE", "Female", "f", "F"],
+              other: ["other", "OTHER", "OTHERS", "others", "Other"],
+            }
+          );
+
+          const dobFormatted = details?.DOB
+            ? convertDDMMYYYYToYYYYMMDD(details.DOB)
+            : details?.dob
+              ? convertDDMMYYYYToYYYYMMDD(details.dob)
+              : "";
+
+          reset({
+            ...defaultPatientRegistrationValues,
+            PatientId: Number(details.PatientId ?? details.patientId ?? 0) || null,
+            BranchId: Number(details.BranchId ?? details.branchId ?? 0) || null,
+            UhidOrBarcode: details.UHID ?? details.uhid ?? "",
+            Title: mappedTitle,
+            FirstName: details.FirstName ?? details.firstName ?? "",
+            MiddleName: details.MiddleName ?? details.middleName ?? "",
+            LastName: details.LastName ?? details.lastName ?? "",
+            AgeYears: Number(details.AgeYears ?? details.ageYears ?? 0),
+            AgeMonths: Number(details.AgeMonths ?? details.ageMonths ?? 0),
+            AgeDays: Number(details.AgeDays ?? details.ageDays ?? 0),
+            Dob: dobFormatted,
+            Gender: normalizePatientGenderForApi(mappedGender || details.Gender || details.gender),
+            SelfContactNumber:
+              details.ContactNumber ??
+              details.contactNumber ??
+              details.SelfContactNumber ??
+              details.selfContactNumber ??
+              "",
+            Address: details.Address ?? details.address ?? "",
+            CountryId: Number(details.CountryId ?? details.countryId ?? 0) || null,
+            Country: details.Country ?? details.country ?? "",
+            StateId: Number(details.StateId ?? details.stateId ?? 0) || null,
+            State: details.STATE ?? details.State ?? details.state ?? "",
+            DistrictId: Number(details.DistrictId ?? details.districtId ?? 0) || null,
+            District: details.District ?? details.district ?? "",
+            CityId: Number(details.CityId ?? details.cityId ?? 0) || null,
+            City: details.City ?? details.city ?? "",
+            InsuranceCompanyId:
+              Number(details.InsuranceCompanyId ?? details.insuranceCompanyId ?? 0) || null,
+            CorporateId: Number(details.CorporateId ?? details.corporateId ?? 0) || null,
+            CardNo: details.CardNo ?? details.cardNo ?? "",
+            PolicyNo: details.PolicyNo ?? details.policyNo ?? "",
+            PolicyCardNo: details.PolicyCardNo ?? details.policyCardNo ?? "",
+            ExpiryDate: details.ExpiryDate ?? details.expiryDate ?? "",
+            CardHolder: details.CardHolder ?? details.cardHolder ?? "",
+            ReferalNo: details.ReferalNo ?? details.referalNo ?? "",
+            ReferalDate: details.ReferalDate ?? details.referalDate ?? "",
+          });
+
+          setInsuranceId(Number(details.InsuranceCompanyId ?? details.insuranceCompanyId ?? 0));
+          if (details.InsuranceCompanyId ?? details.insuranceCompanyId) {
+            const insId = Number(details.InsuranceCompanyId ?? details.insuranceCompanyId);
+            const list = await getCorporateList(insId);
+            const matchedCorporate = findCorporateInList(
+              list,
+              Number(details?.CorporateId ?? details?.corporateId ?? 0)
+            );
+            setSelectedCorporate(
+              matchedCorporate
+                ? {
+                    value: matchedCorporate.corporateId,
+                    label: matchedCorporate.corporateName,
+                  }
+                : null
+            );
+          } else {
+            setCorporateList([]);
+            setSelectedCorporate(defaultCorporate);
+          }
+
+          emitPatientPayload(methods.getValues() as Record<string, unknown>);
+        },
       }),
-      [methods, validateMandatoryDocuments]
+      [
+        methods,
+        validateMandatoryDocuments,
+        titleList,
+        patientGenderList,
+        getCorporateList,
+        findCorporateInList,
+        defaultCorporate,
+      ]
     );
 
     // open document handler

@@ -107,8 +107,8 @@ const OpdAppointmentConfirmationPopup = ({ isOpen, onClose, onApply, initialValu
     <CentralPopup
       isOpen={isOpen}
       onClose={onClose}
-      title="Opd Appointment Confirmation Filter"
-      className="lg:min-w-250"
+      title="OPD Appointment Confirmation Filter"
+      className="w-[90%] lg:min-w-250"
     >
       <form onSubmit={submitHandler} className="p-2">
         <div className="form-grid-4">
