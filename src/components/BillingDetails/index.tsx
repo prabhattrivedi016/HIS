@@ -343,27 +343,46 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
     const billingValues = initialBillingValues || defaultBillingValues;
 
+    const hasInitializedAdvanceRef = useRef(false);
+    const prevAvailableAdvanceRef = useRef(availablePatientAdvance);
+    const prevNetAmountRef = useRef<number>(0);
+
     useEffect(() => {
       if (!showPatientAdvanceRow) {
         setPatientAdvanceUsed(0);
+        hasInitializedAdvanceRef.current = false;
+        prevAvailableAdvanceRef.current = availablePatientAdvance;
+        prevNetAmountRef.current = toNumber(billingValues?.netAmount);
         return;
       }
 
       const netAmount = toNumber(billingValues?.netAmount);
       const regularTotal = getRegularPaymentsTotal(rows);
-      const maxUsable = getMaxPatientAdvanceUsable(
-        netAmount,
-        availablePatientAdvance,
-        regularTotal
-      );
+      const defaultAdvanceUsed = getDefaultPatientAdvanceUsed(netAmount, availablePatientAdvance);
 
-      setPatientAdvanceUsed(prev => {
-        if (prev < 0) {
-          return getDefaultPatientAdvanceUsed(netAmount, availablePatientAdvance);
-        }
-        return roundPaymentAmount(Math.min(prev, maxUsable));
-      });
-    }, [availablePatientAdvance, billingValues?.netAmount, rows, showPatientAdvanceRow]);
+      const isAdvanceLoaded = prevAvailableAdvanceRef.current === 0 && availablePatientAdvance > 0;
+      const isNetAmountActivated = prevNetAmountRef.current === 0 && netAmount > 0;
+
+      prevAvailableAdvanceRef.current = availablePatientAdvance;
+      prevNetAmountRef.current = netAmount;
+
+      if (
+        !hasInitializedAdvanceRef.current ||
+        isAdvanceLoaded ||
+        (isNetAmountActivated && patientAdvanceUsed === 0)
+      ) {
+        hasInitializedAdvanceRef.current = true;
+        setPatientAdvanceUsed(defaultAdvanceUsed);
+      } else {
+        setPatientAdvanceUsed(prev => roundPaymentAmount(Math.min(prev, availablePatientAdvance)));
+      }
+    }, [
+      availablePatientAdvance,
+      billingValues?.netAmount,
+      patientAdvanceUsed,
+      rows,
+      showPatientAdvanceRow,
+    ]);
 
     const [discountApproveList, setDiscountApproveList] = useState<DiscountApproveItem[]>([]);
 
@@ -426,10 +445,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       if (!cash) return;
 
       const collectibleTarget = getCollectibleTargetAmount();
+      const remainingTarget = Math.max(
+        0,
+        collectibleTarget - (showPatientAdvanceRow ? patientAdvanceUsed : 0)
+      );
       const targetAmount =
-        shouldShowPaymentMode && collectibleTarget > 0
-          ? String(Math.max(0, collectibleTarget))
-          : "0";
+        shouldShowPaymentMode && remainingTarget > 0 ? String(Math.max(0, remainingTarget)) : "0";
 
       setRows(prev => {
         if (!prev.length || (prev.length === 1 && prev[0].paymentModeId === null)) {
@@ -456,7 +477,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         if (
           prev.length === 1 &&
           toNumber(prev[0].amount) === 0 &&
-          collectibleTarget > 0 &&
+          remainingTarget > 0 &&
           shouldShowPaymentMode
         ) {
           return [{ ...prev[0], amount: targetAmount }];
@@ -464,7 +485,13 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
         return prev;
       });
-    }, [getCollectibleTargetAmount, paymentList, shouldShowPaymentMode, showPatientAdvanceRow]);
+    }, [
+      getCollectibleTargetAmount,
+      paymentList,
+      shouldShowPaymentMode,
+      showPatientAdvanceRow,
+      patientAdvanceUsed,
+    ]);
 
     const getMaxPaymentAmount = getCollectibleTargetAmount;
 
@@ -905,7 +932,9 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
           // setPaymentValidationError("");
           setRowErrors({});
           setCopaymentAmount(0);
-          setPatientAdvanceUsed(0);
+          if (!showPatientAdvanceRow) {
+            setPatientAdvanceUsed(0);
+          }
           setBillingState({
             grossBillAmount: 0,
             totalDiscPerOnBill: 0,

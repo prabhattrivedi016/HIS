@@ -151,23 +151,23 @@ const pickBookingValue = <T,>(
   return undefined;
 };
 
-const resolveBoundPatientId = (details: Record<string, unknown>) =>
-  Number(pickBookingValue(details, "PatientId", "patientId") ?? 0) || 0;
+// const resolveBoundPatientId = (details: Record<string, unknown>) =>
+//   Number(pickBookingValue(details, "PatientId", "patientId") ?? 0) || 0;
 
-const resolvePatientDoctorId = (patientRecord: Record<string, unknown>) =>
-  Number(
-    pickBookingValue(
-      patientRecord,
-      "doctorId",
-      "DoctorId",
-      "defaultDoctorId",
-      "DefaultDoctorId",
-      "consultingDoctorId",
-      "ConsultingDoctorId",
-      "lastDoctorId",
-      "LastDoctorId"
-    ) ?? 0
-  ) || 0;
+// const resolvePatientDoctorId = (patientRecord: Record<string, unknown>) =>
+//   Number(
+//     pickBookingValue(
+//       patientRecord,
+//       "doctorId",
+//       "DoctorId",
+//       "defaultDoctorId",
+//       "DefaultDoctorId",
+//       "consultingDoctorId",
+//       "ConsultingDoctorId",
+//       "lastDoctorId",
+//       "LastDoctorId"
+//     ) ?? 0
+//   ) || 0;
 
 const getBookingItemsFromDetails = (
   booking: OpdBookingDetailsResponse | Record<string, unknown>
@@ -343,19 +343,186 @@ const OpdBilling = () => {
   const navigate = useNavigate();
 
   const location = useLocation();
+
+  // op payment collection
   const locationState = (location.state ?? {}) as {
     bookingId?: number;
     tokenNo?: string;
     uhid?: string;
     patientId?: number;
     fromPaymentCollection?: boolean;
+    isPreBooking?: boolean;
+    opdAppointmentConfirmation?: any;
   };
 
-  const paymentCollectionBookingId = Number(locationState.bookingId) || 0;
-  const paymentCollectionPatientId = Number(locationState.patientId) || 0;
+  const isPreBooking = !!locationState.isPreBooking || !!locationState.opdAppointmentConfirmation;
+
+  const paymentCollectionBookingId = isPreBooking ? 0 : Number(locationState.bookingId) || 0;
+  const paymentCollectionPatientId = isPreBooking ? 0 : Number(locationState.patientId) || 0;
   const isPaymentCollectionMode = paymentCollectionBookingId > 0;
 
   const roleId = Number(useContext(RoleContext)?.roleId) ?? 0;
+
+  // patient appointment details using appId
+  const getPatientDetailsUsingAppointmentNumber = async (id: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_DOCTOR_APPOINTMENT_PRE_BOOKING_DETAILS,
+      {},
+      {
+        params: {
+          id,
+        },
+      },
+      { component: "OpdBilling" }
+    );
+
+    console.log("resp of appointment", resp?.data?.[0]);
+    if (resp?.data?.[0]) {
+      const details = resp.data[0];
+      await patientDataRef.current?.prefillPatientDetails(details);
+
+      // Set selected doctor
+      if (details.DoctorId) {
+        setSelectedDoctor({
+          value: Number(details.DoctorId),
+          label: details.DoctorName || "Doctor",
+        });
+      }
+
+      // Set insurance and corporate
+      const insId = Number(details.InsuranceCompanyId ?? 0);
+      const corpId = Number(details.CorporateId ?? 0);
+      setSelectedInsurance(insId);
+      if (insId) {
+        const list = await getCorporateList(insId);
+        const matched = list.find(
+          (c: Record<string, unknown>) => Number(c.corporateId ?? c.CorporateId) === corpId
+        );
+        if (matched) {
+          setSelectedCorporate({
+            value: matched.corporateId,
+            label: matched.corporateName,
+          });
+          void loadCorporateOpdRateListIds(matched.corporateId);
+        } else {
+          setSelectedCorporate(defaultCorporate);
+          void loadCorporateOpdRateListIds(defaultCorporate.value);
+        }
+      } else {
+        setCorporateList([]);
+        setSelectedCorporate(defaultCorporate);
+        void loadCorporateOpdRateListIds(defaultCorporate.value);
+      }
+
+      setOpdBillingFormData(prev => ({
+        ...prev,
+        insuranceCompanyId: insId,
+        corporateId: corpId || 1,
+      }));
+
+      // Switch to OPD Billing tab
+      setActiveTab(OPDBillingTabName.OPD_BILLING);
+      setTimeout(() => {
+        serviceInputRef.current?.focus();
+      }, 100);
+    }
+  };
+
+  // opd appointment confirmation
+  const opdAppointmentConfirmationPatientDetails =
+    location.state?.opdAppointmentConfirmation ??
+    (location.state?.isPreBooking ? location.state?.item : null);
+
+  useEffect(() => {
+    if (!opdAppointmentConfirmationPatientDetails) return;
+    preBookingBoundRef.current = true;
+
+    // Set selected doctor from appointment
+    if (opdAppointmentConfirmationPatientDetails.DoctorId) {
+      setSelectedDoctor({
+        value: Number(opdAppointmentConfirmationPatientDetails.DoctorId),
+        label: opdAppointmentConfirmationPatientDetails.DoctorName || "Doctor",
+      });
+    }
+
+    // Set insurance and corporate from appointment
+    const insId = Number(opdAppointmentConfirmationPatientDetails.InsuranceCompanyId ?? 0);
+    const corpId = Number(opdAppointmentConfirmationPatientDetails.CorporateId ?? 0);
+    setSelectedInsurance(insId);
+    if (insId) {
+      getCorporateList(insId).then(list => {
+        const matched = list.find(
+          (c: Record<string, unknown>) => Number(c.corporateId ?? c.CorporateId) === corpId
+        );
+        if (matched) {
+          setSelectedCorporate({
+            value: matched.corporateId,
+            label: matched.corporateName,
+          });
+          void loadCorporateOpdRateListIds(matched.corporateId);
+        } else {
+          setSelectedCorporate(defaultCorporate);
+          void loadCorporateOpdRateListIds(defaultCorporate.value);
+        }
+      });
+    } else {
+      setCorporateList([]);
+      setSelectedCorporate(defaultCorporate);
+      void loadCorporateOpdRateListIds(defaultCorporate.value);
+    }
+
+    setOpdBillingFormData(prev => ({
+      ...prev,
+      insuranceCompanyId: insId,
+      corporateId: corpId || 1,
+    }));
+
+    const appointmentPatientId = Number(
+      opdAppointmentConfirmationPatientDetails?.patientId ??
+        opdAppointmentConfirmationPatientDetails?.PatientId ??
+        0
+    );
+
+    if (appointmentPatientId > 0) {
+      bindPatientToRegistration(appointmentPatientId);
+    } else {
+      getPatientDetailsUsingAppointmentNumber(
+        Number(opdAppointmentConfirmationPatientDetails.AppId)
+      );
+    }
+    bindAppointmentService(opdAppointmentConfirmationPatientDetails);
+  }, [opdAppointmentConfirmationPatientDetails]);
+
+  const bindAppointmentService = async (appointment: any) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ALL_DETAILS_FOR_OPD_BILLING,
+      {},
+      {
+        params: {
+          branchId,
+          corporateId: opdAppointmentConfirmationPatientDetails?.CorporateId ?? 0,
+          doctorId: opdAppointmentConfirmationPatientDetails?.DoctorId ?? 0,
+          serviceItemId: opdAppointmentConfirmationPatientDetails?.ServiceItemId ?? 0,
+          categoryId: opdAppointmentConfirmationPatientDetails?.CategoryId ?? 1,
+          subCategoryId: opdAppointmentConfirmationPatientDetails?.SubCategoryId ?? 0,
+          subSubCategoryId: opdAppointmentConfirmationPatientDetails?.SubSubCategoryId ?? 0,
+          bedTypeId: opdAppointmentConfirmationPatientDetails?.BedTypeId ?? 0,
+        },
+      },
+      { component: "OpdBilling" }
+    );
+
+    if (!resp?.data) return;
+
+    const row = finalizeServiceRow(resp.data, {
+      doctorId: appointment.DoctorId,
+      doctorName: appointment.DoctorName,
+    });
+
+    updateServiceTableItem([row]);
+  };
 
   const { rights: branchRights } = useAssignBranchRight();
   const isDiscountApprovalRequired =
@@ -513,6 +680,7 @@ const OpdBilling = () => {
   const paymentCollectionInitializingRef = useRef(false);
   const referDoctorListRef = useRef<ReferDoctorItem[]>([]);
   const registrationChargeAddedRef = useRef<boolean>(false);
+  const preBookingBoundRef = useRef<boolean>(false);
 
   useEffect(() => {
     paymentCollectionInitRef.current = false;
@@ -605,19 +773,24 @@ const OpdBilling = () => {
     if (isPaymentCollectionMode) return;
 
     const fetchPatientData = async () => {
-      SetServiceDataTableItem([]);
-      serviceDataTableItemRef.current = [];
-      serviceItemRemarksRef.current = {};
-      SetServiceItemList([]);
-      setSearchTerm("");
-      setShowPopup(false);
-      setShowDuplicateError("");
-      setPackagePayload([]);
-      setIsPackageUrgent(0);
-      setSelectDoctorError("");
-      registrationChargeAddedRef.current = false;
+      const isInitialPreBooking = preBookingBoundRef.current;
+      if (isInitialPreBooking) {
+        preBookingBoundRef.current = false;
+      } else {
+        SetServiceDataTableItem([]);
+        serviceDataTableItemRef.current = [];
+        serviceItemRemarksRef.current = {};
+        SetServiceItemList([]);
+        setSearchTerm("");
+        setShowPopup(false);
+        setShowDuplicateError("");
+        setPackagePayload([]);
+        setIsPackageUrgent(0);
+        setSelectDoctorError("");
+        registrationChargeAddedRef.current = false;
 
-      calculateAndUpdateBillingDetails([]);
+        calculateAndUpdateBillingDetails([]);
+      }
 
       const resp = await getPatientDataByPatientId(
         fetchApi,
@@ -632,42 +805,44 @@ const OpdBilling = () => {
         ...resp,
       }));
 
-      const insId = Number(resp?.insuranceCompanyId ?? resp?.InsuranceCompanyId ?? 0);
-      const corpId = Number(resp?.corporateId ?? resp?.CorporateId ?? 0);
+      if (!isInitialPreBooking) {
+        const insId = Number(resp?.insuranceCompanyId ?? resp?.InsuranceCompanyId ?? 0);
+        const corpId = Number(resp?.corporateId ?? resp?.CorporateId ?? 0);
 
-      setSelectedInsurance(insId);
-      if (insId) {
-        const list = await getCorporateList(insId);
-        const matched = list.find(
-          (c: Record<string, unknown>) => Number(c.corporateId ?? c.CorporateId) === corpId
-        );
-        if (matched) {
-          setSelectedCorporate({
-            value: matched.corporateId,
-            label: matched.corporateName,
-          });
-          void loadCorporateOpdRateListIds(matched.corporateId);
+        setSelectedInsurance(insId);
+        if (insId) {
+          const list = await getCorporateList(insId);
+          const matched = list.find(
+            (c: Record<string, unknown>) => Number(c.corporateId ?? c.CorporateId) === corpId
+          );
+          if (matched) {
+            setSelectedCorporate({
+              value: matched.corporateId,
+              label: matched.corporateName,
+            });
+            void loadCorporateOpdRateListIds(matched.corporateId);
+          } else {
+            setSelectedCorporate(defaultCorporate);
+            void loadCorporateOpdRateListIds(defaultCorporate.value);
+          }
         } else {
+          setCorporateList([]);
           setSelectedCorporate(defaultCorporate);
           void loadCorporateOpdRateListIds(defaultCorporate.value);
         }
-      } else {
-        setCorporateList([]);
-        setSelectedCorporate(defaultCorporate);
-        void loadCorporateOpdRateListIds(defaultCorporate.value);
-      }
 
-      setOpdBillingFormData(prev => ({
-        ...prev,
-        insuranceCompanyId: insId,
-        corporateId: corpId || 1,
-      }));
+        setOpdBillingFormData(prev => ({
+          ...prev,
+          insuranceCompanyId: insId,
+          corporateId: corpId || 1,
+        }));
 
-      if (resp?.doctorId) {
-        const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
+        if (resp?.doctorId) {
+          const doctor = await getDoctorMaster(fetchApi, Number(resp.doctorId), "opdBilling");
 
-        if (doctor) {
-          setSelectedDoctor(doctor);
+          if (doctor) {
+            setSelectedDoctor(doctor);
+          }
         }
       }
 
@@ -2607,6 +2782,20 @@ const OpdBilling = () => {
       }));
       setTotalBillingAmount(0);
       setBillingPaymentDetails({});
+      setBillingValues({
+        grossBillAmount: 0,
+        totalDiscPerOnBill: 0,
+        totalDiscAmtOnBill: 0,
+        roundOff: 0,
+        netAmount: 0,
+        balanceAmount: 0,
+        discApprovedById: 0,
+        discApprovedName: "",
+        discountReason: "",
+        remarks: "",
+      });
+      setPaymentDetails([]);
+      billingDetailsRef.current?.reset?.();
       return;
     }
 
@@ -3413,9 +3602,24 @@ const OpdBilling = () => {
       //  extract response
       await fetchAndPrintOpdBillAfterSave(responseData);
 
-      // reset after print
+      if (opdAppointmentConfirmationPatientDetails?.AppId > 0) {
+        const confirmResp = await fetchApi(
+          "PATCH",
+          ENDPOINTS.CONFIRM_DOCTOR_APPOINTMENT_PRE_BOOKING,
+          {},
+          { params: { id: Number(opdAppointmentConfirmationPatientDetails.AppId) } },
+          { component: "OpdBilling" }
+        );
+
+        if (!confirmResp?.result) {
+          showWarning(
+            confirmResp?.message ?? "Billing saved, but failed to confirm pre-booked appointment."
+          );
+        }
+      }
+
       setTimeout(() => {
-        resetForm();
+        resetFormAndClearNavigation(Boolean(locationState.fromPaymentCollection));
       }, 300);
 
       return saveBillingResp;
@@ -3560,6 +3764,7 @@ const OpdBilling = () => {
     showPaymentMode: isPaymentCollectionMode,
     hasDiscountApplied: hasBillingDiscount(),
     bookingDetails: isPaymentCollectionMode ? (bookingDetails ?? null) : null,
+    opdAppointmentConfirmation: opdAppointmentConfirmationPatientDetails,
   };
 
   return (

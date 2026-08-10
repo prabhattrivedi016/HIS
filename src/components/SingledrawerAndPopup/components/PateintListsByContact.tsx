@@ -1,5 +1,5 @@
 import CentralPopup from "@/components/centralPopup";
-import { PatientSearchResultTableHeader } from "@/constants/tableHeaders";
+import { PatientSearchByContactTableHeader } from "@/constants/tableHeaders";
 
 interface PatientListItem {
   PatientId: number;
@@ -37,7 +37,7 @@ const PateintListssByContact = <T extends PatientListItem>({
       title="Patient Search Results"
       onClose={onClose || (() => {})}
       isOpen={showPopup}
-      className="w-[95vw] lg:min-w-[800px]"
+      className="w-[95vw] lg:min-w-250"
     >
       <div className="table-container mt-2">
         <div className="table-scroll-wrapper">
@@ -45,7 +45,7 @@ const PateintListssByContact = <T extends PatientListItem>({
             <table className="base-table">
               <thead className="table-head">
                 <tr>
-                  {PatientSearchResultTableHeader.map((h, index) => (
+                  {PatientSearchByContactTableHeader.map((h, index) => (
                     <th key={index} className="table-th">
                       {h}
                     </th>
@@ -57,7 +57,7 @@ const PateintListssByContact = <T extends PatientListItem>({
                 {data?.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={PatientSearchResultTableHeader.length}
+                      colSpan={PatientSearchByContactTableHeader.length}
                       className="table-empty text-center py-4"
                     >
                       No records found
@@ -67,13 +67,17 @@ const PateintListssByContact = <T extends PatientListItem>({
                   data.map((item: any, idx: number) => {
                     const uhid = item?.uhid ?? item?.UHID ?? "-";
                     const name = item?.patientName ?? item?.PatientName ?? "-";
-                    const age = item?.age ?? item?.Age ?? "-";
+                    const dobRaw = item?.dob ?? item?.DOB ?? "-";
+                    const dob = dobRaw !== "-" ? dobRaw.split("T")[0] : "-";
                     const gender = item?.gender ?? item?.Gender ?? "-";
                     const contact = item?.contactNumber ?? item?.ContactNumber ?? "-";
-                    const emergencyContact =
-                      item?.emergencyContactNumber ?? item?.EmergencyContactNumber ?? "-";
-                    const idProof = item?.idProofNumber ?? item?.IdProofNumber ?? "-";
-                    const address = item?.address ?? item?.Address ?? "-";
+
+                    const address =
+                      item?.address ??
+                      item?.Address ??
+                      item?.fullAddress ??
+                      item?.FullAddress ??
+                      "-";
                     const regDate = item?.registrationDate ?? item?.RegistrationDate ?? "-";
 
                     return (
@@ -82,16 +86,15 @@ const PateintListssByContact = <T extends PatientListItem>({
                         className="table-row cursor-pointer hover:bg-blue-50 transition-colors"
                         onClick={() => onSelect(item)}
                       >
-                        <td className="table-td font-semibold">{idx + 1}</td>
-                        <td className="table-td font-semibold">{uhid}</td>
+                        <td className="table-td ">{idx + 1}</td>
+                        <td className="table-td ">{uhid}</td>
 
-                        <td className="table-td font-medium">{name}</td>
-                        <td className="table-td">{age}</td>
+                        <td className="table-td">{name}</td>
+                        <td className="table-td">{dob}</td>
                         <td className="table-td">{gender}</td>
                         <td className="table-td">{contact}</td>
                         <td className="table-td">{address}</td>
                         <td className="table-td">{regDate}</td>
-                        <td className="table-td">{ipdNo}</td>
                       </tr>
                     );
                   })

@@ -732,6 +732,7 @@ type OpdBillingSectionProps = {
   bookingDetails?: OpdBookingDetailsResponse | null;
   isPaymentCollectionMode?: boolean;
   rowDoctorChangeHandler?: (rowIndex: number, doctorId: number, doctorName: string) => void;
+  opdAppointmentConfirmation?: any;
 };
 
 type PatientAdvanceItem = {

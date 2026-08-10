@@ -86,6 +86,7 @@ const OpdBillingSection = ({
   bookingDetails = null,
   isPaymentCollectionMode = false,
   rowDoctorChangeHandler,
+  opdAppointmentConfirmation,
 }: OpdBillingSectionProps) => {
   const [qtyDrafts, setQtyDrafts] = useState<Record<number, string>>({});
 
@@ -98,9 +99,43 @@ const OpdBillingSection = ({
   }, [formResetKey, serviceDataTableItem.length]);
 
   useEffect(() => {
-    setPatientAdvanceChecked(false);
-    setPatientAdvanceAmount(0);
-  }, [formResetKey]);
+    const fetchPatientAdvanceOnLoad = async () => {
+      if (opdAppointmentConfirmation?.ReceiptId > 0) {
+        setPatientAdvanceChecked(true);
+        const fallbackAmount = Number(opdAppointmentConfirmation.Amount ?? 0);
+
+        if (patientId) {
+          try {
+            const patientAdvance = await fetchApi(
+              "GET",
+              ENDPOINTS.GET_PATIENT_LEDGER_BILL,
+              {},
+              { params: { patientId } },
+              { component: "OpdBillingSection" }
+            );
+
+            const ledgerDetails =
+              normalizeAdvanceLedgerDetails(patientAdvance?.data, patientId) ??
+              getDefaultAdvanceLedgerDetails(patientId);
+            const availableAdvance = Number(ledgerDetails.TotalNetAmt ?? 0);
+            setPatientAdvanceAmount(
+              availableAdvance > 0 ? availableAdvance : fallbackAmount
+            );
+          } catch (err) {
+            console.error("Error fetching patient advance:", err);
+            setPatientAdvanceAmount(fallbackAmount);
+          }
+        } else {
+          setPatientAdvanceAmount(fallbackAmount);
+        }
+      } else {
+        setPatientAdvanceChecked(false);
+        setPatientAdvanceAmount(0);
+      }
+    };
+
+    void fetchPatientAdvanceOnLoad();
+  }, [formResetKey, opdAppointmentConfirmation, patientId]);
 
   const getQtyDisplayValue = (rowIndex: number, item: ServiceBindingItem, isQtyFixed: boolean) => {
     if (isQtyFixed) return "1";

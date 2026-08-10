@@ -442,6 +442,17 @@ export const PatientSearchResultTableHeader = [
   "Ipd No",
 ];
 
+export const PatientSearchByContactTableHeader = [
+  "#",
+  "UHID",
+  "Ptient Name",
+  "DOB",
+  "Gender",
+  "Contact Number",
+  "Address",
+  "Registration Date",
+];
+
 export const OpdBillingServiceTableHeader = [
   "#",
   "Service Name",
