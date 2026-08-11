@@ -1,4 +1,5 @@
 import { ReportAnnotationStroke, ReportAnnotationTool } from "@/store/useVisitReportsStore";
+import { safeRandomUUID } from "@/utils/uuid";
 import Konva from "konva";
 import { useRef, useState } from "react";
 
@@ -30,7 +31,7 @@ export const useStrokeDrawing = ({
     if (!pos) return;
     isDrawingRef.current = true;
     setLiveStroke({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       tool,
       points: SHAPE_TOOLS.has(tool) ? [pos.x, pos.y, pos.x, pos.y] : [pos.x, pos.y],
       color,

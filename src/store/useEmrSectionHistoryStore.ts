@@ -1,3 +1,4 @@
+import { safeRandomUUID } from "@/utils/uuid";
 import { create } from "zustand";
 import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
 
@@ -96,7 +97,7 @@ export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
 
       logEdit: entry =>
         set(state => ({
-          editLog: [...state.editLog, { ...entry, id: crypto.randomUUID() }].slice(-MAX_ENTRIES),
+          editLog: [...state.editLog, { ...entry, id: safeRandomUUID() }].slice(-MAX_ENTRIES),
         })),
 
       // one snapshot per (patientId, sectionId, calendar day) — the History strip's tabs are
@@ -114,7 +115,7 @@ export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
                   sameCalendarDay(v.recordedOn, entry.recordedOn)
                 )
             ),
-            { ...entry, id: crypto.randomUUID() },
+            { ...entry, id: safeRandomUUID() },
           ].slice(-MAX_ENTRIES),
         })),
 

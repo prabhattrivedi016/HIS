@@ -8,6 +8,7 @@ import { usePickMaster } from "@/hooks/usePickMaster";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { safeRandomUUID } from "@/utils/uuid";
 import { BookmarkCheck, Layers, Package, Plus, Star, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -73,7 +74,7 @@ interface MedicineListControlProps {
 }
 
 const emptyScheduleRow = (): MedicineDoseScheduleRow => ({
-  id: crypto.randomUUID(),
+  id: safeRandomUUID(),
   doseQty: "",
   doseUnit: "",
   frequency: "",
@@ -369,7 +370,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
       return;
     }
     const newEntry: MedicineListEntry = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       medicineName: name,
       serviceItemId: option.key,
       isTapering: isTaperingMode,
@@ -402,7 +403,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   const handleApplyOrderSet = (rows: Record<string, unknown>[]) => {
     mergeMedicines(
       rows.map(row => ({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         medicineName: String(row.medicineName ?? ""),
         isTapering: isTaperingMode,
         isVariableDose: false,
@@ -420,7 +421,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
       showWarning("No previous medicines found for this patient");
       return;
     }
-    mergeMedicines(pastEntries.map(e => ({ ...e, id: crypto.randomUUID() })));
+    mergeMedicines(pastEntries.map(e => ({ ...e, id: safeRandomUUID() })));
   };
 
   const updateEntry = (entryId: string, patch: Partial<MedicineListEntry>) => {
@@ -509,7 +510,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     onChange([
       ...entries,
       {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         medicineName: name,
         isTapering: isTaperingMode,
         isVariableDose: false,
