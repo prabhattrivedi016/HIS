@@ -187,14 +187,21 @@ const EmrSectionRenderer = ({
   const { fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const logEdit = useEmrSectionHistoryStore(s => s.logEdit);
-  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
+  // subscribe to the raw array (not the getVisitSnapshots function, which never changes identity
+  // across store updates) so a Save-triggered addVisitSnapshot actually re-renders this strip
+  // instead of only showing up after a full remount/navigation
+  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
   const previousValuesRef = useRef<Record<number, unknown> | null>(null);
 
   // 6 most recent past-visit snapshots for this section — getVisitSnapshots already sorts
   // newest-first, so this is just the top slice
   const recentVisitSnapshots = useMemo(
-    () => (patientId ? getVisitSnapshots(patientId, sectionId).slice(0, 6) : []),
-    [patientId, sectionId, getVisitSnapshots]
+    () =>
+      patientId
+        ? useEmrSectionHistoryStore.getState().getVisitSnapshots(patientId, sectionId).slice(0, 6)
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patientId, sectionId, visitSnapshotsRaw]
   );
 
   const getSectionHeaderMapping = async (): Promise<SectionHeaderMappingRecord[]> => {

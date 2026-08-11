@@ -8,6 +8,7 @@ import { usePickMaster } from "@/hooks/usePickMaster";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { safeRandomUUID } from "@/utils/uuid";
 import { BookmarkCheck, Layers, Package, Plus, Star, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -73,7 +74,7 @@ interface MedicineListControlProps {
 }
 
 const emptyScheduleRow = (): MedicineDoseScheduleRow => ({
-  id: crypto.randomUUID(),
+  id: safeRandomUUID(),
   doseQty: "",
   doseUnit: "",
   frequency: "",
@@ -307,10 +308,19 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     headerId
   );
 
-  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
+  // subscribe to the raw array (not the getVisitSnapshots function, which never changes identity
+  // across store updates) so a Save-triggered addVisitSnapshot actually re-renders this strip
+  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
   const recentSnapshots = useMemo(
-    () => (schema.patientId ? getVisitSnapshots(schema.patientId, sectionId).slice(0, 6) : []),
-    [schema.patientId, sectionId, getVisitSnapshots]
+    () =>
+      schema.patientId
+        ? useEmrSectionHistoryStore
+            .getState()
+            .getVisitSnapshots(schema.patientId, sectionId)
+            .slice(0, 6)
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [schema.patientId, sectionId, visitSnapshotsRaw]
   );
 
   useEffect(() => {
@@ -360,7 +370,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
       return;
     }
     const newEntry: MedicineListEntry = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       medicineName: name,
       serviceItemId: option.key,
       isTapering: isTaperingMode,
@@ -393,7 +403,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   const handleApplyOrderSet = (rows: Record<string, unknown>[]) => {
     mergeMedicines(
       rows.map(row => ({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         medicineName: String(row.medicineName ?? ""),
         isTapering: isTaperingMode,
         isVariableDose: false,
@@ -411,7 +421,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
       showWarning("No previous medicines found for this patient");
       return;
     }
-    mergeMedicines(pastEntries.map(e => ({ ...e, id: crypto.randomUUID() })));
+    mergeMedicines(pastEntries.map(e => ({ ...e, id: safeRandomUUID() })));
   };
 
   const updateEntry = (entryId: string, patch: Partial<MedicineListEntry>) => {
@@ -500,7 +510,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     onChange([
       ...entries,
       {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         medicineName: name,
         isTapering: isTaperingMode,
         isVariableDose: false,

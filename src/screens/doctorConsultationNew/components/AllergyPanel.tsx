@@ -47,6 +47,8 @@ interface AllergyRecord {
   verificationStatus: string;
   snomedCode: string;
   notKnownAllergy: number;
+  /** true when `id` is the real backend allergy-detail id (loaded from GET_PATIENT_ALLERGY_DETAIL_LIST) */
+  isPersisted: boolean;
 }
 
 interface AllergyPanelProps {
@@ -140,6 +142,7 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
         verificationStatus: r.VerificationStatus ?? r.verificationStatus ?? "",
         snomedCode: r.SnomedCode ?? r.snomedCode ?? "",
         notKnownAllergy: r.NotKnownAllergy ?? r.notKnownAllergy ?? 0,
+        isPersisted: true,
       }))
     );
     const hasNoKnown = data.some(r => (r.NotKnownAllergy ?? r.notKnownAllergy ?? 0) === 1);
@@ -323,9 +326,11 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
   };
 
   const handleSave = () => {
+    const existingRecord = editId > 0 ? allergyRecords.find(r => r.id === editId) : undefined;
+
     const record: AllergyRecord = {
       id: editId > 0 ? editId : Date.now(),
-      date: editId > 0 ? (allergyRecords.find(r => r.id === editId)?.date ?? "") : "",
+      date: existingRecord?.date ?? "",
       allergyId: selectedAllergenId,
       allergy: allergenOptions.find(a => Number(a.id) === Number(selectedAllergenId))?.name ?? "",
       allergyTypeId: selectedTypeId,
@@ -337,6 +342,9 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
       verificationStatus,
       snomedCode: snomedCode || "",
       notKnownAllergy: notKnownAllergy ? 1 : 0,
+      // editing an already-persisted record keeps its real id; a brand-new record (added and
+      // edited again before ever being saved) stays unpersisted until the next Allergy save call
+      isPersisted: existingRecord?.isPersisted ?? false,
     };
 
     setAllergyRecords(prev =>
@@ -383,6 +391,7 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
         verificationStatus: r.verificationStatus,
         snomedCode: r.snomedCode,
         notKnownAllergy: r.notKnownAllergy,
+        isPersisted: r.isPersisted,
       })),
     });
     onClose();

@@ -1,3 +1,4 @@
+import { safeRandomUUID } from "@/utils/uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -77,7 +78,7 @@ export const useVisitReportsStore = create<VisitReportsState>()(
           headerId: entry.headerId,
           controlTypeId: entry.controlTypeId,
           fileName: entry.fileName,
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           pages: entry.pages.map(page => ({ ...page, strokes: [] })),
           uploadedOn: now,
           updatedOn: now,

@@ -1,3 +1,4 @@
+import { safeRandomUUID } from "@/utils/uuid";
 import { create } from "zustand";
 import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
 
@@ -96,7 +97,7 @@ export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
 
       logEdit: entry =>
         set(state => ({
-          editLog: [...state.editLog, { ...entry, id: crypto.randomUUID() }].slice(-MAX_ENTRIES),
+          editLog: [...state.editLog, { ...entry, id: safeRandomUUID() }].slice(-MAX_ENTRIES),
         })),
 
       // one snapshot per (patientId, sectionId, calendar day) — the History strip's tabs are
@@ -114,7 +115,7 @@ export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
                   sameCalendarDay(v.recordedOn, entry.recordedOn)
                 )
             ),
-            { ...entry, id: crypto.randomUUID() },
+            { ...entry, id: safeRandomUUID() },
           ].slice(-MAX_ENTRIES),
         })),
 
@@ -123,10 +124,22 @@ export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
           .editLog.filter(e => e.patientId === patientId && e.sectionId === sectionId)
           .sort((a, b) => b.changedOn.localeCompare(a.changedOn)),
 
-      getVisitSnapshots: (patientId, sectionId) =>
-        get()
+      // dedupes down to one (the most recent) entry per calendar day — addVisitSnapshot only
+      // prevents same-day duplicates going forward, so this also collapses any that already made
+      // it into localStorage before that write-time dedup existed, instead of showing every
+      // history strip with as many identically-dated tabs as there were stray Save clicks
+      getVisitSnapshots: (patientId, sectionId) => {
+        const sorted = get()
           .visitSnapshots.filter(v => v.patientId === patientId && v.sectionId === sectionId)
-          .sort((a, b) => b.recordedOn.localeCompare(a.recordedOn)),
+          .sort((a, b) => b.recordedOn.localeCompare(a.recordedOn));
+
+        const deduped: EmrSectionVisitSnapshotEntry[] = [];
+        sorted.forEach(snapshot => {
+          if (deduped.some(kept => sameCalendarDay(kept.recordedOn, snapshot.recordedOn))) return;
+          deduped.push(snapshot);
+        });
+        return deduped;
+      },
     }),
     {
       name: "emr-section-history",

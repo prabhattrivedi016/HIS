@@ -6,6 +6,7 @@ import { useVisitReportsStore, VisitReportDocument } from "@/store/useVisitRepor
 import { showWarning } from "@/utils/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
+import { motion } from "framer-motion";
 import {
   BookmarkCheck,
   Check,
@@ -1462,9 +1463,18 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
           {entries.map((entry, idx) => (
             // deliberately not the shared ".card" class — EmrSectionRenderer strips ".card"
             // styling (bg/border/shadow/padding) for the outer per-section wrapper, and that
-            // override would otherwise reach these nested entry cards too
-            <div
+            // override would otherwise reach these nested entry cards too.
+            // `layout` gives the other cards a smooth slide when one is added/removed; the
+            // initial/animate pair only plays for a genuinely new DOM node (a freshly appended
+            // entry at the new last index) since edits reuse the same index — array index as key
+            // is intentional here, not a stand-in for a missing id (see handleSave: entries have
+            // no stable id, and duplicate field values are explicitly allowed)
+            <motion.div
               key={idx}
+              layout
+              initial={{ opacity: 0, y: 10, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 32 }}
               className={`relative w-full bg-white border rounded-xl shadow-sm hover:shadow-md overflow-hidden transition-all ${
                 editingIndex === idx
                   ? "border-indigo-300 ring-2 ring-indigo-100"
@@ -1525,7 +1535,7 @@ const CardGroupControl = ({ schema, value, onChange }: ControlRenderProps) => {
                   })}
                 </dl>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

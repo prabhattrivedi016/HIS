@@ -1,10 +1,9 @@
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import {
-  EmrSectionEditLogEntry,
   EmrSectionVisitSnapshotEntry,
   useEmrSectionHistoryStore,
 } from "@/store/useEmrSectionHistoryStore";
-import { History as HistoryIcon, ListChecks, Sparkles } from "lucide-react";
+import { History as HistoryIcon, ListChecks } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
 import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
@@ -56,65 +55,12 @@ const formatValue = (value: unknown) => {
 
 const sectionLabel = (s: HistorySectionOption) => s.displayName || s.sectionName;
 
-// stand-in rows shown until the backend (GET_EMR_SECTION_HISTORY / GET_EMR_SECTION_EDIT_LOG)
-// exists — only used when there's no real data yet, and only once a section's headers are
-// known, so the sample rows can show the section's actual columns
-const buildDummyVisitSnapshots = (
-  headers: SectionHeaderMappingRecord[],
-  sectionId: number,
-  sectionName: string,
-  patientId: number
-): EmrSectionVisitSnapshotEntry[] => {
-  const sampleDoctors = ["Dr. Sample Sharma", "Dr. Sample Rao", "Dr. Sample Verma"];
-  return [3, 12, 34].map((daysAgo, idx) => {
-    const recordedOn = new Date();
-    recordedOn.setDate(recordedOn.getDate() - daysAgo);
-    return {
-      id: `dummy-visit-${sectionId}-${idx}`,
-      patientId,
-      sectionId,
-      sectionName,
-      visitId: 0,
-      doctorId: 0,
-      doctorName: sampleDoctors[idx % sampleDoctors.length],
-      recordedOn: recordedOn.toISOString(),
-      values: headers.map(h => ({
-        headerId: h.headerId,
-        headerName: h.displayName || h.headerName,
-        controlType: h.controlType,
-        value: `Sample ${h.displayName || h.headerName} ${idx + 1}`,
-      })),
-    };
-  });
-};
-
-const buildDummyEditLog = (
-  headers: SectionHeaderMappingRecord[],
-  sectionId: number,
-  patientId: number
-): EmrSectionEditLogEntry[] =>
-  [1, 26, 70].map((hoursAgo, idx) => {
-    const changedOn = new Date();
-    changedOn.setHours(changedOn.getHours() - hoursAgo);
-    const header = headers[idx % headers.length];
-    return {
-      id: `dummy-edit-${sectionId}-${idx}`,
-      patientId,
-      sectionId,
-      headerId: header.headerId,
-      headerName: header.displayName || header.headerName,
-      oldValue: `Sample old value ${idx + 1}`,
-      newValue: `Sample new value ${idx + 1}`,
-      changedBy: 0,
-      changedByName: "Sample Doctor",
-      changedOn: changedOn.toISOString(),
-    };
-  });
-
 /**
  * Reads from useEmrSectionHistoryStore (localStorage) — a stand-in for
- * GET_EMR_SECTION_HISTORY / GET_EMR_SECTION_EDIT_LOG until those exist on the backend, at which
- * point the sample-data fallback below just stops firing (real entries always take precedence).
+ * GET_EMR_SECTION_HISTORY / GET_EMR_SECTION_EDIT_LOG until those exist on the backend (see the
+ * TODOs in config/defaults/index.ts). Only ever shows real entries this browser has recorded via
+ * a Save on this device — there's no fabricated placeholder data, since "sample" rows that look
+ * like real clinical history are actively misleading.
  * Chrome mirrors VitalInsights.tsx/VitalHistory.tsx so it reads as the same feature.
  */
 const EmrSectionHistoryDrawer = ({
@@ -128,8 +74,11 @@ const EmrSectionHistoryDrawer = ({
 }: EmrSectionHistoryDrawerProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("visits");
   const [selectedSectionId, setSelectedSectionId] = useState(initialSectionId);
-  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
-  const getEditLog = useEmrSectionHistoryStore(s => s.getEditLog);
+  // subscribe to the raw arrays (not the getVisitSnapshots/getEditLog functions, whose identity
+  // never changes across store updates) so a Save-triggered addVisitSnapshot/logEdit actually
+  // re-renders this drawer instead of only showing up after it's closed and reopened
+  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
+  const editLogRaw = useEmrSectionHistoryStore(s => s.editLog);
 
   useEffect(() => {
     if (isOpen) setSelectedSectionId(initialSectionId);
@@ -141,43 +90,19 @@ const EmrSectionHistoryDrawer = ({
     [headersBySection, selectedSectionId]
   );
 
-  const realVisitSnapshots = useMemo(
-    () => (patientId ? getVisitSnapshots(patientId, selectedSectionId) : []),
-    [patientId, selectedSectionId, getVisitSnapshots]
-  );
-  const realEditLog = useMemo(
-    () => (patientId ? getEditLog(patientId, selectedSectionId) : []),
-    [patientId, selectedSectionId, getEditLog]
-  );
-
-  const isVisitsDummy = realVisitSnapshots.length === 0 && selectedHeaders.length > 0;
-  const isEditLogDummy = realEditLog.length === 0 && selectedHeaders.length > 0;
-
   const visitSnapshots = useMemo(
     () =>
-      isVisitsDummy
-        ? buildDummyVisitSnapshots(
-            selectedHeaders,
-            selectedSectionId,
-            selectedSection ? sectionLabel(selectedSection) : "",
-            patientId ?? 0
-          )
-        : realVisitSnapshots,
-    [
-      isVisitsDummy,
-      selectedHeaders,
-      selectedSectionId,
-      selectedSection,
-      patientId,
-      realVisitSnapshots,
-    ]
+      patientId
+        ? useEmrSectionHistoryStore.getState().getVisitSnapshots(patientId, selectedSectionId)
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patientId, selectedSectionId, visitSnapshotsRaw]
   );
   const editLog = useMemo(
     () =>
-      isEditLogDummy
-        ? buildDummyEditLog(selectedHeaders, selectedSectionId, patientId ?? 0)
-        : realEditLog,
-    [isEditLogDummy, selectedHeaders, selectedSectionId, patientId, realEditLog]
+      patientId ? useEmrSectionHistoryStore.getState().getEditLog(patientId, selectedSectionId) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patientId, selectedSectionId, editLogRaw]
   );
 
   const handleCopySnapshotValues = (values: EmrSectionVisitSnapshotEntry["values"]) => {
@@ -187,8 +112,6 @@ const EmrSectionHistoryDrawer = ({
   };
 
   if (!isOpen) return null;
-
-  const showSampleBanner = activeTab === "visits" ? isVisitsDummy : isEditLogDummy;
 
   return (
     <>
@@ -255,17 +178,15 @@ const EmrSectionHistoryDrawer = ({
             </button>
           </div>
 
-          {showSampleBanner && (
-            <div className="flex items-center gap-1.5 px-5 py-2 bg-amber-50 border-b border-amber-100 text-amber-700 text-[11px] font-medium shrink-0">
-              <Sparkles size={12} />
-              Showing sample data — this section has no saved history yet.
-            </div>
-          )}
-
           {activeTab === "visits" ? (
             <div className="flex-1 flex flex-col min-h-0 px-5 py-3 overflow-y-auto">
               {selectedHeaders.length === 0 && visitSnapshots.length === 0 ? (
                 <p className="table-empty">Open this section at least once to load its history</p>
+              ) : visitSnapshots.length === 0 ? (
+                <p className="table-empty">
+                  No past-visit history saved for this section yet — it will appear here after you
+                  Save this section on a future visit from this device.
+                </p>
               ) : (
                 <PreviousSectionVisitsStrip
                   snapshots={visitSnapshots}

@@ -1,4 +1,5 @@
 import { MEDICINE_WHEN_OPTIONS } from "@/config/medicineDoseOptions";
+import { safeRandomUUID } from "@/utils/uuid";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
@@ -40,7 +41,7 @@ const buildDefaultSchedule = (
     date.setDate(today.getDate() + i);
     const label = formatDate(date);
     return {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       fromDate: label,
       toDate: label,
       days: "1",
