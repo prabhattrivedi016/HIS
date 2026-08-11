@@ -1,3 +1,12 @@
+/* native wheel/keyboard/focus scrolling glides instead of jumping — the click-to-section
+   scrollspy in ConsultationEmrSections already does its own smooth container.scrollTo(), this
+   covers every other way these panels scroll */
+.emr-sidebar,
+.emr-content,
+.emr-tabbar {
+  scroll-behavior: smooth;
+}
+
 @media (max-width: 1024px) {
   .emr-sidebar {
     width: 13rem;

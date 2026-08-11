@@ -307,10 +307,19 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     headerId
   );
 
-  const getVisitSnapshots = useEmrSectionHistoryStore(s => s.getVisitSnapshots);
+  // subscribe to the raw array (not the getVisitSnapshots function, which never changes identity
+  // across store updates) so a Save-triggered addVisitSnapshot actually re-renders this strip
+  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
   const recentSnapshots = useMemo(
-    () => (schema.patientId ? getVisitSnapshots(schema.patientId, sectionId).slice(0, 6) : []),
-    [schema.patientId, sectionId, getVisitSnapshots]
+    () =>
+      schema.patientId
+        ? useEmrSectionHistoryStore
+            .getState()
+            .getVisitSnapshots(schema.patientId, sectionId)
+            .slice(0, 6)
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [schema.patientId, sectionId, visitSnapshotsRaw]
   );
 
   useEffect(() => {

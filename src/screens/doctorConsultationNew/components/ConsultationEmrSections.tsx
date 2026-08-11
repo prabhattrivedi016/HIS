@@ -786,7 +786,7 @@ const ConsultationEmrSections = ({
         <div className="text-center text-gray-400 py-10 text-sm">No active EMR sections found</div>
       ) : layout === "vertical" ? (
         <div className="flex emr-shell">
-          <div className="emr-sidebar flex flex-col w-64 shrink-0 min-h-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[760px] overflow-y-auto scrollbar-none">
+          <div className="emr-sidebar flex flex-col w-64 shrink-0 min-h-0 border-r border-slate-100 bg-gradient-to-b from-blue-50 via-sky-50/50 to-white p-2.5 max-h-[760px] overflow-y-auto">
             {/* scroll-progress rail — tracks the active section's position in the list as you scroll */}
             <div className="relative">
               <div className="absolute left-[7px] top-1 bottom-1 w-[3px] rounded-full bg-slate-200/70" />
