@@ -26,7 +26,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
-import { showSuccess } from "@/utils/alert";
+import { showError, showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { DateRangePicker } from "react-date-range";
@@ -39,6 +39,7 @@ import PrintPreviewModal from "./components/PrintPreviewModal";
 import UploadDocumentModal from "./components/UploadDocumentModal";
 import VitalInsights from "./components/VitalInsights";
 import {
+  AllergyRecordEntry,
   AllergySection,
   ConsultationHeaderDataEntry,
   EmrSectionAnswerEntry,
@@ -161,6 +162,70 @@ const DoctorConsultationNew = () => {
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
   const updateVital = (vitalId: number, val: string) =>
     setVitalsData(prev => ({ ...prev, [vitalId]: val }));
+
+  // eagerly loads this patient's saved allergy details as soon as a patient is selected, so the
+  // allergy badge is already populated by the time the consultation loads rather than staying
+  // empty until the doctor manually opens the Allergy panel. Fired from the patient-select click
+  // handler (below) as the very first statement — dispatched synchronously there, before
+  // setSelectedPatient triggers the re-render that mounts/updates ConsultationEmrSections, so
+  // this GET_PATIENT_ALLERGY_DETAIL_LIST call always goes out before that component's own
+  // GET_DOCTOR_CONSULTATION_BY_VISIT_ID call. Mirrors AllergyPanel's own load/summary logic —
+  // kept as a separate copy here since AllergyPanel's local AllergyRecord shape differs (extra
+  // UI-only fields like `date`) and isn't a fit to share directly.
+  const loadAllergySectionForPatient = async (patientId: number) => {
+    if (!patientId) return;
+
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_ALLERGY_DETAIL_LIST,
+      {},
+      { params: { patientId } },
+      { component: "DoctorConsultationNew", silent: true }
+    );
+
+    const rows: any[] = resp?.data ?? [];
+
+    const records: AllergyRecordEntry[] = rows.map(r => ({
+      id: Number(r.Id ?? r.id ?? 0),
+      allergyId: Number(r.AllergyId ?? r.allergyId ?? 0),
+      allergyName: r.AllergyName ?? r.allergyName ?? "",
+      allergyTypeId: Number(r.AllergyTypeId ?? r.allergyTypeId ?? 0),
+      allergyType: r.AllergyType ?? r.allergyType ?? "",
+      reaction: r.Reaction ?? r.reaction ?? "",
+      remarks: r.Remarks ?? r.remarks ?? "",
+      interactionSeverity: r.InteractionSeverity ?? r.interactionSeverity ?? "",
+      clinicalStatus: r.ClinicalStatus ?? r.clinicalStatus ?? "",
+      verificationStatus: r.VerificationStatus ?? r.verificationStatus ?? "",
+      snomedCode: r.SnomedCode ?? r.snomedCode ?? "",
+      notKnownAllergy: Number(r.NotKnownAllergy ?? r.notKnownAllergy ?? 0),
+      isPersisted: true,
+    }));
+
+    const notKnownAllergy = rows.some(
+      r => Number(r.NotKnownAllergy ?? r.notKnownAllergy ?? 0) === 1
+    );
+
+    // same grouping/format as AllergyPanel's buildAllergySummary — "Type: name1,name2 ; Type2: name3"
+    const order: string[] = [];
+    const groups: Record<string, string[]> = {};
+    records.forEach(r => {
+      if (!r.allergyName) return;
+      const type = r.allergyType || "Other";
+      if (!groups[type]) {
+        groups[type] = [];
+        order.push(type);
+      }
+      groups[type].push(r.allergyName);
+    });
+
+    const summary =
+      notKnownAllergy && records.length === 0
+        ? "No Known Allergy"
+        : order.map(type => `${type}: ${groups[type].join(",")}`).join(" ; ");
+
+    setAllergySection({ summary: summary || null, notKnownAllergy, records });
+  };
+
   const getPatientLists = async () => {
     const resp = await fetchApi(
       "GET",
@@ -324,8 +389,8 @@ const DoctorConsultationNew = () => {
   //
   // vitals/allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
   // attribute-type concept) — they aren't sent here. Vitals currently have no save endpoint at
-  // all; allergy has one (SAVE_PATIENT_ALLERGY) but isn't wired up yet — flagging rather than
-  // silently dropping data callers might expect saved.
+  // all. Allergy is saved separately via saveAllergyDetails() (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS,
+  // one row per record) as a gate before handleFinalSave calls SAVE_PATIENT_CONSULTATION.
   const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
     if (!selectedPatient) return null;
 
@@ -356,8 +421,54 @@ const DoctorConsultationNew = () => {
     };
   }, [selectedPatient, emrSectionsData]);
 
+  // Allergy has its own save endpoint (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS), one row per
+  // allergy record — it doesn't fit SAVE_PATIENT_CONSULTATION's flat EMR-header contract, so it
+  // must be persisted separately before the final save. `id` is only sent for a record already
+  // persisted (loaded from GET_PATIENT_ALLERGY_DETAIL_LIST, or saved earlier this session); a
+  // record added in this session but never saved sends id 0 so the backend inserts it.
+  const saveAllergyDetails = async (): Promise<boolean> => {
+    if (!selectedPatient || !allergySection || allergySection.records.length === 0) {
+      return true;
+    }
+
+    for (const record of allergySection.records) {
+      const resp = await fetchApi(
+        "POST",
+        ENDPOINTS.CREATE_UPDATE_PATIENT_ALLERGY_DETAILS,
+        {
+          id: record.isPersisted ? record.id : 0,
+          patientId: selectedPatient.PatientId,
+          allergyId: record.allergyId,
+          allergyName: record.allergyName,
+          allergyTypeId: record.allergyTypeId,
+          allergyType: record.allergyType,
+          reaction: record.reaction,
+          remarks: record.remarks,
+          interactionSeverity: record.interactionSeverity,
+          clinicalStatus: record.clinicalStatus,
+          verificationStatus: record.verificationStatus,
+          snomedCode: record.snomedCode,
+          notKnownAllergy: record.notKnownAllergy,
+        },
+        {},
+        { component: "DoctorConsultationNew" }
+      );
+
+      if (!resp?.result) {
+        showError(resp?.message ?? `Failed to save allergy "${record.allergyName || "record"}"`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleFinalSave = async () => {
     if (!consultationPayload) return;
+
+    const isAllergySaved = await saveAllergyDetails();
+    if (!isAllergySaved) return;
+
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_PATIENT_CONSULTATION,
@@ -629,9 +740,12 @@ const DoctorConsultationNew = () => {
                     <div
                       key={`${item.VisitId}-${item.DoctorId}-${item.Id}-${item.AppointmentNo}`}
                       onClick={() => {
+                        // dispatched first so GET_PATIENT_ALLERGY_DETAIL_LIST always goes out
+                        // before ConsultationEmrSections' GET_DOCTOR_CONSULTATION_BY_VISIT_ID call
+                        void loadAllergySectionForPatient(item.PatientId);
+                        setAllergySection(null);
                         setSelectedPatient(item);
                         setLeftPanelVisible(false);
-                        setAllergySection(null);
                       }}
                       className={`w-full rounded-xl border shadow-sm p-2.5 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
                         isSelected
@@ -1086,7 +1200,7 @@ const DoctorConsultationNew = () => {
       <AllergyPanel
         isOpen={showAllergyPanel}
         onClose={() => setShowAllergyPanel(false)}
-        patientId={selectedPatient?.VisitId}
+        patientId={selectedPatient?.PatientId}
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
       />

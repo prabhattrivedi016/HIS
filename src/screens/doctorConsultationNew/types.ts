@@ -53,6 +53,12 @@ type AllergyRecordEntry = {
   verificationStatus: string;
   snomedCode: string;
   notKnownAllergy: number;
+  /** true when `id` is a real CREATE_UPDATE_PATIENT_ALLERGY_DETAILS row id (loaded from
+   * GET_PATIENT_ALLERGY_DETAIL_LIST or already saved this session) — false when `id` is only a
+   * local, client-generated key for a record added in this session but not yet persisted, in
+   * which case the save payload must send id 0 so the backend inserts instead of updating an
+   * unrelated row. */
+  isPersisted: boolean;
 };
 
 type AllergySection = {
