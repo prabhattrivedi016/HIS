@@ -6,8 +6,10 @@ import {
   ChevronRight,
   Droplet,
   Edit,
+  FileCheck,
   Gauge,
   HeartPulse,
+  LogOut,
   LucideIcon,
   Printer,
   Ruler,
@@ -25,9 +27,8 @@ import { NavLink } from "react-router-dom";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { showError, showSuccess } from "@/utils/alert";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
@@ -127,9 +128,9 @@ const formatDate = (date: Date) =>
 
 const DoctorConsultationNew = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const queryClient = useQueryClient();
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
-  const addVisitSnapshot = useEmrSectionHistoryStore(s => s.addVisitSnapshot);
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -157,6 +158,9 @@ const DoctorConsultationNew = () => {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
+  // a closed file is locked: every EMR/allergy/vitals field renders read-only and none of the
+  // Save buttons can fire another save on it
+  const isFileClosed = selectedPatient?.IsConsultationDone === 1;
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
@@ -463,8 +467,18 @@ const DoctorConsultationNew = () => {
     return true;
   };
 
-  const handleFinalSave = async () => {
+  // "Save", "Save & Out", and "Save & File Close" all hit the same SAVE_PATIENT_CONSULTATION
+  // endpoint with the same consultationHeadersData — the only thing that actually differs on the
+  // wire is consultationDetails.isFileClosed (0 for Save/Out, 1 for File Close). "Out" has no
+  // backend flag of its own (confirmed) — it behaves exactly like Save, just also returns the
+  // doctor to the patient list afterward instead of staying on this consultation.
+  const handleFinalSave = async (options?: {
+    isFileClosed?: 0 | 1;
+    goBackAfterSave?: boolean;
+    goToTab?: string;
+  }) => {
     if (!consultationPayload) return;
+    const isFileClosed = options?.isFileClosed ?? 0;
 
     const isAllergySaved = await saveAllergyDetails();
     if (!isAllergySaved) return;
@@ -472,12 +486,17 @@ const DoctorConsultationNew = () => {
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_PATIENT_CONSULTATION,
-      consultationPayload,
+      {
+        ...consultationPayload,
+        consultationDetails: { ...consultationPayload.consultationDetails, isFileClosed },
+      },
       {},
       { component: "DoctorConsultationNew" }
     );
     if (resp?.result) {
-      showSuccess("Consultation saved successfully");
+      showSuccess(
+        isFileClosed ? "Consultation saved and file closed" : "Consultation saved successfully"
+      );
       confetti({
         particleCount: 90,
         spread: 75,
@@ -486,40 +505,24 @@ const DoctorConsultationNew = () => {
         colors: ["#6366f1", "#a855f7", "#ec4899", "#10b981", "#06b6d4"],
       });
 
-      // stand-in for GET_EMR_SECTION_HISTORY until the backend endpoint exists —
-      // see useEmrSectionHistoryStore for the intended API contract
+      // this visit's data (and possibly a brand-new visit entry) just changed on the backend —
+      // refetch so the "Past Visits" history (usePatientVisitHistory) picks it up next time it's
+      // opened instead of serving a stale react-query cache. Also refresh the patient list so its
+      // Pending/Out/File Close tab counts reflect whatever this save just changed server-side.
       if (selectedPatient) {
-        const bySectionId = new Map<
-          number,
-          { sectionName: string; entries: EmrSectionAnswerEntry[] }
-        >();
-        emrSectionsData.forEach(e => {
-          const bucket = bySectionId.get(e.sectionId) ?? {
-            sectionName: e.sectionName,
-            entries: [],
-          };
-          bucket.entries.push(e);
-          bySectionId.set(e.sectionId, bucket);
+        queryClient.invalidateQueries({
+          queryKey: ["patientVisitHistory", selectedPatient.PatientId],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["doctorConsultationByVisitId", selectedPatient.VisitId],
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["getPatientLists"] });
 
-        const recordedOn = new Date().toISOString();
-        bySectionId.forEach(({ sectionName, entries }, sectionId) => {
-          addVisitSnapshot({
-            patientId: selectedPatient.PatientId,
-            sectionId,
-            sectionName,
-            visitId: selectedPatient.VisitId,
-            doctorId: selectedPatient.DoctorId,
-            doctorName: selectedPatient.DoctorName,
-            recordedOn,
-            values: entries.map(e => ({
-              headerId: e.headerId,
-              headerName: e.headerName,
-              controlType: e.controlType,
-              value: e.value,
-            })),
-          });
-        });
+      if (options?.goToTab) setActiveTab(options.goToTab);
+      if (options?.goBackAfterSave) {
+        setSelectedPatient(null);
+        setLeftPanelVisible(true);
       }
     }
   };
@@ -950,7 +953,8 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={() => setShowUploadDocument(true)}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+                          disabled={isFileClosed}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
                         >
                           <Upload size={14} />
                           Upload Document
@@ -977,14 +981,45 @@ const DoctorConsultationNew = () => {
                           <Printer size={14} />
                           Print
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleFinalSave}
-                          className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
-                        >
-                          <Save size={14} />
-                          Save
-                        </button>
+                        {isFileClosed ? (
+                          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-3 sm:px-4 py-1.5">
+                            <FileCheck size={14} />
+                            File Closed — read only
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleFinalSave()}
+                              className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                            >
+                              <Save size={14} />
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleFinalSave({ goBackAfterSave: true, goToTab: "out" })}
+                              className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                            >
+                              <LogOut size={14} />
+                              Save &amp; Out
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleFinalSave({
+                                  isFileClosed: 1,
+                                  goBackAfterSave: true,
+                                  goToTab: "fileClose",
+                                })
+                              }
+                              className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                            >
+                              <FileCheck size={14} />
+                              Save &amp; File Close
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -1083,8 +1118,9 @@ const DoctorConsultationNew = () => {
                                   type="text"
                                   value={v.value}
                                   onChange={e => updateVital(v.key, e.target.value)}
+                                  disabled={isFileClosed}
                                   placeholder="--"
-                                  className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 ${
+                                  className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                     v.value ? v.text : "text-slate-300"
                                   }`}
                                 />
@@ -1159,8 +1195,9 @@ const DoctorConsultationNew = () => {
                                     type="text"
                                     value={v.value}
                                     onChange={e => updateVital(v.key, e.target.value)}
+                                    disabled={isFileClosed}
                                     placeholder="--"
-                                    className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 ${
+                                    className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                       v.value ? v.text : "text-slate-300"
                                     }`}
                                   />
@@ -1184,6 +1221,7 @@ const DoctorConsultationNew = () => {
                 visitId={selectedPatient?.VisitId}
                 usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
+                disabled={isFileClosed}
               />
             </div>
           )}
@@ -1203,6 +1241,7 @@ const DoctorConsultationNew = () => {
         patientId={selectedPatient?.PatientId}
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
+        disabled={isFileClosed}
       />
       <PrintPreviewModal
         isOpen={showPrintPreview}

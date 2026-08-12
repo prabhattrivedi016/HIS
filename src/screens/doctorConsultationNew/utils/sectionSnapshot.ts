@@ -2,7 +2,8 @@ import { setByPath } from "@/components/dynamicForm/utils/path";
 import { resolveCompactFormSectionConfig } from "@/config/compactFormSections";
 import { resolveGenericAttributeGroupColumns } from "@/config/genericAttributeGroups";
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
-import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
+import { PatientVisitHistoryEntry } from "../hooks/usePatientVisitHistory";
+import { EmrSectionVisitSnapshotEntry } from "../types";
 
 export const mapControlType = (controlType: string): string => {
   const key = (controlType || "")
@@ -130,6 +131,43 @@ export const applySnapshotToSectionData = (
     (acc, entry) => setByPath(acc, `section_${sectionId}.header_${entry.headerId}`, entry.value),
     data
   );
+};
+
+/** turns one section's raw rows from usePatientVisitHistory's getSectionRows(sectionId) into
+ * display-ready snapshots — resolves each row's HeaderId to a real headerName/controlType via this
+ * section's own header mapping (the raw API rows carry neither), and JSON.parses HeaderValue the
+ * same way ConsultationEmrSections does for the current visit */
+export const buildVisitSnapshots = (
+  sectionId: number,
+  sectionRows: PatientVisitHistoryEntry[],
+  headers: SectionHeaderMappingRecord[]
+): EmrSectionVisitSnapshotEntry[] => {
+  const headerNameById = new Map(headers.map(h => [h.headerId, h.displayName || h.headerName]));
+  const controlTypeById = new Map(headers.map(h => [h.headerId, h.controlType]));
+
+  return sectionRows.map(entry => ({
+    id: `${entry.visitId}-${sectionId}`,
+    visitId: entry.visitId,
+    doctorId: entry.doctorId,
+    doctorName: entry.doctorName,
+    recordedOn: entry.recordedOn,
+    values: entry.rows
+      .filter(r => headerNameById.has(r.HeaderId))
+      .map(r => {
+        let value: unknown;
+        try {
+          value = JSON.parse(r.HeaderValue);
+        } catch {
+          value = r.HeaderValue;
+        }
+        return {
+          headerId: r.HeaderId,
+          headerName: headerNameById.get(r.HeaderId) ?? "",
+          controlType: controlTypeById.get(r.HeaderId) ?? "",
+          value,
+        };
+      }),
+  }));
 };
 
 export const isEmptyValue = (value: unknown): boolean => {

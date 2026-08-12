@@ -127,14 +127,39 @@ type RawConsultationHeaderRow = {
   HeaderValue: string;
 };
 
+/** one row exactly as GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID returns it — PascalCase wire shape,
+ * same convention as RawConsultationHeaderRow */
+type PatientVisitSummary = {
+  VisitId: number;
+  /** "dd-mm-yyyy" */
+  VisitDate: string;
+  DoctorId: number;
+  DoctorName: string;
+};
+
+/** a section's saved values from one past visit, ready for display — built by
+ * usePatientVisitHistory + buildVisitSnapshots (utils/sectionSnapshot.ts) out of
+ * GET_DOCTOR_CONSULTATION_BY_VISIT_ID rows joined against that section's header mapping */
+type EmrSectionVisitSnapshotEntry = {
+  id: string;
+  visitId: number;
+  doctorId: number;
+  doctorName: string;
+  /** ISO yyyy-mm-dd */
+  recordedOn: string;
+  values: { headerId: number; headerName: string; controlType: string; value: unknown }[];
+};
+
 export type {
   AllergyRecordEntry,
   AllergySection,
   ConsultationDetails,
   ConsultationHeaderDataEntry,
   EmrSectionAnswerEntry,
+  EmrSectionVisitSnapshotEntry,
   PatientConsultationPayload,
   PatientItem,
+  PatientVisitSummary,
   RawConsultationHeaderRow,
   VitalEntry,
 };

@@ -1,11 +1,10 @@
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
-import {
-  EmrSectionVisitSnapshotEntry,
-  useEmrSectionHistoryStore,
-} from "@/store/useEmrSectionHistoryStore";
-import { History as HistoryIcon, ListChecks } from "lucide-react";
+import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
+import { History as HistoryIcon, ListChecks, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
+import { usePatientVisitHistory } from "../hooks/usePatientVisitHistory";
+import { EmrSectionVisitSnapshotEntry } from "../types";
+import { applySnapshotToSectionData, buildVisitSnapshots } from "../utils/sectionSnapshot";
 import PreviousSectionVisitsStrip from "./PreviousSectionVisitsStrip";
 
 interface HistorySectionOption {
@@ -56,11 +55,10 @@ const formatValue = (value: unknown) => {
 const sectionLabel = (s: HistorySectionOption) => s.displayName || s.sectionName;
 
 /**
- * Reads from useEmrSectionHistoryStore (localStorage) — a stand-in for
- * GET_EMR_SECTION_HISTORY / GET_EMR_SECTION_EDIT_LOG until those exist on the backend (see the
- * TODOs in config/defaults/index.ts). Only ever shows real entries this browser has recorded via
- * a Save on this device — there's no fabricated placeholder data, since "sample" rows that look
- * like real clinical history are actively misleading.
+ * "Past Visits" reads real data via usePatientVisitHistory (GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID
+ * + GET_DOCTOR_CONSULTATION_BY_VISIT_ID per past visit). "Edit Log" still reads from
+ * useEmrSectionHistoryStore (localStorage) — a stand-in for GET_EMR_SECTION_EDIT_LOG until that
+ * exists on the backend (see the TODO in config/defaults/index.ts).
  * Chrome mirrors VitalInsights.tsx/VitalHistory.tsx so it reads as the same feature.
  */
 const EmrSectionHistoryDrawer = ({
@@ -74,11 +72,11 @@ const EmrSectionHistoryDrawer = ({
 }: EmrSectionHistoryDrawerProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("visits");
   const [selectedSectionId, setSelectedSectionId] = useState(initialSectionId);
-  // subscribe to the raw arrays (not the getVisitSnapshots/getEditLog functions, whose identity
-  // never changes across store updates) so a Save-triggered addVisitSnapshot/logEdit actually
-  // re-renders this drawer instead of only showing up after it's closed and reopened
-  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
+  // subscribe to the raw array (whose identity never changes across store updates) so a
+  // Save-triggered logEdit actually re-renders this drawer instead of only showing up after it's
+  // closed and reopened
   const editLogRaw = useEmrSectionHistoryStore(s => s.editLog);
+  const { isLoading: isHistoryLoading, getSectionRows } = usePatientVisitHistory(patientId);
 
   useEffect(() => {
     if (isOpen) setSelectedSectionId(initialSectionId);
@@ -91,12 +89,8 @@ const EmrSectionHistoryDrawer = ({
   );
 
   const visitSnapshots = useMemo(
-    () =>
-      patientId
-        ? useEmrSectionHistoryStore.getState().getVisitSnapshots(patientId, selectedSectionId)
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [patientId, selectedSectionId, visitSnapshotsRaw]
+    () => buildVisitSnapshots(selectedSectionId, getSectionRows(selectedSectionId), selectedHeaders),
+    [selectedSectionId, getSectionRows, selectedHeaders]
   );
   const editLog = useMemo(
     () =>
@@ -180,13 +174,15 @@ const EmrSectionHistoryDrawer = ({
 
           {activeTab === "visits" ? (
             <div className="flex-1 flex flex-col min-h-0 px-5 py-3 overflow-y-auto">
-              {selectedHeaders.length === 0 && visitSnapshots.length === 0 ? (
+              {isHistoryLoading ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-10">
+                  <Loader2 size={16} className="animate-spin" />
+                  Loading past visits…
+                </div>
+              ) : selectedHeaders.length === 0 && visitSnapshots.length === 0 ? (
                 <p className="table-empty">Open this section at least once to load its history</p>
               ) : visitSnapshots.length === 0 ? (
-                <p className="table-empty">
-                  No past-visit history saved for this section yet — it will appear here after you
-                  Save this section on a future visit from this device.
-                </p>
+                <p className="table-empty">No past-visit history found for this section.</p>
               ) : (
                 <PreviousSectionVisitsStrip
                   snapshots={visitSnapshots}

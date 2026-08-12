@@ -16,33 +16,8 @@ export interface EmrSectionEditLogEntry {
   changedOn: string;
 }
 
-/** a full snapshot of a section's saved values from one past consultation */
-export interface EmrSectionVisitSnapshotEntry {
-  id: string;
-  patientId: number;
-  sectionId: number;
-  sectionName: string;
-  visitId: number;
-  doctorId: number;
-  doctorName: string;
-  recordedOn: string;
-  values: { headerId: number; headerName: string; controlType: string; value: unknown }[];
-}
-
 /** keeps only the most recent N entries so localStorage doesn't grow unbounded */
 const MAX_ENTRIES = 500;
-
-/** local calendar day comparison — matches the dd-mm-yyyy grouping the History strip's tabs are
- * labelled with (PreviousSectionVisitsStrip's formatTabDate) */
-const sameCalendarDay = (isoA: string, isoB: string) => {
-  const a = new Date(isoA);
-  const b = new Date(isoB);
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-};
 
 /** localStorage's quota is per-origin and shared with everything else this app stores there —
  * if this store's own history ever pushes it over the edge, drop back to a small recent slice
@@ -62,7 +37,6 @@ const safeLocalStorage: StateStorage = {
           state: {
             ...state,
             editLog: (state.editLog ?? []).slice(-50),
-            visitSnapshots: (state.visitSnapshots ?? []).slice(-50),
           },
         };
         localStorage.setItem(name, JSON.stringify(trimmed));
@@ -76,70 +50,31 @@ const safeLocalStorage: StateStorage = {
 
 interface EmrSectionHistoryStore {
   editLog: EmrSectionEditLogEntry[];
-  visitSnapshots: EmrSectionVisitSnapshotEntry[];
   logEdit: (entry: Omit<EmrSectionEditLogEntry, "id">) => void;
-  addVisitSnapshot: (entry: Omit<EmrSectionVisitSnapshotEntry, "id">) => void;
   getEditLog: (patientId: number, sectionId: number) => EmrSectionEditLogEntry[];
-  getVisitSnapshots: (patientId: number, sectionId: number) => EmrSectionVisitSnapshotEntry[];
 }
 
 /**
- * Local stand-in for the EMR section History feature (both the edit/change audit trail and
- * past-visit snapshots) until the backend endpoints exist — see the GET_EMR_SECTION_HISTORY /
- * GET_EMR_SECTION_EDIT_LOG TODOs in config/defaults/index.ts for the intended API contract,
- * which mirrors these two entry shapes.
+ * Local stand-in for the EMR section edit/change audit trail (the "Edit Log" tab) until
+ * GET_EMR_SECTION_EDIT_LOG / SAVE_EMR_SECTION_EDIT_LOG exist on the backend — see the TODO in
+ * config/defaults/index.ts. The "Past Visits" tab is no longer backed by this store — it reads
+ * real data via usePatientVisitHistory (GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID +
+ * GET_DOCTOR_CONSULTATION_BY_VISIT_ID).
  */
 export const useEmrSectionHistoryStore = create<EmrSectionHistoryStore>()(
   persist(
     (set, get) => ({
       editLog: [],
-      visitSnapshots: [],
 
       logEdit: entry =>
         set(state => ({
           editLog: [...state.editLog, { ...entry, id: safeRandomUUID() }].slice(-MAX_ENTRIES),
         })),
 
-      // one snapshot per (patientId, sectionId, calendar day) — the History strip's tabs are
-      // labelled by day, so saving more than once on the same day (repeat Save clicks, or more
-      // than one visit that day) must replace that day's existing entry, not pile up duplicate
-      // same-date tabs
-      addVisitSnapshot: entry =>
-        set(state => ({
-          visitSnapshots: [
-            ...state.visitSnapshots.filter(
-              v =>
-                !(
-                  v.patientId === entry.patientId &&
-                  v.sectionId === entry.sectionId &&
-                  sameCalendarDay(v.recordedOn, entry.recordedOn)
-                )
-            ),
-            { ...entry, id: safeRandomUUID() },
-          ].slice(-MAX_ENTRIES),
-        })),
-
       getEditLog: (patientId, sectionId) =>
         get()
           .editLog.filter(e => e.patientId === patientId && e.sectionId === sectionId)
           .sort((a, b) => b.changedOn.localeCompare(a.changedOn)),
-
-      // dedupes down to one (the most recent) entry per calendar day — addVisitSnapshot only
-      // prevents same-day duplicates going forward, so this also collapses any that already made
-      // it into localStorage before that write-time dedup existed, instead of showing every
-      // history strip with as many identically-dated tabs as there were stray Save clicks
-      getVisitSnapshots: (patientId, sectionId) => {
-        const sorted = get()
-          .visitSnapshots.filter(v => v.patientId === patientId && v.sectionId === sectionId)
-          .sort((a, b) => b.recordedOn.localeCompare(a.recordedOn));
-
-        const deduped: EmrSectionVisitSnapshotEntry[] = [];
-        sorted.forEach(snapshot => {
-          if (deduped.some(kept => sameCalendarDay(kept.recordedOn, snapshot.recordedOn))) return;
-          deduped.push(snapshot);
-        });
-        return deduped;
-      },
     }),
     {
       name: "emr-section-history",

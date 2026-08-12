@@ -11,7 +11,6 @@ import {
   EmrSectionMappingTableItem,
   SectionHeaderMappingRecord,
 } from "@/screens/emrControls/types";
-import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
 import { useEmrSectionLayout } from "@/store/useEmrSectionLayout";
 import "@/styles/emr.css";
 import { showError, showSuccess } from "@/utils/alert";
@@ -47,7 +46,11 @@ import {
   useState,
 } from "react";
 import { useInView } from "react-intersection-observer";
-import { EmrSectionAnswerEntry, RawConsultationHeaderRow } from "../types";
+import {
+  EmrSectionAnswerEntry,
+  EmrSectionVisitSnapshotEntry,
+  RawConsultationHeaderRow,
+} from "../types";
 import CircularProgress from "./CircularProgress";
 import EmrSectionHistoryDrawer from "./EmrSectionHistoryDrawer";
 import EmrSectionRenderer from "./EmrSectionRenderer";
@@ -62,6 +65,12 @@ interface ConsultationEmrSectionsProps {
    * server-side; defaults to 1 (OPD) if not passed */
   usedForPatientTypeId?: number;
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
+  /** true once this visit's file is closed — every section renders read-only (no field edits, no
+   * favorites/history/annotator actions) instead of threading a readOnly prop through every
+   * individual control, since blocking pointer events on this component's own root covers all of
+   * them (including nested portal popups, since their trigger buttons live inside this root too
+   * and pointer-events-none stops the click from ever reaching them) */
+  disabled?: boolean;
 }
 
 const getSectionIcon = (name: string): LucideIcon => {
@@ -325,6 +334,7 @@ const ConsultationEmrSections = ({
   visitId,
   usedForPatientTypeId,
   onSectionsChange,
+  disabled,
 }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
   const { layout, toggleLayout } = useEmrSectionLayout();
@@ -730,7 +740,12 @@ const ConsultationEmrSections = ({
   }, [isMoreOpen]);
 
   return (
-    <div className="relative rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mt-3 overflow-hidden bg-white">
+    <div
+      className={`relative rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] mt-3 overflow-hidden bg-white ${
+        disabled ? "pointer-events-none opacity-60 select-none" : ""
+      }`}
+      aria-disabled={disabled}
+    >
       {/* ── glow header ── */}
       <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
         <div className="flex items-center gap-2">
@@ -831,43 +846,50 @@ const ConsultationEmrSections = ({
               any, renders inline here even though it has no nav pill above */}
           <div
             ref={setScrollContainerRef}
-            className="emr-content flex-1 min-w-0 p-4 min-h-72 max-h-[760px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
+            className={`emr-content flex-1 min-w-0 p-4 min-h-72 max-h-[760px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50 ${
+              disabled ? "pointer-events-auto" : ""
+            }`}
           >
-            {renderSections.map(section => {
-              const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
-              const isActive = section.sectionId === activeSectionId;
-              return (
-                <SectionCard
-                  key={section.sectionId}
-                  sectionId={section.sectionId}
-                  isActive={isActive}
-                  accent={sectionAccent}
-                  innerRef={setSectionElRef(section.sectionId)}
-                  rootEl={scrollContainerEl}
-                  onVisibilityChange={handleSectionVisibility}
-                >
-                  <EmrSectionRenderer
+            {/* see the horizontal-layout emr-content below for why pointer-events-auto/none
+                alternate here — keeps this right-hand content pane scrollable while disabled */}
+            <div className={disabled ? "pointer-events-none" : ""}>
+              {renderSections.map(section => {
+                const sectionAccent =
+                  accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
+                const isActive = section.sectionId === activeSectionId;
+                return (
+                  <SectionCard
+                    key={section.sectionId}
                     sectionId={section.sectionId}
-                    sectionName={section.sectionName}
-                    displayName={section.displayName}
-                    data={data}
-                    onDataChange={setData}
-                    onHeadersLoaded={headers =>
-                      setHeadersBySection(prev => ({ ...prev, [section.sectionId]: headers }))
-                    }
-                    doctorId={doctorId}
-                    patientId={patientId}
-                    visitId={visitId}
+                    isActive={isActive}
                     accent={sectionAccent}
-                    onOpenHistory={() => setHistorySectionId(section.sectionId)}
-                    onProgressChange={handleSectionProgress}
-                    onEntriesChange={handleSectionEntries}
-                    savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
-                    savedDataIdsByHeaderId={savedDataIdsByHeaderId}
-                  />
-                </SectionCard>
-              );
-            })}
+                    innerRef={setSectionElRef(section.sectionId)}
+                    rootEl={scrollContainerEl}
+                    onVisibilityChange={handleSectionVisibility}
+                  >
+                    <EmrSectionRenderer
+                      sectionId={section.sectionId}
+                      sectionName={section.sectionName}
+                      displayName={section.displayName}
+                      data={data}
+                      onDataChange={setData}
+                      onHeadersLoaded={headers =>
+                        setHeadersBySection(prev => ({ ...prev, [section.sectionId]: headers }))
+                      }
+                      doctorId={doctorId}
+                      patientId={patientId}
+                      visitId={visitId}
+                      accent={sectionAccent}
+                      onOpenHistory={() => setHistorySectionId(section.sectionId)}
+                      onProgressChange={handleSectionProgress}
+                      onEntriesChange={handleSectionEntries}
+                      savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
+                      savedDataIdsByHeaderId={savedDataIdsByHeaderId}
+                    />
+                  </SectionCard>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : (
@@ -1027,43 +1049,53 @@ const ConsultationEmrSections = ({
               any, renders inline here even though it has no nav tab above */}
           <div
             ref={setScrollContainerRef}
-            className="emr-content p-4 min-h-72 max-h-[720px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50"
+            className={`emr-content p-4 min-h-72 max-h-[720px] overflow-y-auto scrollbar-none bg-gradient-to-br from-sky-50 via-blue-50/60 to-slate-50 ${
+              disabled ? "pointer-events-auto" : ""
+            }`}
           >
-            {renderSections.map(section => {
-              const sectionAccent = accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
-              const isActive = section.sectionId === activeSectionId;
-              return (
-                <SectionCard
-                  key={section.sectionId}
-                  sectionId={section.sectionId}
-                  isActive={isActive}
-                  accent={sectionAccent}
-                  innerRef={setSectionElRef(section.sectionId)}
-                  rootEl={scrollContainerEl}
-                  onVisibilityChange={handleSectionVisibility}
-                >
-                  <EmrSectionRenderer
+            {/* disabled re-blocks interaction with the actual fields — pointer-events-auto just
+                above (overriding the inherited "none" from this component's root) is what lets
+                the scroll container itself still catch wheel/touch/scrollbar input so a closed
+                file's already-filled sections can still be scrolled through and read, just not
+                edited */}
+            <div className={disabled ? "pointer-events-none" : ""}>
+              {renderSections.map(section => {
+                const sectionAccent =
+                  accentBySectionId.get(section.sectionId) ?? SECTION_ACCENTS[0];
+                const isActive = section.sectionId === activeSectionId;
+                return (
+                  <SectionCard
+                    key={section.sectionId}
                     sectionId={section.sectionId}
-                    sectionName={section.sectionName}
-                    displayName={section.displayName}
-                    data={data}
-                    onDataChange={setData}
-                    onHeadersLoaded={headers =>
-                      setHeadersBySection(prev => ({ ...prev, [section.sectionId]: headers }))
-                    }
-                    doctorId={doctorId}
-                    patientId={patientId}
-                    visitId={visitId}
+                    isActive={isActive}
                     accent={sectionAccent}
-                    onOpenHistory={() => setHistorySectionId(section.sectionId)}
-                    onProgressChange={handleSectionProgress}
-                    onEntriesChange={handleSectionEntries}
-                    savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
-                    savedDataIdsByHeaderId={savedDataIdsByHeaderId}
-                  />
-                </SectionCard>
-              );
-            })}
+                    innerRef={setSectionElRef(section.sectionId)}
+                    rootEl={scrollContainerEl}
+                    onVisibilityChange={handleSectionVisibility}
+                  >
+                    <EmrSectionRenderer
+                      sectionId={section.sectionId}
+                      sectionName={section.sectionName}
+                      displayName={section.displayName}
+                      data={data}
+                      onDataChange={setData}
+                      onHeadersLoaded={headers =>
+                        setHeadersBySection(prev => ({ ...prev, [section.sectionId]: headers }))
+                      }
+                      doctorId={doctorId}
+                      patientId={patientId}
+                      visitId={visitId}
+                      accent={sectionAccent}
+                      onOpenHistory={() => setHistorySectionId(section.sectionId)}
+                      onProgressChange={handleSectionProgress}
+                      onEntriesChange={handleSectionEntries}
+                      savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
+                      savedDataIdsByHeaderId={savedDataIdsByHeaderId}
+                    />
+                  </SectionCard>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
