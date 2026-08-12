@@ -13,7 +13,6 @@ import {
   LucideIcon,
   Printer,
   Ruler,
-  Save,
   Scale,
   Stethoscope,
   Thermometer,
@@ -51,12 +50,25 @@ import {
 interface VitalMasterItem {
   vitalId: number;
   vitalName: string;
-  unitID: number;
   unitName: string;
   minValue: string;
   maxValue: string;
+}
+
+/** raw wire shape of GET_VITAL_DEPARTMENT_MAPPING_BY_DOCTOR_ID
+ * (EMR/getVitalDepartmentMappingByDoctorId) — already scoped/ordered for one doctor, so unlike
+ * the generic admin mapping endpoint there's no MappingId to filter by or SequenceNo to sort by */
+interface VitalDepartmentMappingItem {
+  VitalId: number;
+  VitalName: string;
+  UnitId: number;
+  UnitName: string;
+  MinValue: string;
+  MaxValue: string;
   SnomedCode: string | null;
-  IsActive: number;
+  IsMandatory: number;
+  IsBodyMeasurement: number;
+  VitalValue: string;
 }
 
 const VITAL_ACCENTS = [
@@ -363,20 +375,31 @@ const DoctorConsultationNew = () => {
     queryFn: getDoctorList,
   });
 
-  const getVitalMasterList = async (): Promise<VitalMasterItem[]> => {
+  // vitals shown are scoped to the treating doctor. Falls back to no vitals at all until a
+  // patient (and therefore a doctor) is selected, rather than showing every vital in the system
+  // unfiltered.
+  const getVitalsForDoctor = async (doctorId: number): Promise<VitalMasterItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_VITAL_MASTER_LIST,
+      ENDPOINTS.GET_VITAL_DEPARTMENT_MAPPING_BY_DOCTOR_ID,
       {},
-      { params: { isActive: 1 } },
+      { params: { doctorId } },
       { component: "DoctorConsultationNew" }
     );
-    return resp?.data ?? [];
+    const data: VitalDepartmentMappingItem[] = resp?.data ?? [];
+    return data.map(v => ({
+      vitalId: v.VitalId,
+      vitalName: v.VitalName,
+      unitName: v.UnitName,
+      minValue: v.MinValue,
+      maxValue: v.MaxValue,
+    }));
   };
 
   const { data: vitalMasterList = [] } = useQuery({
-    queryKey: ["getVitalMasterList"],
-    queryFn: getVitalMasterList,
+    queryKey: ["getVitalsForDoctor", selectedPatient?.DoctorId],
+    queryFn: () => getVitalsForDoctor(selectedPatient!.DoctorId),
+    enabled: selectedPatient?.DoctorId != null,
   });
 
   const vitalsList = vitalMasterList.map((v: VitalMasterItem) => v.vitalName);
@@ -988,14 +1011,6 @@ const DoctorConsultationNew = () => {
                           </span>
                         ) : (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => handleFinalSave()}
-                              className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
-                            >
-                              <Save size={14} />
-                              Save
-                            </button>
                             <button
                               type="button"
                               onClick={() => handleFinalSave({ goBackAfterSave: true, goToTab: "out" })}

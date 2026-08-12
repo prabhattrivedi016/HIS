@@ -276,7 +276,7 @@ const VitalMasterForm = () => {
         minValue: min,
         maxValue: max,
         active: isActive,
-        snomedCode: snomedCode || null,
+        snomedCode: snomedCode || "",
       },
       {},
       { component: "VitalMaster" }
@@ -406,26 +406,6 @@ const VitalMasterForm = () => {
               </button>
             </div>
 
-            {unitOptions.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {unitOptions.map((u) => (
-                  <span
-                    key={u.id}
-                    onClick={() => {
-                      setSelectedUnit(u);
-                      setErrors((p) => ({ ...p, unit: undefined }));
-                    }}
-                    className={`cursor-pointer text-xs px-2.5 py-0.5 rounded-full border font-medium transition-all select-none
-                      ${selectedUnit != null && selectedUnit.unitName === u.unitName
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                        : "bg-gray-50 text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
-                      }`}
-                  >
-                    {u.unitName}
-                  </span>
-                ))}
-              </div>
-            )}
             {errors.unit && (
               <p className="text-red-500 text-xs mt-1">{errors.unit}</p>
             )}

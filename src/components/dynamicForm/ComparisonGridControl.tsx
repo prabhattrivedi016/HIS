@@ -67,7 +67,6 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
  * each config flag does — adding a new differently-shaped grid never needs a change here.
  */
 const ComparisonGridControl = ({ schema, value, onChange }: ComparisonGridControlProps) => {
-  debugger;
   const config = resolveComparisonGridConfig(schema.gridConfigName ?? schema.label ?? "");
   const gridValue: ComparisonGridValue = (value as ComparisonGridValue) ?? {};
   const rowValues = gridValue.rows ?? {};
