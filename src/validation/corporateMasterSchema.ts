@@ -84,6 +84,7 @@ export const corporateMasterSchema = yup.object().shape({
   //         .filter(v => Number.isFinite(v) && v > 0).length > 0
   //   ),
   rateListIdIPD: yup.string().nullable(),
+  isRegistrationChargeApplicable: yup.number().nullable(),
 });
 
 export type CorporateMasterFormItem = InferType<typeof corporateMasterSchema>;

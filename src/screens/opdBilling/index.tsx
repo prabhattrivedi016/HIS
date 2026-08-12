@@ -15,7 +15,6 @@ import {
   OPDBillingTabName,
   PageType,
   PaymentTypeValues,
-  Status,
 } from "@/constants/constants";
 import { AuthContext } from "@/context/AuthContext";
 import { BillingAmountContext } from "@/context/BillingAmountContext";
@@ -1830,7 +1829,7 @@ const OpdBilling = () => {
   }, [corporateList, selectedInsurance]);
 
   // corporate select handler
-  const corporateSelectHandler = (option: OptionItem | null) => {
+  const corporateSelectHandler = async (option: OptionItem | null) => {
     setSelectedCorporateError("");
     if (!option) {
       setSelectedCorporate(null);
@@ -1853,6 +1852,39 @@ const OpdBilling = () => {
       corporateId: Number(option?.value || 1),
     }));
     void loadCorporateOpdRateListIds(Number(option.value));
+
+    // Handle registration charge addition/removal dynamically based on selected corporate
+    const isRegChargeApplicable = selected
+      ? Number(selected.isRegistrationChargeApplicable) === 1
+      : true;
+
+    if (!isRegChargeApplicable) {
+      // Remove registration charge row if it exists in the table
+      const filteredServices = serviceDataTableItemRef.current.filter(
+        s => Number(s?.isRegistrationCharge) !== 1
+      );
+      if (filteredServices.length !== serviceDataTableItemRef.current.length) {
+        updateServiceTableItem(filteredServices);
+        calculateAndUpdateBillingDetails(filteredServices);
+        registrationChargeAddedRef.current = false;
+      }
+    } else if (ispatientRegistartionChargeRequired && selectedDoctor?.value) {
+      const patientId = Number(
+        patientRegistrationDetails?.PatientId ?? patientRegistrationDetails?.patientId ?? 0
+      );
+      const isRegistrationExpired =
+        Number(
+          patientRegistrationDetails?.IsRegistrationValid ??
+            patientRegistrationDetails?.IsRegistrationValid ??
+            0
+        ) === 1;
+
+      if (patientId === 0 || isRegistrationExpired) {
+        if (!registrationChargeAddedRef.current) {
+          await getRegistrationChargeService(Number(selectedDoctor.value));
+        }
+      }
+    }
   };
 
   const loadCorporateOpdRateListIds = useCallback(async (corporateId: number) => {
@@ -1935,9 +1967,9 @@ const OpdBilling = () => {
   const getDoctorsLists = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_DOCTOR_MASTER,
+      ENDPOINTS.GET_DOCTOR_MASTER_LIST_BY_BRANCH_ID,
       {},
-      { params: { isDoctorUnit: Status.INACTIVE } },
+      { params: { branchId, isDoctorUnit: 0 } },
       { component: "DoctorMaster" }
     );
     setDoctorList(resp?.data ?? []);
@@ -1946,19 +1978,9 @@ const OpdBilling = () => {
   const doctorSelectOption = useMemo(() => {
     return doctorList.map(item => ({
       value: Number(item?.doctorId),
-      label: item?.completeName,
+      label: item?.name,
     }));
   }, [doctorList]);
-
-  const getServiceOfRegistrationCharge = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_SERVICE_ITEM_LIST,
-      {},
-      { params: { isRegistrationCharge: 1, isActive: 1 } },
-      { component: "DoctorMaster" }
-    );
-  };
 
   // registration service charge
   const getRegistrationChargeService = async (overrideDoctorId?: number) => {
@@ -1995,7 +2017,18 @@ const OpdBilling = () => {
           0
       ) === 1;
 
-    if (ispatientRegistartionChargeRequired && (patientId === 0 || isRegistrationExpired)) {
+    const selectedCorpObj = corporateList.find(
+      item => item.corporateId === Number(selectedCorporate?.value)
+    );
+    const isRegChargeApplicable = selectedCorpObj
+      ? Number(selectedCorpObj.isRegistrationChargeApplicable) === 1
+      : true;
+
+    if (
+      ispatientRegistartionChargeRequired &&
+      isRegChargeApplicable &&
+      (patientId === 0 || isRegistrationExpired)
+    ) {
       if (!registrationChargeAddedRef.current) {
         await getRegistrationChargeService(Number(option.value));
       }
@@ -2567,9 +2600,12 @@ const OpdBilling = () => {
       return;
     }
 
-    const serviceRow = normalizeServiceRowForPaymentCollection(
-      finalizeServiceRow(resp?.data, { doctorId, doctorName })
-    );
+    const serviceRow: ServiceBindingItem = {
+      ...normalizeServiceRowForPaymentCollection(
+        finalizeServiceRow(resp?.data, { doctorId, doctorName })
+      ),
+      isRegistrationCharge: item?.isRegistrationCharge,
+    };
 
     if (Number(serviceRow?.categoryTypeId) === 1) {
       const hasCategoryType1 = serviceDataTableItem.some(s => Number(s?.categoryTypeId) === 1);
@@ -2659,12 +2695,15 @@ const OpdBilling = () => {
     }
 
     setShowDuplicateError("");
-    const serviceRow = normalizeServiceRowForPaymentCollection(
-      finalizeServiceRow(resp?.data, {
-        doctorId: Number(selectedDoctor?.value ?? 0),
-        doctorName: selectedDoctor?.label ?? "",
-      })
-    );
+    const serviceRow: ServiceBindingItem = {
+      ...normalizeServiceRowForPaymentCollection(
+        finalizeServiceRow(resp?.data, {
+          doctorId: Number(selectedDoctor?.value ?? 0),
+          doctorName: selectedDoctor?.label ?? "",
+        })
+      ),
+      isRegistrationCharge: item?.isRegistrationCharge,
+    };
 
     if (Number(serviceRow?.categoryTypeId) === 1) {
       const hasCategoryType1 = serviceDataTableItem.some(s => Number(s?.categoryTypeId) === 1);

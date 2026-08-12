@@ -1,11 +1,12 @@
 import BillingDetails from "@/components/BillingDetails";
 import { BillingDetailsHandle } from "@/components/BillingDetails/types";
 import InputField from "@/components/customInputField";
+import { showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { ChangeEvent, RefObject } from "react";
 import { AdvanceDetailsItem } from "../types";
 
-const PAYMENT_EXCEEDS_ADVANCE_MESSAGE = "You cannot take more amount than advance amount.";
+const PAYMENT_EXCEEDS_ADVANCE_MESSAGE = `You cannot take more amount than advance amount.`;
 
 type PatientAdvanceAmountProps = {
   billingDetailsRef: RefObject<BillingDetailsHandle | null>;
@@ -13,6 +14,8 @@ type PatientAdvanceAmountProps = {
   patientAdvanceAmount: number;
   onPatientAdvanceAmountChange: (amount: number) => void;
   advanceAmount: AdvanceDetailsItem | undefined;
+  selectedAdvanceType: number;
+  onAdvanceTypeChange: (type: number) => void;
 };
 
 const PatientAdvanceAmount = ({
@@ -21,10 +24,31 @@ const PatientAdvanceAmount = ({
   patientAdvanceAmount,
   onPatientAdvanceAmountChange,
   advanceAmount,
+  selectedAdvanceType,
+  onAdvanceTypeChange,
 }: PatientAdvanceAmountProps) => {
   const advanceAmountChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
+    if (selectedAdvanceType === 1 && advanceAmount?.TotalNetAmt! < Number(value)) {
+      showWarning("you cannot refund more amount than net amount");
+      return;
+    }
     onPatientAdvanceAmountChange(value === "" ? 0 : Number(value));
+  };
+
+  // advance type select handler
+  const advanceTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    onAdvanceTypeChange(value);
+
+    if (
+      value === 1 &&
+      advanceAmount?.TotalNetAmt !== undefined &&
+      patientAdvanceAmount > advanceAmount.TotalNetAmt
+    ) {
+      showWarning("you cannot refund more amount than net amount");
+      onPatientAdvanceAmountChange(advanceAmount.TotalNetAmt);
+    }
   };
 
   return (
@@ -70,10 +94,25 @@ const PatientAdvanceAmount = ({
                 disabled
               />
             </InputField>
-            <InputField label="Advance Amount" required>
+            <InputField label="Advance Type">
+              <select
+                className="input-field"
+                onChange={advanceTypeSelectHandler}
+                value={selectedAdvanceType}
+              >
+                <option value={0}>Advance</option>
+                <option value={1}>Refund</option>
+              </select>
+            </InputField>
+            <InputField
+              label={selectedAdvanceType === 0 ? "Advance Amount" : "Refund Amount"}
+              required
+            >
               <input
                 className="input-field"
-                placeholder="Enter Advance Amount"
+                placeholder={
+                  selectedAdvanceType === 0 ? "Enter Advance Amount" : "Enter Refund Amount"
+                }
                 value={patientAdvanceAmount > 0 ? String(patientAdvanceAmount) : ""}
                 onChange={advanceAmountChangeHandler}
                 onInput={allowOnlyNumbers}
@@ -90,6 +129,7 @@ const PatientAdvanceAmount = ({
             showPaymentMode
             maxPaymentAmount={patientAdvanceAmount}
             paymentAmountExceededMessage={PAYMENT_EXCEEDS_ADVANCE_MESSAGE}
+            isRefundPaymentModes={selectedAdvanceType}
           />
         </div>
       </div>

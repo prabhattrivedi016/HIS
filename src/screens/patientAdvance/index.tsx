@@ -46,6 +46,7 @@ const PatientAdvance = () => {
   const [showTable, setShowTable] = useState(false);
 
   const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
+  const [selectedAdvanceType, setSelectedAdvanceType] = useState<number>(0);
 
   const [receiptData, setReceiptData] = useState<PatientAdvanceReceiptItem | null>(null);
   const [paymentModes, setPaymentModes] = useState<PatientAdvancePaymentModeItem[]>([]);
@@ -131,6 +132,7 @@ const PatientAdvance = () => {
   const resetForm = useCallback(() => {
     billingDetailsRef.current?.reset?.();
     setPatientAdvanceAmount(0);
+    setSelectedAdvanceType(0);
     setSelectedPatientId(null);
     setPatientTabError(false);
     setActiveTab(PatientAdvanceTabName.PATIENT_DETAILS);
@@ -224,6 +226,7 @@ const PatientAdvance = () => {
       patientId: resolvedPatientId,
       patientLedgerId: Number(ledgerDetails?.LedgerId ?? 0),
       payments: paymentList,
+      isRefund: selectedAdvanceType,
     });
 
     if (!payload.paymentDetails.length) {
@@ -394,6 +397,8 @@ const PatientAdvance = () => {
           patientAdvanceAmount={patientAdvanceAmount}
           onPatientAdvanceAmountChange={setPatientAdvanceAmount}
           advanceAmount={advanceAmount}
+          selectedAdvanceType={selectedAdvanceType}
+          onAdvanceTypeChange={setSelectedAdvanceType}
         />
       </div>
 
@@ -422,6 +427,7 @@ const PatientAdvance = () => {
             patientDetails={receiptData}
             paymentModeList={paymentModes}
             paidAmt={receiptPaidAmount}
+            isRefund={selectedAdvanceType}
           />
         )}
       </div>

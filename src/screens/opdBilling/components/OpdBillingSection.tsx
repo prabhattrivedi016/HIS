@@ -118,9 +118,7 @@ const OpdBillingSection = ({
               normalizeAdvanceLedgerDetails(patientAdvance?.data, patientId) ??
               getDefaultAdvanceLedgerDetails(patientId);
             const availableAdvance = Number(ledgerDetails.TotalNetAmt ?? 0);
-            setPatientAdvanceAmount(
-              availableAdvance > 0 ? availableAdvance : fallbackAmount
-            );
+            setPatientAdvanceAmount(availableAdvance > 0 ? availableAdvance : fallbackAmount);
           } catch (err) {
             console.error("Error fetching patient advance:", err);
             setPatientAdvanceAmount(fallbackAmount);
@@ -210,7 +208,6 @@ const OpdBillingSection = ({
             disabled={hasSelectedService}
             value={selectedInsurance ?? 0}
           >
-            <option value={0}>Self</option>
             {insuranceList.map((item: InsuranceItem) => (
               <option key={item?.insuranceCompanyId} value={item?.insuranceCompanyId}>
                 {item?.insuranceCompanyName}

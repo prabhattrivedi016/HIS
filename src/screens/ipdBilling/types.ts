@@ -46,6 +46,31 @@ type IpdPatientItem = {
   BillingType: string;
   DoctorNumber: string;
   UserNAme: string;
+  Department?: string;
+  Consultant?: string;
+  Ward?: string;
+  Room?: string;
+  BedType?: string;
+  TPA?: string;
+  Status?: string;
 };
 
-export type { IpdPatientItem };
+type TabNameItem = {
+  GroupTypeId: number;
+  GroupTypeName: string;
+  TabId: number;
+  TabName: string;
+  TabViewURL: string;
+  SequenceNo: number;
+  TabTypeId: number;
+  TabType: string;
+  RoomTypeId: number;
+  RoomType: string;
+  IsActive: number;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+};
+
+export type { IpdPatientItem, TabNameItem };

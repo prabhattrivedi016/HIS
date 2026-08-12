@@ -51,6 +51,11 @@
   background-color: #d9c2ff !important;
 }
 
+/* ipd billing heading text */
+.ipd-billing-text {
+  @apply text-md font-bold mb-3 text-[#004b93];
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

@@ -47,26 +47,20 @@ export const patientRegistrationSchema = yup.object({
   AgeYears: yup
     .number()
     .transform(parseNumber)
-    .typeError("Age (years) is required")
     .min(0, "Age (years) cannot be negative")
-    .max(130, "Age (years) seems invalid")
-    .required("Age (years) is required"),
+    .max(130, "Age (years) seems invalid"),
 
   AgeMonths: yup
     .number()
     .transform(parseNumber)
-    .typeError("Age (months) is required")
     .min(0, "Months must be between 0 and 11")
-    .max(11, "Months must be between 0 and 11")
-    .required("Age (months) is required"),
+    .max(11, "Months must be between 0 and 11"),
 
   AgeDays: yup
     .number()
     .transform(parseNumber)
-    .typeError("Age (days) is required")
     .min(0, "Days must be between 0 and 31")
-    .max(31, "Days must be between 0 and 31")
-    .required("Age (days) is required"),
+    .max(31, "Days must be between 0 and 31"),
 
   Dob: yup.string().required("DOB is required"),
 

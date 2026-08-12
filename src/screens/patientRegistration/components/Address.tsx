@@ -90,20 +90,19 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     setStateList([]);
     setDistrictList([]);
     setCityList([]);
-    setValue("StateId", 0);
-    setValue("State", "");
-    setValue("DistrictId", 0);
-    setValue("District", "");
-
-    setValue("CityId", 0);
-    setValue("City", "");
+    setValue("StateId", 0, { shouldValidate: true });
+    setValue("State", "", { shouldValidate: true });
+    setValue("DistrictId", 0, { shouldValidate: true });
+    setValue("District", "", { shouldValidate: true });
+    setValue("CityId", 0, { shouldValidate: true });
+    setValue("City", "", { shouldValidate: true });
   }, [setValue]);
 
   const clearAllLocationFields = useCallback(() => {
     setSelectedCountry(null);
     clearStateDistrictCity();
-    setValue("CountryId", 0);
-    setValue("Country", "");
+    setValue("CountryId", 0, { shouldValidate: true });
+    setValue("Country", "", { shouldValidate: true });
   }, [clearStateDistrictCity, setValue]);
 
   const toLocationOption = (option: SingleValue<OptionItem>): LocationOption | null => {
@@ -127,8 +126,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
         } else {
           setSelectedCity(null);
         }
-        setValue(idKey, "");
-        setValue(nameKey, "");
+        setValue(idKey, "", { shouldValidate: true });
+        setValue(nameKey, "", { shouldValidate: true });
         return;
       }
 
@@ -139,8 +138,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       } else {
         setSelectedCity(option);
       }
-      setValue(idKey, option.value);
-      setValue(nameKey, option.label);
+      setValue(idKey, option.value, { shouldValidate: true });
+      setValue(nameKey, option.label, { shouldValidate: true });
     },
     [setValue]
   );
@@ -220,8 +219,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
         value: Number(country.countryId),
       };
       setSelectedCountry(countryOption);
-      setValue("CountryId", countryOption.value);
-      setValue("Country", countryOption.label);
+      setValue("CountryId", countryOption.value, { shouldValidate: true });
+      setValue("Country", countryOption.label, { shouldValidate: true });
     }
 
     const states = await fetchStates(countryId);
@@ -345,8 +344,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
 
       if (countryOption) {
         setSelectedCountry(countryOption);
-        setValue("CountryId", countryOption.value);
-        setValue("Country", countryOption.label);
+        setValue("CountryId", countryOption.value, { shouldValidate: true });
+        setValue("Country", countryOption.label, { shouldValidate: true });
         await fetchStates(countryOption.value);
       }
 
@@ -374,15 +373,15 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     if (!option) {
       setSelectedCountry(null);
       clearStateDistrictCity();
-      setValue("CountryId", "");
-      setValue("Country", "");
+      setValue("CountryId", "", { shouldValidate: true });
+      setValue("Country", "", { shouldValidate: true });
       return;
     }
 
     skipCascadeDefaultsRef.current = true;
     setSelectedCountry(option);
-    setValue("CountryId", option.value ?? "");
-    setValue("Country", option.label ?? "");
+    setValue("CountryId", option.value ?? "", { shouldValidate: true });
+    setValue("Country", option.label ?? "", { shouldValidate: true });
     clearStateDistrictCity();
     fetchStates(Number(option.value)).finally(() => {
       skipCascadeDefaultsRef.current = false;
@@ -405,10 +404,10 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       setSelectedCity(null);
       setDistrictList([]);
       setCityList([]);
-      setValue("DistrictId", 0);
-      setValue("District", "");
-      setValue("CityId", 0);
-      setValue("City", "");
+      setValue("DistrictId", 0, { shouldValidate: true });
+      setValue("District", "", { shouldValidate: true });
+      setValue("CityId", 0, { shouldValidate: true });
+      setValue("City", "", { shouldValidate: true });
       return;
     }
 
@@ -440,8 +439,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
       applyLocationSelection("district", null);
       setSelectedCity(null);
       setCityList([]);
-      setValue("CityId", 0);
-      setValue("City", "");
+      setValue("CityId", 0, { shouldValidate: true });
+      setValue("City", "", { shouldValidate: true });
       return;
     }
 
@@ -449,8 +448,8 @@ const Address = ({ resetSignal = 0, prefillData = null }: AddressProps) => {
     applyLocationSelection("district", toLocationOption(option));
     setSelectedCity(null);
     setCityList([]);
-    setValue("CityId", 0);
-    setValue("City", "");
+    setValue("CityId", 0, { shouldValidate: true });
+    setValue("City", "", { shouldValidate: true });
     fetchCities(Number(option.value)).finally(() => {
       skipCascadeDefaultsRef.current = false;
     });

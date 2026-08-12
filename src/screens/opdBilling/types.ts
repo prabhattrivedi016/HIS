@@ -146,34 +146,11 @@ type ServiceItemList = {
 
 interface DoctorMasterItem {
   doctorId: number;
-  title: string;
   name: string;
-  dob: string;
-  gender: string;
-  completeName: string;
-  contactNo: string;
-  emailId: string;
-  address: string;
   specializationId: number;
-  specialization: string;
-  userName: string;
-  password: string;
   departmentId: number;
-  department: string;
-  profileSummery: string;
-  registrationNo: string;
-  isActive: number;
-  userId: number;
-  hospId: number;
-  createdBy: string;
-  createdOn: string;
-  ipAddress: string;
-  branchId: string;
   canApproveLabReport: number;
-  canApproveDischargeSummary: number;
-  doctorSignFilePath: string;
   isDoctorUnit: number;
-  roomNo: string;
 }
 
 type ServiceBindingItem = {
@@ -216,6 +193,7 @@ type ServiceBindingItem = {
   packageId?: number;
   performingDoctorId?: number;
   performingDoctorName?: string;
+  isRegistrationCharge?: number;
 };
 
 type CategoryItem = {
