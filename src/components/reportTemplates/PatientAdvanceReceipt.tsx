@@ -29,7 +29,13 @@ type BranchItem = {
 
 // number to word converter
 const numberToWords = (num: number): string => {
-  if (num === 0) return "Zero Rupees";
+  if (num === null || num === undefined || isNaN(num) || num === 0) {
+    return "Zero Rupees";
+  }
+
+  if (num < 0) {
+    return "Minus " + numberToWords(Math.abs(num));
+  }
 
   const a = [
     "",
@@ -57,7 +63,7 @@ const numberToWords = (num: number): string => {
   const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
 
   const getWords = (n: number): string => {
-    if (n < 20) return a[n];
+    if (n < 20) return a[n] || "";
     if (n < 100) return b[Math.floor(n / 10)] + " " + a[n % 10];
     if (n < 1000) return a[Math.floor(n / 100)] + " Hundred " + getWords(n % 100);
     if (n < 100000) return getWords(Math.floor(n / 1000)) + " Thousand " + getWords(n % 1000);
@@ -65,7 +71,8 @@ const numberToWords = (num: number): string => {
     return getWords(Math.floor(n / 10000000)) + " Crore " + getWords(n % 10000000);
   };
 
-  return getWords(num).trim() + " Rupees Only";
+  const words = getWords(num);
+  return (words ? words.trim() : "") + " Rupees Only";
 };
 
 // barcode block
@@ -95,11 +102,13 @@ export default function PatientAdvanceReceipt({
   patientDetails,
   paymentModeList,
   paidAmt,
+  isRefund,
 }: {
   printOnMount?: boolean;
   patientDetails: PatientAdvanceReceiptItem | null;
   paymentModeList: PatientAdvancePaymentModeItem[];
   paidAmt: number;
+  isRefund?: number;
 }) {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -149,6 +158,9 @@ export default function PatientAdvanceReceipt({
   };
 
   if (!patientDetails) return null;
+
+  const isRefundReceipt =
+    Number(isRefund ?? patientDetails?.IsRefund ?? patientDetails?.isRefund ?? 0) === 1;
 
   return (
     <div id="patient-advance-receipt-print-wrapper">
@@ -219,7 +231,7 @@ export default function PatientAdvanceReceipt({
               fontWeight: "normal",
             }}
           >
-            Out Patient Advance Receipt
+            {isRefundReceipt ? "Out Patient Refund Receipt" : "Out Patient Advance Receipt"}
           </div>
 
           {/* Patient Details */}
@@ -320,7 +332,7 @@ export default function PatientAdvanceReceipt({
             <tbody>
               <tr>
                 <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
-                  {"Patient Advance"}
+                  {isRefundReceipt ? "Patient Refund" : "Patient Advance"}
                 </td>
                 <td
                   style={{ padding: "2px 5px", borderRight: "1px solid #000" }}
@@ -405,12 +417,14 @@ export default function PatientAdvanceReceipt({
           </table>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
-              Received with thanks an amount of{" "}
+              {isRefundReceipt
+                ? "Refunded with thanks an amount of "
+                : "Received with thanks an amount of "}
               {numberToWords(Number(patientDetails?.ReceiptAmount))} .
             </div>
 
             <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
-              Total Amount: {`₹ ${patientDetails?.TotalNetAmt}`}
+              Total Amount: {`₹ ${patientDetails?.ReceiptAmount}`}
             </div>
           </div>
 

@@ -54,17 +54,20 @@ export const buildPatientAdvanceSavePayload = ({
   patientId,
   patientLedgerId,
   payments,
+  isRefund,
 }: {
   branchId: number;
   roleId: number;
   patientId: number;
   patientLedgerId: number;
   payments: Array<Record<string, unknown>>;
+  isRefund: number;
 }): PatientAdvanceSavePayload => ({
   branchId,
   roleId,
   patientId,
   patientLedgerId,
+  isRefund,
   paymentDetails: payments
     .filter(payment => Number(payment?.amount) > 0 && Number(payment?.paymentModeId) > 0)
     .map(payment => ({

@@ -28,6 +28,7 @@ type PatientAdvanceSavePayload = {
   roleId: number;
   patientId: number;
   patientLedgerId: number;
+  isRefund: number;
   paymentDetails: PatientAdvancePaymentDetailItem[];
 };
 

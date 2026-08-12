@@ -34,6 +34,11 @@ const PatientRegistration = () => {
     return true;
   }, []);
 
+  const handleRegistrationSuccess = useCallback(() => {
+    setSelectedPatientId(null);
+    setUhidSearchResetKey(prev => prev + 1);
+  }, []);
+
   return (
     <div className="page-container">
       <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
@@ -65,7 +70,10 @@ const PatientRegistration = () => {
       </div>
 
       {/* form */}
-      <PatientData selectedPatientId={selectedPatientId} />
+      <PatientData
+        selectedPatientId={selectedPatientId}
+        onRegistrationSuccess={handleRegistrationSuccess}
+      />
 
       {/* search patient popup */}
       {renderSearchPatientPopup && (

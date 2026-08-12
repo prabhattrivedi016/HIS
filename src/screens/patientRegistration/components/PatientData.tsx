@@ -98,6 +98,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       selectedPatientId: selectedPatientIdFromProps = null,
       onPayloadChange,
       onPatientLoaded,
+      onRegistrationSuccess,
     }: PatientDataProps,
     ref
   ) => {
@@ -642,10 +643,16 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       }
 
       if (newPatientId) {
-        await getEditPatientData(newPatientId);
-        onPatientLoaded?.("uhid");
+        if (onPatientLoaded) {
+          await getEditPatientData(newPatientId);
+          onPatientLoaded("uhid");
+        } else {
+          resetPatientForm();
+          onRegistrationSuccess?.();
+        }
       } else {
         resetPatientForm();
+        onRegistrationSuccess?.();
       }
     };
 
@@ -970,7 +977,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       );
 
       const matchedPatient = searchResp?.data?.[0];
-      const patientId = Number(matchedPatient?.patientId ?? 0);
+      const patientId = Number(matchedPatient?.PatientId ?? 0);
 
       if (!patientId) {
         showWarning("No patient found for the entered UHID.");
@@ -1513,7 +1520,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         value={watch("InsuranceCompanyId") ?? 0}
                         onChange={insuranceSelectHandler}
                       >
-                        <option value={0}>Self</option>
                         {insuranceList.map(item => (
                           <option key={item?.insuranceCompanyId} value={item?.insuranceCompanyId}>
                             {item?.insuranceCompanyName}

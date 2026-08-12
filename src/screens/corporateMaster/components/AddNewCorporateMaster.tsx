@@ -54,8 +54,13 @@ const resetFormData = () => ({
   activeBranches: "",
   rateListIdOPD: "",
   rateListIdIPD: "",
+  isRegistrationChargeApplicable: 0,
 });
 
+/*
+{
+  "isRegistrationChargeApplicable": 0
+} */
 const parseCsvIds = (value?: string) =>
   (value ?? "")
     .split(",")
@@ -381,6 +386,7 @@ const AddNewCorporateMaster = ({
       activeBranches: previous?.activeBranches ?? "",
       rateListIdOPD: previous?.rateListIdOPD ?? "",
       rateListIdIPD: previous?.rateListIdIPD ?? "",
+      isRegistrationChargeApplicable: Number(previous?.isRegistrationChargeApplicable ?? 0),
     });
     setSelectedCorporateTypeId(corporateTypeIdFromApi);
     setEditCorporateTypeName(corporateTypeNameFromApi);
@@ -718,6 +724,18 @@ const AddNewCorporateMaster = ({
                     placeholder="Enter address line 2 "
                     {...register("corporateAddress2")}
                   />
+                </InputField>
+
+                <InputField label="Registration Charge Applicable">
+                  <select
+                    className="input-field"
+                    {...register("isRegistrationChargeApplicable", {
+                      valueAsNumber: true,
+                    })}
+                  >
+                    <option value={1}>Yes</option>
+                    <option value={0}>No</option>
+                  </select>
                 </InputField>
 
                 <InputField label="Status" required>
