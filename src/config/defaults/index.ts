@@ -508,6 +508,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_VITAL_UNIT_MASTER: "Admin/CreateUpdateVitalUnitMaster",
   GET_VITAL_MAPPING_LIST: "Admin/getVitalDepartmentMapping",
   SAVE_VITAL_MAPPING: "Admin/saveVitalDepartmentMapping",
+  // doctorConsultationNew's vitals strip: params { doctorId } -> that doctor's mapped vitals
+  // directly (already filtered/ordered server-side, unlike the generic admin mapping endpoint
+  // above which needs a MappingId > 0 filter and a SequenceNo sort client-side)
+  GET_VITAL_DEPARTMENT_MAPPING_BY_DOCTOR_ID: "EMR/getVitalDepartmentMappingByDoctorId",
 
   // authority approval
   GET_APPROVAL_AUTHORITY_MASTER_LIST: "Admin/getApprovalAuthorityMasterList",
