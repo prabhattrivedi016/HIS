@@ -95,6 +95,10 @@ export const usePatientVisitHistory = (patientId?: number) => {
 
   return {
     isLoading: visitsQuery.isLoading || consultationQueries.some(q => q.isLoading),
+    /** every visit this patient has, newest first, each with ALL of its rows (unfiltered by
+     * section) — e.g. PrintPreviewModal's "print a past visit" picker needs the whole visit, not
+     * one section's slice of it */
+    visits: historyEntries,
     getSectionRows,
   };
 };
