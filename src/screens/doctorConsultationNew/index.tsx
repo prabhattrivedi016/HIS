@@ -1262,6 +1262,8 @@ const DoctorConsultationNew = () => {
         isOpen={showPrintPreview}
         onClose={() => setShowPrintPreview(false)}
         doctorId={selectedPatient?.DoctorId}
+        patientId={selectedPatient?.PatientId}
+        usedForPatientTypeId={selectedPatient?.TypeId}
         patient={selectedPatient}
         emrSectionsData={emrSectionsData}
         vitals={vitalMasterList}

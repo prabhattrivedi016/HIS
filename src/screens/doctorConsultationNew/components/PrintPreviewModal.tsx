@@ -6,10 +6,12 @@ import {
   PrintSettings,
   usePrintSettingsStore,
 } from "@/store/usePrintSettingsStore";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2,
   FileImage,
+  History,
   Loader2,
   Printer,
   Save,
@@ -18,6 +20,7 @@ import {
   User,
 } from "lucide-react";
 import { ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePatientVisitHistory } from "../hooks/usePatientVisitHistory";
 import { AllergySection, EmrSectionAnswerEntry, PatientItem } from "../types";
 
 interface VitalMasterLike {
@@ -30,11 +33,26 @@ interface PrintPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   doctorId?: number;
+  patientId?: number;
+  /** filters GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR the same way ConsultationEmrSections does —
+   * needed to resolve a past visit's raw HeaderId rows back to real section/header names */
+  usedForPatientTypeId?: number;
   patient: PatientItem | null;
   emrSectionsData: EmrSectionAnswerEntry[];
   vitals?: VitalMasterLike[];
   vitalsData?: Record<number, string>;
   allergy?: AllergySection | null;
+}
+
+/** headerId -> where it lives and what it's called, resolved once per doctor via
+ * GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR — a past visit's raw rows carry only HeaderId/SectionId,
+ * not names, so printing one needs this the same way ConsultationEmrSections needs it live */
+interface PrintHeaderMeta {
+  headerName: string;
+  displayName: string;
+  sectionId: number;
+  sectionName: string;
+  sectionSequenceNo: number;
 }
 
 interface BranchDetails {
@@ -55,6 +73,16 @@ const FONT_SIZE_CLASS: Record<PrintSettings["fontSize"], string> = {
   sm: "text-[11px]",
   md: "text-[12.5px]",
   lg: "text-[14px]",
+};
+
+/** v.recordedOn is ISO yyyy-mm-dd (usePatientVisitHistory) — displayed as dd-mm-yyyy to match the
+ * rest of this screen's date formatting (PreviousSectionVisitsStrip's formatTabDate) */
+const formatVisitDate = (isoDate: string): string => {
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}-${month}-${d.getFullYear()}`;
 };
 
 const formatEntryValue = (value: unknown): ReactNode => {
@@ -109,6 +137,8 @@ const PrintPreviewModal = ({
   isOpen,
   onClose,
   doctorId,
+  patientId,
+  usedForPatientTypeId,
   patient,
   emrSectionsData,
   vitals = [],
@@ -128,6 +158,79 @@ const PrintPreviewModal = ({
   const [branchDetails, setBranchDetails] = useState<BranchDetails | null>(null);
   const [letterheadImage, setLetterheadImage] = useState<string | null>(null);
   const [isLoadingLetterhead, setIsLoadingLetterhead] = useState(false);
+
+  // "print a past visit" — the visit list + each visit's saved rows, same source the History
+  // drawer/strip already use, so past-visit prints stay consistent with what "Past Visits" shows
+  const { visits: pastVisits, isLoading: isPastVisitsLoading } = usePatientVisitHistory(patientId);
+  const [selectedVisitId, setSelectedVisitId] = useState<number | "current">("current");
+
+  useEffect(() => {
+    if (isOpen) setSelectedVisitId("current");
+  }, [isOpen]);
+
+  // headerId -> section/header names, resolved once for this doctor — a past visit's raw rows
+  // (HeaderId/SectionId only) need this to print with real labels instead of blank ones
+  const { data: headerMetaByHeaderId } = useQuery({
+    queryKey: ["printHeaderMapping", doctorId, usedForPatientTypeId],
+    queryFn: async () => {
+      const resp = await fetchApi<{ data?: Record<string, unknown>[] }>(
+        "GET",
+        ENDPOINTS.GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR,
+        {},
+        { params: { doctorId, usedForPatientTypeId: usedForPatientTypeId ?? 1 } },
+        { component: "PrintPreviewModal", silent: true }
+      );
+      const raw = resp?.data ?? [];
+      const map = new Map<number, PrintHeaderMeta>();
+      raw.forEach(m => {
+        map.set(Number(m.HeaderId), {
+          headerName: String(m.HeaderName ?? ""),
+          displayName: String(m.DisplayName ?? ""),
+          sectionId: Number(m.SectionId),
+          sectionName: String(m.SectionName ?? ""),
+          sectionSequenceNo: Number(m.SectionSequenceNo ?? 0),
+        });
+      });
+      return map;
+    },
+    enabled: isOpen && doctorId != null,
+    staleTime: 5 * 60_000,
+  });
+
+  const selectedPastVisit = useMemo(
+    () =>
+      selectedVisitId === "current"
+        ? null
+        : (pastVisits.find(v => v.visitId === selectedVisitId) ?? null),
+    [selectedVisitId, pastVisits]
+  );
+
+  // what actually gets printed: the live in-progress data, or a past visit's saved rows resolved
+  // back to real names via headerMetaByHeaderId
+  const printEmrSectionsData = useMemo<EmrSectionAnswerEntry[]>(() => {
+    if (selectedVisitId === "current") return emrSectionsData;
+    if (!selectedPastVisit || !headerMetaByHeaderId) return [];
+    return selectedPastVisit.rows
+      .filter(r => headerMetaByHeaderId.has(r.HeaderId))
+      .map(r => {
+        const meta = headerMetaByHeaderId.get(r.HeaderId)!;
+        let value: unknown;
+        try {
+          value = JSON.parse(r.HeaderValue);
+        } catch {
+          value = r.HeaderValue;
+        }
+        return {
+          sectionId: meta.sectionId,
+          sectionName: meta.sectionName,
+          headerId: r.HeaderId,
+          headerName: meta.displayName || meta.headerName,
+          controlType: "",
+          controlTypeId: r.ControlTypeId,
+          value,
+        };
+      });
+  }, [selectedVisitId, selectedPastVisit, headerMetaByHeaderId, emrSectionsData]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -198,9 +301,15 @@ const PrintPreviewModal = ({
     };
   }, [isOpen, settings.showLetterhead, branchId]);
 
+  // vitals are never saved per-visit (no save endpoint exists for them at all — see the vitals
+  // strip in index.tsx), so `vitalsData` is only ever this session's live/current values; printing
+  // them alongside a past visit's saved EMR data would misleadingly imply they belong to it
   const filledVitals = useMemo(
-    () => vitals.filter(v => (vitalsData[v.vitalId] ?? "").trim() !== ""),
-    [vitals, vitalsData]
+    () =>
+      selectedVisitId === "current"
+        ? vitals.filter(v => (vitalsData[v.vitalId] ?? "").trim() !== "")
+        : [],
+    [selectedVisitId, vitals, vitalsData]
   );
 
   const hasAllergyData = Boolean(
@@ -209,7 +318,7 @@ const PrintPreviewModal = ({
 
   const groupedSections = useMemo(() => {
     const map = new Map<number, SectionGroup>();
-    emrSectionsData.forEach(e => {
+    printEmrSectionsData.forEach(e => {
       const bucket = map.get(e.sectionId) ?? {
         sectionId: e.sectionId,
         sectionName: e.sectionName,
@@ -218,8 +327,16 @@ const PrintPreviewModal = ({
       bucket.entries.push(e);
       map.set(e.sectionId, bucket);
     });
-    return Array.from(map.values());
-  }, [emrSectionsData]);
+    const groups = Array.from(map.values());
+    if (!headerMetaByHeaderId) return groups;
+    // order by this doctor's real section sequence rather than raw-row insertion order — matters
+    // most for a past visit, whose rows can come back from the backend in any order
+    return groups.sort((a, b) => {
+      const seqA = headerMetaByHeaderId.get(a.entries[0]?.headerId)?.sectionSequenceNo ?? 0;
+      const seqB = headerMetaByHeaderId.get(b.entries[0]?.headerId)?.sectionSequenceNo ?? 0;
+      return seqA - seqB;
+    });
+  }, [printEmrSectionsData, headerMetaByHeaderId]);
 
   if (!isOpen) return null;
 
@@ -286,6 +403,37 @@ const PrintPreviewModal = ({
           </div>
 
           <div className="flex-1 p-4 flex flex-col gap-5">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <History size={12} />
+                Visit
+              </p>
+              <select
+                className="input-field !mb-0 w-full"
+                value={String(selectedVisitId)}
+                onChange={e => {
+                  const v = e.target.value;
+                  setSelectedVisitId(v === "current" ? "current" : Number(v));
+                }}
+                disabled={isPastVisitsLoading}
+              >
+                <option value="current">Current (unsaved) visit</option>
+                {pastVisits.map(v => (
+                  <option key={v.visitId} value={v.visitId}>
+                    {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
+                  </option>
+                ))}
+              </select>
+              {isPastVisitsLoading && (
+                <p className="text-[11px] text-slate-400 mt-1">Loading past visits…</p>
+              )}
+              {selectedVisitId !== "current" && groupedSections.length === 0 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  No EMR data saved for this visit.
+                </p>
+              )}
+            </div>
+
             <div>
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Include
@@ -463,9 +611,17 @@ const PrintPreviewModal = ({
                         UHID: {patient?.UHID || "-"} · {patient?.Age || "-"} /{" "}
                         {patient?.Gender || "-"}
                       </p>
-                      <p className="text-slate-600">Doctor: {patient?.DoctorName || "-"}</p>
                       <p className="text-slate-600">
-                        Visit: {patient?.TypeName || "-"} · {patient?.AppDateTime || "-"}
+                        Doctor:{" "}
+                        {selectedPastVisit
+                          ? selectedPastVisit.doctorName || "-"
+                          : patient?.DoctorName || "-"}
+                      </p>
+                      <p className="text-slate-600">
+                        Visit:{" "}
+                        {selectedPastVisit
+                          ? formatVisitDate(selectedPastVisit.recordedOn)
+                          : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
                       </p>
                       {patient?.BedNo && <p className="text-slate-600">Bed: {patient.BedNo}</p>}
                     </div>
