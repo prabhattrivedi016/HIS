@@ -1,4 +1,4 @@
-import { EmrSectionVisitSnapshotEntry } from "@/store/useEmrSectionHistoryStore";
+import { EmrSectionVisitSnapshotEntry } from "../types";
 import { showSuccess } from "@/utils/alert";
 import { useEffect, useState } from "react";
 

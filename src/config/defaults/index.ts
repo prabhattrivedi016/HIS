@@ -358,17 +358,17 @@ const ENDPOINTS = {
   // emr controls — runs a header's saved query (e.g. "Custom" control type) and returns its result rows
   GET_EMR_HEADER_QUERY_RESULT: "EMR/getEMRHeaderQueryResult",
 
-  // emr section history — NOT YET IMPLEMENTED on the backend. The frontend currently reads/writes
-  // useEmrSectionHistoryStore (localStorage) instead — see that file for the exact entry shapes.
-  // GET_EMR_SECTION_HISTORY:   params { patientId, sectionId } -> EmrSectionVisitSnapshotEntry[]
-  //   (no separate save endpoint — this is just a reshaped query over existing
-  //   SAVE_PATIENT_CONSULTATION submissions, filtered to consultationHeadersData rows in that
-  //   sectionId)
+  // emr section "Past Visits" history is real now: GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID lists
+  // this patient's other visits, then GET_DOCTOR_CONSULTATION_BY_VISIT_ID (below, same endpoint
+  // that hydrates the current visit) is called per visitId to get that visit's saved header
+  // values — see usePatientVisitHistory in doctorConsultationNew/hooks.
+  //
+  // The per-field edit/change audit trail (Edit Log tab) is a separate, still-local concern —
+  // NOT YET IMPLEMENTED on the backend. useEmrSectionHistoryStore (localStorage) covers it.
   // GET_EMR_SECTION_EDIT_LOG:  params { patientId, sectionId } -> EmrSectionEditLogEntry[]
   // SAVE_EMR_SECTION_EDIT_LOG: body EmrSectionEditLogEntry (minus id) -> { result, message }
   //   (frontend doesn't call this yet — logEdit() in useEmrSectionHistoryStore only writes
   //   locally; wire it in once this endpoint exists)
-  GET_EMR_SECTION_HISTORY: "EMR/getEMRSectionHistory",
   GET_EMR_SECTION_EDIT_LOG: "EMR/getEMRSectionEditLog",
   SAVE_EMR_SECTION_EDIT_LOG: "EMR/saveEMRSectionEditLog",
 
@@ -450,12 +450,16 @@ const ENDPOINTS = {
   DELETE_PATIENT_ALLERGY_DETAILS: "EMR/deletePatientAllergyDetails",
   // consultation save/load — confirmed real contract (see backend-reference/DentalChart):
   // SAVE_PATIENT_CONSULTATION body PatientConsultationPayload -> { result, message }
-  // GET_DOCTOR_CONSULTATION_BY_VISIT_ID params { visitId } -> consultationHeadersData rows for
-  //   that visit, each headerValue a JSON string to JSON.parse back. Nothing calls this yet —
-  //   ConsultationEmrSections' `data` state starts empty and is never hydrated from a previous
-  //   save; wire it up on mount once the exact response shape is confirmed.
+  // GET_DOCTOR_CONSULTATION_BY_VISIT_ID params { visitId } -> RawConsultationHeaderRow[] for that
+  //   visit, each HeaderValue a JSON string to JSON.parse back. Used both to hydrate the current
+  //   visit (ConsultationEmrSections) and, per past visitId, to build the "Past Visits" history
+  //   strip/drawer (usePatientVisitHistory).
+  // GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID params { patientId } -> this patient's visits:
+  //   { VisitId, VisitDate ("dd-mm-yyyy"), DoctorId, DoctorName }[] — feeds usePatientVisitHistory,
+  //   which then calls GET_DOCTOR_CONSULTATION_BY_VISIT_ID per VisitId.
   SAVE_PATIENT_CONSULTATION: "EMR/savePatientConsultation",
   GET_DOCTOR_CONSULTATION_BY_VISIT_ID: "EMR/getDoctorConsultationByVisitId",
+  GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID: "EMR/getPatientVisitDetailsByPatientId",
 
   // diagnosis master
   GET_DIAGNOSIS_MASTER_LIST: "EMR/getDiagnosisMasterList",

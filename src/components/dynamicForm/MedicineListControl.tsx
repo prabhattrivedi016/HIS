@@ -5,7 +5,7 @@ import { useDoctorFavourites } from "@/hooks/useDoctorFavourites";
 import { useDoseMasterList } from "@/hooks/useDoseMasterList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
-import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
+import { usePatientVisitHistory } from "@/screens/doctorConsultationNew/hooks/usePatientVisitHistory";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { safeRandomUUID } from "@/utils/uuid";
@@ -308,20 +308,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     headerId
   );
 
-  // subscribe to the raw array (not the getVisitSnapshots function, which never changes identity
-  // across store updates) so a Save-triggered addVisitSnapshot actually re-renders this strip
-  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
-  const recentSnapshots = useMemo(
-    () =>
-      schema.patientId
-        ? useEmrSectionHistoryStore
-            .getState()
-            .getVisitSnapshots(schema.patientId, sectionId)
-            .slice(0, 6)
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [schema.patientId, sectionId, visitSnapshotsRaw]
-  );
+  const { getSectionRows } = usePatientVisitHistory(schema.patientId);
 
   useEffect(() => {
     const q = nameQuery.trim();
@@ -414,8 +401,13 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   };
 
   const handleCopyPrevious = () => {
-    const latest = recentSnapshots[0];
-    const pastValue = latest?.values.find(v => v.headerId === headerId)?.value;
+    const latestRow = getSectionRows(sectionId)[0]?.rows.find(r => r.HeaderId === headerId);
+    let pastValue: unknown;
+    try {
+      pastValue = latestRow ? JSON.parse(latestRow.HeaderValue) : undefined;
+    } catch {
+      pastValue = undefined;
+    }
     const pastEntries = Array.isArray(pastValue) ? (pastValue as MedicineListEntry[]) : [];
     if (pastEntries.length === 0) {
       showWarning("No previous medicines found for this patient");

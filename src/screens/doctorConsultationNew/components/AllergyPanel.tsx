@@ -57,6 +57,10 @@ interface AllergyPanelProps {
   patientId?: number;
   visitId?: number;
   onBind?: (section: AllergySection) => void;
+  /** true once the visit's file is closed — the add/edit form and records list render read-only;
+   * Allergy Master (a global reference list, not this patient's own record) and the close button
+   * stay usable */
+  disabled?: boolean;
 }
 
 const SEVERITY_OPTIONS = ["Major", "Moderate", "Minor", "No Alert"];
@@ -69,7 +73,13 @@ const VERIFICATION_STATUS_OPTIONS = [
   "Entered in Error",
 ];
 
-const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps) => {
+const AllergyPanel = ({
+  isOpen,
+  onClose,
+  patientId,
+  onBind,
+  disabled,
+}: AllergyPanelProps) => {
   const { fetchApi } = useGlobalApi();
 
   const { pickMasterValue } = usePickMaster("AllergyTypeName");
@@ -411,6 +421,7 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
                 className="input-checkbox"
                 checked={notKnownAllergy}
                 onChange={e => handleNotKnownAllergyChange(e.target.checked)}
+                disabled={disabled}
               />
               <span className="text-sm text-gray-700 font-medium">Not Known Allergies</span>
             </label>
@@ -419,7 +430,12 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
             <button type="button" className="save-btn" onClick={() => setShowAllergyMaster(true)}>
               Allergy Master
             </button>
-            <button type="button" className="cancel-button" onClick={resetForm}>
+            <button
+              type="button"
+              className={disabled ? "disabled-btn" : "cancel-button"}
+              onClick={resetForm}
+              disabled={disabled}
+            >
               New
             </button>
             <button type="button" className="close-drawer-btn" onClick={handleClose}>
@@ -428,7 +444,10 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div
+          className={`flex flex-1 overflow-hidden ${disabled ? "pointer-events-none opacity-60 select-none" : ""}`}
+          aria-disabled={disabled}
+        >
           <div className="w-72 shrink-0 border-r overflow-y-auto p-4 flex flex-col gap-1">
             <InputField label="Type Of Allergy">
               <select
@@ -597,8 +616,12 @@ const AllergyPanel = ({ isOpen, onClose, patientId, onBind }: AllergyPanelProps)
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden p-4 gap-3">
-            <div className="flex-1 overflow-auto">
-              <table className="base-table w-full">
+            {/* pointer-events-auto here (overriding the "none" the disabled body wrapper set
+                above) keeps this list scrollable so a closed file's saved allergy records can
+                still be scrolled through and read; pointer-events-none on the table itself below
+                blocks the row Edit/Delete actions again */}
+            <div className={`flex-1 overflow-auto ${disabled ? "pointer-events-auto" : ""}`}>
+              <table className={`base-table w-full ${disabled ? "pointer-events-none" : ""}`}>
                 <thead className="table-head">
                   <tr>
                     <th className="table-th">#</th>

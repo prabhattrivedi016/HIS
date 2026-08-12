@@ -20,16 +20,15 @@ import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { SectionAttributeCondition, SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { groupAttributeConditionRows } from "@/screens/emrControls/utils/attributeConditionParsing";
-import {
-  EmrSectionVisitSnapshotEntry,
-  useEmrSectionHistoryStore,
-} from "@/store/useEmrSectionHistoryStore";
+import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, History, Loader2 } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef } from "react";
-import { EmrSectionAnswerEntry } from "../types";
+import { usePatientVisitHistory } from "../hooks/usePatientVisitHistory";
+import { EmrSectionAnswerEntry, EmrSectionVisitSnapshotEntry } from "../types";
 import {
   applySnapshotToSectionData,
+  buildVisitSnapshots,
   isCardGroupSection,
   isCompactFormGroupSection,
   isEmptyValue,
@@ -187,22 +186,9 @@ const EmrSectionRenderer = ({
   const { fetchApi } = useGlobalApi();
   const authUser = useContext(AuthContext)?.user;
   const logEdit = useEmrSectionHistoryStore(s => s.logEdit);
-  // subscribe to the raw array (not the getVisitSnapshots function, which never changes identity
-  // across store updates) so a Save-triggered addVisitSnapshot actually re-renders this strip
-  // instead of only showing up after a full remount/navigation
-  const visitSnapshotsRaw = useEmrSectionHistoryStore(s => s.visitSnapshots);
   const previousValuesRef = useRef<Record<number, unknown> | null>(null);
 
-  // 6 most recent past-visit snapshots for this section — getVisitSnapshots already sorts
-  // newest-first, so this is just the top slice
-  const recentVisitSnapshots = useMemo(
-    () =>
-      patientId
-        ? useEmrSectionHistoryStore.getState().getVisitSnapshots(patientId, sectionId).slice(0, 6)
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [patientId, sectionId, visitSnapshotsRaw]
-  );
+  const { getSectionRows } = usePatientVisitHistory(patientId);
 
   const getSectionHeaderMapping = async (): Promise<SectionHeaderMappingRecord[]> => {
     const resp = await fetchApi(
@@ -235,6 +221,13 @@ const EmrSectionRenderer = ({
   useEffect(() => {
     if (headers.length > 0) onHeadersLoaded?.(headers);
   }, [headers]);
+
+  // 6 most recent past-visit snapshots for this section — getSectionRows already sorts newest
+  // first, so this is just the top slice
+  const recentVisitSnapshots = useMemo(
+    () => buildVisitSnapshots(sectionId, getSectionRows(sectionId), headers).slice(0, 6),
+    [sectionId, getSectionRows, headers]
+  );
 
   // hydrate once from this visit's previously-saved values, as soon as this section's headers are
   // available (applySnapshotToSectionData needs them to know whether this is a plain/card-group/
