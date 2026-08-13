@@ -45,6 +45,7 @@ import {
   EmrSectionAnswerEntry,
   PatientConsultationPayload,
   PatientItem,
+  PatientVitalValueEntry,
 } from "./types";
 
 interface VitalMasterItem {
@@ -178,6 +179,10 @@ const DoctorConsultationNew = () => {
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
   const updateVital = (vitalId: number, val: string) =>
     setVitalsData(prev => ({ ...prev, [vitalId]: val }));
+  // the real id off this visit's saved vital rows (if any), so the next save sends a proper
+  // upsert via consultationDetails.patientVitalId instead of always inserting a duplicate — see
+  // loadVitalsForPatient below, which is what actually populates this
+  const [savedPatientVitalId, setSavedPatientVitalId] = useState(0);
 
   // eagerly loads this patient's saved allergy details as soon as a patient is selected, so the
   // allergy badge is already populated by the time the consultation loads rather than staying
@@ -240,6 +245,29 @@ const DoctorConsultationNew = () => {
         : order.map(type => `${type}: ${groups[type].join(",")}`).join(" ; ");
 
     setAllergySection({ summary: summary || null, notKnownAllergy, records });
+  };
+
+  // eagerly loads this visit's previously-saved vitals (if any), same trigger/ordering as
+  // loadAllergySectionForPatient just above. GET_PATIENT_VITAL params { patientId, visitId }
+  // returns flat rows already scoped to that one visit (confirmed contract — see the ENDPOINTS
+  // comment) — this hydrates vitalsData from them and captures PatientVitalId (shared by every
+  // row in the same saved batch) into savedPatientVitalId for the next save's upsert.
+  const loadVitalsForPatient = async (patientId: number, visitId: number) => {
+    if (!patientId) return;
+
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_VITAL,
+      {},
+      { params: { patientId, visitId } },
+      { component: "DoctorConsultationNew", silent: true }
+    );
+
+    const rows: { PatientVitalId: number; VitalId: number; VitalValue: string }[] = resp?.data ?? [];
+    if (rows.length === 0) return;
+
+    setVitalsData(Object.fromEntries(rows.map(r => [r.VitalId, r.VitalValue])));
+    setSavedPatientVitalId(rows[0].PatientVitalId);
   };
 
   const getPatientLists = async () => {
@@ -414,10 +442,11 @@ const DoctorConsultationNew = () => {
   // row, let the backend assign one" — GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns each header's
   // real dataId once saved, for a proper upsert on the next save.
   //
-  // vitals/allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
-  // attribute-type concept) — they aren't sent here. Vitals currently have no save endpoint at
-  // all. Allergy is saved separately via saveAllergyDetails() (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS,
-  // one row per record) as a gate before handleFinalSave calls SAVE_PATIENT_CONSULTATION.
+  // allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
+  // attribute-type concept) — they aren't sent here. Allergy is saved separately via
+  // saveAllergyDetails() (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS, one row per record) as a gate
+  // before handleFinalSave calls SAVE_PATIENT_CONSULTATION. Vitals DO fit — they ride along in the
+  // same call as the payload's own patientVitalValue array (see below), not consultationHeadersData.
   const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
     if (!selectedPatient) return null;
 
@@ -436,6 +465,12 @@ const DoctorConsultationNew = () => {
         headerValue: JSON.stringify(e.value),
       }));
 
+    // only vitals the doctor actually typed a value into — an empty chip means "not recorded",
+    // not "recorded as blank"
+    const patientVitalValue: PatientVitalValueEntry[] = Object.entries(vitalsData)
+      .filter(([, value]) => value.trim() !== "")
+      .map(([vitalId, value]) => ({ vitalId: Number(vitalId), vitalValue: value }));
+
     return {
       consultationDetails: {
         doctorId: selectedPatient.DoctorId,
@@ -443,10 +478,17 @@ const DoctorConsultationNew = () => {
         visitId: selectedPatient.VisitId,
         visitTypeId: selectedPatient.TypeId,
         isFileClosed: 0,
+        // 0 for a visit with no vitals saved yet (insert); otherwise the id loadVitalsForPatient
+        // captured off this visit's existing saved vitals (upsert)
+        patientVitalId: savedPatientVitalId,
+        // placeholder — handleFinalSave overwrites this with the actual save-time timestamp, the
+        // same way it overwrites isFileClosed; this memo only shapes the data, not when it's sent
+        vitalDateTime: "",
       },
       consultationHeadersData,
+      patientVitalValue,
     };
-  }, [selectedPatient, emrSectionsData]);
+  }, [selectedPatient, emrSectionsData, vitalsData, savedPatientVitalId]);
 
   // Allergy has its own save endpoint (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS), one row per
   // allergy record — it doesn't fit SAVE_PATIENT_CONSULTATION's flat EMR-header contract, so it
@@ -511,7 +553,11 @@ const DoctorConsultationNew = () => {
       ENDPOINTS.SAVE_PATIENT_CONSULTATION,
       {
         ...consultationPayload,
-        consultationDetails: { ...consultationPayload.consultationDetails, isFileClosed },
+        consultationDetails: {
+          ...consultationPayload.consultationDetails,
+          isFileClosed,
+          vitalDateTime: new Date().toISOString(),
+        },
       },
       {},
       { component: "DoctorConsultationNew" }
@@ -539,6 +585,13 @@ const DoctorConsultationNew = () => {
         queryClient.invalidateQueries({
           queryKey: ["doctorConsultationByVisitId", selectedPatient.VisitId],
         });
+        // refetches this visit's just-saved vitals so savedPatientVitalId picks up the real id —
+        // otherwise a second Save in the same session (without leaving/reopening this patient)
+        // would send patientVitalId 0 again and insert a duplicate row instead of upserting
+        void loadVitalsForPatient(selectedPatient.PatientId, selectedPatient.VisitId);
+        // VitalInsights' own history/graph tabs read this same endpoint — invalidate so they don't
+        // serve a stale pre-save cache next time they're opened
+        queryClient.invalidateQueries({ queryKey: ["getPatientVital", selectedPatient.PatientId] });
       }
       queryClient.invalidateQueries({ queryKey: ["getPatientLists"] });
 
@@ -766,10 +819,16 @@ const DoctorConsultationNew = () => {
                     <div
                       key={`${item.VisitId}-${item.DoctorId}-${item.Id}-${item.AppointmentNo}`}
                       onClick={() => {
-                        // dispatched first so GET_PATIENT_ALLERGY_DETAIL_LIST always goes out
-                        // before ConsultationEmrSections' GET_DOCTOR_CONSULTATION_BY_VISIT_ID call
+                        // dispatched first so GET_PATIENT_ALLERGY_DETAIL_LIST/GET_PATIENT_VITAL
+                        // always go out before ConsultationEmrSections'
+                        // GET_DOCTOR_CONSULTATION_BY_VISIT_ID call
                         void loadAllergySectionForPatient(item.PatientId);
+                        void loadVitalsForPatient(item.PatientId, item.VisitId);
                         setAllergySection(null);
+                        // reset rather than leaving the previous patient's typed vitals showing
+                        // until loadVitalsForPatient resolves (or forever, if this visit has none)
+                        setVitalsData({});
+                        setSavedPatientVitalId(0);
                         setSelectedPatient(item);
                         setLeftPanelVisible(false);
                       }}
@@ -1249,6 +1308,7 @@ const DoctorConsultationNew = () => {
         patientId={selectedPatient?.PatientId}
         vitalsList={vitalsList}
         vitalUnits={vitalUnitsByName}
+        vitalMasterList={vitalMasterList}
       />
       <AllergyPanel
         isOpen={showAllergyPanel}

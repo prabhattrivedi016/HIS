@@ -394,7 +394,12 @@ const ENDPOINTS = {
 
   // doctor consultation new
   SEARCH_PATIENT_FOR_CONSULTATION: "Patient/searchPatientForConsultation",
-  GET_PATIENT_VITAL: "Patient/getPatientVital",
+  // params { patientId, visitId } -> flat rows: { PatientVitalId, VisitId, VitalId, VitalValue,
+  //   VitalDateTime (ISO), VitalDate ("dd-mm-yyyy hh:mm AM/PM"), UnitName } — no VitalName, resolve
+  //   via the vital master list. visitId: 0 means "every visit for this patient" (confirmed).
+  //   Every vital saved in the same patientVitalValue[] batch (see SAVE_PATIENT_CONSULTATION)
+  //   shares one PatientVitalId.
+  GET_PATIENT_VITAL: "EMR/getPatientVital",
   GET_DOCTOR_FAVOURITE_EMR_SECTIONS: "EMR/getDoctorFavouriteEMRSections",
   SAVE_DOCTOR_FAVOURITE_EMR_SECTIONS: "EMR/saveDoctorFavouriteEMRSections",
 

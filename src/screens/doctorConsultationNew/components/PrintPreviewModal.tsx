@@ -301,9 +301,10 @@ const PrintPreviewModal = ({
     };
   }, [isOpen, settings.showLetterhead, branchId]);
 
-  // vitals are never saved per-visit (no save endpoint exists for them at all — see the vitals
-  // strip in index.tsx), so `vitalsData` is only ever this session's live/current values; printing
-  // them alongside a past visit's saved EMR data would misleadingly imply they belong to it
+  // vitals ARE saved now (patientVitalValue on SAVE_PATIENT_CONSULTATION), but there's no
+  // load-back endpoint for them yet — `vitalsData` (index.tsx) is only ever this session's
+  // live/typed values, never hydrated from a past visit's save. Printing them alongside a past
+  // visit's saved EMR data would misleadingly imply they belong to it, so they're hidden instead.
   const filledVitals = useMemo(
     () =>
       selectedVisitId === "current"
