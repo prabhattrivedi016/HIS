@@ -91,6 +91,12 @@ type ConsultationDetails = {
   visitTypeId: number;
   /** 0 | 1 */
   isFileClosed: number;
+  /** 0 for a new row — same upsert convention as ConsultationHeaderDataEntry.dataId, but there's
+   * no getDoctorConsultationByVisitId-equivalent load-back for this yet, so it's always 0 for now */
+  patientVitalId: number;
+  /** ISO timestamp of when these vital values were recorded — set at the moment of save, not
+   * whenever the doctor happened to type them into the vitals strip */
+  vitalDateTime: string;
 };
 
 type ConsultationHeaderDataEntry = {
@@ -106,9 +112,17 @@ type ConsultationHeaderDataEntry = {
   headerValue: string;
 };
 
+/** one filled-in vital from the consultation screen's vitals strip — see VitalMasterItem
+ * (index.tsx) for the vitalId -> name/unit/range this pairs with */
+type PatientVitalValueEntry = {
+  vitalId: number;
+  vitalValue: string;
+};
+
 type PatientConsultationPayload = {
   consultationDetails: ConsultationDetails;
   consultationHeadersData: ConsultationHeaderDataEntry[];
+  patientVitalValue: PatientVitalValueEntry[];
 };
 
 /** one row exactly as GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns it — PascalCase, unlike every
@@ -160,6 +174,7 @@ export type {
   PatientConsultationPayload,
   PatientItem,
   PatientVisitSummary,
+  PatientVitalValueEntry,
   RawConsultationHeaderRow,
   VitalEntry,
 };

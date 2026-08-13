@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { History, LineChart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ENDPOINTS } from "@/config/defaults";
@@ -6,6 +6,20 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import VitalGraph from "./VitalGraph";
 import VitalHistory from "./VitalHistory";
 
+/** one row exactly as GET_PATIENT_VITAL returns it (confirmed contract — see the ENDPOINTS
+ * comment): flat, no VitalName, every row from the same save batch shares one PatientVitalId */
+interface RawPatientVitalRow {
+  PatientVitalId: number;
+  VisitId: number;
+  VitalId: number;
+  VitalValue: string;
+  /** ISO */
+  VitalDateTime: string;
+}
+
+/** shape VitalHistory/VitalGraph already render — built here by grouping RawPatientVitalRow[] by
+ * PatientVitalId (one save batch = one row in the history table / one point on the graph) and
+ * resolving VitalId -> name via vitalMasterList, since the raw rows don't carry names */
 interface PatientVitalEntry {
   VitalId: number;
   VitalName: string;
@@ -20,17 +34,31 @@ interface PatientVitalGroup {
   vitals: PatientVitalEntry[];
 }
 
+interface VitalMasterItem {
+  vitalId: number;
+  vitalName: string;
+}
+
 interface VitalInsightsProps {
   isOpen: boolean;
   onClose: () => void;
   patientId?: number;
   vitalsList: string[];
   vitalUnits?: Record<string, string>;
+  /** for resolving each row's VitalId back to a real name — see PatientVitalGroup above */
+  vitalMasterList: VitalMasterItem[];
 }
 
 type TabKey = "history" | "graph";
 
-const VitalInsights = ({ isOpen, onClose, patientId, vitalsList, vitalUnits }: VitalInsightsProps) => {
+const VitalInsights = ({
+  isOpen,
+  onClose,
+  patientId,
+  vitalsList,
+  vitalUnits,
+  vitalMasterList,
+}: VitalInsightsProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("history");
   const { fetchApi } = useGlobalApi();
 
@@ -38,23 +66,52 @@ const VitalInsights = ({ isOpen, onClose, patientId, vitalsList, vitalUnits }: V
     if (isOpen) setActiveTab("history");
   }, [isOpen]);
 
-  const getPatientVitalRecords = async (): Promise<PatientVitalGroup[]> => {
+  const getPatientVitalRecords = async (): Promise<RawPatientVitalRow[]> => {
     if (!patientId) return [];
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_VITAL,
       {},
-      { params: { patientId } },
+      // visitId 0 = every visit for this patient (confirmed) — Insights shows cross-visit
+      // history/graph, unlike index.tsx's loadVitalsForPatient which scopes to one visit
+      { params: { patientId, visitId: 0 } },
       { component: "VitalInsights" }
     );
     return resp?.data ?? [];
   };
 
-  const { data: vitalRecords = [] } = useQuery({
+  const { data: rawRows = [] } = useQuery({
     queryKey: ["getPatientVital", patientId],
     queryFn: getPatientVitalRecords,
     enabled: isOpen && !!patientId,
   });
+
+  const vitalNameById = useMemo(
+    () => new Map(vitalMasterList.map(v => [v.vitalId, v.vitalName])),
+    [vitalMasterList]
+  );
+
+  const vitalRecords = useMemo<PatientVitalGroup[]>(() => {
+    const byPatientVitalId = new Map<number, PatientVitalGroup>();
+    rawRows.forEach(row => {
+      const group = byPatientVitalId.get(row.PatientVitalId) ?? {
+        vitalDateTime: row.VitalDateTime,
+        visitId: row.VisitId,
+        vitals: [],
+      };
+      group.vitals.push({
+        VitalId: row.VitalId,
+        VitalName: vitalNameById.get(row.VitalId) ?? `Vital ${row.VitalId}`,
+        VitalValue: row.VitalValue,
+        Id: row.PatientVitalId,
+        CreatedOn: row.VitalDateTime,
+      });
+      byPatientVitalId.set(row.PatientVitalId, group);
+    });
+    return Array.from(byPatientVitalId.values()).sort((a, b) =>
+      b.vitalDateTime.localeCompare(a.vitalDateTime)
+    );
+  }, [rawRows, vitalNameById]);
 
   if (!isOpen) return null;
 

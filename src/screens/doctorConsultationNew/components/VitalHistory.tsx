@@ -48,37 +48,36 @@ const NORMAL_RANGE_MATCHERS: { test: (name: string) => boolean; range: [number, 
 
 const PAGE_SIZE = 12;
 
-const MONTHS: Record<string, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-};
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
+// vitalDateTime is VitalInsights' PatientVitalGroup.vitalDateTime, which is the raw API's
+// VitalDateTime — an ISO timestamp, so native Date parsing handles it directly (no custom format
+// to match, unlike the old dd-Mon-yyyy assumption this replaced)
 const parseVitalDateTime = (raw: string): Date | null => {
-  const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
-  if (!m) return null;
-  const monthIdx = MONTHS[m[2]];
-  if (monthIdx === undefined) return null;
-  return new Date(Number(m[3]), monthIdx, Number(m[1]), Number(m[4]), Number(m[5]));
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
 };
 
 const formatVitalDateTime = (raw: string): string => {
-  const m = raw.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})/);
-  if (!m) return raw;
-  const [, day, mon, year, hh, mm] = m;
-  const hour24 = Number(hh);
+  const d = parseVitalDateTime(raw);
+  if (!d) return raw;
+  const hour24 = d.getHours();
   const period = hour24 >= 12 ? "PM" : "AM";
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${day}-${mon}-${year} ${String(hour12).padStart(2, "0")}:${mm} ${period}`;
+  return `${String(d.getDate()).padStart(2, "0")}-${MONTH_ABBR[d.getMonth()]}-${d.getFullYear()} ${String(hour12).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} ${period}`;
 };
 
 const isWithinDateOption = (d: Date, option: string, fromDate: string, toDate: string): boolean => {
