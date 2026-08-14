@@ -135,8 +135,6 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
     enabled: !!patient?.VisitId,
   });
 
-  console.log("previousBedList", previousBedList);
-
   return (
     <div>
       <h3 className="ipd-billing-text">Bed Transfer</h3>

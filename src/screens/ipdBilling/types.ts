@@ -145,12 +145,23 @@ type PreviousBedListItem = {
   TransferedBy: string | null;
   TransferedOn: string | null;
 };
+
+type PreviousDoctorListItem = {
+  DoctorName: string;
+  IsCurrent: number;
+  AdmittedBy: string | null;
+  AdmittedOn: string | null;
+  TransferedBy: string | null;
+  TransferedOn: string | null;
+};
+
 export type {
   BillingTypeItem,
   CategoryItem,
   DoctorItem,
   IpdPatientItem,
   PreviousBedListItem,
+  PreviousDoctorListItem,
   RoomItem,
   ServiceItemList,
   SubCategoryItem,

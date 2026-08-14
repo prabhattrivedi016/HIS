@@ -118,7 +118,7 @@ const IpdBilling = () => {
       { params: { branchId, roleId, tabTypeId: 1 } },
       { component: "IpdBilling" }
     );
-    console.log("resp of tabs", resp?.data);
+
     return resp?.data ?? [];
   };
 
