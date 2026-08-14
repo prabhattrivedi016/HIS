@@ -1,3 +1,5 @@
+import { SubSubCategoryItem } from "@/types";
+
 type IpdPatientItem = {
   BranchId: number;
   PatientId: number;
@@ -73,4 +75,85 @@ type TabNameItem = {
   LastModifiedOn: string;
 };
 
-export type { IpdPatientItem, TabNameItem };
+type DoctorItem = {
+  doctorId: number;
+  name: string;
+  specializationId: number;
+  departmentId: number;
+  canApproveLabReport: number;
+  isDoctorUnit: number;
+};
+
+type CategoryItem = {
+  categoryId: number;
+  categoryName: string;
+  categoryTypeId: number;
+  categoryTypeName: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+};
+
+type SubCategoryItem = {
+  categoryId: number;
+  subCategoryId: number;
+  subCategoryName: string;
+  labTypeId: number;
+};
+
+type ServiceItemList = {
+  serviceItemId: number;
+  hospId: number;
+  categoryTypeId: number;
+  categoryId: number;
+  categoryName: string;
+  subCategoryId: number;
+  subCategoryName: string;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+  name: string;
+  code: string;
+  reportTypeId: number;
+  labTypeId: number;
+  isRegistrationCharge?: number;
+};
+
+type BillingTypeItem = {
+  typeId: number;
+  roomTypeName: string;
+  totalBeds: number;
+  availableBeds: number;
+  occupiedBeds: number;
+};
+
+type RoomItem = {
+  bedId: number;
+  bedName: string;
+  gender: string;
+};
+
+type PreviousBedListItem = {
+  BedType: string;
+  WardName: string;
+  RoomName: string;
+  BedNo: number;
+  BedId: number;
+  IsCurrent: number;
+  AdmittedBy: string | null;
+  AdmittedOn: string | null;
+  TransferedBy: string | null;
+  TransferedOn: string | null;
+};
+export type {
+  BillingTypeItem,
+  CategoryItem,
+  DoctorItem,
+  IpdPatientItem,
+  PreviousBedListItem,
+  RoomItem,
+  ServiceItemList,
+  SubCategoryItem,
+  SubSubCategoryItem,
+  TabNameItem,
+};

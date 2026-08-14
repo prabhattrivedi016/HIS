@@ -2,6 +2,7 @@ import React from "react";
 import BedTransfer from "./BedTransfer";
 import CorporateTransfer from "./CorporateTransfer";
 import DoctorTransfer from "./DoctorTransfer";
+import IpdBillingComponent from "./IpdBillingComponent";
 
 interface RoutingUsingTabUrlProps {
   tabViewUrl: string;
@@ -18,6 +19,9 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
 
     case "transfer-bed":
       return <BedTransfer patient={patient} />;
+
+    case "ipd-billing":
+      return <IpdBillingComponent patient={patient} />;
 
     default:
       return (
