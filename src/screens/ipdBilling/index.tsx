@@ -113,13 +113,12 @@ const IpdBilling = () => {
   const getTabsForIpdBilling = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_IPD_TAB_MASTER,
+      ENDPOINTS.GET_BILLING_TABS,
       {},
       { params: { branchId, roleId, tabTypeId: 1 } },
       { component: "IpdBilling" }
     );
     console.log("resp of tabs", resp?.data);
-
     return resp?.data ?? [];
   };
 
@@ -167,14 +166,45 @@ const IpdBilling = () => {
     }
   }, [ipdTabs, activeTab]);
 
-  // Top visible tabs limit (first 6 tabs) + active tab if it's outside the first 6
+  // Favorite tabs state (loaded from local storage)
+  const [favoriteTabIds, setFavoriteTabIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem("ipd_favorite_tab_ids");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Helper to check if a tab is favorited
+  const isTabFavorite = (tabId: number) => favoriteTabIds.includes(tabId);
+
+  // Toggle favorite status
+  const toggleFavoriteTab = (tabId: number) => {
+    setFavoriteTabIds(prev => {
+      const updated = prev.includes(tabId) ? prev.filter(id => id !== tabId) : [...prev, tabId];
+      localStorage.setItem("ipd_favorite_tab_ids", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Top visible tabs limit: favorited tabs (or first 6 tabs by default) + active tab
   const visibleTabs = useMemo(() => {
-    const list = (ipdTabs ?? []).slice(0, 6);
+    const list: TabNameItem[] = [];
+    if (favoriteTabIds.length > 0) {
+      (ipdTabs ?? []).forEach(tab => {
+        if (favoriteTabIds.includes(Number(tab.TabId))) {
+          list.push(tab);
+        }
+      });
+    } else {
+      list.push(...(ipdTabs ?? []).slice(0, 6));
+    }
     if (activeTab && !list.some(t => t.TabId === activeTab.TabId)) {
       list.push(activeTab);
     }
     return list;
-  }, [ipdTabs, activeTab]);
+  }, [ipdTabs, favoriteTabIds, activeTab]);
 
   const openMoreActionsButtonHandler = () => {
     setIsMoreActionsOpen(prev => !prev);
@@ -182,17 +212,23 @@ const IpdBilling = () => {
 
   return (
     <div className="page-container w-full min-w-0">
-      <h1 className="page-heading">Patient IPD Journey</h1>
+      {!selectedPatient ? (
+        <>
+          <h1 className="page-heading">Patient IPD Journey</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
+          <nav className="helper-text">
+            <NavLink to="/dashboard" className="hover:underline">
+              Home
+            </NavLink>
 
-        <span>››</span>
+            <span>››</span>
 
-        <span>Patient IPD Journey</span>
-      </nav>
+            <span>Patient IPD Journey</span>
+          </nav>
+        </>
+      ) : (
+        <></>
+      )}
 
       {/* patient search */}
 
@@ -435,7 +471,7 @@ const IpdBilling = () => {
               <div className="flex-1 min-w-0">
                 <div className="w-full overflow-x-auto hide-scrollbar">
                   <div className="flex items-center gap-2 min-w-max">
-                    {/* {visibleTabs.map((i: TabNameItem) => {
+                    {visibleTabs.map((i: TabNameItem) => {
                       const isActive = activeTab?.TabId === i?.TabId;
                       return (
                         <button
@@ -462,7 +498,7 @@ const IpdBilling = () => {
                           {i?.TabName}
                         </button>
                       );
-                    })} */}
+                    })}
                   </div>
                 </div>
               </div>
@@ -502,25 +538,97 @@ const IpdBilling = () => {
                             {/* Group Tabs */}
 
                             <div className="p-1">
-                              {tabs.map(tab => (
-                                <button
-                                  key={tab?.TabId}
-                                  type="button"
-                                  className="group w-full flex items-center gap-2 px-2 py-1.5 text-left text-md  text-gray-600 rounded hover:bg-gray-100 transition"
-                                  onClick={() => {
-                                    console.log("Selected Tab:", tab);
-                                    setActiveTab(tab);
-                                    setIsMoreActionsOpen(false);
-                                  }}
-                                >
-                                  <i
-                                    className=" fa-solid fa-circle-dot text-[9px] text-gray-400 group-hover:text-blue-500
-                            "
-                                  />
+                              {tabs.map(tab => {
+                                const isFavorite = isTabFavorite(Number(tab?.TabId));
 
-                                  <span className="truncate ">{tab?.TabName}</span>
-                                </button>
-                              ))}
+                                return (
+                                  <div
+                                    key={tab?.TabId}
+                                    className="
+        group
+        w-full
+        flex
+        items-center
+        gap-1
+        rounded
+        hover:bg-gray-100
+        transition
+      "
+                                  >
+                                    {/* Tab */}
+
+                                    <button
+                                      type="button"
+                                      className="
+          flex
+          items-center
+          gap-2
+          flex-1
+          min-w-0
+          px-2
+          py-1.5
+          text-left
+          text-md
+          text-gray-600
+        "
+                                      onClick={() => {
+                                        console.log("Selected Tab:", tab);
+
+                                        setActiveTab(tab);
+                                        setIsMoreActionsOpen(false);
+                                      }}
+                                    >
+                                      <i
+                                        className="
+            fa-solid
+            fa-circle-dot
+            text-[9px]
+            text-gray-400
+            group-hover:text-blue-500
+            flex-shrink-0
+          "
+                                      />
+
+                                      <span className="truncate">{tab?.TabName}</span>
+                                    </button>
+
+                                    {/* Favorite Star */}
+
+                                    <button
+                                      type="button"
+                                      title={
+                                        isFavorite ? "Remove from favorites" : "Add to favorites"
+                                      }
+                                      className="
+          flex
+          items-center
+          justify-center
+          w-8
+          h-8
+          flex-shrink-0
+          rounded
+          hover:bg-white
+          transition
+        "
+                                      onClick={() => toggleFavoriteTab(Number(tab?.TabId))}
+                                    >
+                                      <i
+                                        className={`
+            fa-star
+            text-sm
+            transition-all
+            duration-200
+            ${
+              isFavorite
+                ? "fa-solid text-yellow-500"
+                : "fa-regular text-gray-400 hover:text-yellow-500"
+            }
+          `}
+                                      />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
