@@ -22,6 +22,7 @@ import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import PatientDocumentMaster from "../documentMaster";
 import EmrControls from "../emrControls";
+import EMRTemplates from "../emrTemplates";
 import FormulaMaster from "../formulaMaster";
 import GravityMaster from "../gravityMaster";
 import HeaderFooterMaster from "../headerFooterMaster";
@@ -153,4 +154,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "package-master": <PackageMaster />,
   "opd-appointment": <OpdAppointment />,
   "opd-appointment-confirmation": <OpdAppointmentConfirmation />,
+  "emr-templates": <EMRTemplates />,
 };

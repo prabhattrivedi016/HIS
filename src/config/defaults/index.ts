@@ -358,6 +358,22 @@ const ENDPOINTS = {
   // emr controls — runs a header's saved query (e.g. "Custom" control type) and returns its result rows
   GET_EMR_HEADER_QUERY_RESULT: "EMR/getEMRHeaderQueryResult",
 
+  // templates — curated, categorized bundles of existing EMR Sections, selectable from the
+  // consultation screen's "Templates" picker. UNVERIFIED — invented by pattern-matching the EMR
+  // Section endpoints above; payload/response field names are guesses pending backend
+  // confirmation (see doctor-consultation-new-status memory note on this project's established
+  // convention of flagging, not silently trusting, guessed endpoints).
+  GET_TEMPLATE_CATEGORY_LIST: "EMR/getTemplateCategoryList",
+  CREATE_UPDATE_TEMPLATE_CATEGORY: "EMR/createUpdateTemplateCategory",
+  GET_ALL_TEMPLATES: "EMR/getTemplateMaster",
+  CREATE_UPDATE_TEMPLATE: "EMR/createUpdateTemplateMaster",
+  GET_TEMPLATE_SECTION_MAPPING: "EMR/getTemplateSectionMapping",
+
+  // templates — mapping Templates to a doctor or department, mirrors the EMR Section department
+  // mapping pair above (GET/SAVE_EMR_SECTION_DEPARTMENT_MAPPING). Also UNVERIFIED.
+  GET_TEMPLATE_DEPARTMENT_MAPPING: "EMR/getTemplateDepartmentMapping",
+  SAVE_TEMPLATE_DEPARTMENT_MAPPING: "EMR/saveTemplateDepartmentMapping",
+
   // emr section "Past Visits" history is real now: GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID lists
   // this patient's other visits, then GET_DOCTOR_CONSULTATION_BY_VISIT_ID (below, same endpoint
   // that hydrates the current visit) is called per visitId to get that visit's saved header
