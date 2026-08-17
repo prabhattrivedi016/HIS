@@ -16,15 +16,21 @@ interface TemplateMappingPayload {
   typeId: number;
   typeName: string;
   relatedToId: number;
-  templateMappingData: Array<{
+  // CONFIRMED via 400 validation error from the real backend — SAVE_TEMPLATE_DEPARTMENT_MAPPING
+  // reuses the EMR Section mapping DTO as-is, so the array key is literally "sectionMappingData"
+  // even though it holds templateId rows, not sectionId rows.
+  sectionMappingData: Array<{
     templateId: number;
     sequenceNo: number;
   }>;
 }
 
 /** mirrors DoctorDepartmentEmrSectionMapping.tsx (emrControls) exactly, swapping EMR Sections for
- * Templates. UNVERIFIED — GET/SAVE_TEMPLATE_DEPARTMENT_MAPPING are guessed endpoints, see
- * config/defaults/index.ts. */
+ * Templates. GET_TEMPLATE_DEPARTMENT_MAPPING is confirmed live (same typeId/relatedToId query
+ * params as the EMR Section pair), though its exact response field names weren't shown, so the
+ * mapping-row id is read defensively (see searchHandler). SAVE_TEMPLATE_DEPARTMENT_MAPPING is
+ * confirmed live too, and confirmed to reuse the Section mapping DTO's "sectionMappingData" key
+ * (see TemplateMappingPayload above). */
 const DoctorDepartmentEmrTemplateMapping = () => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -162,7 +168,10 @@ const DoctorDepartmentEmrTemplateMapping = () => {
         templateName: m.TemplateName,
         displayName: m.DisplayName,
         isActive: 1,
-        mappingId: m.MappingId,
+        // response schema for this endpoint isn't visible in Swagger yet — mapping-row id name
+        // guessed as Id first since that's the confirmed convention on the sibling
+        // getEMRTemplateSectionMapping endpoint, falling back to MappingId
+        mappingId: m.Id ?? m.MappingId,
         sequenceNo: m.SequenceNo,
       }))
       .sort((a, b) => a.sequenceNo - b.sequenceNo);
@@ -238,7 +247,7 @@ const DoctorDepartmentEmrTemplateMapping = () => {
       relatedToId:
         selectedType === 1 ? Number(selectedDepartment?.value) : Number(selectedDoctor?.value),
 
-      templateMappingData: checkedItems.map((item, idx) => ({
+      sectionMappingData: checkedItems.map((item, idx) => ({
         templateId: item.templateId,
         sequenceNo: idx + 1,
       })),

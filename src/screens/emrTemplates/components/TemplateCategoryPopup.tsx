@@ -20,8 +20,10 @@ interface TemplateCategoryPopupProps {
 /**
  * Quick "+" add-a-category popup, opened from TemplateMaster's Template Category select — same
  * inline-create-without-leaving-the-form pattern used throughout this codebase (e.g.
- * serviceMaster/packageMaster's category "+" buttons). Create-only; category status defaults
- * Active since it's being added specifically to use on a template right now.
+ * serviceMaster/packageMaster's category "+" buttons). Create-only. Category master has no
+ * status/isActive concept on the backend, and its save response only echoes back the new id
+ * ({templateCategoryId}) — the created category's own display name is stitched back on from what
+ * was just submitted, not from the response.
  */
 const TemplateCategoryPopup = ({ isOpen, onClose, onCreated }: TemplateCategoryPopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
@@ -35,12 +37,11 @@ const TemplateCategoryPopup = ({ isOpen, onClose, onCreated }: TemplateCategoryP
     resolver: yupResolver(templateCategorySchema),
     defaultValues: {
       templateCategoryId: 0,
-      categoryName: "",
-      isActive: 1,
+      templateCategoryName: "",
     },
   });
 
-  const onSubmit = async (data: { templateCategoryId?: number | null; categoryName: string; isActive: number }) => {
+  const onSubmit = async (data: { templateCategoryId?: number | null; templateCategoryName: string }) => {
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_TEMPLATE_CATEGORY,
@@ -59,11 +60,10 @@ const TemplateCategoryPopup = ({ isOpen, onClose, onCreated }: TemplateCategoryP
     const saved = resp?.data ?? {};
     onCreated({
       templateCategoryId: Number(saved.templateCategoryId ?? saved.TemplateCategoryId ?? 0),
-      categoryName: String(saved.categoryName ?? saved.CategoryName ?? data.categoryName),
-      isActive: Number(saved.isActive ?? saved.IsActive ?? data.isActive),
+      templateCategoryName: data.templateCategoryName,
     });
 
-    reset({ templateCategoryId: 0, categoryName: "", isActive: 1 });
+    reset({ templateCategoryId: 0, templateCategoryName: "" });
     onClose();
   };
 
@@ -76,18 +76,11 @@ const TemplateCategoryPopup = ({ isOpen, onClose, onCreated }: TemplateCategoryP
               type="text"
               className="input-field"
               placeholder="e.g. Assessment"
-              {...register("categoryName")}
+              {...register("templateCategoryName")}
             />
-            {errors.categoryName && (
-              <p className="input-field-error">{errors.categoryName.message}</p>
+            {errors.templateCategoryName && (
+              <p className="input-field-error">{errors.templateCategoryName.message}</p>
             )}
-          </InputField>
-
-          <InputField label="Status" required>
-            <select className="input-field" {...register("isActive")}>
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
-            </select>
           </InputField>
         </div>
 

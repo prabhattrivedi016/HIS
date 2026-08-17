@@ -1,13 +1,12 @@
-/** UNVERIFIED — Templates types below are pattern-matched against the EMR Section types in
- * src/screens/emrControls/types.ts (see src/config/defaults/index.ts's "templates" ENDPOINTS
- * comment block); not yet confirmed against a real backend contract. */
+/** Templates types below — CONFIRMED against the real backend (see src/config/defaults/index.ts's
+ * "templates" ENDPOINTS comment block for which endpoints are confirmed vs. still guessed). */
 
 /** a Template Category — the tabs a doctor picks from in the consultation page's Templates
- * picker (e.g. "Assessment", "Scoring", "Examination") */
+ * picker (e.g. "Assessment", "Scoring", "Examination"). No status/isActive concept on the
+ * backend — category master is name-only. */
 type TemplateCategoryItem = {
   templateCategoryId: number;
-  categoryName: string;
-  isActive: number;
+  templateCategoryName: string;
 };
 
 /** a named, categorized Template — literally a curated, ordered bundle of existing EMR Sections

@@ -113,8 +113,7 @@ const TemplateMaster = () => {
     const raw: any[] = resp?.data ?? [];
     return raw.map(c => ({
       templateCategoryId: c.TemplateCategoryId ?? c.templateCategoryId,
-      categoryName: c.CategoryName ?? c.categoryName ?? "",
-      isActive: c.IsActive ?? c.isActive ?? 1,
+      templateCategoryName: c.TemplateCategoryName ?? c.templateCategoryName ?? "",
     }));
   };
 
@@ -154,7 +153,6 @@ const TemplateMaster = () => {
     queryFn: getAllSectionsForCatalog,
   });
 
-  // UNVERIFIED — GET_TEMPLATE_SECTION_MAPPING is a guessed endpoint, see config/defaults/index.ts
   const getTemplateSectionMapping = async (
     templateId: number
   ): Promise<TemplateSectionMappingRecord[]> => {
@@ -167,7 +165,7 @@ const TemplateMaster = () => {
     );
     const raw: any[] = resp?.data ?? [];
     return raw.map(m => ({
-      mappingId: m.MappingId,
+      mappingId: m.Id,
       templateId: m.TemplateId,
       sectionId: m.SectionId,
       sectionName: m.SectionName,
@@ -277,7 +275,6 @@ const TemplateMaster = () => {
     mutation.mutate(payload);
   };
 
-  // UNVERIFIED — GET_ALL_TEMPLATES is a guessed endpoint, see config/defaults/index.ts
   const getAllTemplates = async (): Promise<TemplateItem[]> => {
     const resp = await fetchApi(
       "GET",
@@ -292,7 +289,7 @@ const TemplateMaster = () => {
       templateName: t.TemplateName,
       displayName: t.DisplayName,
       templateCategoryId: t.TemplateCategoryId,
-      categoryName: t.CategoryName,
+      categoryName: t.TemplateCategoryName,
       isActive: t.IsActive,
     }));
   };
@@ -381,7 +378,7 @@ const TemplateMaster = () => {
                   <option value={0}>--Select--</option>
                   {categoryList.map((c: TemplateCategoryItem) => (
                     <option key={c.templateCategoryId} value={c.templateCategoryId}>
-                      {c.categoryName}
+                      {c.templateCategoryName}
                     </option>
                   ))}
                 </select>

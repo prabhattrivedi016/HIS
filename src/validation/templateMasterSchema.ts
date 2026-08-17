@@ -3,9 +3,7 @@ import * as yup from "yup";
 export const templateCategorySchema = yup.object({
   templateCategoryId: yup.number().nullable(),
 
-  categoryName: yup.string().required("Category Name is required"),
-
-  isActive: yup.number().required("Status is required"),
+  templateCategoryName: yup.string().required("Category Name is required"),
 });
 
 export type TemplateCategoryFormData = yup.InferType<typeof templateCategorySchema>;
