@@ -55,6 +55,7 @@ type IpdPatientItem = {
   BedType?: string;
   TPA?: string;
   Status?: string;
+  InsuranceCompanyId?: number;
 };
 
 type TabNameItem = {
@@ -155,14 +156,74 @@ type PreviousDoctorListItem = {
   TransferedOn: string | null;
 };
 
+type InsuranceItem = {
+  insuranceCompanyId: number;
+  insuranceCompanyName: string;
+};
+
+type CorporateItem = {
+  corporateId: number;
+  corporateName: string;
+  insuranceCompanyId: number;
+  isActive: number;
+};
+
+type ServiceItem = {
+  serviceItemId: number;
+  hospId: number;
+  categoryTypeId: number;
+  categoryId: number;
+  categoryName: string;
+  subCategoryId: number;
+  subCategoryName: string;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+  name: string;
+  code: string;
+  reportTypeId: number | null;
+  labTypeId: number;
+  reportType: string;
+  isSampleRequired: number | null;
+  sampleTypeId: number | null;
+  sampleTypeIdList: string;
+  labMethodId: number | null;
+  forGenderId: number | null;
+  forGender: string;
+  isOutSource: number;
+  isPrintAlone: number | null;
+  isDepartmentReceivingRequired: number | null;
+  shortName: string;
+  sampleVolume: string;
+  investigationComment: string;
+  tatInMin: number;
+  isActive: number;
+  gstPer: number;
+  roomTypeId: number;
+  roomType: string;
+  isICU: number;
+  snomedCode: string;
+  doctorDepartmentIds: string;
+  isRequiredSeparatePerformingDoctor: number;
+  opdConsultationTypeId: number;
+  opdConsultationType: string;
+  isOnlineConsultationAllow: number;
+  isTeleConsultationService: number;
+  isRegistrationCharge: number;
+  registrationChargeValidityDays: number;
+  isPackageExpired: number;
+};
+
 export type {
   BillingTypeItem,
   CategoryItem,
+  CorporateItem,
   DoctorItem,
+  InsuranceItem,
   IpdPatientItem,
   PreviousBedListItem,
   PreviousDoctorListItem,
   RoomItem,
+  ServiceItem,
   ServiceItemList,
   SubCategoryItem,
   SubSubCategoryItem,

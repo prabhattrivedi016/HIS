@@ -446,6 +446,8 @@ const ENDPOINTS = {
   GET_IPD_PATIENT_BED_HISTORY: "IPD/getIPDPatientBedHistory",
   GET_IPD_PATIENT_DOCTOR_HISTORY: "IPD/getIPDPatientDoctorHistory",
   TRANSFER_IPD_PATIENT_DOCTOR: "IPD/transferIPDPatientDoctor",
+  UPDATE_IPD_PATIENT_TARRIF_DETAILS: "IPD/updateIPDPatientTariffDetails",
+  GET_IPD_PATIENT_CORPORATE_HISTORY: "IPD/getIPDPatientCorporateHistory",
 
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
