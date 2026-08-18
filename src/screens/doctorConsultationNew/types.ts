@@ -79,6 +79,10 @@ type EmrSectionAnswerEntry = {
    * saved before — undefined for a header that's never been saved, in which case the next save
    * must send dataId 0 so the backend inserts a new row instead of updating someone else's */
   dataId?: number;
+  /** set only for an entry produced inside TemplateFillerModal (the selected Template's id) —
+   * undefined for an entry from the doctor's normal EMR Sections panel, which saves as
+   * templateId 0. See src/screens/emrControls/types.ts's TemplateItem. */
+  templateId?: number;
 };
 
 // matches the real backend contract for api/EMR/savePatientConsultation /

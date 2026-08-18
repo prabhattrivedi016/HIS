@@ -9,6 +9,7 @@ import {
   FileCheck,
   Gauge,
   HeartPulse,
+  LayoutTemplate,
   LogOut,
   LucideIcon,
   Printer,
@@ -32,10 +33,13 @@ import confetti from "canvas-confetti";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
+import { TemplateItem } from "@/screens/emrTemplates/types";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import MedicineAssistantWidget from "./components/MedicineAssistantWidget";
 import PrintPreviewModal from "./components/PrintPreviewModal";
+import TemplateFillerModal from "./components/TemplateFillerModal";
+import TemplatePicker from "./components/TemplatePicker";
 import UploadDocumentModal from "./components/UploadDocumentModal";
 import VitalInsights from "./components/VitalInsights";
 import {
@@ -160,6 +164,16 @@ const DoctorConsultationNew = () => {
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
   const [showUploadDocument, setShowUploadDocument] = useState<boolean>(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState<boolean>(false);
+  const [selectedTemplateForFill, setSelectedTemplateForFill] = useState<TemplateItem | null>(
+    null
+  );
+  // keyed by templateId (not flattened) so re-filling the same template in one session replaces
+  // its bucket instead of appending duplicate entries — mirrors ConsultationEmrSections' own
+  // entriesBySectionId pattern
+  const [templateEntriesByTemplateId, setTemplateEntriesByTemplateId] = useState<
+    Record<number, EmrSectionAnswerEntry[]>
+  >({});
   // phones only — the full vitals chip row is too tall to show inline on a small screen, so it
   // starts collapsed behind a compact summary bar instead of pushing EMR Sections far below the fold
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
@@ -450,7 +464,16 @@ const DoctorConsultationNew = () => {
   const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
     if (!selectedPatient) return null;
 
-    const consultationHeadersData: ConsultationHeaderDataEntry[] = emrSectionsData
+    // entries from the doctor's always-visible EMR Sections panel, plus every template the
+    // doctor has filled+applied this session (see templateEntriesByTemplateId, keyed by
+    // templateId so re-filling the same template replaces its bucket rather than appending) —
+    // both flow through the SAME SAVE_PATIENT_CONSULTATION call, distinguished only by templateId
+    const allEntries: EmrSectionAnswerEntry[] = [
+      ...emrSectionsData,
+      ...Object.values(templateEntriesByTemplateId).flat(),
+    ];
+
+    const consultationHeadersData: ConsultationHeaderDataEntry[] = allEntries
       // headerId 0 is a synthetic frontend-only row (e.g. a radioScoreGroup section's aggregate
       // "Total Score", card-group's masterless-group fallback) — no such header exists in Header
       // Master, so sending it as a real headerId would either violate a FK constraint or save
@@ -461,7 +484,9 @@ const DoctorConsultationNew = () => {
         sectionId: e.sectionId,
         headerId: e.headerId,
         controlTypeId: e.controlTypeId,
-        templateId: 0,
+        // undefined (doctor's normal panel) saves as 0; a template-filled entry carries its real
+        // templateId — see TemplateFillerModal.handleApply, which stamps this onto every entry
+        templateId: e.templateId ?? 0,
         headerValue: JSON.stringify(e.value),
       }));
 
@@ -829,6 +854,8 @@ const DoctorConsultationNew = () => {
                         // until loadVitalsForPatient resolves (or forever, if this visit has none)
                         setVitalsData({});
                         setSavedPatientVitalId(0);
+                        // don't carry a previous patient's filled templates into this one's save payload
+                        setTemplateEntriesByTemplateId({});
                         setSelectedPatient(item);
                         setLeftPanelVisible(false);
                       }}
@@ -1040,6 +1067,15 @@ const DoctorConsultationNew = () => {
                         >
                           <Upload size={14} />
                           Upload Document
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker(true)}
+                          disabled={isFileClosed}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
+                        >
+                          <LayoutTemplate size={14} />
+                          Templates
                         </button>
                         <button
                           type="button"
@@ -1317,6 +1353,25 @@ const DoctorConsultationNew = () => {
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
         disabled={isFileClosed}
+      />
+      <TemplatePicker
+        isOpen={showTemplatePicker}
+        onClose={() => setShowTemplatePicker(false)}
+        onSelectTemplate={template => {
+          setShowTemplatePicker(false);
+          setSelectedTemplateForFill(template);
+        }}
+      />
+      <TemplateFillerModal
+        isOpen={selectedTemplateForFill != null}
+        onClose={() => setSelectedTemplateForFill(null)}
+        template={selectedTemplateForFill}
+        doctorId={selectedPatient?.DoctorId}
+        patientId={selectedPatient?.PatientId}
+        visitId={selectedPatient?.VisitId}
+        onApply={(templateId, entries) =>
+          setTemplateEntriesByTemplateId(prev => ({ ...prev, [templateId]: entries }))
+        }
       />
       <PrintPreviewModal
         isOpen={showPrintPreview}

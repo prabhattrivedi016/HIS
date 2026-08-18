@@ -358,6 +358,23 @@ const ENDPOINTS = {
   // emr controls — runs a header's saved query (e.g. "Custom" control type) and returns its result rows
   GET_EMR_HEADER_QUERY_RESULT: "EMR/getEMRHeaderQueryResult",
 
+  // templates — curated, categorized bundles of existing EMR Sections, selectable from the
+  // consultation screen's "Templates" picker. CONFIRMED against real backend/Swagger (category
+  // master has no isActive field — create/update payload is just {templateCategoryId,
+  // templateCategoryName}, and its save response only echoes back {templateCategoryId}).
+  GET_TEMPLATE_CATEGORY_LIST: "EMR/getTemplateCategoryMasterList",
+  CREATE_UPDATE_TEMPLATE_CATEGORY: "EMR/createUpdateTemplateCategoryMaster",
+  GET_ALL_TEMPLATES: "EMR/getEMRTemplateMaster",
+  CREATE_UPDATE_TEMPLATE: "EMR/createUpdateEMRTemplateMaster",
+  GET_TEMPLATE_SECTION_MAPPING: "EMR/getEMRTemplateSectionMapping",
+
+  // templates — mapping Templates to a doctor or department, mirrors the EMR Section department
+  // mapping pair above (GET/SAVE_EMR_SECTION_DEPARTMENT_MAPPING). GET confirmed live in Swagger
+  // (same typeId/relatedToId query params as the EMR Section pair); SAVE isn't visible in Swagger
+  // yet so its name is still a pattern-matched guess off that same GET/SAVE naming convention.
+  GET_TEMPLATE_DEPARTMENT_MAPPING: "EMR/getEMRTemplateDepartmentMapping",
+  SAVE_TEMPLATE_DEPARTMENT_MAPPING: "EMR/saveEMRTemplateDepartmentMapping",
+
   // emr section "Past Visits" history is real now: GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID lists
   // this patient's other visits, then GET_DOCTOR_CONSULTATION_BY_VISIT_ID (below, same endpoint
   // that hydrates the current visit) is called per visitId to get that visit's saved header
