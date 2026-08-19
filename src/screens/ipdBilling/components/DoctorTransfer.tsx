@@ -4,7 +4,7 @@ import { SelectStyles } from "@/components/customSelect";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { SelectItem } from "@/types";
+import { OptionItem, SelectItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -45,6 +45,12 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
     }));
   }, [doctorLists]);
 
+  const secondarySelectOption = useMemo(() => {
+    return doctorSelectOption?.filter(
+      (d: OptionItem) => Number(d?.value) !== Number(selectedPrimaryDoctor?.value)
+    );
+  }, [doctorSelectOption, selectedPrimaryDoctor]);
+
   useEffect(() => {
     const docId = Number(patient?.DoctorNumber);
 
@@ -77,8 +83,8 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       branchId: patient?.BranchId,
     };
 
-    if (!payload?.primaryDoctorId || payload?.secondaryDoctorIds?.length === 0) {
-      showWarning("Please select primary doctor and secondary doctor first!");
+    if (payload?.primaryDoctorId === 0) {
+      showWarning("Please select primary doctor!");
       return;
     }
 
@@ -136,9 +142,9 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             menuPosition="fixed"
           />
         </InputField>
-        <InputField label="Secondary Doctor" required>
+        <InputField label="Secondary Doctor">
           <Select
-            options={doctorSelectOption}
+            options={secondarySelectOption}
             name="secondaryDoctors"
             isMulti
             value={selectedSecondaryDoctors as any}

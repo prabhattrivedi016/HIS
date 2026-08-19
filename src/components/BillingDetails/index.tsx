@@ -186,12 +186,16 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
         const errors: Partial<Record<"paymentModeId" | "amount" | "bankId" | "refNo", string>> = {};
 
+        const isCash = isCashMode(row.paymentModeId);
+        const hasPatientAdvance = showPatientAdvanceRow && patientAdvanceUsed > 0;
+        const isAllowedZeroCash = isCash && hasPatientAdvance;
+
         if (row.paymentModeId === null) {
           errors.paymentModeId = "Select payment mode";
           hasError = true;
         }
 
-        if (toNumber(row.amount) <= 0) {
+        if (toNumber(row.amount) < 0 || (!isAllowedZeroCash && toNumber(row.amount) <= 0)) {
           errors.amount = "Enter valid amount";
           hasError = true;
         }
@@ -357,7 +361,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       }
 
       const netAmount = toNumber(billingValues?.netAmount);
-      const regularTotal = getRegularPaymentsTotal(rows);
+      // const regularTotal = getRegularPaymentsTotal(rows);
       const defaultAdvanceUsed = getDefaultPatientAdvanceUsed(netAmount, availablePatientAdvance);
 
       const isAdvanceLoaded = prevAvailableAdvanceRef.current === 0 && availablePatientAdvance > 0;

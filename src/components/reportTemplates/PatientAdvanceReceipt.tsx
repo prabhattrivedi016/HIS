@@ -252,10 +252,10 @@ export default function PatientAdvanceReceipt({
                     <td style={{ verticalAlign: "top" }}>Contact No</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ContactNumber}</td>
                   </tr>
-                  <tr>
+                  {/* <tr>
                     <td style={{ verticalAlign: "top" }}>Relative Name</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
-                  </tr>
+                  </tr> */}
                   <tr>
                     <td style={{ verticalAlign: "top" }}>Address</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address}</td>
@@ -267,7 +267,7 @@ export default function PatientAdvanceReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "130px", verticalAlign: "top" }}>BillDate & Time</td>
+                    <td style={{ width: "130px", verticalAlign: "top" }}>Bill Date & Time</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.CreatedOn}</td>
                   </tr>
 
@@ -277,10 +277,10 @@ export default function PatientAdvanceReceipt({
                       : {patientDetails?.Age} / {patientDetails?.Gender}
                     </td>
                   </tr>
-                  <tr>
+                  {/* <tr>
                     <td style={{ verticalAlign: "top" }}>Bill No.</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReceiptNo}</td>
-                  </tr>
+                  </tr> */}
                   <tr>
                     <td style={{ verticalAlign: "top" }}>Receipt No.</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReceiptNo}</td>

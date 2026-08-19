@@ -15,7 +15,7 @@ import { SlotListItem } from "../types";
 interface AppointmentSlotProps {
   isOpen: boolean;
   onClose: () => void;
-  doctorId: number;
+  doctorId: number | string;
   selectedSlotTimingId: string;
   onSelectSlot: (slotId: string, appDateTime: string) => void;
 }
