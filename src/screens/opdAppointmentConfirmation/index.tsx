@@ -15,6 +15,7 @@ import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { exportListViewData } from "@/utils/exportUtils";
 import { filteredData } from "@/utils/filteredData";
 import { transformDataWithConfig } from "@/utils/utilities";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useContext,
@@ -51,6 +52,7 @@ const OpdAppointmentConfirmation = () => {
   const today = new Date().toISOString().split("T")[0];
   const { branchId } = useContext(BranchContext) ?? 1;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { configDataValue: opdAppointmentConfirmationConfigFromApi } = useConfigMaster(
     "opdAppointmentConfirmation"
@@ -220,13 +222,14 @@ const OpdAppointmentConfirmation = () => {
         }
 
         showSuccess(resp?.message ?? "Appointment rescheduled successfully.");
+        queryClient.invalidateQueries({ queryKey: ["appointmentSlots"] });
         void getOpdAppointmentConfirmationList(queryValue);
       } catch (err) {
         console.error(err);
         showError("Failed to reschedule appointment.");
       }
     },
-    [selectedItemForReschedule, queryValue, getOpdAppointmentConfirmationList]
+    [selectedItemForReschedule, queryValue, getOpdAppointmentConfirmationList, queryClient]
   );
 
   useEffect(() => {

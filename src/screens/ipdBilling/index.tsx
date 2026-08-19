@@ -91,16 +91,7 @@ const IpdBilling = () => {
         <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">{label}:</span>
 
         <span
-          className="
-            text-sm
-            font-medium
-            text-gray-800
-            truncate
-            min-w-0
-            overflow-hidden
-            text-ellipsis
-            whitespace-nowrap
-          "
+          className=" text-sm font-medium text-gray-800  truncate min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
           title={value ? String(value) : "-"}
         >
           {value || "-"}
@@ -210,6 +201,11 @@ const IpdBilling = () => {
     setIsMoreActionsOpen(prev => !prev);
   };
 
+  // back page handler
+  const backPageHandler = () => {
+    setSelectedPatient(null);
+  };
+
   return (
     <div className="page-container w-full min-w-0">
       {!selectedPatient ? (
@@ -227,7 +223,25 @@ const IpdBilling = () => {
           </nav>
         </>
       ) : (
-        <></>
+        <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
+          <div className="flex-1">
+            <h1 className="page-heading">Patient IPD Journey</h1>
+
+            <nav className="helper-text">
+              <NavLink to="/dashboard" className="hover:underline">
+                Home
+              </NavLink>
+              <span>››</span>
+              <span>Patient IPD Journey</span>
+            </nav>
+          </div>
+
+          <div className="flex justify-end flex-1">
+            <button type="button" className="save-btn" onClick={backPageHandler}>
+              Back Page
+            </button>
+          </div>
+        </div>
       )}
 
       {/* patient search */}
@@ -393,9 +407,12 @@ const IpdBilling = () => {
                 <div className="min-w-0 flex-1 flex flex-col justify-center gap-2">
                   <DetailRow label="UHID" value={selectedPatient?.UHID} />
 
-                  <DetailRow label="IPD No." value={selectedPatient?.IPDNo} />
+                  <DetailRow label="Name" value={selectedPatient?.PatientName} />
 
-                  <DetailRow label="Admitted" value={selectedPatient?.AdmissionDate} />
+                  <DetailRow
+                    label="Age/Gender"
+                    value={`${selectedPatient?.Age || "-"} / ${selectedPatient?.Gender || "-"}`}
+                  />
                 </div>
               </div>
             </div>
@@ -405,14 +422,11 @@ const IpdBilling = () => {
             <div className="card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
               <div className="h-full flex items-center p-3 min-w-0">
                 <div className=" w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow label="Name" value={selectedPatient?.PatientName} />
+                  <DetailRow label="IPD No." value={selectedPatient?.IPDNo} />
 
-                  <DetailRow
-                    label="Age/Gender"
-                    value={`${selectedPatient?.Age || "-"} / ${selectedPatient?.Gender || "-"}`}
-                  />
+                  <DetailRow label="Doctor" value={selectedPatient?.PrimaryDoctor} />
 
-                  <DetailRow label="Contact" value={selectedPatient?.ContactNumber} />
+                  <DetailRow label="Corporate" value={selectedPatient?.Corporate} />
                 </div>
               </div>
             </div>
@@ -421,11 +435,10 @@ const IpdBilling = () => {
             <div className="card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
               <div className="h-full flex items-center p-3 min-w-0">
                 <div className="w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow label="Admission Date" value={selectedPatient?.AdmissionDate} />
+                  <DetailRow label="Bed" value={selectedPatient?.BedNo} />
+                  <DetailRow label="Admit On." value={selectedPatient?.AdmissionDate} />
 
-                  <DetailRow label="Department" value={selectedPatient?.Department} />
-
-                  <DetailRow label="Consultant" value={selectedPatient?.Consultant} />
+                  <DetailRow label="Discharge On." value={selectedPatient?.DischargeDate} />
                 </div>
               </div>
             </div>
@@ -434,17 +447,17 @@ const IpdBilling = () => {
             <div className=" card bg-white  border  border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
               <div className="h-full flex items-center p-3 min-w-0">
                 <div className=" w-full min-w-0 flex flex-col justify-center gap-2 ">
+                  <DetailRow label="Bill Amount" value={selectedPatient?.TotalBillAmount} />
+
                   <DetailRow
-                    label="Ward / Room"
-                    value={`${selectedPatient?.Ward || "-"} / ${selectedPatient?.Room || "-"}`}
+                    label="Disc on Bill"
+                    value={selectedPatient?.TotalDiscountAmountOnBill}
                   />
 
                   <DetailRow
-                    label="Bed / Bed Type"
-                    value={`${selectedPatient?.BedNo || "-"} / ${selectedPatient?.BedType || "-"}`}
+                    label="Disc (%) on Bill"
+                    value={selectedPatient?.TotalDiscountPerOnBill}
                   />
-
-                  <DetailRow label="TPA" value={selectedPatient?.TPA} />
                 </div>
               </div>
             </div>
@@ -453,11 +466,13 @@ const IpdBilling = () => {
             <div className=" card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
               <div className="h-full flex items-center p-3 min-w-0">
                 <div className="w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow label="Corporate" value={selectedPatient?.Corporate} />
+                  <DetailRow
+                    label="Net Payable Amount"
+                    value={selectedPatient?.TotalPayableAmount}
+                  />
+                  <DetailRow label="Patient Advance" value={selectedPatient?.TotalBalanceAmount1} />
 
-                  <DetailRow label="Status" value={selectedPatient?.Status} />
-
-                  <DetailRow label="Created By" value={selectedPatient?.UserNAme} />
+                  <DetailRow label="Bill No." value={selectedPatient?.BillNo || "-"} />
                 </div>
               </div>
             </div>
@@ -477,21 +492,11 @@ const IpdBilling = () => {
                         <button
                           key={i?.TabId}
                           type="button"
-                          className={`
-                            px-3
-                            py-1.5
-                            text-xs
-                            font-semibold
-                            whitespace-nowrap
-                            flex-shrink-0
-                            rounded-md
-                            transition-all
-                            duration-200
-                            ${
-                              isActive
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900"
-                            }
+                          className={` px-3 py-1.5 text-xs font-semibold whitespace-nowrap flex-shrink-0 rounded-md transition-all duration-200 ${
+                            isActive
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+                          }
                           `}
                           onClick={() => setActiveTab(i)}
                         >
@@ -599,17 +604,7 @@ const IpdBilling = () => {
                                       title={
                                         isFavorite ? "Remove from favorites" : "Add to favorites"
                                       }
-                                      className="
-          flex
-          items-center
-          justify-center
-          w-8
-          h-8
-          flex-shrink-0
-          rounded
-          hover:bg-white
-          transition
-        "
+                                      className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded hover:bg-white transition"
                                       onClick={() => toggleFavoriteTab(Number(tab?.TabId))}
                                     >
                                       <i

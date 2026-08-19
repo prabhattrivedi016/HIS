@@ -863,7 +863,7 @@ const OpdAppointment = () => {
     reset(defaultPatientRegistrationValues);
     setSource("");
     setSlots("");
-    setAppDateTime("2026-08-10T05:49:05.078Z");
+    setAppDateTime("");
     setVisitType("120833");
     setSelectedDoctor(null);
     setStateList([]);
@@ -890,6 +890,8 @@ const OpdAppointment = () => {
 
   const doctorChangeHandler = (val: OptionItem | null) => {
     setSelectedDoctor(val);
+    setSlots("");
+    setAppDateTime("");
   };
 
   const selectedVisit = useMemo(() => {
@@ -1159,7 +1161,6 @@ const OpdAppointment = () => {
             }
           },
           validationErrors => {
-            console.log("validationErrors", validationErrors);
             showWarning("Please fill in all required fields.");
           }
         )();
@@ -1709,7 +1710,7 @@ const OpdAppointment = () => {
         <AppointmentSlot
           isOpen={openAppointmentSlotPopup}
           onClose={closeAppointmentSlotHandler}
-          doctorId={selectedDoctor?.value!}
+          doctorId={selectedDoctor?.value! || Number(patientPayload?.doctorId!)}
           selectedSlotTimingId={slots}
           onSelectSlot={(slotTimingId, slotStartDateTime) => {
             setSlots(slotTimingId);

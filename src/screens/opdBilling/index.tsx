@@ -3808,8 +3808,8 @@ const OpdBilling = () => {
 
   return (
     <div className="page-container">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 w-full">
-        <div>
+      <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
+        <div className="flex-1">
           <h1 className="page-heading">Patient OPD Billing</h1>
 
           <nav className="helper-text flex items-center gap-1">
@@ -3819,18 +3819,18 @@ const OpdBilling = () => {
           </nav>
         </div>
 
-        <div className="flex flex-col lg:flex-row md:flex-row items-center gap-2">
-          <div className="mr-20">
-            <UhidGlobalSearch
-              onPatientSelect={handleUhidPatientSelect}
-              resetKey={formResetKey}
-              className="mt-1"
-            />
-          </div>
+        <div className="flex justify-center flex-1">
+          <UhidGlobalSearch
+            onPatientSelect={handleUhidPatientSelect}
+            resetKey={formResetKey}
+            className="mt-1"
+          />
+        </div>
 
-          <button className="save-btn">Map PRO </button>
+        <div className="flex justify-end flex-1">
+          {/* <button className="save-btn">Map PRO </button>
           <button className="save-btn">Order Set</button>
-          <button className="save-btn">Billing Details</button>
+          <button className="save-btn">Billing Details</button> */}
           <button className="save-btn" onClick={SearchOldPatientHandler}>
             Search Old Patient
           </button>
