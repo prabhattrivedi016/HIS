@@ -466,7 +466,16 @@ const ENDPOINTS = {
   UPDATE_IPD_PATIENT_TARRIF_DETAILS: "IPD/updateIPDPatientTariffDetails",
   GET_IPD_PATIENT_CORPORATE_HISTORY: "IPD/getIPDPatientCorporateHistory",
   SAVE_CORPORATE_TRANSFER_REQUEST_APPROVAL: "IPD/saveCorporateTransferRequestApproval",
-
+  GET_CORPORATE_TRANSFER_REQUEST_LIST_FOR_APPROVAL:
+    "IPD/getCorporateTransferRequestListForApproval",
+  GET_CORPORATE_TRANSFER_DETAILS_BY_CORPORATE_TRANSFER_ID:
+    "IPD/getCorporateTransferRequestDetailsByCorporateTransferId",
+  CANCEL_CORPORATE_TRANSFER_REQUEST: "IPD/cancelCorporateTransferRequest",
+  APPROVE_CORPORATE_TRANSFER_REQUEST: "IPD/approveCorporateTransferRequest",
+  CONFIRM_CORPORATE_TRANSFER_REQUEST: "IPD/confirmCorporateTransferRequest",
+  GET_CORPORATE_TRANSFER_REQUEST_APPROVAL_DETAILS: "IPD/getCorporateTransferRequestApprovalDetails",
+  GET_SERVICE_DETAILS_FOR_CORPORATE_RATE_COMPARISON:
+    "Patient/getServiceDetailsForCorporateRateComparison",
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

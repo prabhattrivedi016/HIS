@@ -85,8 +85,7 @@ const WriteOffGenerationCancelPopup = ({
     return true;
   };
 
-  const isCancelled =
-    Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
+  const isCancelled = Number(item?.IsCancel) === 1 || Number(writeOffDetails?.IsCancel) === 1;
 
   const isCancelDisabled = isCancelled;
 
@@ -170,6 +169,7 @@ const WriteOffGenerationCancelPopup = ({
       isOpen={isOpen}
       onClose={onClose}
       title={popupType === "cancel" ? "Cancel Write Off" : ""}
+      className="w-[95vw] lg:min-w-100"
     >
       <>
         {!!successMessage && <SuccessMessage text={successMessage} />}

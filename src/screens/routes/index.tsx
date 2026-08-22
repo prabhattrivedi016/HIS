@@ -12,6 +12,8 @@ import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
+import CorporateTransferApproval from "../corporateTransferApproval";
+import CorporateTransferConfirmation from "../corporateTransferConfirmation";
 import CreditNoteApproval from "../creditNoteApproval";
 import CreditNoteGeneration from "../creditNoteGeneration";
 import CreditNoteWriteOff from "../creditNoteWriteOff";
@@ -155,4 +157,6 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "opd-appointment": <OpdAppointment />,
   "opd-appointment-confirmation": <OpdAppointmentConfirmation />,
   "emr-templates": <EMRTemplates />,
+  "corporate-transfer-approval": <CorporateTransferApproval />,
+  "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
 };

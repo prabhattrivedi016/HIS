@@ -3,41 +3,40 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
+import ToggleButton from "@/components/toggleButton";
 import { ENDPOINTS } from "@/config/defaults";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
-import { OptionItem } from "@/types";
+import { OptionItem, PickMasterItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
+import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Select from "react-select";
 import { CorporateItem, InsuranceItem, IpdPatientItem, ServiceItem } from "../types";
 
-type PreviousCorporateListItem = {
-  InsuranceCompanyName: string;
-  BillingTypeId: number;
-  CorporateName: string;
-  IsCurrent: number;
-  CreatedOn: string;
-  CreatedBy: string;
-  TransferedOn: string;
-  TransferedBy: string;
-};
-
 const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
+  const roleId = useContext(RoleContext)?.roleId;
+  const location = useLocation();
+  const confirmationItem = location.state?.patient;
+  const isConfirmationMode = !!confirmationItem?.CorporateTransferId;
+  const [isInputsDisabled, setIsInputsDisabled] = useState(isConfirmationMode);
+
+  useEffect(() => {
+    setIsInputsDisabled(isConfirmationMode);
+  }, [isConfirmationMode]);
+
+  const reasonForTransferList = usePickMaster("ReasonForCorporateTransfer")?.pickMasterValue ?? [];
 
   const { rights: branchRights } = useAssignBranchRight();
 
   const isPatientCorporateTransferApprovalRequired = Number(
     branchRights?.IsPatientCorporateTransferApprovalRequired
-  );
-
-  console.log(
-    "isPatientCorporateTransferApprovalRequired",
-    isPatientCorporateTransferApprovalRequired
   );
 
   const [isChangeTariff, setIsChangeTariff] = useState(0);
@@ -49,16 +48,22 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const [payloadValue, setPayloadValue] = useState({
     branchId: patient?.BranchId,
     visitId: patient?.VisitId,
+    roleId,
     patientId: patient?.PatientId,
-    insuranceCompanyId: patient?.InsuranceCompanyId ?? 0,
+    typeId: 2,
+    insuranceCompanyId: 0,
     billingTypeId: 120837,
-    corporateId: patient?.CorporateId || 1,
+    corporateId: 0,
     isChangeTariff: 0,
     relation: "S/O",
     relativeName: "",
     cardNo: "",
-    changeTariffFromDate: "",
-    changeTariffToDate: "",
+    changeFromDate: "",
+    changeToDate: "",
+    transferDate: "",
+    remarks: "",
+    reasonForTransfer: "",
+    authorizationNumber: "",
   });
 
   // insurance list
@@ -113,33 +118,76 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
 
   // pre filled data
   useEffect(() => {
-    setPayloadValue(prev => ({
-      ...prev,
-      branchId: patient?.BranchId,
-      visitId: patient?.VisitId,
-      patientId: patient?.PatientId,
-      insuranceCompanyId: patient?.InsuranceCompanyId ?? 0,
-      billingTypeId: 120837,
-      corporateId: patient?.CorporateId || 1,
-      isChangeTariff: 0,
-      relation: "S/O",
-      relativeName: "",
-      cardNo: "",
-      changeTariffFromDate: "",
-      changeTariffToDate: "",
-    }));
+    if (!patient?.VisitId) return;
 
-    if (patient?.CorporateId) {
+    if (isConfirmationMode && confirmationItem) {
+      setPayloadValue(prev => ({
+        ...prev,
+        branchId: patient?.BranchId,
+        visitId: patient?.VisitId,
+        patientId: patient?.PatientId,
+        roleId,
+        insuranceCompanyId: confirmationItem.InsuranceCompanyId || 0,
+        billingTypeId: confirmationItem.BillingTypeId || 120837,
+        corporateId: confirmationItem.CorporateId || 0,
+        isChangeTariff: confirmationItem.IsChangeTariff || 0,
+        relation: confirmationItem.Relation || "S/O",
+        relativeName: confirmationItem.RelativeName || "",
+        cardNo: confirmationItem.CardNo || "",
+        changeFromDate: confirmationItem.ChangeFromDate || "",
+        changeToDate: confirmationItem.ChangeToDate || "",
+        transferDate: confirmationItem.TransferDate || "",
+        remarks: confirmationItem.Remarks || "",
+        reasonForTransfer: confirmationItem.ReasonForTransfer || "",
+        authorizationNumber: confirmationItem.AuthorizationNumber || "",
+      }));
+      setIsChangeTariff(confirmationItem.IsChangeTariff || 0);
+      setSelectedCorporate(
+        confirmationItem.CorporateId
+          ? { value: confirmationItem.CorporateId, label: confirmationItem.CorporateName || "" }
+          : null
+      );
+    } else {
+      setPayloadValue(prev => ({
+        ...prev,
+        branchId: patient?.BranchId,
+        visitId: patient?.VisitId,
+        patientId: patient?.PatientId,
+        roleId,
+        insuranceCompanyId: patient?.InsuranceCompanyId ?? 0,
+        billingTypeId: 120837,
+        corporateId: patient?.CorporateId || 1,
+        isChangeTariff: 0,
+        relation: "S/O",
+        relativeName: "",
+        cardNo: "",
+        changeFromDate: "",
+        changeToDate: "",
+        transferDate: "",
+        remarks: "",
+        reasonForTransfer: "",
+        authorizationNumber: "",
+      }));
+      setIsChangeTariff(0);
+    }
+  }, [patient, isConfirmationMode, confirmationItem, roleId]);
+
+  useEffect(() => {
+    if (isConfirmationMode) return;
+    if (payloadValue.insuranceCompanyId !== patient?.InsuranceCompanyId) return;
+
+    const corporateIdToSelect = patient?.CorporateId;
+    if (corporateIdToSelect) {
       const corporateItem = corporarteList.find(
-        (item: CorporateItem) => item.corporateId === patient.CorporateId
+        (item: CorporateItem) => item.corporateId === corporateIdToSelect
       );
       setSelectedCorporate(
         corporateItem
           ? { value: corporateItem.corporateId, label: corporateItem.corporateName }
-          : { value: patient.CorporateId, label: patient.Corporate }
+          : { value: corporateIdToSelect, label: patient.Corporate }
       );
     }
-  }, [patient, corporarteList]);
+  }, [patient, corporarteList, payloadValue.insuranceCompanyId, isConfirmationMode]);
 
   const corprateSelectOption = useMemo(() => {
     return corporarteList.map((corporate: CorporateItem) => ({
@@ -192,71 +240,28 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
     enabled: !!patient?.VisitId,
   });
 
-  // send for approval
-
-  const sendForApprovalHandler = async () => {
-    if (!payloadValue.billingTypeId || !payloadValue.corporateId) {
-      showWarning("Please select insurance, corporate and billing type");
-      return;
-    }
-    if (Number(payloadValue?.corporateId) === Number(patient?.CorporateId)) {
-      showWarning("Please select another corporate to transfer");
-      return;
-    }
-    const resp = await fetchApi(
-      "POST",
-      ENDPOINTS.SAVE_CORPORATE_TRANSFER_REQUEST_APPROVAL,
-      payloadValue,
-      {},
-      { component: "CorporateTransfer" }
-    );
-    if (!resp?.result) {
-      showWarning(resp?.message ?? "Error while sending for approval");
-      return;
-    }
-    showSuccess(resp?.message ?? "Data saved successfully");
-    corporateHistoryRefetch?.();
-  };
-
-  const transferCorporateHandler = async () => {
-    if (!payloadValue.billingTypeId || !payloadValue.corporateId) {
-      showWarning("Please select insurance, corporate and billing type");
-      return;
-    }
-    if (Number(payloadValue?.corporateId) === Number(patient?.CorporateId)) {
-      showWarning("Please select another corporate to transfer");
-      return;
-    }
-    const resp = await fetchApi(
-      "PATCH",
-      ENDPOINTS.UPDATE_IPD_PATIENT_TARRIF_DETAILS,
-      payloadValue,
-      {},
-      { component: "CorporateTransfer" }
-    );
-    if (!resp?.result) {
-      showWarning(resp?.message ?? "Error while transferring corporate");
-      return;
-    }
-    showSuccess(resp?.message ?? "Data saved successfully");
-    corporateHistoryRefetch?.();
-  };
-
-  // change tarrif select handler
-  const changeTarrifSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
-    setIsChangeTariff(value);
-    setPayloadValue(prev => ({
-      ...prev,
-      isChangeTariff: value,
-    }));
-  };
-
   // from date
   const fromDateChangeHandler = (value: string) => {
     setPayloadValue(prev => ({
       ...prev,
-      changeTariffFromDate: formatToDDMMYYYY(value),
+      changeFromDate: formatToDDMMYYYY(value),
+    }));
+  };
+
+  // from date
+  const transferDateChangeHandler = (value: string) => {
+    setPayloadValue(prev => ({
+      ...prev,
+      transferDate: value,
+    }));
+  };
+
+  // reason for transfer
+  const reasonForTransferChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setPayloadValue(prev => ({
+      ...prev,
+      reasonForTransfer: value,
     }));
   };
 
@@ -264,7 +269,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const toDateChangeHandler = (value: string) => {
     setPayloadValue(prev => ({
       ...prev,
-      changeTariffToDate: formatToDDMMYYYY(value),
+      changeToDate: formatToDDMMYYYY(value),
     }));
   };
 
@@ -295,6 +300,15 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
     }));
   };
 
+  // remarks change handler
+  const remarksChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+    setPayloadValue(prev => ({
+      ...prev,
+      remarks: value,
+    }));
+  };
+
   // billing type change handler
   const billingTypeChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
@@ -303,6 +317,177 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       billingTypeId: value,
     }));
   };
+
+  // authorization change handler
+  const authorizationChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+    setPayloadValue(prev => ({
+      ...prev,
+      authorizationNumber: value,
+    }));
+  };
+
+  // change tarrif toggle handler
+  const changeTarrifToggleHandler = (checked: boolean) => {
+    if (isConfirmationMode) return;
+    const value = checked ? 1 : 0;
+    setIsChangeTariff(value);
+    setPayloadValue(prev => ({
+      ...prev,
+      isChangeTariff: value,
+    }));
+  };
+
+  // reset form
+  const resetForm = () => {
+    setPayloadValue(prev => ({
+      ...prev,
+      insuranceCompanyId: patient?.InsuranceCompanyId ?? 0,
+      billingTypeId: 120837,
+      corporateId: patient?.CorporateId || 1,
+      isChangeTariff: 0,
+      relation: "S/O",
+      relativeName: "",
+      cardNo: "",
+      changeFromDate: "",
+      changeToDate: "",
+      transferDate: "",
+      remarks: "",
+      reasonForTransfer: "",
+      authorizationNumber: "",
+    }));
+    setIsChangeTariff(0);
+
+    const corporateIdToSelect = patient?.CorporateId;
+    if (corporateIdToSelect) {
+      const corporateItem = corporarteList.find(
+        (item: CorporateItem) => item.corporateId === corporateIdToSelect
+      );
+      setSelectedCorporate(
+        corporateItem
+          ? { value: corporateItem.corporateId, label: corporateItem.corporateName }
+          : { value: corporateIdToSelect, label: patient.Corporate }
+      );
+    } else {
+      setSelectedCorporate(null);
+    }
+  };
+
+  // transfer corporate handler
+  const transferCorporateHandler = async () => {
+    if (
+      !payloadValue.billingTypeId ||
+      !payloadValue.corporateId ||
+      !payloadValue?.reasonForTransfer ||
+      !payloadValue?.transferDate
+    ) {
+      showWarning("Please fill all the required fields");
+      return;
+    }
+    if (Number(payloadValue?.corporateId) === Number(patient?.CorporateId)) {
+      showWarning("Patient is already under this corporate. No transfer needed.");
+      return;
+    }
+    const paylaodForTransfer = {
+      branchId: payloadValue?.branchId,
+      visitId: payloadValue?.visitId,
+      patientId: payloadValue?.patientId,
+      insuranceCompanyId: payloadValue?.insuranceCompanyId,
+      billingTypeId: payloadValue?.billingTypeId,
+      corporateId: payloadValue?.corporateId,
+      isChangeTariff: payloadValue?.isChangeTariff,
+      relation: payloadValue?.relation,
+      relativeName: payloadValue?.relativeName,
+      cardNo: payloadValue?.cardNo,
+      changeTariffFromDate: payloadValue?.changeFromDate,
+      changeTariffToDate: payloadValue?.changeToDate,
+      transferDate: payloadValue?.transferDate,
+      remarks: payloadValue?.remarks,
+      reasonForTransfer: payloadValue?.reasonForTransfer,
+      authorizationNumber: payloadValue?.authorizationNumber,
+    };
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.UPDATE_IPD_PATIENT_TARRIF_DETAILS,
+      paylaodForTransfer,
+      {},
+      { component: "CorporateTransfer" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Error while transferring corporate");
+      return;
+    }
+
+    if (isConfirmationMode && confirmationItem?.CorporateTransferId) {
+      const confirmResp = await fetchApi(
+        "PATCH",
+        ENDPOINTS.CONFIRM_CORPORATE_TRANSFER_REQUEST,
+        { corporateTransferId: Number(confirmationItem.CorporateTransferId) },
+        {},
+        { component: "CorporateTransfer" }
+      );
+      if (confirmResp?.result) {
+        setIsInputsDisabled(false);
+      }
+    }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+    corporateHistoryRefetch?.();
+    resetForm();
+  };
+
+  // send for approval
+
+  const sendForApprovalHandler = async () => {
+    if (
+      !payloadValue.billingTypeId ||
+      !payloadValue.corporateId ||
+      !payloadValue?.reasonForTransfer ||
+      !payloadValue?.transferDate
+    ) {
+      showWarning("Please fill all the required fields");
+      return;
+    }
+    if (Number(payloadValue?.corporateId) === Number(patient?.CorporateId)) {
+      showWarning("Patient is already under this corporate. No transfer needed.");
+      return;
+    }
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_CORPORATE_TRANSFER_REQUEST_APPROVAL,
+      payloadValue,
+      {},
+      { component: "CorporateTransfer" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Error while sending for approval");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    corporateHistoryRefetch?.();
+    resetForm();
+  };
+
+  // table  for corporate
+  const getTableDataForCorprateChange = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_DETAILS_FOR_CORPORATE_RATE_COMPARISON,
+      {},
+      { params: { visitId: patient?.VisitId, corporateId: selectedCorporate?.value } },
+      { component: "CorporateTransfer" }
+    );
+
+    return resp?.data ?? [];
+  };
+
+  const { data: tableDataForCorprateChange } = useQuery({
+    queryKey: ["corporate-table-data-for-change", patient?.VisitId, selectedCorporate?.value],
+    queryFn: getTableDataForCorprateChange,
+    enabled: !!patient?.VisitId && !!selectedCorporate?.value,
+  });
+
+  console.log("tableDataForCorprateChange", tableDataForCorprateChange);
 
   return (
     <div>
@@ -313,6 +498,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             className="input-field"
             value={payloadValue.insuranceCompanyId}
             onChange={insuranceSelectHandler}
+            disabled={isInputsDisabled}
           >
             <option>--Select--</option>
             {insuranceCompanyList.map((i: InsuranceItem) => (
@@ -334,17 +520,43 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             isClearable
             menuPortalTarget={document.body}
             menuPosition="fixed"
+            isDisabled={isInputsDisabled}
           />
         </InputField>
-        <InputField label="Change Tarrif">
+
+        <InputField label="Transfer Date" required>
+          <CustomDateInput
+            value={payloadValue?.transferDate}
+            onChange={transferDateChangeHandler}
+            disabled={isInputsDisabled}
+          />
+        </InputField>
+
+        <InputField label="Reason For Transfer" required>
           <select
             className="input-field"
-            value={payloadValue.isChangeTariff}
-            onChange={changeTarrifSelectHandler}
+            value={payloadValue.reasonForTransfer}
+            onChange={reasonForTransferChangeHandler}
+            disabled={isInputsDisabled}
           >
-            <option value={0}>No</option>
-            <option value={1}>Yes</option>
+            <option value="">--Select--</option>
+            {reasonForTransferList.map((item: PickMasterItem) => (
+              <option key={item?.value} value={item?.value}>
+                {item?.key}
+              </option>
+            ))}
           </select>
+        </InputField>
+
+        <InputField label="Authorization No.">
+          <input
+            className="input-field"
+            value={payloadValue?.authorizationNumber}
+            onChange={authorizationChangeHandler}
+            placeholder="Enter authorization number"
+            onInput={allowOnlyNumbers}
+            disabled={isInputsDisabled}
+          />
         </InputField>
 
         <InputField label="Proposed Billing Category" required>
@@ -352,6 +564,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             className="input-field"
             value={payloadValue?.billingTypeId}
             onChange={billingTypeChangeHandler}
+            disabled={isInputsDisabled}
           >
             <option value={0}>--Select--</option>
             {proposedBillingCategoryList.map((p: ServiceItem) => (
@@ -366,6 +579,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             className="input-field"
             value={payloadValue.relation}
             onChange={relationChangeHandler}
+            disabled={isInputsDisabled}
           >
             <option value={0}>--Select--</option>
             {relationTypeList.map((r: any) => (
@@ -381,6 +595,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             value={payloadValue.relativeName}
             onChange={relativeNameChangeHandler}
             placeholder="Enter relative name"
+            disabled={isInputsDisabled}
           />
         </InputField>
         <InputField label="Card No./ Policy No.">
@@ -389,28 +604,52 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             value={payloadValue.cardNo}
             onChange={cardNoChangeHandler}
             placeholder="Enter card / policy number"
+            disabled={isInputsDisabled}
           />
         </InputField>
-        {isChangeTariff === 1 && (
+        <InputField label="Remark">
+          <input
+            className="input-field"
+            value={payloadValue?.remarks}
+            onChange={remarksChangeHandler}
+            placeholder="Enter remark"
+            disabled={isInputsDisabled}
+          />
+        </InputField>
+      </div>
+      <div className="flex items-center gap-4 py-2 mb-2">
+        <label className="input-label whitespace-nowrap">Change Tarrif</label>
+        <ToggleButton
+          checked={isChangeTariff === 1}
+          onClick={changeTarrifToggleHandler}
+          disabled={isInputsDisabled}
+        />
+
+        <div className="form-grid-4">
           <>
             <InputField label="Change Tariff From Date">
               <CustomDateInput
-                value={payloadValue?.changeTariffFromDate}
+                value={payloadValue?.changeFromDate}
                 onChange={fromDateChangeHandler}
+                disabled={isInputsDisabled || isChangeTariff === 0}
               />
             </InputField>
 
             <InputField label="Change Tariff To Date">
               <CustomDateInput
-                value={payloadValue?.changeTariffToDate}
+                value={payloadValue?.changeToDate}
                 onChange={toDateChangeHandler}
+                disabled={isInputsDisabled || isChangeTariff === 0}
               />
             </InputField>
           </>
-        )}
+        </div>
       </div>
+
       <div className="form-actions-responsive mt-1">
-        {isPatientCorporateTransferApprovalRequired ? (
+        {isConfirmationMode ? (
+          <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
+        ) : isPatientCorporateTransferApprovalRequired ? (
           <SubmitButton label="Send For Approval" onClick={sendForApprovalHandler} />
         ) : (
           <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
@@ -490,3 +729,14 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
 };
 
 export default CorporateTransfer;
+
+{
+  /* <select
+            className="input-field"
+            value={payloadValue.isChangeTariff}
+            onChange={changeTarrifSelectHandler}
+          >
+            <option value={0}>No</option>
+            <option value={1}>Yes</option>
+          </select> */
+}
