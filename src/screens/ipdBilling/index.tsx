@@ -9,7 +9,7 @@ import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useContext, useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import RoutingUsingTabUrl from "./components/routingUsingTabUrl";
 import { IpdPatientItem, TabNameItem } from "./types";
 
@@ -22,6 +22,9 @@ type SearchQueryItem = {
 
 const IpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
+  const location = useLocation();
+
+  const patientData = location?.state?.patient;
 
   const branchId = useContext(AuthContext)?.user?.branchId;
   const roleId = useContext(RoleContext)?.roleId ?? 0;
@@ -63,6 +66,18 @@ const IpdBilling = () => {
     queryKey: ["getTableDataList", searchQuery],
     queryFn: () => getTableDataList(searchQuery),
   });
+
+  // pre fill auto data for card details
+  useEffect(() => {
+    if (patientData) {
+      const foundPatient = IpdPatientList.find(
+        (item: IpdPatientItem) => item.PatientId === patientData.PatientId
+      );
+      if (foundPatient) {
+        setSelectedPatient(foundPatient);
+      }
+    }
+  }, [patientData, IpdPatientList]);
 
   //  search handler
 
@@ -147,15 +162,17 @@ const IpdBilling = () => {
 
   const [activeTab, setActiveTab] = useState<TabNameItem | null>(null);
 
-  // Set default active tab
+  // auto select active tab on navigation
   useEffect(() => {
-    if (ipdTabs && ipdTabs.length > 0 && !activeTab) {
-      const dashboardTab = ipdTabs.find((t: TabNameItem) =>
-        t.TabName.toLowerCase().includes("dashboard")
+    if (ipdTabs && ipdTabs.length > 0 && location.state?.activeTabName) {
+      const matchingTab = ipdTabs.find((t: TabNameItem) =>
+        t.TabName.toLowerCase().includes(location.state.activeTabName.toLowerCase())
       );
-      setActiveTab(dashboardTab || ipdTabs[0]);
+      if (matchingTab) {
+        setActiveTab(matchingTab);
+      }
     }
-  }, [ipdTabs, activeTab]);
+  }, [ipdTabs, location.state]);
 
   // Favorite tabs state (loaded from local storage)
   const [favoriteTabIds, setFavoriteTabIds] = useState<number[]>(() => {

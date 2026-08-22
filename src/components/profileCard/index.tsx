@@ -161,21 +161,30 @@ const GridView = ({
         <h2 className="card-title wrap-break-word  ">{cardTitleName}</h2>
       </div>
 
+      {/* footer items */}
       {cardFooter.length > 0 && (
         <div className="footer-border">
-          <div className="flex flex-wrap divide-x divide-gray-300 ">
-            {cardFooter.map((footer, idx) => (
-              <div key={idx} className="px-2 py-1 text-center flex-1 min-w-[90px]">
-                <p className="footer-label">{footer?.label}</p>
-                {/* <p className="footer-value">{footer?.value || "—"}</p> */}
-                <p className="footer-value truncate">
-                  {isDateFormat(String(footer?.value))
-                    ? formatDisplayDate(String(footer?.value))
-                    : footer?.value || "—"}
-                </p>
+          {Array.from({ length: Math.ceil(cardFooter.length / 3) }, (_, index) =>
+            cardFooter.slice(index * 3, index * 3 + 3)
+          ).map((row, rowIndex, rows) => (
+            <div key={rowIndex}>
+              <div className="grid grid-cols-3 divide-x divide-gray-300">
+                {row.map((footer, idx) => (
+                  <div key={idx} className="px-2 py-1 text-center min-w-[90px]">
+                    <p className="footer-label">{footer?.label}</p>
+                    <p className="footer-value truncate">
+                      {isDateFormat(String(footer?.value))
+                        ? formatDisplayDate(String(footer?.value))
+                        : footer?.value || "—"}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* Separator between rows */}
+              {rowIndex < rows.length - 1 && <div className="border-t border-gray-300 my-1" />}
+            </div>
+          ))}
         </div>
       )}
 

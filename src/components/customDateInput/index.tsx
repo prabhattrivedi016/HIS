@@ -8,6 +8,7 @@ type Props = {
   max?: string;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 const formatDate = (date?: string) => {
@@ -24,6 +25,7 @@ const CustomDateInput: React.FC<Props> = ({
   max,
   placeholder = "DD/MM/YYYY",
   className = "input-field",
+  disabled,
 }) => {
   const hiddenRef = useRef<HTMLInputElement>(null);
   const [internalValue, setInternalValue] = useState(value || "");
@@ -68,8 +70,9 @@ const CustomDateInput: React.FC<Props> = ({
         type="text"
         placeholder={placeholder}
         className={className}
-        onClick={handleOpen}
+        onClick={disabled ? undefined : handleOpen}
         value={formattedValue}
+        disabled={disabled}
         readOnly
       />
 

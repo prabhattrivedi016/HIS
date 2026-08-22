@@ -210,7 +210,7 @@ const ApproveCancelPopup = ({
       case "approve": {
         return (
           <form onSubmit={approveSubmitHandler}>
-            <div className="form-grid-1 mt-1">
+            <div className="form-grid-2 mt-1">
               <InputField label="Approval Remark" required>
                 <input
                   type="text"
@@ -238,7 +238,7 @@ const ApproveCancelPopup = ({
       case "cancel": {
         return (
           <form onSubmit={cancelSubmitHandler}>
-            <div className="form-grid-1 mt-1">
+            <div className="form-grid-2 mt-1">
               <InputField label="Cancel Reason" required>
                 <input
                   type="text"
@@ -281,6 +281,7 @@ const ApproveCancelPopup = ({
             ? "Cancel Write Off"
             : ""
       }
+      className="w-[95vw] lg:min-w-200"
     >
       <>
         {!!successMessage && <SuccessMessage text={successMessage} />}
