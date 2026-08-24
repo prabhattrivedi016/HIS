@@ -68,7 +68,12 @@ const TemplateCategoryPopup = ({ isOpen, onClose, onCreated }: TemplateCategoryP
   };
 
   return (
-    <CentralPopup isOpen={isOpen} onClose={onClose} title="Add Template Category">
+    <CentralPopup
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Template Category"
+      className="emr-form-popup"
+    >
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-grid-1">
           <InputField label="Category Name" required>

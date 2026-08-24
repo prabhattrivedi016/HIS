@@ -27,13 +27,13 @@ import { NavLink } from "react-router-dom";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { TemplateItem } from "@/screens/emrTemplates/types";
 import { showError, showSuccess } from "@/utils/alert";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
-import { TemplateItem } from "@/screens/emrTemplates/types";
 import AllergyPanel from "./components/AllergyPanel";
 import ConsultationEmrSections from "./components/ConsultationEmrSections";
 import MedicineAssistantWidget from "./components/MedicineAssistantWidget";
@@ -59,10 +59,6 @@ interface VitalMasterItem {
   minValue: string;
   maxValue: string;
 }
-
-/** raw wire shape of GET_VITAL_DEPARTMENT_MAPPING_BY_DOCTOR_ID
- * (EMR/getVitalDepartmentMappingByDoctorId) — already scoped/ordered for one doctor, so unlike
- * the generic admin mapping endpoint there's no MappingId to filter by or SequenceNo to sort by */
 interface VitalDepartmentMappingItem {
   VitalId: number;
   VitalName: string;
@@ -159,54 +155,30 @@ const DoctorConsultationNew = () => {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showFullCalendar, setShowFullCalendar] = useState(false);
-
   const [showAllergyPanel, setShowAllergyPanel] = useState<boolean>(false);
   const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
   const [showUploadDocument, setShowUploadDocument] = useState<boolean>(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState<boolean>(false);
-  const [selectedTemplateForFill, setSelectedTemplateForFill] = useState<TemplateItem | null>(
-    null
-  );
-  // keyed by templateId (not flattened) so re-filling the same template in one session replaces
-  // its bucket instead of appending duplicate entries — mirrors ConsultationEmrSections' own
-  // entriesBySectionId pattern
+  const [selectedTemplateForFill, setSelectedTemplateForFill] = useState<TemplateItem | null>(null);
   const [templateEntriesByTemplateId, setTemplateEntriesByTemplateId] = useState<
     Record<number, EmrSectionAnswerEntry[]>
   >({});
-  // phones only — the full vitals chip row is too tall to show inline on a small screen, so it
-  // starts collapsed behind a compact summary bar instead of pushing EMR Sections far below the fold
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
-  // same idea as vitals — UHID/Visit ID/Visit Date/etc. are secondary details, collapsed by
-  // default on phones so the header stays short and EMR Sections is reachable right away
   const [isDetailsExpandedMobile, setIsDetailsExpandedMobile] = useState(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState("0");
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
-  // a closed file is locked: every EMR/allergy/vitals field renders read-only and none of the
-  // Save buttons can fire another save on it
   const isFileClosed = selectedPatient?.IsConsultationDone === 1;
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
   const updateVital = (vitalId: number, val: string) =>
     setVitalsData(prev => ({ ...prev, [vitalId]: val }));
-  // the real id off this visit's saved vital rows (if any), so the next save sends a proper
-  // upsert via consultationDetails.patientVitalId instead of always inserting a duplicate — see
-  // loadVitalsForPatient below, which is what actually populates this
   const [savedPatientVitalId, setSavedPatientVitalId] = useState(0);
 
-  // eagerly loads this patient's saved allergy details as soon as a patient is selected, so the
-  // allergy badge is already populated by the time the consultation loads rather than staying
-  // empty until the doctor manually opens the Allergy panel. Fired from the patient-select click
-  // handler (below) as the very first statement — dispatched synchronously there, before
-  // setSelectedPatient triggers the re-render that mounts/updates ConsultationEmrSections, so
-  // this GET_PATIENT_ALLERGY_DETAIL_LIST call always goes out before that component's own
-  // GET_DOCTOR_CONSULTATION_BY_VISIT_ID call. Mirrors AllergyPanel's own load/summary logic —
-  // kept as a separate copy here since AllergyPanel's local AllergyRecord shape differs (extra
-  // UI-only fields like `date`) and isn't a fit to share directly.
   const loadAllergySectionForPatient = async (patientId: number) => {
     if (!patientId) return;
 
@@ -240,7 +212,6 @@ const DoctorConsultationNew = () => {
       r => Number(r.NotKnownAllergy ?? r.notKnownAllergy ?? 0) === 1
     );
 
-    // same grouping/format as AllergyPanel's buildAllergySummary — "Type: name1,name2 ; Type2: name3"
     const order: string[] = [];
     const groups: Record<string, string[]> = {};
     records.forEach(r => {
@@ -260,12 +231,6 @@ const DoctorConsultationNew = () => {
 
     setAllergySection({ summary: summary || null, notKnownAllergy, records });
   };
-
-  // eagerly loads this visit's previously-saved vitals (if any), same trigger/ordering as
-  // loadAllergySectionForPatient just above. GET_PATIENT_VITAL params { patientId, visitId }
-  // returns flat rows already scoped to that one visit (confirmed contract — see the ENDPOINTS
-  // comment) — this hydrates vitalsData from them and captures PatientVitalId (shared by every
-  // row in the same saved batch) into savedPatientVitalId for the next save's upsert.
   const loadVitalsForPatient = async (patientId: number, visitId: number) => {
     if (!patientId) return;
 
@@ -277,7 +242,8 @@ const DoctorConsultationNew = () => {
       { component: "DoctorConsultationNew", silent: true }
     );
 
-    const rows: { PatientVitalId: number; VitalId: number; VitalValue: string }[] = resp?.data ?? [];
+    const rows: { PatientVitalId: number; VitalId: number; VitalValue: string }[] =
+      resp?.data ?? [];
     if (rows.length === 0) return;
 
     setVitalsData(Object.fromEntries(rows.map(r => [r.VitalId, r.VitalValue])));
@@ -513,7 +479,13 @@ const DoctorConsultationNew = () => {
       consultationHeadersData,
       patientVitalValue,
     };
-  }, [selectedPatient, emrSectionsData, vitalsData, savedPatientVitalId]);
+  }, [
+    selectedPatient,
+    emrSectionsData,
+    templateEntriesByTemplateId,
+    vitalsData,
+    savedPatientVitalId,
+  ]);
 
   // Allergy has its own save endpoint (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS), one row per
   // allergy record — it doesn't fit SAVE_PATIENT_CONSULTATION's flat EMR-header contract, so it
@@ -1108,7 +1080,9 @@ const DoctorConsultationNew = () => {
                           <>
                             <button
                               type="button"
-                              onClick={() => handleFinalSave({ goBackAfterSave: true, goToTab: "out" })}
+                              onClick={() =>
+                                handleFinalSave({ goBackAfterSave: true, goToTab: "out" })
+                              }
                               className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
                             >
                               <LogOut size={14} />
@@ -1199,10 +1173,6 @@ const DoctorConsultationNew = () => {
                       )}
                     </div>
 
-                    {/* ── Section 3: Vitals strip — icon stat chips, editable ──
-                        desktop/tablet shows every chip inline; phones get a compact summary bar
-                        that expands the same chips on tap, so this card doesn't eat the whole
-                        screen and push EMR Sections out of view */}
                     <div className="hidden sm:flex items-center gap-2 w-full px-4 py-3">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
                         {vitals.map(v => (
@@ -1332,6 +1302,10 @@ const DoctorConsultationNew = () => {
                 usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
                 disabled={isFileClosed}
+                templateEntriesByTemplateId={templateEntriesByTemplateId}
+                onTemplateEntriesChange={(templateId, entries) =>
+                  setTemplateEntriesByTemplateId(prev => ({ ...prev, [templateId]: entries }))
+                }
               />
             </div>
           )}

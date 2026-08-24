@@ -389,13 +389,13 @@ const PrintPreviewModal = ({
       />
       <motion.div
         key="print-drawer"
-        className="fixed inset-y-0 right-0 z-[96] w-[96vw] max-w-[1500px] bg-white shadow-2xl flex"
+        className="emr-print-shell fixed inset-y-0 right-0 z-[96] w-[96vw] max-w-[1500px] bg-white shadow-2xl flex"
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 32 }}
       >
-        <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/70 flex flex-col overflow-y-auto">
+        <div className="emr-print-side w-80 shrink-0 border-r border-slate-200 bg-slate-50/70 flex flex-col overflow-y-auto">
           <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-200 bg-white shrink-0">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm">
               <Printer size={13} className="text-white" />

@@ -138,6 +138,7 @@ export enum EmrControlsTabName {
 export enum EmrTemplatesTabName {
   EMR_TEMPLATES = "EMR Templates",
   DOCTOR_DEPARTMENT_EMR_TEMPLATES = "Doctor Department EMR Templates",
+  FORM_BUILDER = "Form Builder",
 }
 
 export enum VitalMasterTabName {

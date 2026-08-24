@@ -1124,9 +1124,16 @@ const ImageUploadControl = ({ schema, value, onChange }: ControlRenderProps) => 
     if (patientId == null || visitId == null || !headerId) return;
     const hydrated = Array.isArray(value) ? (value as VisitReportDocument[]) : [];
     if (hydrated.length === 0) return;
+    // this control remounts fresh (hasInitializedRef resets) every time it's unmounted and shown
+    // again — e.g. switching the EMR Sections panel to a Template and back. Without this check,
+    // every such remount re-persists the same base64 image data to localStorage again, which is
+    // how a full day of tab-switching can run into that store's quota. Skip the write entirely
+    // when this header's current store contents already match what we're about to seed.
+    if (JSON.stringify(reports) === JSON.stringify(hydrated)) return;
     justSeededRef.current = true;
     lastSyncedRef.current = JSON.stringify(hydrated);
     setHeaderReports(patientId, visitId, headerId, hydrated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, patientId, visitId, headerId, setHeaderReports]);
 
   // ongoing: whenever the live editing store's reports for this header change (upload, delete,

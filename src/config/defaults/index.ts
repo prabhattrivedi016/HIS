@@ -375,6 +375,14 @@ const ENDPOINTS = {
   GET_TEMPLATE_DEPARTMENT_MAPPING: "EMR/getEMRTemplateDepartmentMapping",
   SAVE_TEMPLATE_DEPARTMENT_MAPPING: "EMR/saveEMRTemplateDepartmentMapping",
 
+  // form builder — freeform category/parameter forms sketched on the EMR Templates page's "Form
+  // Builder" tab, saved as-is (no picking from predefined Sections/Headers). UNVERIFIED, same
+  // pattern-matched-guess status as the templates endpoints above — this admin screen has no
+  // confirmed backend yet.
+  GET_ALL_CUSTOM_FORMS: "EMR/getCustomFormMaster",
+  CREATE_UPDATE_CUSTOM_FORM: "EMR/createUpdateCustomFormMaster",
+  GET_CUSTOM_FORM_FIELDS: "EMR/getCustomFormFields",
+
   // emr section "Past Visits" history is real now: GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID lists
   // this patient's other visits, then GET_DOCTOR_CONSULTATION_BY_VISIT_ID (below, same endpoint
   // that hydrates the current visit) is called per visitId to get that visit's saved header

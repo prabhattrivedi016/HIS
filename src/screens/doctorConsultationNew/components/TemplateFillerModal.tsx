@@ -3,9 +3,10 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { TemplateItem, TemplateSectionMappingRecord } from "@/screens/emrTemplates/types";
 import { Check, LayoutTemplate, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { EmrSectionAnswerEntry, EmrSectionVisitSnapshotEntry, RawConsultationHeaderRow } from "../types";
+import { useVisitSavedHeaderValues } from "../hooks/useVisitSavedHeaderValues";
+import { EmrSectionAnswerEntry } from "../types";
 import EmrSectionRenderer from "./EmrSectionRenderer";
 
 interface TemplateFillerModalProps {
@@ -109,56 +110,12 @@ const TemplateFillerModal = ({
   }, [isOpen, template]);
 
   // this visit's previously-saved header values, so reopening/refilling a template shows prior
-  // answers and upserts (dataId) instead of duplicating rows — verbatim copy of
-  // ConsultationEmrSections.tsx's own savedHeaderValuesBySectionId/savedDataIdsByHeaderId, fetched
-  // independently here since this modal has no access to the main panel's already-loaded copy
-  const [savedHeaderRows, setSavedHeaderRows] = useState<RawConsultationHeaderRow[]>([]);
-
-  useEffect(() => {
-    if (!isOpen || visitId == null) {
-      setSavedHeaderRows([]);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      const resp = await fetchApi<{ data?: RawConsultationHeaderRow[] }>(
-        "GET",
-        ENDPOINTS.GET_DOCTOR_CONSULTATION_BY_VISIT_ID,
-        {},
-        { params: { visitId } },
-        { component: "TemplateFillerModal", silent: true }
-      );
-      if (cancelled) return;
-      setSavedHeaderRows(resp?.data ?? []);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, visitId]);
-
-  const savedHeaderValuesBySectionId = useMemo(() => {
-    const map = new Map<number, EmrSectionVisitSnapshotEntry["values"]>();
-    savedHeaderRows.forEach(row => {
-      let value: unknown;
-      try {
-        value = JSON.parse(row.HeaderValue);
-      } catch {
-        value = row.HeaderValue;
-      }
-      const bucket = map.get(row.SectionId) ?? [];
-      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
-      map.set(row.SectionId, bucket);
-    });
-    return map;
-  }, [savedHeaderRows]);
-
-  const savedDataIdsByHeaderId = useMemo(() => {
-    const map = new Map<number, number>();
-    savedHeaderRows.forEach(row => map.set(row.HeaderId, row.DataId));
-    return map;
-  }, [savedHeaderRows]);
+  // answers and upserts (dataId) instead of duplicating rows — same hook TemplateInlineSections
+  // uses, so both entry points into a Template stay consistent
+  const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } = useVisitSavedHeaderValues(
+    visitId,
+    isOpen
+  );
 
   const handleSectionEntries = useCallback(
     (sectionId: number, entries: EmrSectionAnswerEntry[]) => {
@@ -215,11 +172,13 @@ const TemplateFillerModal = ({
             </button>
           </div>
 
-          <div className="flex flex-1 min-h-0">
+          <div className="emr-shell flex flex-1 min-h-0">
             {/* "All Sections" nav — plain list, no scrollspy/favorites/layout-toggle (that
                 polish belongs to ConsultationEmrSections' always-visible panel, not this
-                ad-hoc filler) */}
-            <div className="w-64 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
+                ad-hoc filler). emr-sidebar/emr-content reuse the same collapse breakpoints
+                ConsultationEmrSections' own sidebar uses (see src/styles/emr.css) — same w-64
+                base width, so they apply with no adjustment needed. */}
+            <div className="emr-sidebar w-64 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1 mb-2">
                 All Sections
               </p>
@@ -257,7 +216,7 @@ const TemplateFillerModal = ({
               )}
             </div>
 
-            <div className="flex-1 min-w-0 p-4 overflow-y-auto bg-gradient-to-br from-sky-50 via-blue-50/40 to-slate-50">
+            <div className="emr-content flex-1 min-w-0 p-4 overflow-y-auto bg-gradient-to-br from-sky-50 via-blue-50/40 to-slate-50">
               {sectionsLoading ? (
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-16">
                   <Loader2 size={16} className="animate-spin" />

@@ -66,6 +66,43 @@
   }
 }
 
+/* print preview modal — same fixed-sidebar shape as .emr-shell (see above), but its sidebar
+   holds real controls (visit picker, checkboxes, paper/font size, section toggles, save button),
+   not just section nav — the .emr-sidebar nav-strip squeeze (max-height: 208px) would clip those
+   controls, so this gets its own, less aggressive collapse instead of reusing that class */
+@media (max-width: 1024px) {
+  .emr-print-side {
+    width: 15rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .emr-print-shell {
+    flex-direction: column;
+  }
+
+  .emr-print-side {
+    width: 100%;
+    max-height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid rgb(226 232 240); /* slate-200 */
+  }
+}
+
+/* small popups (TemplateCategoryPopup, ParameterEditorPopup) opened via the shared CentralPopup
+   at its default w-[30%] — a min-width floor, not a width override, so it never fights that
+   base w-[30%] utility's cascade (mirrors this codebase's existing className="lg:min-w-300"
+   pattern on other CentralPopup consumers, e.g. FilterBillPopup.tsx) */
+.emr-form-popup {
+  min-width: 88vw;
+}
+
+@media (min-width: 640px) {
+  .emr-form-popup {
+    min-width: 420px;
+  }
+}
+
 .doctor-note-content h1 {
   font-size: 1.5rem;
   font-weight: 700;
