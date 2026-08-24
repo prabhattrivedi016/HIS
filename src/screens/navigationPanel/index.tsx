@@ -1,5 +1,5 @@
 import { NavigationPaneHeader } from "@/constants/constants";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import InputField from "../../components/customInputField";
 import CustomLoader from "../../components/customLoader";
@@ -7,6 +7,8 @@ import { ENDPOINTS } from "../../config/defaults";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import NavigationPanelDrawer from "./components/NavigationPanelDrawer";
 import PageMapping from "./components/PageMapping";
+import SubMenuOrdering from "./components/SubMenuOrdering";
+import TabOrdering from "./components/TabOrdering";
 import { SubMenuItem } from "./types";
 
 const NavigationPanel = () => {
@@ -21,6 +23,12 @@ const NavigationPanel = () => {
   const [updatedValue, setUpdatedValue] = useState<SubMenuItem | null>(null);
   const [openPageMapping, setOpenPageMapping] = useState<boolean>(false);
   const [renderPageMapping, setRenderPageMapping] = useState<boolean>(false);
+
+  const [openTabOrdering, setOpenTabOrdering] = useState<boolean>(false);
+  const [renderTabOrdering, setRenderTabOrdering] = useState<boolean>(false);
+
+  const [openSubMenuOrdering, setOpenSubMenuOrdering] = useState<boolean>(false);
+  const [renderSubMenuOrdering, setRenderSubMenuOrdering] = useState<boolean>(false);
 
   const paneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mappingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,6 +118,24 @@ const NavigationPanel = () => {
     }, 300);
   };
 
+  const tabOrderingHandler = () => {
+    setOpenTabOrdering(true);
+    setRenderTabOrdering(true);
+  };
+
+  const subMenuOrderingHandler = () => {
+    setOpenSubMenuOrdering(true);
+    setRenderSubMenuOrdering(true);
+  };
+
+  const closeTabOrderingHandler = useCallback(() => {
+    setOpenTabOrdering(false);
+  }, []);
+
+  const closeSubMenuOrderingHandler = useCallback(() => {
+    setOpenSubMenuOrdering(false);
+  }, []);
+
   return (
     <div className="page-container">
       <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
@@ -133,6 +159,12 @@ const NavigationPanel = () => {
               onChange={searchHandler}
             />
           </InputField>
+          <button className="save-btn" onClick={tabOrderingHandler}>
+            Tab Ordering
+          </button>
+          <button className="save-btn" onClick={subMenuOrderingHandler}>
+            SubMenu Ordering
+          </button>
           <button className="save-btn" onClick={pageMappingHandler}>
             Page Mapping
           </button>
@@ -220,6 +252,25 @@ const NavigationPanel = () => {
       {/* page mapping drawer */}
       {renderPageMapping ? (
         <PageMapping isOpen={openPageMapping} onClose={closeMappingDrawer} />
+      ) : (
+        <></>
+      )}
+
+      {/* tab ordering */}
+
+      {renderTabOrdering ? (
+        <TabOrdering isOpen={openTabOrdering} onClose={closeTabOrderingHandler} />
+      ) : (
+        <></>
+      )}
+
+      {/* sub menu ordering */}
+      {renderSubMenuOrdering ? (
+        <SubMenuOrdering
+          isOpen={openSubMenuOrdering}
+          onClose={closeSubMenuOrderingHandler}
+          onSuccess={getNavigationMenu}
+        />
       ) : (
         <></>
       )}

@@ -2,7 +2,6 @@ import Animation from "@/components/animation";
 import CancelButton from "@/components/globalButtons/CancelButton";
 import EditIconButton from "@/components/globalButtons/EditIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
-import { BankDetailsTableHeader } from "@/constants/constants";
 import { showError, showSuccess } from "@/utils/alert";
 import { bankDetailsSchema } from "@/validation/bankMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -151,8 +150,6 @@ const BankDetails = () => {
   return (
     <div className="mt-1">
       <div className="card mb-1">
-        <h2 className="card-title ">Bank Details</h2>
-
         {/* form data */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
@@ -241,22 +238,22 @@ const BankDetails = () => {
               </select>
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
-          </div>
 
-          <div className="form-actions-responsive mt-5">
-            <SubmitButton
-              label={buttonTitle}
-              className="save-btn-color"
-              type="submit"
-              onClick={handleSubmit(onSubmit)}
-            />
+            <div className="form-actions-responsive ">
+              <SubmitButton
+                label={buttonTitle}
+                className="save-btn-color "
+                type="submit"
+                onClick={handleSubmit(onSubmit)}
+              />
 
-            <CancelButton
-              label="Cancel"
-              className="cancel-btn-color"
-              type="button"
-              onClick={cancelHandler}
-            />
+              <CancelButton
+                label="Cancel"
+                className="cancel-btn-color "
+                type="button"
+                onClick={cancelHandler}
+              />
+            </div>
           </div>
         </form>
       </div>
@@ -277,18 +274,28 @@ const BankDetails = () => {
                 <table className="base-table ">
                   <thead className="table-head">
                     <tr>
-                      {BankDetailsTableHeader.map((h, index) => (
-                        <th key={index} className="table-th ">
-                          {h}
-                        </th>
-                      ))}
+                      <th className="table-th">#</th>
+                      <th className="table-th p-2">Payee Name</th>
+                      <th className="table-th">Status</th>
+                      <th className="table-th">PAN Number</th>
+                      <th className="table-th">Bank Name</th>
+                      <th className="table-th">Account Number</th>
+                      <th className="table-th">Bank Address</th>
+                      <th className="table-th">IFSC Code</th>
+                      <th className="table-th">PIN Code</th>
+                      <th className="table-th">TIN Number</th>
+                      <th className="table-th">Created By</th>
+                      <th className="table-th">Created On</th>
+                      <th className="table-th">Last Modified By</th>
+                      <th className="table-th">Last Modified On</th>
+                      <th className="table-th">Edit</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {bankDetailsList?.length === 0 && (
                       <tr>
-                        <td colSpan={BankDetailsTableHeader.length} className="table-empty">
+                        <td colSpan={15} className="table-empty">
                           No records found
                         </td>
                       </tr>

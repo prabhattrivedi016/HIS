@@ -144,23 +144,6 @@ export enum VitalMasterTabName {
   VITAL_MASTER = "Vital Master",
   VITAL_MAPPING = "Vital Mapping",
 }
-export const BankDetailsTableHeader = [
-  "#",
-  "Payee Name",
-  "Status",
-  "PAN Number",
-  "Bank Name",
-  "Account Number",
-  "Bank Address",
-  "IFSC Code",
-  "PIN Code",
-  "TIN No.",
-  "Create By",
-  "Create On",
-  "Last Modified By",
-  "Last Modified On",
-  "Edit",
-];
 
 export const sequenceBranchMasterHeader = [
   "#",
@@ -207,17 +190,6 @@ export const DoctorSignatureTableHeader = [
   "Download",
   "Edit",
   "Delete",
-];
-
-export const BankMasterTableHeader = [
-  "#",
-  "Bank Name",
-  "Status",
-  "Created By",
-  "Created On",
-  "Last Modified By",
-  "Last Modified On",
-  "Edit",
 ];
 
 export const VendorMasterTableHeader = [

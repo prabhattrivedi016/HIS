@@ -52,6 +52,8 @@ const ENDPOINTS = {
   CREATE_UPDATE_NAVIGATION_SUBMENU_MASTER: "Admin/createUpdateNavigationSubMenuMaster",
   GET_ROLE_WISE_MENU_MAPPING: "Admin/getRoleWiseMenuMapping",
   SAVE_UPDATE_ROLE_WISE_MENU_MAPPING: "Admin/saveUpdateRoleWiseMenuMapping",
+  UPDATE_NAVIGATION_TAB_SEQUENCE_NO: "Admin/updateNavigationTabSequenceNo",
+  UPDATE_NAVIGATION_SEB_MENU_SEQUENCE_NUMBER: "Admin/updateNavigationSubMenuSequenceNo",
   // header
   GET_USER_ROLES: "User/getUserRoles",
   GET_USER_TAB_SUB_MENU_MAPPING: "User/getUserTabAndSubMenuMapping",
@@ -635,6 +637,10 @@ const ENDPOINTS = {
   CANCEL_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/cancelDoctorAppointmentPreBooking",
   RESCHEDULE_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/rescheduleDoctorAppointmentPreBooking",
   CONFIRM_DOCTOR_APPOINTMENT_PRE_BOOKING: "Patient/confirmDoctorAppointmentPreBooking",
+
+  // surgery component master
+  CREATE_UPDATE_SURGERY_COMPONENT_MASTER: "Admin/createUpdateSurgeryComponentMaster",
+  GET_SURGERY_COMPONENTS_LIST: "Admin/getSurgeryComponentsList",
 };
 
 export { ENDPOINTS };

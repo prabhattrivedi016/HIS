@@ -64,6 +64,7 @@ import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
 import ServiceMaster from "../serviceMaster";
+import SurgeryMaster from "../surgeryMaster";
 import TabMaster from "../tabMaster";
 import TariffManager from "../tariffManager";
 import TemperatureRoom from "../temperatureRoom";
@@ -159,4 +160,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "emr-templates": <EMRTemplates />,
   "corporate-transfer-approval": <CorporateTransferApproval />,
   "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
+  "surgery-master": <SurgeryMaster />,
 };
