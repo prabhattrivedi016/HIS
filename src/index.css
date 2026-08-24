@@ -479,14 +479,7 @@ input::placeholder {
 /* buttons */
 
 .form-actions-responsive {
-  @apply flex flex-col sm:flex-row gap-3 sm:justify-end mt-2;
-}
-
-/* Mobile behavior */
-@media (max-width: 640px) {
-  .form-actions-responsive {
-    @apply justify-center;
-  }
+  @apply flex flex-col sm:flex-row gap-3 sm:justify-end  lg:col-span-3 md:col-span-1 col-span-1  items-end justify-start sm:justify-end gap-3;
 }
 
 .save-btn {

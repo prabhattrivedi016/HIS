@@ -4,12 +4,12 @@ import CustomLoader from "@/components/customLoader";
 import CancelButton from "@/components/globalButtons/CancelButton";
 import EditIconButton from "@/components/globalButtons/EditIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
-import { BankMasterTableHeader } from "@/constants/constants";
 import { showError, showSuccess } from "@/utils/alert";
 import { bankMasterSchema } from "@/validation/bankMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { InferType } from "yup";
 import { ENDPOINTS } from "../../../config/defaults";
@@ -19,8 +19,6 @@ type BankMasterFormItem = InferType<typeof bankMasterSchema>;
 
 const BankMasterPage = () => {
   const { loading, fetchApi } = useGlobalApi();
-
-  const [bankLists, setBankLists] = useState<BankItem[]>([]);
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const {
@@ -53,14 +51,14 @@ const BankMasterPage = () => {
       {},
       { component: "BankMasterPage" }
     );
-    setBankLists(resp?.data ?? []);
+    return resp?.data ?? [];
   };
 
-  useEffect(() => {
-    if (showDetails) {
-      getBankLists();
-    }
-  }, [showDetails]);
+  const { data: bankLists = [], refetch } = useQuery({
+    queryKey: ["bankLists"],
+    queryFn: getBankLists,
+    enabled: !!showDetails,
+  });
 
   // submit handler
   const onSubmit = async (formData: BankMasterFormItem) => {
@@ -84,7 +82,7 @@ const BankMasterPage = () => {
       bankName: "",
       isActive: 1,
     });
-    await getBankLists();
+    await refetch?.();
   };
 
   // edit handler
@@ -142,7 +140,7 @@ const BankMasterPage = () => {
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
           </div>
-          <div className="form-actions-responsive mt-5">
+          <div className="form-actions-responsive">
             <SubmitButton
               label={buttonTitle}
               className="save-btn-color"
@@ -172,29 +170,32 @@ const BankMasterPage = () => {
         <Animation isOpen={showDetails}>
           <div className="table-container ">
             <div className="table-scroll-wrapper">
-              <div className="table-size lg:min-h-58 lg:max-h-58 ">
-                <table className="base-table">
+              <div className="table-size lg:min-h-80 lg:max-h-80 ">
+                <table className="base-table ">
                   <thead className="table-head">
                     <tr>
-                      {BankMasterTableHeader.map((h, index) => (
-                        <th key={index} className="table-th ">
-                          {h}
-                        </th>
-                      ))}
+                      <th className="table-th">#</th>
+                      <th className="table-th">Bank Name</th>
+                      <th className="table-th">Status</th>
+                      <th className="table-th">Created By</th>
+                      <th className="table-th">Created On</th>
+                      <th className="table-th">Last Modified By</th>
+                      <th className="table-th">Last Modified On</th>
+                      <th className="table-th">Edit</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {bankLists?.length === 0 && (
                       <tr>
-                        <td colSpan={bankLists.length} className="table-empty">
+                        <td colSpan={8} className="table-empty">
                           No records found
                         </td>
                       </tr>
                     )}
 
-                    {bankLists.map((item, idx) => (
-                      <tr key={idx} className="table-row">
+                    {bankLists.map((item: BankItem, idx: number) => (
+                      <tr key={item?.bankId} className="table-row">
                         <td className="table-td">{idx + 1}</td>
 
                         <td className="table-td">{item?.bankName || "-"}</td>
