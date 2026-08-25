@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { EmrTemplatesTabName } from "../../constants/constants";
 import DoctorDepartmentEmrTemplateMapping from "./components/DoctorDepartmentEmrTemplateMapping";
+import FormBuilder from "./components/FormBuilder";
 import TemplateMaster from "./components/TemplateMaster";
 
 const EMRTemplates = () => {
@@ -13,6 +14,9 @@ const EMRTemplates = () => {
     }
     if (tabName === EmrTemplatesTabName.DOCTOR_DEPARTMENT_EMR_TEMPLATES) {
       return <DoctorDepartmentEmrTemplateMapping />;
+    }
+    if (tabName === EmrTemplatesTabName.FORM_BUILDER) {
+      return <FormBuilder />;
     }
   };
 
@@ -48,6 +52,16 @@ const EMRTemplates = () => {
           }`}
         >
           {EmrTemplatesTabName.DOCTOR_DEPARTMENT_EMR_TEMPLATES}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(EmrTemplatesTabName.FORM_BUILDER)}
+          className={`tab-btn transition ${
+            activeTab === EmrTemplatesTabName.FORM_BUILDER ? "tab-btn-active" : "tab-btn-inactive"
+          }`}
+        >
+          {EmrTemplatesTabName.FORM_BUILDER}
         </button>
       </div>
 

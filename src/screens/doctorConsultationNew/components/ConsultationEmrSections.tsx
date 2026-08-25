@@ -11,6 +11,7 @@ import {
   EmrSectionMappingTableItem,
   SectionHeaderMappingRecord,
 } from "@/screens/emrControls/types";
+import { TemplateItem } from "@/screens/emrTemplates/types";
 import { useEmrSectionLayout } from "@/store/useEmrSectionLayout";
 import "@/styles/emr.css";
 import { showError, showSuccess } from "@/utils/alert";
@@ -22,9 +23,12 @@ import {
   Baby,
   CalendarClock,
   Check,
+  ChevronDown,
+  ClipboardCheck,
   ClipboardList,
   Eye,
   FlaskConical,
+  LayoutTemplate,
   Loader2,
   LucideIcon,
   MoreHorizontal,
@@ -51,26 +55,32 @@ import {
   EmrSectionVisitSnapshotEntry,
   RawConsultationHeaderRow,
 } from "../types";
+import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
+import CarePlanPanel from "./CarePlanPanel";
 import CircularProgress from "./CircularProgress";
 import EmrSectionHistoryDrawer from "./EmrSectionHistoryDrawer";
 import EmrSectionRenderer from "./EmrSectionRenderer";
 import ReportAnnotatorModal from "./ReportAnnotatorModal";
+import TemplateInlineSections from "./TemplateInlineSections";
 
 interface ConsultationEmrSectionsProps {
   doctorId?: number;
   patientId?: number;
   visitId?: number;
-  /** which patient type's sections/headers this doctor has assigned (e.g. selectedPatient.TypeId
-   * — 1 for OPD) — filters GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR the same way it's filtered
-   * server-side; defaults to 1 (OPD) if not passed */
   usedForPatientTypeId?: number;
   onSectionsChange?: (entries: EmrSectionAnswerEntry[]) => void;
-  /** true once this visit's file is closed — every section renders read-only (no field edits, no
-   * favorites/history/annotator actions) instead of threading a readOnly prop through every
-   * individual control, since blocking pointer events on this component's own root covers all of
-   * them (including nested portal popups, since their trigger buttons live inside this root too
-   * and pointer-events-none stops the click from ever reaching them) */
   disabled?: boolean;
+  /** entries already filled for each template this session (keyed by templateId) — re-seeds
+   * TemplateInlineSections when the doctor switches back to "EMR Sections" and then re-selects
+   * the same template, so in-progress-but-unsaved answers aren't silently dropped */
+  templateEntriesByTemplateId?: Record<number, EmrSectionAnswerEntry[]>;
+  /** fired continuously while a template is selected via the inline dropdown — the caller merges
+   * this into the same templateEntriesByTemplateId bucket TemplateFillerModal's onApply already
+   * feeds, so both entry points end up in the same save payload */
+  onTemplateEntriesChange?: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
+  /** opens a print-preview scoped to just the selected template's data — relayed straight up to
+   * index.tsx, which is the only place that holds the full PatientItem the print modal needs */
+  onPrintTemplate?: (templateName: string, entries: EmrSectionAnswerEntry[]) => void;
 }
 
 const getSectionIcon = (name: string): LucideIcon => {
@@ -87,10 +97,6 @@ const getSectionIcon = (name: string): LucideIcon => {
 };
 
 const VISIBLE_TAB_LIMIT = 5;
-
-// scrollspy tuning for react-intersection-observer — module-level so these keep a stable
-// reference across renders (an inline array/object here would make useInView tear down and
-// recreate its observer on every keystroke, since this screen re-renders constantly as data changes)
 const SCROLLSPY_ROOT_MARGIN = "-10% 0px -70% 0px";
 const SCROLLSPY_THRESHOLD = [0, 0.25, 0.5, 0.75, 1];
 
@@ -106,10 +112,6 @@ const SECTION_ACCENTS = [
     glow: "11,83,148",
   },
 ];
-
-// per-section icon tint only — kept separate from SECTION_ACCENTS (which drives the active pill's
-// gradient, card border/background, and progress rail, all still uniformly blue) so each section's
-// icon reads as its own color without recoloring the rest of the shell
 const ICON_COLORS = [
   "text-rose-500",
   "text-amber-500",
@@ -240,8 +242,6 @@ interface SectionCardProps {
   isActive: boolean;
   accent: (typeof SECTION_ACCENTS)[number];
   innerRef: (el: HTMLDivElement | null) => void;
-  /** the scrollable panel to observe against — null until it mounts, in which case useInView
-   * is paused (skip) rather than falling back to the browser viewport as root */
   rootEl: HTMLDivElement | null;
   onVisibilityChange: (
     sectionId: number,
@@ -250,14 +250,6 @@ interface SectionCardProps {
   ) => void;
   children: ReactNode;
 }
-
-/**
- * Each scrolled section's card — tinted per-section background, a soft pulsing glow while it's
- * the scrollspy-active one, and a cursor-tracked spotlight highlight on hover (no extra library,
- * just a radial-gradient overlay positioned from mouse coordinates on every mousemove). Visibility
- * tracking itself is react-intersection-observer's useInView, reporting up to the shared scrollspy
- * logic in ConsultationEmrSections instead of each card managing its own observer by hand.
- */
 const SectionCard = ({
   sectionId,
   isActive,
@@ -301,7 +293,6 @@ const SectionCard = ({
         isActive ? `${accent.activeBorder} shadow-md` : "border-slate-200 shadow-sm hover:shadow-lg"
       }`}
     >
-      {/* bold, solid-colored band — the obvious "which section is this" marker, not a faint wash */}
       <div className={`h-1 w-full bg-gradient-to-r ${accent.grad}`} />
 
       {isActive && (
@@ -335,6 +326,9 @@ const ConsultationEmrSections = ({
   usedForPatientTypeId,
   onSectionsChange,
   disabled,
+  templateEntriesByTemplateId,
+  onTemplateEntriesChange,
+  onPrintTemplate,
 }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
   const { layout, toggleLayout } = useEmrSectionLayout();
@@ -357,12 +351,55 @@ const ConsultationEmrSections = ({
   const [historySectionId, setHistorySectionId] = useState<number | null>(null);
   const [isReportAnnotatorOpen, setIsReportAnnotatorOpen] = useState(false);
 
+  // inline Templates dropdown — null means "EMR Sections" (the normal view below, unchanged)
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
+
+  const getTemplatesForDropdown = async (): Promise<TemplateItem[]> => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_ALL_TEMPLATES,
+      {},
+      { params: { isActive: 1 } },
+      { component: "ConsultationEmrSections", silent: true }
+    );
+    const raw: any[] = resp?.data ?? [];
+    return raw.map(t => ({
+      templateId: t.TemplateId,
+      templateName: t.TemplateName,
+      displayName: t.DisplayName,
+      templateCategoryId: t.TemplateCategoryId,
+      categoryName: t.TemplateCategoryName,
+      isActive: t.IsActive,
+      isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
+      applicableTo: t.ApplicableTo ?? 0,
+    }));
+  };
+
+  const { data: templatesForDropdown = [] } = useQuery<TemplateItem[]>({
+    queryKey: ["consultationEmrSectionsTemplates"],
+    queryFn: getTemplatesForDropdown,
+    enabled: isTemplateMenuOpen,
+  });
+
+  useEffect(() => {
+    if (!isTemplateMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setIsTemplateMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isTemplateMenuOpen]);
+
+  // doctor-wise "Care Plan" presets — save the currently-filled sections under a name, reapply
+  // to a different patient later (see CarePlanPanel.tsx)
+  const [isCarePlanOpen, setIsCarePlanOpen] = useState(false);
+
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  // scrollspy for both layouts — every section renders together in one scrollable panel, and
-  // the nav (left list or top tabs) highlights whichever one is currently in view. Detection
-  // itself is react-intersection-observer (one useInView per SectionCard); this component just
-  // aggregates "which of the currently-visible sections is topmost" and debounces the switch.
   const verticalScrollRef = useRef<HTMLDivElement>(null);
   const [scrollContainerEl, setScrollContainerEl] = useState<HTMLDivElement | null>(null);
   const sectionElRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -488,8 +525,6 @@ const ConsultationEmrSections = ({
       try {
         value = JSON.parse(row.HeaderValue);
       } catch {
-        // not valid JSON (shouldn't happen — SAVE_PATIENT_CONSULTATION always JSON.stringifies
-        // headerValue) — fall back to the raw string rather than dropping the row
         value = row.HeaderValue;
       }
       const bucket = map.get(row.SectionId) ?? [];
@@ -498,16 +533,44 @@ const ConsultationEmrSections = ({
     });
     return map;
   }, [savedHeaderRows]);
-
-  // headerId -> this header's real DataId from the last load, so the next save can send it back
-  // for an upsert instead of always sending dataId 0 (which would insert a duplicate row every
-  // time an already-saved header is edited and re-saved) — headerId is unique across sections
-  // (each Header Master row belongs to exactly one section), so a flat map is enough
   const savedDataIdsByHeaderId = useMemo(() => {
     const map = new Map<number, number>();
     savedHeaderRows.forEach(row => map.set(row.HeaderId, row.DataId));
     return map;
   }, [savedHeaderRows]);
+
+  // flattened the same way consultationPayload (doctorConsultationNew/index.tsx) builds
+  // consultationHeadersData for the real save — headerId 0 is a synthetic frontend-only row (see
+  // that file's own comment), not something a Care Plan should carry
+  const currentHeadersDataForCarePlan = useMemo(
+    () =>
+      Object.values(entriesBySectionId)
+        .flat()
+        .filter(e => e.headerId > 0)
+        .map(e => ({
+          sectionId: e.sectionId,
+          headerId: e.headerId,
+          controlTypeId: e.controlTypeId,
+          headerValue: JSON.stringify(e.value),
+        })),
+    [entriesBySectionId]
+  );
+
+  // applying a Care Plan reuses the exact same utility the current-visit hydration path above
+  // already uses (applySnapshotToSectionData) — only the headers/sections present in
+  // rowsBySectionId are overwritten, everything else in the current form is left untouched
+  const handleApplyCarePlan = useCallback(
+    (rowsBySectionId: Map<number, EmrSectionVisitSnapshotEntry["values"]>) => {
+      setData(prev => {
+        let next = prev;
+        rowsBySectionId.forEach((rows, sectionId) => {
+          next = applySnapshotToSectionData(next, sectionId, headersBySection[sectionId] ?? [], rows);
+        });
+        return next;
+      });
+    },
+    [headersBySection]
+  );
 
   const hasUnsavedFavorites = useMemo(() => {
     if (favoriteSectionIds.length !== savedFavoriteSectionIds.length) return true;
@@ -542,10 +605,6 @@ const ConsultationEmrSections = ({
     }
   };
 
-  // this doctor's own section list, derived by grouping the flat per-header mapping list
-  // (GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR) down to its unique SectionIds — replaces the old
-  // "every active section in the system" list GET_ALL_EMR_SECTIONS returned, which wasn't scoped
-  // to what this doctor actually has assigned for this patient type
   const getAllEmrSections = async (): Promise<EmrSectionMappingTableItem[]> => {
     const resp = await fetchApi(
       "GET",
@@ -562,9 +621,6 @@ const ConsultationEmrSections = ({
       bySectionId.set(m.SectionId, {
         sectionId: m.SectionId,
         sectionName: m.SectionName,
-        // section nav pills/titles show SectionName, not SectionDisplayName — every render site
-        // already falls back to sectionName via `displayName || sectionName`, so setting this to
-        // sectionName here is the one place that needs to change
         displayName: m.SectionName,
         isActive: 1,
         mappingId: 0,
@@ -592,11 +648,6 @@ const ConsultationEmrSections = ({
     onSectionsChange(Object.values(entriesBySectionId).flat());
   }, [entriesBySectionId, onSectionsChange]);
 
-  // sectionProgress (populated by each mounted EmrSectionRenderer via onProgressChange) is the
-  // single source of truth for "is this section filled in" — it's the only place that knows the
-  // card-group data shape (values live under section_X.group, not one path per header), so
-  // deriving completion here independently from `data` would silently disagree with the section's
-  // own progress bar for card-group sections
   const isSectionAnswered = (sectionId: number) => (sectionProgress[sectionId]?.filled ?? 0) > 0;
 
   const getSectionPercent = (sectionId: number) => {
@@ -619,10 +670,6 @@ const ConsultationEmrSections = ({
     return map;
   }, [mappedSections]);
 
-  // Favourites always render first; selecting a tab never changes its position. Dependent
-  // sections (config/dependentSections.ts — e.g. "Treatment plan for Fixed braces") are excluded
-  // here so they never get their own nav pill; they're spliced back into the render-only list
-  // below, inline right after whichever section holds their trigger header.
   const orderedSections = useMemo(() => {
     const navSections = mappedSections.filter(s => !isDependentSectionName(s.sectionName));
     const favoriteIds = new Set(favoriteSectionIds);
@@ -630,10 +677,6 @@ const ConsultationEmrSections = ({
     const rest = navSections.filter(s => !favoriteIds.has(s.sectionId));
     return [...favorites, ...rest];
   }, [mappedSections, favoriteSectionIds]);
-
-  // which section holds the trigger header (e.g. "Dental Treatment Type"), and what's its
-  // currently answered value — found from headers/data already loaded for other reasons, so this
-  // needs no extra API call
   const dependentTrigger = useMemo(() => {
     for (const [sectionIdStr, headers] of Object.entries(headersBySection)) {
       const header = headers.find(h => isTriggerHeaderName(h.headerName));
@@ -748,51 +791,152 @@ const ConsultationEmrSections = ({
     >
       {/* ── glow header ── */}
       <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm shrink-0">
             <Sparkles size={13} className="text-white" />
           </span>
-          <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">EMR Sections</h3>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <CircularProgress
-            percent={percent}
-            size={30}
-            strokeWidth={3}
-            progressClassName={percent === 100 ? "text-emerald-500" : "text-[#0B5394]"}
-          >
-            {percent === 100 ? (
-              <Check size={12} className="text-emerald-500" />
-            ) : (
-              <span className="text-[9px] font-bold text-slate-600">{percent}%</span>
+          <h3 className="text-[13px] font-bold text-slate-700 tracking-wide shrink-0">
+            EMR Sections
+          </h3>
+
+          {/* Templates button — "EMR Sections" above stays static; this is the only click target
+              that opens the dropdown. Picking a Template swaps the body below to
+              TemplateInlineSections, in place of the normal doctor-section view (see the
+              sectionsLoading/mappedSections/layout chain below); picking "EMR Sections" from the
+              dropdown switches back. */}
+          <div className="relative min-w-0" ref={templateMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsTemplateMenuOpen(prev => !prev)}
+              className={`flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-md text-xs font-semibold transition-colors border ${
+                selectedTemplate
+                  ? "bg-blue-50 text-[#0B5394] border-blue-100"
+                  : "text-slate-500 border-slate-200 hover:bg-white hover:text-slate-700"
+              }`}
+              title="Switch to a Template"
+            >
+              <LayoutTemplate size={13} className="shrink-0" />
+              <span className="truncate max-w-40">
+                {selectedTemplate ? selectedTemplate.displayName || selectedTemplate.templateName : "Templates"}
+              </span>
+              <ChevronDown size={14} className="shrink-0" />
+            </button>
+
+            {isTemplateMenuOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-64 max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg z-30 py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplate(null);
+                    setIsTemplateMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs font-semibold transition-colors ${
+                    selectedTemplate === null
+                      ? "bg-blue-50 text-[#0B5394]"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Sparkles size={13} />
+                  EMR Sections
+                </button>
+
+                <div className="my-1 border-t border-slate-100" />
+
+                {templatesForDropdown.length === 0 ? (
+                  <p className="px-3 py-2 text-xs text-slate-400">No templates found</p>
+                ) : (
+                  templatesForDropdown.map(template => (
+                    <button
+                      key={template.templateId}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setIsTemplateMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs font-semibold transition-colors ${
+                        selectedTemplate?.templateId === template.templateId
+                          ? "bg-blue-50 text-[#0B5394]"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <LayoutTemplate size={13} className="shrink-0" />
+                      <span className="truncate">{template.displayName || template.templateName}</span>
+                    </button>
+                  ))
+                )}
+              </div>
             )}
-          </CircularProgress>
-          <span className="text-[11px] font-semibold text-slate-500">
-            {answeredCount}/{mappedSections.length || 0} done
-          </span>
+          </div>
 
+          {/* Care Plan — a doctor's own named preset of already-filled data, distinct from
+              Templates' empty admin-authored bundles. Its own click target, not folded into the
+              Templates dropdown, per how the feature was asked for. */}
           <button
             type="button"
-            onClick={() => setIsReportAnnotatorOpen(true)}
-            title="View & annotate patient reports"
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:text-teal-600 hover:border-teal-300 transition-colors"
+            onClick={() => setIsCarePlanOpen(true)}
+            className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-md text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-white hover:text-emerald-600 hover:border-emerald-200 transition-colors shrink-0"
+            title="Save or apply a Care Plan"
           >
-            <Eye size={14} />
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleLayout}
-            title={layout === "horizontal" ? "Switch to side tabs" : "Switch to top tabs"}
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700 hover:border-slate-300 transition-colors"
-          >
-            {layout === "horizontal" ? <PanelLeft size={14} /> : <PanelTop size={14} />}
+            <ClipboardCheck size={13} className="shrink-0" />
+            <span>Care Plan</span>
           </button>
         </div>
+
+        {/* percent ring / report annotator / layout toggle are doctor-EMR-section-specific
+            concepts (scoring, per-doctor layout preference) with no Template equivalent — hidden
+            rather than reinvented while a Template is selected, per the "keep this simple" scope */}
+        {!selectedTemplate && (
+          <div className="flex items-center gap-2">
+            <CircularProgress
+              percent={percent}
+              size={30}
+              strokeWidth={3}
+              progressClassName={percent === 100 ? "text-emerald-500" : "text-[#0B5394]"}
+            >
+              {percent === 100 ? (
+                <Check size={12} className="text-emerald-500" />
+              ) : (
+                <span className="text-[9px] font-bold text-slate-600">{percent}%</span>
+              )}
+            </CircularProgress>
+            <span className="text-[11px] font-semibold text-slate-500">
+              {answeredCount}/{mappedSections.length || 0} done
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setIsReportAnnotatorOpen(true)}
+              title="View & annotate patient reports"
+              className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:text-teal-600 hover:border-teal-300 transition-colors"
+            >
+              <Eye size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleLayout}
+              title={layout === "horizontal" ? "Switch to side tabs" : "Switch to top tabs"}
+              className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700 hover:border-slate-300 transition-colors"
+            >
+              {layout === "horizontal" ? <PanelLeft size={14} /> : <PanelTop size={14} />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {sectionsLoading ? (
+      {selectedTemplate ? (
+        <TemplateInlineSections
+          key={selectedTemplate.templateId}
+          template={selectedTemplate}
+          doctorId={doctorId}
+          patientId={patientId}
+          visitId={visitId}
+          initialEntries={templateEntriesByTemplateId?.[selectedTemplate.templateId]}
+          onEntriesChange={onTemplateEntriesChange ?? (() => {})}
+          onPrint={onPrintTemplate ?? (() => {})}
+        />
+      ) : sectionsLoading ? (
         <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-16">
           <Loader2 size={16} className="animate-spin" />
           Loading EMR sections…
@@ -1115,6 +1259,14 @@ const ConsultationEmrSections = ({
         onClose={() => setIsReportAnnotatorOpen(false)}
         patientId={patientId}
         visitId={visitId}
+      />
+
+      <CarePlanPanel
+        isOpen={isCarePlanOpen}
+        onClose={() => setIsCarePlanOpen(false)}
+        doctorId={doctorId}
+        currentHeadersData={currentHeadersDataForCarePlan}
+        onApply={handleApplyCarePlan}
       />
     </div>
   );

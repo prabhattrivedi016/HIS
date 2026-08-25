@@ -1,6 +1,24 @@
 import { safeRandomUUID } from "@/utils/uuid";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
+
+// this store persists uploaded/annotated report images as base64 data URLs, which can be large —
+// localStorage has a hard per-origin quota (~5-10MB), and once it's full, a plain
+// `localStorage.setItem` throws synchronously. Uncaught, that exception surfaces from inside this
+// store's own `set()` call — often from a React effect — and crashes the whole render tree (blank
+// screen) rather than just failing to persist. Swallow that one failure mode so a full quota
+// degrades to "this update won't survive a refresh" instead of "the app is gone".
+const quotaSafeLocalStorage: StateStorage = {
+  getItem: name => localStorage.getItem(name),
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch (err) {
+      console.warn(`useVisitReportsStore: could not persist "${name}" (storage quota exceeded?)`, err);
+    }
+  },
+  removeItem: name => localStorage.removeItem(name),
+};
 
 export type ReportAnnotationTool = "pen" | "erase" | "rectangle" | "ellipse" | "line" | "arrow";
 
@@ -112,6 +130,6 @@ export const useVisitReportsStore = create<VisitReportsState>()(
           ],
         })),
     }),
-    { name: "emr-visit-reports-v2" }
+    { name: "emr-visit-reports-v2", storage: createJSONStorage(() => quotaSafeLocalStorage) }
   )
 );

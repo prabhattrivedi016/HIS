@@ -168,9 +168,18 @@ type EmrSectionVisitSnapshotEntry = {
   values: { headerId: number; headerName: string; controlType: string; value: unknown }[];
 };
 
+/** a doctor's saved "Care Plan" — a named preset of whatever EMR Sections data they'd filled in
+ * when they saved it, reusable across other patients later. UNVERIFIED — see the CARE_PLAN
+ * ENDPOINTS comment block in config/defaults/index.ts. */
+type CarePlanItem = {
+  carePlanId: number;
+  carePlanName: string;
+};
+
 export type {
   AllergyRecordEntry,
   AllergySection,
+  CarePlanItem,
   ConsultationDetails,
   ConsultationHeaderDataEntry,
   EmrSectionAnswerEntry,

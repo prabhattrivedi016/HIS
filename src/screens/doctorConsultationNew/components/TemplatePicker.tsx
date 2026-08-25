@@ -63,6 +63,8 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
       templateCategoryId: t.TemplateCategoryId,
       categoryName: t.TemplateCategoryName,
       isActive: t.IsActive,
+      isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
+      applicableTo: t.ApplicableTo ?? 0,
     }));
   };
 
@@ -145,7 +147,7 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
           {visibleTemplates.length === 0 ? (
             <p className="table-empty">No templates found</p>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {visibleTemplates.map(template => (
                 <button
                   key={template.templateId}
