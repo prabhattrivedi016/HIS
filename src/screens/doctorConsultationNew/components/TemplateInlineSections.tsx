@@ -1,7 +1,7 @@
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { TemplateItem, TemplateSectionMappingRecord } from "@/screens/emrTemplates/types";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Printer } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVisitSavedHeaderValues } from "../hooks/useVisitSavedHeaderValues";
 import { EmrSectionAnswerEntry } from "../types";
@@ -20,6 +20,10 @@ interface TemplateInlineSectionsProps {
    * — the caller (ConsultationEmrSections → doctorConsultationNew/index.tsx) merges this into
    * templateEntriesByTemplateId, the same bucket TemplateFillerModal's onApply already feeds */
   onEntriesChange: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
+  /** opens a print-preview scoped to just this template's currently-filled data — the caller
+   * (ConsultationEmrSections → index.tsx) owns the actual PrintPreviewModal instance, since only
+   * index.tsx holds the full PatientItem that modal needs */
+  onPrint: (templateName: string, entries: EmrSectionAnswerEntry[]) => void;
 }
 
 /**
@@ -41,6 +45,7 @@ const TemplateInlineSections = ({
   visitId,
   initialEntries,
   onEntriesChange,
+  onPrint,
 }: TemplateInlineSectionsProps) => {
   const { fetchApi } = useGlobalApi();
 
@@ -162,78 +167,100 @@ const TemplateInlineSections = ({
     sectionElRefs.current.get(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handlePrintClick = () => {
+    const entries = Object.values(entriesBySectionId)
+      .flat()
+      .map(entry => ({ ...entry, templateId: template.templateId }));
+    onPrint(template.displayName || template.templateName, entries);
+  };
+
   return (
-    <div className="emr-shell flex min-h-72 max-h-[760px]">
-      <div className="emr-sidebar w-64 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1 mb-2">
-          All Sections
-        </p>
-        {sectionsLoading ? (
-          <div className="flex items-center gap-2 text-xs text-gray-400 px-1 py-2">
-            <Loader2 size={13} className="animate-spin" />
-            Loading…
-          </div>
-        ) : templateSections.length === 0 ? (
-          <p className="text-xs text-gray-400 px-1">No sections configured</p>
-        ) : (
-          <div className="flex flex-col gap-0.5">
-            {templateSections.map(section => {
-              const isActive = section.sectionId === activeSectionId;
-              const isComplete = isSectionAnswered(section.sectionId);
-              return (
-                <button
-                  key={section.sectionId}
-                  type="button"
-                  onClick={() => handleSelectSection(section.sectionId)}
-                  className={`flex items-center justify-between gap-2 text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive ? "bg-white shadow-sm text-[#0B5394]" : "text-slate-600 hover:bg-white/70"
-                  }`}
-                >
-                  <span className="truncate">{section.displayName || section.sectionName}</span>
-                  {isComplete && (
-                    <Check size={12} className="text-emerald-500 shrink-0" strokeWidth={3} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={handlePrintClick}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-white hover:text-[#0B5394] hover:border-[#0B5394]/40 transition-colors"
+        >
+          <Printer size={13} />
+          Print
+        </button>
       </div>
 
-      <div className="emr-content flex-1 min-w-0 p-4 overflow-y-auto bg-gradient-to-br from-sky-50 via-blue-50/40 to-slate-50">
-        {sectionsLoading ? (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-16">
-            <Loader2 size={16} className="animate-spin" />
-            Loading template…
-          </div>
-        ) : templateSections.length === 0 ? (
-          <div className="text-center text-gray-400 py-16 text-sm">
-            This template has no sections mapped yet
-          </div>
-        ) : (
-          templateSections.map(section => (
-            <div
-              key={section.sectionId}
-              ref={setSectionElRef(section.sectionId)}
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 mb-4 last:mb-0 scroll-mt-3"
-            >
-              <EmrSectionRenderer
-                sectionId={section.sectionId}
-                sectionName={section.sectionName}
-                displayName={section.displayName}
-                data={data}
-                onDataChange={setData}
-                doctorId={doctorId}
-                patientId={patientId}
-                visitId={visitId}
-                onProgressChange={handleSectionProgress}
-                onEntriesChange={handleSectionEntries}
-                savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
-                savedDataIdsByHeaderId={savedDataIdsByHeaderId}
-              />
+      <div className="emr-shell flex min-h-72 max-h-[760px]">
+        <div className="emr-sidebar w-64 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1 mb-2">
+            All Sections
+          </p>
+          {sectionsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400 px-1 py-2">
+              <Loader2 size={13} className="animate-spin" />
+              Loading…
             </div>
-          ))
-        )}
+          ) : templateSections.length === 0 ? (
+            <p className="text-xs text-gray-400 px-1">No sections configured</p>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {templateSections.map(section => {
+                const isActive = section.sectionId === activeSectionId;
+                const isComplete = isSectionAnswered(section.sectionId);
+                return (
+                  <button
+                    key={section.sectionId}
+                    type="button"
+                    onClick={() => handleSelectSection(section.sectionId)}
+                    className={`flex items-center justify-between gap-2 text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? "bg-white shadow-sm text-[#0B5394]"
+                        : "text-slate-600 hover:bg-white/70"
+                    }`}
+                  >
+                    <span className="truncate">{section.displayName || section.sectionName}</span>
+                    {isComplete && (
+                      <Check size={12} className="text-emerald-500 shrink-0" strokeWidth={3} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="emr-content flex-1 min-w-0 p-4 overflow-y-auto bg-gradient-to-br from-sky-50 via-blue-50/40 to-slate-50">
+          {sectionsLoading ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-16">
+              <Loader2 size={16} className="animate-spin" />
+              Loading template…
+            </div>
+          ) : templateSections.length === 0 ? (
+            <div className="text-center text-gray-400 py-16 text-sm">
+              This template has no sections mapped yet
+            </div>
+          ) : (
+            templateSections.map(section => (
+              <div
+                key={section.sectionId}
+                ref={setSectionElRef(section.sectionId)}
+                className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 mb-4 last:mb-0 scroll-mt-3"
+              >
+                <EmrSectionRenderer
+                  sectionId={section.sectionId}
+                  sectionName={section.sectionName}
+                  displayName={section.displayName}
+                  data={data}
+                  onDataChange={setData}
+                  doctorId={doctorId}
+                  patientId={patientId}
+                  visitId={visitId}
+                  onProgressChange={handleSectionProgress}
+                  onEntriesChange={handleSectionEntries}
+                  savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
+                  savedDataIdsByHeaderId={savedDataIdsByHeaderId}
+                />
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { EmrSectionItem } from "@/screens/emrControls/types";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { usePickMaster } from "@/hooks/usePickMaster";
+import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { TemplateFormData, templateSchema } from "@/validation/templateMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -96,11 +98,18 @@ const TemplateMaster = () => {
       displayName: "",
       templateCategoryId: 0,
       isActive: 1,
+      isMultipleEntryAllow: 0,
+      // 1 = "EMR Page" in the TemplateApplicableTo picklist — every template created from this
+      // screen is an EMR-page template, so default straight to it instead of making the admin
+      // pick it every single time
+      applicableTo: 1,
     },
   });
 
   const isEdit = Boolean(watch("templateId"));
   const buttonTitle = isEdit ? "Update" : "Create";
+
+  const applicableToList = usePickMaster("TemplateApplicableTo")?.pickMasterValue ?? [];
 
   const getCategories = async (): Promise<TemplateCategoryItem[]> => {
     const resp = await fetchApi(
@@ -179,7 +188,9 @@ const TemplateMaster = () => {
 
     const mapped = sectionCatalog
       .filter(s => sequenceBySectionId.has(s.sectionId))
-      .sort((a, b) => sequenceBySectionId.get(a.sectionId)! - sequenceBySectionId.get(b.sectionId)!);
+      .sort(
+        (a, b) => sequenceBySectionId.get(a.sectionId)! - sequenceBySectionId.get(b.sectionId)!
+      );
     const unmapped = sectionCatalog.filter(s => !sequenceBySectionId.has(s.sectionId));
 
     const data: TemplateSectionMappingItem[] = [...mapped, ...unmapped].map(s => ({
@@ -247,7 +258,18 @@ const TemplateMaster = () => {
       showSuccess(resp?.message ?? "Template saved successfully");
       queryClient.invalidateQueries({ queryKey: ["getAllTemplates"] });
 
-      reset({ templateId: 0, templateName: "", displayName: "", templateCategoryId: 0, isActive: 1 });
+      reset({
+        templateId: 0,
+        templateName: "",
+        displayName: "",
+        templateCategoryId: 0,
+        isActive: 1,
+        isMultipleEntryAllow: 0,
+        // 1 = "EMR Page" in the TemplateApplicableTo picklist — every template created from this
+      // screen is an EMR-page template, so default straight to it instead of making the admin
+      // pick it every single time
+      applicableTo: 1,
+      });
       buildRows([]);
     },
 
@@ -291,6 +313,8 @@ const TemplateMaster = () => {
       templateCategoryId: t.TemplateCategoryId,
       categoryName: t.TemplateCategoryName,
       isActive: t.IsActive,
+      isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
+      applicableTo: t.ApplicableTo ?? 1,
     }));
   };
 
@@ -315,6 +339,8 @@ const TemplateMaster = () => {
       displayName: template?.displayName ?? "",
       templateCategoryId: template?.templateCategoryId ?? 0,
       isActive: template?.isActive ?? 1,
+      isMultipleEntryAllow: template?.isMultipleEntryAllow ?? 0,
+      applicableTo: template?.applicableTo ?? 1,
     });
 
     const mapping = await getTemplateSectionMapping(template?.templateId ?? 0);
@@ -335,7 +361,18 @@ const TemplateMaster = () => {
   };
 
   const cancelHandler = () => {
-    reset({ templateId: 0, templateName: "", displayName: "", templateCategoryId: 0, isActive: 1 });
+    reset({
+      templateId: 0,
+      templateName: "",
+      displayName: "",
+      templateCategoryId: 0,
+      isActive: 1,
+      isMultipleEntryAllow: 0,
+      // 1 = "EMR Page" in the TemplateApplicableTo picklist — every template created from this
+      // screen is an EMR-page template, so default straight to it instead of making the admin
+      // pick it every single time
+      applicableTo: 1,
+    });
     buildRows([]);
   };
 
@@ -401,6 +438,30 @@ const TemplateMaster = () => {
                 <option value={1}>Active</option>
                 <option value={0}>Inactive</option>
               </select>
+            </InputField>
+
+            <InputField label="Multiple Entry Allowed" required>
+              <select className="input-field" {...register("isMultipleEntryAllow")}>
+                <option value={0}>No</option>
+                <option value={1}>Yes</option>
+              </select>
+              {errors.isMultipleEntryAllow && (
+                <p className="input-field-error">{errors.isMultipleEntryAllow.message}</p>
+              )}
+            </InputField>
+
+            <InputField label="Applicable To" required>
+              <select className="input-field" {...register("applicableTo")}>
+                <option value={0}>--Select--</option>
+                {applicableToList.map((i: PickMasterItem) => (
+                  <option key={i?.key} value={i?.key}>
+                    {i?.value}
+                  </option>
+                ))}
+              </select>
+              {errors.applicableTo && (
+                <p className="input-field-error">{errors.applicableTo.message}</p>
+              )}
             </InputField>
           </div>
 
@@ -483,9 +544,7 @@ const TemplateMaster = () => {
                               onChange={() => toggleSectionId(item.sectionId)}
                             />
                           </td>
-                          <td className="table-td font-medium text-gray-800">
-                            {item.sectionName}
-                          </td>
+                          <td className="table-td font-medium text-gray-800">{item.sectionName}</td>
                           <td className="table-td text-gray-500">{item.displayName || "—"}</td>
                         </tr>
                       ))}
@@ -563,9 +622,7 @@ const TemplateMaster = () => {
                     return (
                       <tr key={item.templateId} className="table-row">
                         <td className="table-td">{i + 1}</td>
-                        <td className="table-td font-medium text-gray-800">
-                          {item.templateName}
-                        </td>
+                        <td className="table-td font-medium text-gray-800">{item.templateName}</td>
                         <td className="table-td text-gray-500">{item.displayName}</td>
                         <td className="table-td text-gray-500">{item.categoryName}</td>
                         <td className="table-td">

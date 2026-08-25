@@ -24,6 +24,7 @@ import {
   CalendarClock,
   Check,
   ChevronDown,
+  ClipboardCheck,
   ClipboardList,
   Eye,
   FlaskConical,
@@ -54,6 +55,8 @@ import {
   EmrSectionVisitSnapshotEntry,
   RawConsultationHeaderRow,
 } from "../types";
+import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
+import CarePlanPanel from "./CarePlanPanel";
 import CircularProgress from "./CircularProgress";
 import EmrSectionHistoryDrawer from "./EmrSectionHistoryDrawer";
 import EmrSectionRenderer from "./EmrSectionRenderer";
@@ -75,6 +78,9 @@ interface ConsultationEmrSectionsProps {
    * this into the same templateEntriesByTemplateId bucket TemplateFillerModal's onApply already
    * feeds, so both entry points end up in the same save payload */
   onTemplateEntriesChange?: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
+  /** opens a print-preview scoped to just the selected template's data — relayed straight up to
+   * index.tsx, which is the only place that holds the full PatientItem the print modal needs */
+  onPrintTemplate?: (templateName: string, entries: EmrSectionAnswerEntry[]) => void;
 }
 
 const getSectionIcon = (name: string): LucideIcon => {
@@ -322,6 +328,7 @@ const ConsultationEmrSections = ({
   disabled,
   templateEntriesByTemplateId,
   onTemplateEntriesChange,
+  onPrintTemplate,
 }: ConsultationEmrSectionsProps) => {
   const { fetchApi } = useGlobalApi();
   const { layout, toggleLayout } = useEmrSectionLayout();
@@ -365,6 +372,8 @@ const ConsultationEmrSections = ({
       templateCategoryId: t.TemplateCategoryId,
       categoryName: t.TemplateCategoryName,
       isActive: t.IsActive,
+      isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
+      applicableTo: t.ApplicableTo ?? 0,
     }));
   };
 
@@ -384,6 +393,10 @@ const ConsultationEmrSections = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isTemplateMenuOpen]);
+
+  // doctor-wise "Care Plan" presets — save the currently-filled sections under a name, reapply
+  // to a different patient later (see CarePlanPanel.tsx)
+  const [isCarePlanOpen, setIsCarePlanOpen] = useState(false);
 
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -525,6 +538,39 @@ const ConsultationEmrSections = ({
     savedHeaderRows.forEach(row => map.set(row.HeaderId, row.DataId));
     return map;
   }, [savedHeaderRows]);
+
+  // flattened the same way consultationPayload (doctorConsultationNew/index.tsx) builds
+  // consultationHeadersData for the real save — headerId 0 is a synthetic frontend-only row (see
+  // that file's own comment), not something a Care Plan should carry
+  const currentHeadersDataForCarePlan = useMemo(
+    () =>
+      Object.values(entriesBySectionId)
+        .flat()
+        .filter(e => e.headerId > 0)
+        .map(e => ({
+          sectionId: e.sectionId,
+          headerId: e.headerId,
+          controlTypeId: e.controlTypeId,
+          headerValue: JSON.stringify(e.value),
+        })),
+    [entriesBySectionId]
+  );
+
+  // applying a Care Plan reuses the exact same utility the current-visit hydration path above
+  // already uses (applySnapshotToSectionData) — only the headers/sections present in
+  // rowsBySectionId are overwritten, everything else in the current form is left untouched
+  const handleApplyCarePlan = useCallback(
+    (rowsBySectionId: Map<number, EmrSectionVisitSnapshotEntry["values"]>) => {
+      setData(prev => {
+        let next = prev;
+        rowsBySectionId.forEach((rows, sectionId) => {
+          next = applySnapshotToSectionData(next, sectionId, headersBySection[sectionId] ?? [], rows);
+        });
+        return next;
+      });
+    },
+    [headersBySection]
+  );
 
   const hasUnsavedFavorites = useMemo(() => {
     if (favoriteSectionIds.length !== savedFavoriteSectionIds.length) return true;
@@ -822,6 +868,19 @@ const ConsultationEmrSections = ({
               </div>
             )}
           </div>
+
+          {/* Care Plan — a doctor's own named preset of already-filled data, distinct from
+              Templates' empty admin-authored bundles. Its own click target, not folded into the
+              Templates dropdown, per how the feature was asked for. */}
+          <button
+            type="button"
+            onClick={() => setIsCarePlanOpen(true)}
+            className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-md text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-white hover:text-emerald-600 hover:border-emerald-200 transition-colors shrink-0"
+            title="Save or apply a Care Plan"
+          >
+            <ClipboardCheck size={13} className="shrink-0" />
+            <span>Care Plan</span>
+          </button>
         </div>
 
         {/* percent ring / report annotator / layout toggle are doctor-EMR-section-specific
@@ -875,6 +934,7 @@ const ConsultationEmrSections = ({
           visitId={visitId}
           initialEntries={templateEntriesByTemplateId?.[selectedTemplate.templateId]}
           onEntriesChange={onTemplateEntriesChange ?? (() => {})}
+          onPrint={onPrintTemplate ?? (() => {})}
         />
       ) : sectionsLoading ? (
         <div className="flex items-center justify-center gap-2 text-sm text-gray-400 py-16">
@@ -1199,6 +1259,14 @@ const ConsultationEmrSections = ({
         onClose={() => setIsReportAnnotatorOpen(false)}
         patientId={patientId}
         visitId={visitId}
+      />
+
+      <CarePlanPanel
+        isOpen={isCarePlanOpen}
+        onClose={() => setIsCarePlanOpen(false)}
+        doctorId={doctorId}
+        currentHeadersData={currentHeadersDataForCarePlan}
+        onApply={handleApplyCarePlan}
       />
     </div>
   );

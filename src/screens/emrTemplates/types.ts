@@ -18,6 +18,13 @@ type TemplateItem = {
   templateCategoryId: number;
   categoryName: string;
   isActive: number;
+  /** 1 = the doctor can fill this template more than once per visit (e.g. repeated dressing
+   * rounds), 0 = single-entry only. CONFIRMED against createUpdateEMRTemplateMaster's payload. */
+  isMultipleEntryAllow: number;
+  /** picklist-driven (GET_PICKLIST_MASTER?fieldName=TemplateApplicableTo) — which context this
+   * template applies to. CONFIRMED against createUpdateEMRTemplateMaster's payload; the GET list's
+   * response field name is a pattern-matched guess (ApplicableTo) pending confirmation. */
+  applicableTo: number;
 };
 
 /** which sections already belong to a template, and in what order — payload shape sent to

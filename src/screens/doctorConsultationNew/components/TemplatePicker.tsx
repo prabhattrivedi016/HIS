@@ -63,6 +63,8 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
       templateCategoryId: t.TemplateCategoryId,
       categoryName: t.TemplateCategoryName,
       isActive: t.IsActive,
+      isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
+      applicableTo: t.ApplicableTo ?? 0,
     }));
   };
 

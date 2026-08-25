@@ -164,6 +164,13 @@ const DoctorConsultationNew = () => {
   const [templateEntriesByTemplateId, setTemplateEntriesByTemplateId] = useState<
     Record<number, EmrSectionAnswerEntry[]>
   >({});
+  // Print button inside a Template (TemplateInlineSections) — a second PrintPreviewModal instance
+  // scoped to just that template's data, since only this component holds the full PatientItem
+  // that modal needs (see ConsultationEmrSections/TemplateInlineSections' onPrint passthrough)
+  const [printTemplateContext, setPrintTemplateContext] = useState<{
+    name: string;
+    entries: EmrSectionAnswerEntry[];
+  } | null>(null);
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
   const [isDetailsExpandedMobile, setIsDetailsExpandedMobile] = useState(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
@@ -1306,6 +1313,7 @@ const DoctorConsultationNew = () => {
                 onTemplateEntriesChange={(templateId, entries) =>
                   setTemplateEntriesByTemplateId(prev => ({ ...prev, [templateId]: entries }))
                 }
+                onPrintTemplate={(name, entries) => setPrintTemplateContext({ name, entries })}
               />
             </div>
           )}
@@ -1358,6 +1366,17 @@ const DoctorConsultationNew = () => {
         vitals={vitalMasterList}
         vitalsData={vitalsData}
         allergy={allergySection}
+      />
+      <PrintPreviewModal
+        isOpen={printTemplateContext !== null}
+        onClose={() => setPrintTemplateContext(null)}
+        doctorId={selectedPatient?.DoctorId}
+        patientId={selectedPatient?.PatientId}
+        usedForPatientTypeId={selectedPatient?.TypeId}
+        patient={selectedPatient}
+        emrSectionsData={printTemplateContext?.entries ?? []}
+        variant="template"
+        templateName={printTemplateContext?.name}
       />
       <UploadDocumentModal
         isOpen={showUploadDocument}

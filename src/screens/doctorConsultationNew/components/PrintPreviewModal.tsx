@@ -42,6 +42,12 @@ interface PrintPreviewModalProps {
   vitals?: VitalMasterLike[];
   vitalsData?: Record<number, string>;
   allergy?: AllergySection | null;
+  /** "consultation" (default) prints the doctor's normal EMR Sections panel, with the full set of
+   * toggles below. "template" prints one Template's own data (opened from TemplateInlineSections)
+   * — hides the past-visit switcher (a Template isn't tied to a visit) and the Vitals/Allergy
+   * toggles (not part of a Template), and labels the panel with templateName. */
+  variant?: "consultation" | "template";
+  templateName?: string;
 }
 
 /** headerId -> where it lives and what it's called, resolved once per doctor via
@@ -133,6 +139,15 @@ const formatEntryValue = (value: unknown): ReactNode => {
   return String(value);
 };
 
+/** shared accent-banded heading for every printed section (Vitals/Allergy/each EMR section) — one
+ * definition so the whole document reads as a single consistent design instead of three
+ * hand-copied header styles drifting apart */
+const PrintSectionHeading = ({ children }: { children: ReactNode }) => (
+  <div className="flex items-center bg-slate-50 border-l-[3px] border-[#0B5394] pl-2.5 pr-2 py-1.5">
+    <h4 className="font-bold text-slate-800 uppercase tracking-wide text-[11px]">{children}</h4>
+  </div>
+);
+
 const PrintPreviewModal = ({
   isOpen,
   onClose,
@@ -144,7 +159,10 @@ const PrintPreviewModal = ({
   vitals = [],
   vitalsData = {},
   allergy,
+  variant = "consultation",
+  templateName,
 }: PrintPreviewModalProps) => {
+  const isTemplateVariant = variant === "template";
   const authUser = useContext(AuthContext)?.user;
   const branchId = Number(authUser?.branchId ?? 1);
   const { fetchApi } = useGlobalApi();
@@ -166,6 +184,13 @@ const PrintPreviewModal = ({
 
   useEffect(() => {
     if (isOpen) setSelectedVisitId("current");
+  }, [isOpen]);
+
+  // shown in the printed footer's "Printed on ..." line — refreshed each time the preview opens,
+  // not on every render, so it doesn't drift while the doctor is just toggling settings
+  const [previewOpenedAt, setPreviewOpenedAt] = useState(() => new Date());
+  useEffect(() => {
+    if (isOpen) setPreviewOpenedAt(new Date());
   }, [isOpen]);
 
   // headerId -> section/header names, resolved once for this doctor — a past visit's raw rows
@@ -400,40 +425,44 @@ const PrintPreviewModal = ({
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0B5394] to-[#1C7EC2] shadow-sm">
               <Printer size={13} className="text-white" />
             </span>
-            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">Print Settings</h3>
+            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">
+              {isTemplateVariant ? "Print Template" : "Print Settings"}
+            </h3>
           </div>
 
           <div className="flex-1 p-4 flex flex-col gap-5">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <History size={12} />
-                Visit
-              </p>
-              <select
-                className="input-field !mb-0 w-full"
-                value={String(selectedVisitId)}
-                onChange={e => {
-                  const v = e.target.value;
-                  setSelectedVisitId(v === "current" ? "current" : Number(v));
-                }}
-                disabled={isPastVisitsLoading}
-              >
-                <option value="current">Current (unsaved) visit</option>
-                {pastVisits.map(v => (
-                  <option key={v.visitId} value={v.visitId}>
-                    {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
-                  </option>
-                ))}
-              </select>
-              {isPastVisitsLoading && (
-                <p className="text-[11px] text-slate-400 mt-1">Loading past visits…</p>
-              )}
-              {selectedVisitId !== "current" && groupedSections.length === 0 && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  No EMR data saved for this visit.
+            {!isTemplateVariant && (
+              <div>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <History size={12} />
+                  Visit
                 </p>
-              )}
-            </div>
+                <select
+                  className="input-field !mb-0 w-full"
+                  value={String(selectedVisitId)}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setSelectedVisitId(v === "current" ? "current" : Number(v));
+                  }}
+                  disabled={isPastVisitsLoading}
+                >
+                  <option value="current">Current (unsaved) visit</option>
+                  {pastVisits.map(v => (
+                    <option key={v.visitId} value={v.visitId}>
+                      {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
+                    </option>
+                  ))}
+                </select>
+                {isPastVisitsLoading && (
+                  <p className="text-[11px] text-slate-400 mt-1">Loading past visits…</p>
+                )}
+                {selectedVisitId !== "current" && groupedSections.length === 0 && (
+                  <p className="text-[11px] text-amber-600 mt-1">
+                    No EMR data saved for this visit.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -448,21 +477,26 @@ const PrintPreviewModal = ({
                     { key: "showVitals", label: "Vitals" },
                     { key: "showAllergy", label: "Allergy" },
                   ] as const
-                ).map(opt => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => toggleSetting(opt.key)}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12.5px] font-medium text-slate-700 hover:bg-white transition-colors"
-                  >
-                    {settings[opt.key] ? (
-                      <SquareCheck size={16} className="text-[#0B5394] shrink-0" />
-                    ) : (
-                      <Square size={16} className="text-slate-300 shrink-0" />
-                    )}
-                    {opt.label}
-                  </button>
-                ))}
+                )
+                  .filter(
+                    opt =>
+                      !isTemplateVariant || (opt.key !== "showVitals" && opt.key !== "showAllergy")
+                  )
+                  .map(opt => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => toggleSetting(opt.key)}
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12.5px] font-medium text-slate-700 hover:bg-white transition-colors"
+                    >
+                      {settings[opt.key] ? (
+                        <SquareCheck size={16} className="text-[#0B5394] shrink-0" />
+                      ) : (
+                        <Square size={16} className="text-slate-300 shrink-0" />
+                      )}
+                      {opt.label}
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -540,22 +574,28 @@ const PrintPreviewModal = ({
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-200 bg-white shrink-0">
-            <button
-              type="button"
-              onClick={handleSaveSettings}
-              disabled={doctorId == null}
-              className="save-btn w-full !py-2 !text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
-            >
-              <Save size={14} />
-              Save as default
-            </button>
-          </div>
+          {!isTemplateVariant && (
+            <div className="p-4 border-t border-slate-200 bg-white shrink-0">
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={doctorId == null}
+                className="save-btn w-full !py-2 !text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
+              >
+                <Save size={14} />
+                Save as default
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
-            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">Print Preview</h3>
+            <h3 className="text-[13px] font-bold text-slate-700 tracking-wide">
+              {isTemplateVariant && templateName
+                ? `Print Preview — ${templateName}`
+                : "Print Preview"}
+            </h3>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -579,7 +619,7 @@ const PrintPreviewModal = ({
               } p-10 ${FONT_SIZE_CLASS[settings.fontSize]}`}
             >
               {settings.showLetterhead && (
-                <div className="flex flex-col items-center pb-4 mb-4 border-b-2 border-slate-900">
+                <div className="flex flex-col items-center pb-3 mb-5">
                   {isLoadingLetterhead ? (
                     <Loader2 size={18} className="animate-spin text-slate-300" />
                   ) : letterheadImage ? (
@@ -596,66 +636,88 @@ const PrintPreviewModal = ({
                       </span>
                     </div>
                   )}
+                  {/* masthead double-rule — a thick rule with a thin echo below it, the way an
+                      official letterhead/report typically separates the header from the body */}
+                  <div className="w-full mt-3 border-b-2 border-slate-900" />
+                  <div className="w-full mt-[3px] border-b border-slate-300" />
                 </div>
               )}
 
               {(settings.showPatientDetails || settings.showHospitalDetails) && (
-                <div className="grid grid-cols-2 gap-6 pb-4 mb-4 border-b border-slate-300">
+                <div
+                  className={`grid gap-4 mb-5 ${
+                    settings.showPatientDetails && settings.showHospitalDetails
+                      ? "grid-cols-2"
+                      : "grid-cols-1"
+                  }`}
+                >
                   {settings.showPatientDetails && (
-                    <div>
-                      <div className="flex items-center gap-1.5 text-slate-900 font-bold uppercase tracking-wide text-[11px] mb-1.5">
-                        <User size={12} />
+                    <div className="border border-slate-300 rounded-sm overflow-hidden">
+                      <div className="flex items-center gap-1.5 bg-[#0B5394] text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
+                        <User size={11} />
                         Patient Details
                       </div>
-                      <p className="font-semibold text-slate-800">{patient?.PatientName || "-"}</p>
-                      <p className="text-slate-600">
-                        UHID: {patient?.UHID || "-"} · {patient?.Age || "-"} /{" "}
-                        {patient?.Gender || "-"}
-                      </p>
-                      <p className="text-slate-600">
-                        Doctor:{" "}
-                        {selectedPastVisit
-                          ? selectedPastVisit.doctorName || "-"
-                          : patient?.DoctorName || "-"}
-                      </p>
-                      <p className="text-slate-600">
-                        Visit:{" "}
-                        {selectedPastVisit
-                          ? formatVisitDate(selectedPastVisit.recordedOn)
-                          : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
-                      </p>
-                      {patient?.BedNo && <p className="text-slate-600">Bed: {patient.BedNo}</p>}
+                      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 p-3 text-[11.5px]">
+                        <span className="text-slate-500 font-medium">Name</span>
+                        <span className="font-semibold text-slate-800">
+                          {patient?.PatientName || "-"}
+                        </span>
+                        <span className="text-slate-500 font-medium">UHID</span>
+                        <span className="text-slate-700">{patient?.UHID || "-"}</span>
+                        <span className="text-slate-500 font-medium">Age / Gender</span>
+                        <span className="text-slate-700">
+                          {patient?.Age || "-"} / {patient?.Gender || "-"}
+                        </span>
+                        <span className="text-slate-500 font-medium">Doctor</span>
+                        <span className="text-slate-700">
+                          {selectedPastVisit
+                            ? selectedPastVisit.doctorName || "-"
+                            : patient?.DoctorName || "-"}
+                        </span>
+                        <span className="text-slate-500 font-medium">Visit</span>
+                        <span className="text-slate-700">
+                          {selectedPastVisit
+                            ? formatVisitDate(selectedPastVisit.recordedOn)
+                            : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
+                        </span>
+                        {patient?.BedNo && (
+                          <>
+                            <span className="text-slate-500 font-medium">Bed</span>
+                            <span className="text-slate-700">{patient.BedNo}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                   {settings.showHospitalDetails && (
-                    <div>
-                      <div className="flex items-center gap-1.5 text-slate-900 font-bold uppercase tracking-wide text-[11px] mb-1.5">
-                        <Building2 size={12} />
+                    <div className="border border-slate-300 rounded-sm overflow-hidden">
+                      <div className="flex items-center gap-1.5 bg-slate-700 text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
+                        <Building2 size={11} />
                         Hospital Details
                       </div>
-                      <p className="font-semibold text-slate-800">
-                        {branchDetails?.branchName || "-"}
-                      </p>
-                      <p className="text-slate-600">{branchDetails?.address || "-"}</p>
-                      <p className="text-slate-600">
-                        {[branchDetails?.contactNo1, branchDetails?.contactNo2]
-                          .filter(Boolean)
-                          .join(", ") || "-"}
-                      </p>
-                      {branchDetails?.email && (
-                        <p className="text-slate-600">{branchDetails.email}</p>
-                      )}
+                      <div className="p-3 text-[11.5px]">
+                        <p className="font-semibold text-slate-800">
+                          {branchDetails?.branchName || "-"}
+                        </p>
+                        <p className="text-slate-600 mt-0.5">{branchDetails?.address || "-"}</p>
+                        <p className="text-slate-600 mt-0.5">
+                          {[branchDetails?.contactNo1, branchDetails?.contactNo2]
+                            .filter(Boolean)
+                            .join(", ") || "-"}
+                        </p>
+                        {branchDetails?.email && (
+                          <p className="text-slate-600 mt-0.5">{branchDetails.email}</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
 
               {settings.showVitals && filledVitals.length > 0 && (
-                <div className="emr-print-section mb-4">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
-                    Vitals
-                  </h4>
-                  <div className="grid grid-cols-3 gap-x-4 gap-y-1.5">
+                <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
+                  <PrintSectionHeading>Vitals</PrintSectionHeading>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 p-3">
                     {filledVitals.map(v => (
                       <div key={v.vitalId} className="grid grid-cols-[1fr_auto] gap-2">
                         <span className="font-semibold text-slate-600">{v.vitalName}</span>
@@ -669,56 +731,56 @@ const PrintPreviewModal = ({
               )}
 
               {settings.showAllergy && hasAllergyData && allergy && (
-                <div className="emr-print-section mb-4">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
-                    Allergy
-                  </h4>
-                  {allergy.notKnownAllergy ? (
-                    <p className="text-slate-700">No known allergy</p>
-                  ) : (
-                    <>
-                      {allergy.summary && (
-                        <p className="text-slate-700 mb-1.5">{allergy.summary}</p>
-                      )}
-                      {allergy.records.length > 0 && (
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr>
-                              {["Allergy", "Type", "Reaction", "Severity", "Remarks"].map(col => (
-                                <th
-                                  key={col}
-                                  className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
-                                >
-                                  {col}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allergy.records.map(r => (
-                              <tr key={r.id} className="border-b border-slate-100">
-                                <td className="py-1 pr-3 text-slate-700 align-top">
-                                  {r.allergyName || "-"}
-                                </td>
-                                <td className="py-1 pr-3 text-slate-700 align-top">
-                                  {r.allergyType || "-"}
-                                </td>
-                                <td className="py-1 pr-3 text-slate-700 align-top">
-                                  {r.reaction || "-"}
-                                </td>
-                                <td className="py-1 pr-3 text-slate-700 align-top">
-                                  {r.interactionSeverity || "-"}
-                                </td>
-                                <td className="py-1 pr-3 text-slate-700 align-top">
-                                  {r.remarks || "-"}
-                                </td>
+                <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
+                  <PrintSectionHeading>Allergy</PrintSectionHeading>
+                  <div className="p-3">
+                    {allergy.notKnownAllergy ? (
+                      <p className="text-slate-700">No known allergy</p>
+                    ) : (
+                      <>
+                        {allergy.summary && (
+                          <p className="text-slate-700 mb-1.5">{allergy.summary}</p>
+                        )}
+                        {allergy.records.length > 0 && (
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr>
+                                {["Allergy", "Type", "Reaction", "Severity", "Remarks"].map(col => (
+                                  <th
+                                    key={col}
+                                    className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
+                                  >
+                                    {col}
+                                  </th>
+                                ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </>
-                  )}
+                            </thead>
+                            <tbody>
+                              {allergy.records.map(r => (
+                                <tr key={r.id} className="border-b border-slate-100">
+                                  <td className="py-1 pr-3 text-slate-700 align-top">
+                                    {r.allergyName || "-"}
+                                  </td>
+                                  <td className="py-1 pr-3 text-slate-700 align-top">
+                                    {r.allergyType || "-"}
+                                  </td>
+                                  <td className="py-1 pr-3 text-slate-700 align-top">
+                                    {r.reaction || "-"}
+                                  </td>
+                                  <td className="py-1 pr-3 text-slate-700 align-top">
+                                    {r.interactionSeverity || "-"}
+                                  </td>
+                                  <td className="py-1 pr-3 text-slate-700 align-top">
+                                    {r.remarks || "-"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -727,13 +789,19 @@ const PrintPreviewModal = ({
                   <p className="text-slate-400 text-center py-10">No sections selected to print</p>
                 )}
                 {visibleSections.map(group => (
-                  <div key={group.sectionId} className="emr-print-section">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wide text-[11px] pb-1 mb-2 border-b border-slate-300">
-                      {group.sectionName}
-                    </h4>
-                    <div className="flex flex-col gap-1.5">
-                      {group.entries.map(entry => (
-                        <div key={entry.headerId} className="grid grid-cols-[140px_1fr] gap-3">
+                  <div
+                    key={group.sectionId}
+                    className="emr-print-section border border-slate-200 rounded-sm overflow-hidden"
+                  >
+                    <PrintSectionHeading>{group.sectionName}</PrintSectionHeading>
+                    <div className="flex flex-col">
+                      {group.entries.map((entry, entryIdx) => (
+                        <div
+                          key={entry.headerId}
+                          className={`grid grid-cols-[minmax(120px,180px)_1fr] gap-3 px-3 py-1.5 ${
+                            entryIdx % 2 === 1 ? "bg-slate-50/70" : ""
+                          }`}
+                        >
                           <span className="font-semibold text-slate-600">{entry.headerName}</span>
                           <span className="text-slate-700">{formatEntryValue(entry.value)}</span>
                         </div>
@@ -741,6 +809,23 @@ const PrintPreviewModal = ({
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* signature footer — every printed medical document needs a closing line for the
+                  doctor's signature; without it the page just stopped after the last section */}
+              <div className="flex items-end justify-between mt-10 pt-4 border-t border-slate-300">
+                <p className="text-[9.5px] text-slate-400">
+                  Printed on {previewOpenedAt.toLocaleString()}
+                </p>
+                <div className="text-center">
+                  <div className="w-48 border-b border-slate-400 mb-1" />
+                  <p className="text-[11px] font-semibold text-slate-700">
+                    Dr.{" "}
+                    {(selectedPastVisit ? selectedPastVisit.doctorName : patient?.DoctorName) ||
+                      "—"}
+                  </p>
+                  <p className="text-[9.5px] text-slate-400 uppercase tracking-wide">Signature</p>
+                </div>
               </div>
             </div>
           </div>

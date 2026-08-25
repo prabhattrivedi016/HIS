@@ -21,6 +21,10 @@ export const templateSchema = yup.object({
     .min(1, "Template Category is required"),
 
   isActive: yup.number().required("Status is required"),
+
+  isMultipleEntryAllow: yup.number().required("This field is required"),
+
+  applicableTo: yup.number().required("Applicable To is required"),
 });
 
 export type TemplateFormData = yup.InferType<typeof templateSchema>;

@@ -383,6 +383,18 @@ const ENDPOINTS = {
   CREATE_UPDATE_CUSTOM_FORM: "EMR/createUpdateCustomFormMaster",
   GET_CUSTOM_FORM_FIELDS: "EMR/getCustomFormFields",
 
+  // care plan — a doctor's own named preset of whatever EMR Sections data they'd filled in when
+  // they saved it (e.g. "Fever"), reapplied to a different patient later via
+  // ConsultationEmrSections' "Care Plan" button. CREATE_UPDATE_CARE_PLAN and GET_CARE_PLAN_DETAILS
+  // are both CONFIRMED against the real backend's Swagger — request body
+  // ({carePlanId, carePlanName, doctorId, headersData: [{sectionId, headerId, controlTypeId,
+  // headerValue}]}) and getCarePlanDetails' response rows ({CarePlanId, CarePlanName, SectionId,
+  // HeaderId, ControlTypeId, HeaderValue}) both verified. GET_CARE_PLAN_LIST (the saved-plans list
+  // query) is still UNVERIFIED, pattern-matched-guessed off those two confirmed ones.
+  GET_CARE_PLAN_LIST: "EMR/getCarePlanMaster",
+  CREATE_UPDATE_CARE_PLAN: "EMR/createUpdateCarePlan",
+  GET_CARE_PLAN_DETAILS: "EMR/getCarePlanDetails",
+
   // emr section "Past Visits" history is real now: GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID lists
   // this patient's other visits, then GET_DOCTOR_CONSULTATION_BY_VISIT_ID (below, same endpoint
   // that hydrates the current visit) is called per visitId to get that visit's saved header
