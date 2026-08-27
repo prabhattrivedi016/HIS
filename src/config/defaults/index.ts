@@ -498,6 +498,8 @@ const ENDPOINTS = {
   GET_CORPORATE_TRANSFER_REQUEST_APPROVAL_DETAILS: "IPD/getCorporateTransferRequestApprovalDetails",
   GET_SERVICE_DETAILS_FOR_CORPORATE_RATE_COMPARISON:
     "Patient/getServiceDetailsForCorporateRateComparison",
+  GET_CORPORATE_TRANSFER_REQUEST_DETAILS_BY_VISIT_ID:
+    "IPD/getCorporateTransferRequestDetailsByVisitId",
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

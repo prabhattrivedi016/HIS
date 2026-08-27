@@ -3,6 +3,7 @@ import BedTransfer from "./BedTransfer";
 import CorporateTransfer from "./CorporateTransfer";
 import DoctorTransfer from "./DoctorTransfer";
 import IpdBillingComponent from "./IpdBillingComponent";
+import IpdBillingSummary from "./IpdBillingSummary";
 
 interface RoutingUsingTabUrlProps {
   tabViewUrl: string;
@@ -23,9 +24,12 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
     case "ipd-billing":
       return <IpdBillingComponent patient={patient} />;
 
+    case "ipd-billing-summary":
+      return <IpdBillingSummary patient={patient} />;
+
     default:
       return (
-        <div className="py-12 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+        <div className="py-2 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg -mt-3 ">
           <i className="fa-solid fa-folder-open text-3xl  text-gray-300"></i>
           <p className="text-sm">
             Displaying content for tab URL:{" "}

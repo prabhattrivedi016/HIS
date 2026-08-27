@@ -20,6 +20,8 @@ type TabMasterItem = {
   TabType: string;
   RoomTypeId: number | null;
   RoomType: string;
+  FaIconId: number | null;
+  IconClass: string | null;
   IsActive: number;
   CreatedBy: string;
   CreatedOn: string;
@@ -33,6 +35,12 @@ type RoleTabItem = {
   TabName: string;
   TabTypeId: number;
   TabType: string;
+};
+
+type IconListItem = {
+  id: number;
+  iconClass: string;
+  iconName: string;
 };
 
 type ActiveRoleItem = {
@@ -64,6 +72,7 @@ export type {
   AddNewTabProps,
   CreateUpdateGroupTypeProps,
   GroupTypeItem,
+  IconListItem,
   RoleTabItem,
   RoomTypeItem,
   TabMappingProps,

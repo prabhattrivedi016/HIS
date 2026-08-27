@@ -1,5 +1,6 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import { SelectStyles } from "@/components/customSelect";
 import { ErrorMessage, SuccessMessage } from "@/components/infoText";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -10,10 +11,11 @@ import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { TabMasterFormData, tabMasterSchema } from "@/validation/tabMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
-import { AddNewTabProps, GroupTypeItem, RoomTypeItem } from "../types";
+import Select from "react-select";
+import { AddNewTabProps, GroupTypeItem, IconListItem, RoomTypeItem } from "../types";
 import CreateUpdateGroupType from "./CreateUpdateGroupType";
 
 const defaultFormValues: TabMasterFormData = {
@@ -25,6 +27,7 @@ const defaultFormValues: TabMasterFormData = {
   tabName: "",
   tabViewURL: "",
   sequenceNo: "",
+  faIconId: 0,
   isActive: 1,
 };
 
@@ -42,6 +45,83 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
   const [openAddGroupType, setOpenAddGroupType] = useState<boolean>(false);
   const [renderAddGroupType, setRenderAddGroupType] = useState<boolean>(false);
   const [selectedGroupType, setSelectedGroupType] = useState<GroupTypeItem | null>(null);
+
+  const [faIcons, setFaIcons] = useState<IconListItem[]>([]);
+  const [selectedIcon, setSelectedIcon] = useState<IconListItem | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(tabMasterSchema),
+    defaultValues: defaultFormValues,
+  });
+
+
+
+  const iconOptions = useMemo(() => {
+    return faIcons.map(item => ({
+      value: item.id,
+      label: item.iconName || "-",
+      iconClass: item.iconClass,
+    }));
+  }, [faIcons]);
+
+  const selectedOption = useMemo(() => {
+    return selectedIcon
+      ? { value: selectedIcon.id, label: selectedIcon.iconName, iconClass: selectedIcon.iconClass }
+      : null;
+  }, [selectedIcon]);
+
+  const formatOptionLabel = (
+    option: {
+      label?: string;
+      value?: string | number;
+      iconClass?: string;
+    },
+    { context }: { context: "menu" | "value" }
+  ) => {
+    if (context === "value") {
+      return <span>{option.label}</span>;
+    }
+    return (
+      <div className="flex items-center justify-between w-full">
+        <span>{option.label}</span>
+        {option.iconClass && <i className={option.iconClass} />}
+      </div>
+    );
+  };
+
+  const handleSelectOption = (option: any) => {
+    if (!option) {
+      setSelectedIcon(null);
+      setValue("faIconId", 0, { shouldValidate: true });
+      return;
+    }
+    const matched = faIcons.find(i => i.id === option.value);
+    if (matched) {
+      setSelectedIcon(matched);
+      setValue("faIconId", matched.id, { shouldValidate: true });
+    }
+  };
+
+  console.log("faIcons", faIcons);
+
+  // icons
+  const getIcons = async () => {
+    const response = await fetchApi("GET", ENDPOINTS.FA_ICON_LIST);
+    if (response) setFaIcons(response.data ?? []);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      getIcons();
+    }
+  }, [isOpen]);
 
   const getGroupTypeList = async () => {
     const resp = await fetchApi(
@@ -75,18 +155,6 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
     queryFn: getRoomTypeList,
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(tabMasterSchema),
-    defaultValues: defaultFormValues,
-  });
-
   useScrollLock(isOpen);
 
   const selectedTabTypeId = watch("tabTypeId");
@@ -99,10 +167,19 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
 
     if (!data) {
       reset(defaultFormValues);
+      setSelectedIcon(null);
       return;
     }
 
     const matchedTabType = tabTypeList.find(item => Number(item.key) === Number(data.TabTypeId));
+    const icon = faIcons.find(
+      i =>
+        (data.FaIconId && Number(i?.id) === Number(data.FaIconId)) ||
+        (data.IconClass && i?.iconClass?.trim().toLowerCase() === data.IconClass?.trim().toLowerCase())
+    ) ?? null;
+
+    console.log("matched icon on reset", icon);
+    setSelectedIcon(icon);
 
     reset({
       tabId: data.TabId ?? 0,
@@ -113,9 +190,10 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
       tabName: data.TabName ?? "",
       tabViewURL: data.TabViewURL ?? "",
       sequenceNo: String(data.SequenceNo ?? ""),
-      isActive: data.IsActive ?? 1,
+      faIconId: icon ? icon.id : (data.FaIconId ?? 0),
+      isActive: Number(data.IsActive ?? 1),
     });
-  }, [isOpen, data, reset, tabTypeList]);
+  }, [isOpen, data, reset, tabTypeList, faIcons]);
 
   const tabTypeChangeHandler = (value: number) => {
     const matchedType = tabTypeList.find(item => Number(item.key) === value);
@@ -135,6 +213,7 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
       tabTypeId: Number(formData.tabTypeId),
       tabType: formData.tabType,
       roomTypeId: Number(formData.roomTypeId),
+      faIconId: Number(formData.faIconId),
       isActive: Number(formData.isActive),
     };
 
@@ -197,12 +276,6 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
     setOpenAddGroupType(false);
   };
 
-  const groupTypeSuccessHandler = (groupTypeId: number) => {
-    if (groupTypeId > 0) {
-      setValue("groupTypeId", groupTypeId, { shouldValidate: true });
-    }
-  };
-
   return createPortal(
     <div className={`fixed inset-0 z-999 ${isOpen ? "" : "pointer-events-none"}`}>
       <div className="absolute inset-0">
@@ -254,9 +327,9 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
                       className="input-field"
                       {...register("groupTypeId", { valueAsNumber: true })}
                     >
-                      <option value={0}>Select Group Type</option>
+                      <option value="0">Select Group Type</option>
                       {groupTypeList.map((item: GroupTypeItem) => (
-                        <option key={item.GroupTypeId} value={item.GroupTypeId}>
+                        <option key={item.GroupTypeId} value={String(item.GroupTypeId)}>
                           {item.GroupTypeName}
                         </option>
                       ))}
@@ -279,9 +352,9 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
                     className="input-field"
                     {...register("roomTypeId", { valueAsNumber: true })}
                   >
-                    <option value={0}>Select Room Type</option>
+                    <option value="0">Select Room Type</option>
                     {roomTypeList.map((item: RoomTypeItem) => (
-                      <option key={item.serviceItemId} value={item.serviceItemId}>
+                      <option key={item.serviceItemId} value={String(item.serviceItemId)}>
                         {item.name}
                       </option>
                     ))}
@@ -323,13 +396,28 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
                   )}
                 </InputField>
 
+                <InputField label="Icon" required>
+                  <Select
+                    value={selectedOption}
+                    options={iconOptions}
+                    onChange={handleSelectOption}
+                    isSearchable
+                    placeholder="Search or Select Icon..."
+                    styles={SelectStyles as any}
+                    formatOptionLabel={formatOptionLabel}
+                  />
+                  {errors.faIconId && (
+                    <p className="input-field-error">{errors.faIconId.message}</p>
+                  )}
+                </InputField>
+
                 <InputField label="Status">
                   <select
                     className="input-field"
                     {...register("isActive", { valueAsNumber: true })}
                   >
-                    <option value={1}>Active</option>
-                    <option value={0}>Inactive</option>
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
                   </select>
                 </InputField>
               </div>

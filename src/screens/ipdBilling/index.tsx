@@ -1,14 +1,15 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { IpdBillingTableHeader } from "@/constants/tableHeaders";
 import { AuthContext } from "@/context/AuthContext";
 import { RoleContext } from "@/context/RoleContext";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useContext, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, User } from "lucide-react";
+import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import RoutingUsingTabUrl from "./components/routingUsingTabUrl";
 import { IpdPatientItem, TabNameItem } from "./types";
@@ -34,8 +35,14 @@ const IpdBilling = () => {
   const billingStatusList = usePickMaster("BillingStatusType")?.pickMasterValue ?? [];
 
   const [selectedPatient, setSelectedPatient] = useState<IpdPatientItem | null>(null);
+  const [leftPanelVisible, setLeftPanelVisible] = useState(true);
 
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+  const moreActionsRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(moreActionsRef, () => {
+    setIsMoreActionsOpen(false);
+  });
 
   const [searchQuery, setSearchQuery] = useState({
     branchId: branchId,
@@ -79,6 +86,18 @@ const IpdBilling = () => {
     }
   }, [patientData, IpdPatientList]);
 
+  // Keep selectedPatient details synchronized with latest patient list data (e.g. after transfers)
+  useEffect(() => {
+    if (selectedPatient) {
+      const updatedPatient = IpdPatientList.find(
+        (item: IpdPatientItem) => item.PatientId === selectedPatient.PatientId
+      );
+      if (updatedPatient) {
+        setSelectedPatient(updatedPatient);
+      }
+    }
+  }, [IpdPatientList]);
+
   //  search handler
 
   const inputChangeHandler = (
@@ -90,29 +109,6 @@ const IpdBilling = () => {
       ...prev,
       [name]: value,
     }));
-  };
-
-  //  patient select handler
-
-  const patientSelectHandler = (item: IpdPatientItem) => {
-    if (!item) return;
-
-    setSelectedPatient(item);
-  };
-
-  const DetailRow = ({ label, value }: { label: string; value?: string | number | null }) => {
-    return (
-      <div className="flex items-center gap-1 min-w-0 w-full">
-        <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">{label}:</span>
-
-        <span
-          className=" text-sm font-medium text-gray-800  truncate min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-          title={value ? String(value) : "-"}
-        >
-          {value || "-"}
-        </span>
-      </div>
-    );
   };
 
   //  get  tabs
@@ -218,449 +214,436 @@ const IpdBilling = () => {
     setIsMoreActionsOpen(prev => !prev);
   };
 
-  // back page handler
-  const backPageHandler = () => {
-    setSelectedPatient(null);
-  };
+  const visitFields = [
+    { label: "UHID", value: selectedPatient?.UHID, highlight: true },
+    // { label: "VisitId", value: selectedPatient?.VisitId, highlight: true },
+    { label: "IPD No", value: selectedPatient?.IPDNo, highlight: true },
+    { label: "Doctor", value: selectedPatient?.PrimaryDoctor, highlight: true },
+    { label: "Corporate", value: selectedPatient?.Corporate, highlight: true },
+    { label: "Bed", value: selectedPatient?.BedNo, highlight: true },
+    {
+      label: "Admission Date & Time",
+      value: selectedPatient?.AdmissionDate
+        ? `${selectedPatient.AdmissionDate} & ${selectedPatient.AdmissionTime ?? "--"}`
+        : null,
+      highlight: true,
+    },
+    {
+      label: "Discharge Date & Time",
+      value: selectedPatient?.DischargeDate
+        ? `${selectedPatient.DischargeDate} & ${selectedPatient.DischargeTime ?? "--"}`
+        : null,
+      highlight: true,
+    },
+    { label: "MLC", value: selectedPatient?.MLC, highlight: true },
+    { label: "PI", value: selectedPatient?.PiNumber, highlight: true },
+    { label: "Address", value: selectedPatient?.FullAddress, highlight: true },
+    { label: "PRO Name", value: selectedPatient?.ProName, highlight: true },
+    { label: "Billing Type", value: selectedPatient?.BillingType, highlight: true },
+    { label: "Bill Amount", value: selectedPatient?.TotalBillAmount, highlight: true },
+    { label: "Disc (%) On Bill", value: selectedPatient?.TotalDiscountPerOnBill, highlight: true },
+    {
+      label: "Disc Amt on Bill",
+      value: selectedPatient?.TotalDiscountAmountOnBill,
+      highlight: true,
+    },
+    { label: "Round Off", value: selectedPatient?.RoundOff, highlight: true },
+    { label: "Net Payable Amt", value: selectedPatient?.TotalPayableAmount, highlight: true },
+    { label: "Patient Advance", value: selectedPatient?.PatientAdvanceAmt, highlight: true },
+    { label: "Bill No", value: selectedPatient?.BillNo, highlight: true },
+    // { label: "Bill Date", value: selectedPatient?.BillDate, highlight: false },
+  ];
 
   return (
     <div className="page-container w-full min-w-0">
-      {!selectedPatient ? (
-        <>
+      <div className="flex items-center justify-between w-full mb-3 flex-wrap gap-2">
+        <div>
           <h1 className="page-heading">Patient IPD Journey</h1>
-
           <nav className="helper-text">
             <NavLink to="/dashboard" className="hover:underline">
               Home
             </NavLink>
-
             <span>››</span>
-
             <span>Patient IPD Journey</span>
           </nav>
-        </>
-      ) : (
-        <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
-          <div className="flex-1">
-            <h1 className="page-heading">Patient IPD Journey</h1>
-
-            <nav className="helper-text">
-              <NavLink to="/dashboard" className="hover:underline">
-                Home
-              </NavLink>
-              <span>››</span>
-              <span>Patient IPD Journey</span>
-            </nav>
-          </div>
-
-          <div className="flex justify-end flex-1">
-            <button type="button" className="save-btn" onClick={backPageHandler}>
+        </div>
+        {selectedPatient && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="save-btn"
+              onClick={() => {
+                setSelectedPatient(null);
+                setLeftPanelVisible(true);
+              }}
+            >
               Back Page
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* patient search */}
-
-      {!selectedPatient ? (
-        <>
-          <div className="card w-full min-w-0">
-            <form>
-              <div className="form-grid-4">
-                {/* Search By */}
-
-                <InputField label="Search By">
-                  <select
-                    className="input-field"
-                    name="searchBy"
-                    value={searchQuery?.searchBy}
-                    onChange={inputChangeHandler}
-                  >
-                    <option value="">--Select--</option>
-
-                    {searchTypeList?.map((s: PickMasterItem) => (
-                      <option key={s?.key} value={s?.key}>
-                        {s?.value}
-                      </option>
-                    ))}
-                  </select>
-                </InputField>
-
-                {/* Search Value */}
+      <div className="relative flex flex-col lg:flex-row w-full items-stretch gap-0">
+        {/* LEFT PANEL */}
+        <div
+          className={`transition-all duration-300 flex-shrink-0 mr-1 ${
+            leftPanelVisible ? "lg:w-80 w-full opacity-100" : "hidden lg:block lg:w-0 lg:opacity-0"
+          }`}
+        >
+          <div className="card lg:mr-3 h-full flex flex-col p-0 max-h-[calc(100vh-150px)] overflow-hidden">
+            <div className="p-3 flex flex-col gap-1 overflow-y-auto hide-scrollbar flex-1">
+              <form onSubmit={e => e.preventDefault()} className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <InputField label="Search By">
+                    <select
+                      className="input-field text-xs"
+                      name="searchBy"
+                      value={searchQuery?.searchBy}
+                      onChange={inputChangeHandler}
+                    >
+                      <option value="">--Select--</option>
+                      {searchTypeList?.map((s: PickMasterItem) => (
+                        <option key={s?.key} value={s?.key}>
+                          {s?.value}
+                        </option>
+                      ))}
+                    </select>
+                  </InputField>
+                  <InputField label="Status">
+                    <select
+                      className="input-field text-xs"
+                      name="statusId"
+                      value={searchQuery?.statusId}
+                      onChange={inputChangeHandler}
+                    >
+                      <option value={0}>All</option>
+                      {billingStatusList?.map((b: PickMasterItem) => (
+                        <option key={b?.key} value={b?.key}>
+                          {b?.value}
+                        </option>
+                      ))}
+                    </select>
+                  </InputField>
+                </div>
 
                 <InputField label="Search Value">
                   <input
                     type="text"
-                    className="input-field"
+                    className="input-field text-xs py-1.5"
                     placeholder="Enter search value"
                     name="searchValue"
                     value={searchQuery?.searchValue}
                     onChange={inputChangeHandler}
                   />
                 </InputField>
+              </form>
 
-                {/* Status */}
+              <div className="h-[1px] bg-slate-100 my-1" />
 
-                <InputField label="Status">
-                  <select
-                    className="input-field"
-                    name="statusId"
-                    value={searchQuery?.statusId}
-                    onChange={inputChangeHandler}
-                  >
-                    <option value={0}>All</option>
-
-                    {billingStatusList?.map((b: PickMasterItem) => (
-                      <option key={b?.key} value={b?.key}>
-                        {b?.value}
-                      </option>
-                    ))}
-                  </select>
-                </InputField>
-              </div>
-            </form>
-          </div>
-
-          {/* patient table list */}
-
-          <div className="table-container mt-1">
-            <div className="table-scroll-wrapper">
-              <div
-                className="
-                  table-size
-                  lg:min-h-120
-                  lg:max-h-120
-                "
-              >
-                <table className="base-table">
-                  <thead className="table-head">
-                    <tr>
-                      {IpdBillingTableHeader.map((h, index) => (
-                        <th key={index} className="table-th">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {IpdPatientList.length === 0 && (
-                      <tr>
-                        <td colSpan={IpdBillingTableHeader.length} className="table-empty">
-                          No records found
-                        </td>
-                      </tr>
-                    )}
-
-                    {IpdPatientList.map((item: IpdPatientItem, idx: number) => (
-                      <tr
+              <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
+                {IpdPatientList.length === 0 ? (
+                  <div className="text-center text-slate-400 py-10 text-xs font-medium">
+                    No records found
+                  </div>
+                ) : (
+                  IpdPatientList.map((item: IpdPatientItem) => {
+                    const isSelected =
+                      selectedPatient !== null && selectedPatient.PatientId === item.PatientId;
+                    return (
+                      <div
                         key={item?.PatientId}
-                        className="table-row active:scale-97"
-                        onDoubleClick={() => patientSelectHandler(item)}
+                        onClick={() => {
+                          setSelectedPatient(item);
+                          setLeftPanelVisible(false);
+                        }}
+                        className={`w-full rounded-xl border shadow-sm p-3 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
+                          isSelected
+                            ? "bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-500 ring-2 ring-blue-100 shadow-md"
+                            : "bg-white border-slate-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30"
+                        }`}
                       >
-                        <td className="table-td">{idx + 1}</td>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <div className="w-6 h-6 rounded-full bg-[#0B5394] flex items-center justify-center shrink-0">
+                            <User size={11} className="text-white" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-800 flex-1 truncate">
+                            {item?.PatientName}
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                            IPD
+                          </span>
+                        </div>
 
-                        <td className="table-td"></td>
+                        <div className="flex items-center gap-1 text-[11px] text-slate-600 mb-1.5">
+                          <span className="text-slate-400 text-[10px]">🪪</span>
+                          <span className="font-semibold text-slate-700">{item?.UHID}</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="truncate">
+                            {item?.Age} / {item?.Gender}
+                          </span>
+                        </div>
 
-                        <td className="table-td">{item?.UHID || "-"}</td>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <i className="fa-solid fa-user-md text-slate-400 text-[10px] shrink-0" />
+                            <span className="text-[11px] text-slate-500 truncate">
+                              {item?.PrimaryDoctor || "-"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                            Bed: {item?.BedNo || "-"}
+                          </span>
+                        </div>
 
-                        <td className="table-td">{item?.IPDNo || "-"}</td>
-
-                        <td className="table-td">{item?.PatientName || "-"}</td>
-
-                        <td className="table-td">{item?.Age || "-"}</td>
-
-                        <td className="table-td">{item?.Gender || "-"}</td>
-
-                        <td className="table-td">{item?.ContactNumber || "-"}</td>
-
-                        <td className="table-td">{item?.State || "-"}</td>
-
-                        <td className="table-td">{item?.District || "-"}</td>
-
-                        <td className="table-td">{item?.City || "-"}</td>
-
-                        <td className="table-td wrap-break-word">{item?.Address || "-"}</td>
-
-                        <td className="table-td">{item?.BedNo || "-"}</td>
-
-                        <td className="table-td">
-                          {item?.AdmissionDate || "-"} / {item?.AdmissionTime || "-"}
-                        </td>
-
-                        <td className="table-td">
-                          {item?.DischargeDate || "-"} / {item?.DischargeTime || "-"}
-                        </td>
-
-                        <td className="table-td">{item?.Corporate || "-"}</td>
-
-                        <td className="table-td">{item?.UserNAme || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-100/80 pt-1.5 mt-1.5">
+                          <span>IPD No.</span>
+                          <span className="font-bold text-[#0B5394]">{item?.IPDNo || "-"}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
-        </>
-      ) : (
-        <div className="w-full min-w-0">
-          <div className=" grid grid-cols-1 sm:grid-cols-2  xl:grid-cols-5 gap-2 w-full items-stretch ">
-            {/* patient identity */}
+        </div>
 
-            <div className="card  bg-white  border border-gray-200 rounded-lg  shadow-sm [120px] min-h-[120px]  max-h-[120px] overflow-hidden min-w-0">
-              <div className="h-full flex items-center gap-3 p-3 min-w-0">
-                {/* Patient Icon */}
+        {/* Toggle Button */}
+        <button
+          onClick={() => setLeftPanelVisible(prev => !prev)}
+          title={leftPanelVisible ? "Hide panel" : "Show panel"}
+          className={`hidden lg:flex absolute top-1/2 -translate-y-1/2 z-30 w-7 h-7 items-center justify-center rounded-full bg-white border border-slate-300 text-slate-500 shadow-sm hover:bg-blue-50 hover:border-blue-400 hover:text-[#0B5394] transition-all duration-300 ${
+            leftPanelVisible ? "left-80 -translate-x-3.5" : "left-0 translate-x-1"
+          }`}
+        >
+          {leftPanelVisible ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        </button>
 
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center">
-                    <i className="fa-solid fa-user text-xl text-gray-500"></i>
+        {/* RIGHT CARD / PANEL */}
+        <div className="flex-1 min-w-0">
+          {selectedPatient === null ? (
+            /* Empty State */
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-slate-400 gap-3 py-20 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+              <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-200/60 flex items-center justify-center">
+                <i className="fa-solid fa-user-injured text-2xl text-slate-300" />
+              </div>
+              <p className="text-base font-bold text-slate-500">No patient selected</p>
+              <p className="text-xs text-slate-400 max-w-[280px] text-center leading-relaxed">
+                Select a patient from the list on the left side to view their IPD billing details
+                and perform billing operations.
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-[calc(100vh-150px)] flex flex-col pr-0.5">
+              <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] mb-3 overflow-hidden flex-shrink-0">
+                <div className="h-1 w-full bg-[#0B5394]" />
+                {/* ── Section 1: Name / badges / actions ── */}
+                <div className="flex flex-wrap items-start justify-between gap-3 px-3 sm:px-4 py-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    {/* Avatar */}
+                    <div className="relative w-12 h-12 rounded-xl bg-[#0B5394] flex items-center justify-center shrink-0 shadow-md ring-2 ring-white">
+                      <User size={24} className="text-white" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-white" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {/* Name + age + allergy */}
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className="text-base font-bold text-gray-900">
+                          {selectedPatient.PatientName}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {selectedPatient.Age} · {selectedPatient.Gender}
+                        </span>
+                      </div>
+                      {/* Phone */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {selectedPatient.ContactNumber && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center shrink-0">
+                              <svg
+                                className="w-2.5 h-2.5 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </div>
+                            <span className="text-sm text-blue-600 font-medium">
+                              {selectedPatient.ContactNumber}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Patient Info */}
-
-                <div className="min-w-0 flex-1 flex flex-col justify-center gap-2">
-                  <DetailRow label="UHID" value={selectedPatient?.UHID} />
-
-                  <DetailRow label="Name" value={selectedPatient?.PatientName} />
-
-                  <DetailRow
-                    label="Age/Gender"
-                    value={`${selectedPatient?.Age || "-"} / ${selectedPatient?.Gender || "-"}`}
-                  />
+                {/* ── Section 2: Visit info strip ── */}
+                <div className="hidden sm:flex bg-slate-50/70 border-t border-b border-slate-100 px-3 sm:px-4 py-2.5 flex-wrap gap-x-6 gap-y-2">
+                  {visitFields
+                    .filter(f => f?.value !== "" && f?.value !== null && f?.value !== 0)
+                    .map(f => (
+                      <div
+                        key={f.label}
+                        className={`flex flex-col px-2.5 py-1 rounded-lg ${f.highlight ? "bg-teal-50 ring-1 ring-teal-100" : ""}`}
+                      >
+                        {f?.value && (
+                          <>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+                              {f.label}
+                            </span>
+                            <span
+                              className={`text-sm font-semibold ${f.highlight ? "text-teal-600" : "text-gray-800"}`}
+                            >
+                              {f.value}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
-            </div>
-
-            {/* patient details */}
-
-            <div className="card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
-              <div className="h-full flex items-center p-3 min-w-0">
-                <div className=" w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow label="IPD No." value={selectedPatient?.IPDNo} />
-
-                  <DetailRow label="Doctor" value={selectedPatient?.PrimaryDoctor} />
-
-                  <DetailRow label="Corporate" value={selectedPatient?.Corporate} />
-                </div>
-              </div>
-            </div>
-
-            {/* admission details */}
-            <div className="card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
-              <div className="h-full flex items-center p-3 min-w-0">
-                <div className="w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow label="Bed" value={selectedPatient?.BedNo} />
-                  <DetailRow label="Admit On." value={selectedPatient?.AdmissionDate} />
-
-                  <DetailRow label="Discharge On." value={selectedPatient?.DischargeDate} />
-                </div>
-              </div>
-            </div>
-
-            {/* ward details */}
-            <div className=" card bg-white  border  border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
-              <div className="h-full flex items-center p-3 min-w-0">
-                <div className=" w-full min-w-0 flex flex-col justify-center gap-2 ">
-                  <DetailRow label="Bill Amount" value={selectedPatient?.TotalBillAmount} />
-
-                  <DetailRow
-                    label="Disc on Bill"
-                    value={selectedPatient?.TotalDiscountAmountOnBill}
-                  />
-
-                  <DetailRow
-                    label="Disc (%) on Bill"
-                    value={selectedPatient?.TotalDiscountPerOnBill}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* other details */}
-            <div className=" card bg-white border border-gray-200 rounded-lg shadow-sm h-[120px] min-h-[120px] max-h-[120px] overflow-hidden min-w-0">
-              <div className="h-full flex items-center p-3 min-w-0">
-                <div className="w-full min-w-0 flex flex-col justify-center gap-2">
-                  <DetailRow
-                    label="Net Payable Amount"
-                    value={selectedPatient?.TotalPayableAmount}
-                  />
-                  <DetailRow label="Patient Advance" value={selectedPatient?.TotalBalanceAmount1} />
-
-                  <DetailRow label="Bill No." value={selectedPatient?.BillNo || "-"} />
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* ipd tabs button */}
-
-          <div className="w-full card mt-1 p-1">
-            <div className="flex items-center w-full min-w-0">
-              {/* grouped tab */}
-
-              <div className="flex-1 min-w-0">
-                <div className="w-full overflow-x-auto hide-scrollbar">
-                  <div className="flex items-center gap-2 min-w-max">
+              {/* ipd tabs button */}
+              <div className="w-full bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] -mt-2 p-1.5 flex items-center justify-between gap-3 flex-shrink-0">
+                {/* Tabs List */}
+                <div className="flex-1 min-w-0 overflow-x-auto hide-scrollbar">
+                  <div className="flex items-center gap-2 min-w-max p-0.5">
                     {visibleTabs.map((i: TabNameItem) => {
                       const isActive = activeTab?.TabId === i?.TabId;
                       return (
                         <button
                           key={i?.TabId}
                           type="button"
-                          className={` px-3 py-1.5 text-xs font-semibold whitespace-nowrap flex-shrink-0 rounded-md transition-all duration-200 ${
+                          className={`px-4 py-2 text-sm font-semibold whitespace-nowrap flex-shrink-0 rounded-xl transition-all duration-200 flex items-center gap-2 ${
                             isActive
-                              ? "bg-blue-600 text-white shadow-sm"
-                              : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900"
-                          }
-                          `}
+                              ? "bg-[#0B5394] text-white shadow-sm shadow-[#0B5394]/20"
+                              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                          }`}
                           onClick={() => setActiveTab(i)}
                         >
-                          {i?.TabName}
+                          {i?.IconClass && <i className={i.IconClass} />}
+                          <span>{i?.TabName}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
-              </div>
 
-              {/* more actions*/}
-
-              <div className="relative flex-shrink-0 ml-1 pl-1 border-l border-gray-200 bg-white">
-                <button
-                  type="button"
-                  className=" save-btn whitespace-nowrap flex items-center gap-2"
-                  onClick={openMoreActionsButtonHandler}
+                {/* More Actions Dropdown */}
+                <div
+                  className="relative flex-shrink-0 pr-1 pl-3 border-l border-slate-200"
+                  ref={moreActionsRef}
                 >
-                  <span>More Actions</span>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-xl flex items-center gap-2 hover:bg-slate-800 transition duration-250 shadow-sm"
+                    onClick={openMoreActionsButtonHandler}
+                  >
+                    <span>More Actions</span>
+                    <i
+                      className={`fa-solid fa-chevron-down text-xs transition-transform duration-250 ${isMoreActionsOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
 
-                  <i
-                    className={` fa-solid fa-chevron-down text-xs transition-transform duration-200 ${isMoreActionsOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
+                  {/* More Actions Popup */}
+                  {isMoreActionsOpen && (
+                    <div className="absolute right-0 top-full mt-2 z-50 lg:w-[900px] md:w-[600px] w-[320px] max-w-[calc(100vw-20px)] bg-white border border-slate-200/80 rounded-2xl shadow-[0_10px_30px_-5px_rgba(15,23,42,0.15)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="max-h-96 overflow-y-auto hide-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {groupedIpdTabs.map(([groupName, tabs]) => (
+                            <div
+                              key={groupName}
+                              className="border border-slate-100 rounded-xl overflow-hidden"
+                            >
+                              {/* Group Header */}
+                              <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                {groupName}
+                              </div>
 
-                {/* More Actions Popup */}
+                              {/* Group Tabs */}
+                              <div className="p-1 space-y-0.5">
+                                {tabs.map(tab => {
+                                  const isFavorite = isTabFavorite(Number(tab?.TabId));
 
-                {isMoreActionsOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 w-120 max-w-[calc(100vw-20px)] bg-white border border-gray-200 rounded-lg shadow-lg p-2">
-                    <div className=" max-h-100 overflow-y-auto hide-scrollbar ">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {groupedIpdTabs.map(([groupName, tabs]) => (
-                          <div
-                            key={groupName}
-                            className="border border-gray-200 rounded-md overflow-hidden"
-                          >
-                            {/* Group Header */}
-
-                            <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-md font-semibold text-gray-600">
-                              {groupName}
-                            </div>
-
-                            {/* Group Tabs */}
-
-                            <div className="p-1">
-                              {tabs.map(tab => {
-                                const isFavorite = isTabFavorite(Number(tab?.TabId));
-
-                                return (
-                                  <div
-                                    key={tab?.TabId}
-                                    className="
-        group
-        w-full
-        flex
-        items-center
-        gap-1
-        rounded
-        hover:bg-gray-100
-        transition
-      "
-                                  >
-                                    {/* Tab */}
-
-                                    <button
-                                      type="button"
-                                      className="
-          flex
-          items-center
-          gap-2
-          flex-1
-          min-w-0
-          px-2
-          py-1.5
-          text-left
-          text-md
-          text-gray-600
-        "
-                                      onClick={() => {
-                                        console.log("Selected Tab:", tab);
-
-                                        setActiveTab(tab);
-                                        setIsMoreActionsOpen(false);
-                                      }}
+                                  return (
+                                    <div
+                                      key={tab?.TabId}
+                                      className="group w-full flex items-center justify-between rounded-lg hover:bg-slate-50 transition"
                                     >
-                                      <i
-                                        className="
-            fa-solid
-            fa-circle-dot
-            text-[9px]
-            text-gray-400
-            group-hover:text-blue-500
-            flex-shrink-0
-          "
-                                      />
+                                      {/* Tab Action */}
+                                      <button
+                                        type="button"
+                                        className="flex items-center gap-2.5 flex-1 min-w-0 px-2.5 py-2 text-left text-sm text-slate-700 font-medium"
+                                        onClick={() => {
+                                          setActiveTab(tab);
+                                          setIsMoreActionsOpen(false);
+                                        }}
+                                      >
+                                        {tab?.IconClass ? (
+                                          <i
+                                            className={`${tab.IconClass} text-[11px] text-[#0B5394]/70 group-hover:text-[#0B5394] flex-shrink-0 w-3 text-center`}
+                                          />
+                                        ) : (
+                                          <i className="fa-solid fa-circle-dot text-[8px] text-[#0B5394]/40 group-hover:text-[#0B5394] flex-shrink-0" />
+                                        )}
+                                        <span className="truncate">{tab?.TabName}</span>
+                                      </button>
 
-                                      <span className="truncate">{tab?.TabName}</span>
-                                    </button>
-
-                                    {/* Favorite Star */}
-
-                                    <button
-                                      type="button"
-                                      title={
-                                        isFavorite ? "Remove from favorites" : "Add to favorites"
-                                      }
-                                      className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded hover:bg-white transition"
-                                      onClick={() => toggleFavoriteTab(Number(tab?.TabId))}
-                                    >
-                                      <i
-                                        className={`
-            fa-star
-            text-sm
-            transition-all
-            duration-200
-            ${
-              isFavorite
-                ? "fa-solid text-yellow-500"
-                : "fa-regular text-gray-400 hover:text-yellow-500"
-            }
-          `}
-                                      />
-                                    </button>
-                                  </div>
-                                );
-                              })}
+                                      {/* Favorite Star */}
+                                      <button
+                                        type="button"
+                                        title={
+                                          isFavorite ? "Remove from favorites" : "Add to favorites"
+                                        }
+                                        className="flex items-center justify-center w-8 h-8 mr-1 rounded-md hover:bg-white transition"
+                                        onClick={() => toggleFavoriteTab(Number(tab?.TabId))}
+                                      >
+                                        <i
+                                          className={`fa-star text-sm transition-all duration-200 ${
+                                            isFavorite
+                                              ? "fa-solid text-amber-500 scale-110"
+                                              : "fa-regular text-slate-300 hover:text-amber-500 hover:scale-110"
+                                          }`}
+                                        />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+
+              {/* active tab sections */}
+              <div className="flex-1 overflow-y-auto mt-2 pr-0.5 hide-scrollbar">
+                <div className="w-full bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4 min-h-[300px]">
+                  {activeTab ? (
+                    <RoutingUsingTabUrl
+                      tabViewUrl={activeTab.TabViewURL}
+                      patient={selectedPatient}
+                    />
+                  ) : (
+                    <div className="py-16 text-center text-slate-400 font-medium">
+                      No active tab selected
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          {/* ipd sections */}
-          <div className="w-full card mt-1 p-4 min-h-[300px] bg-white border border-gray-200 rounded-lg shadow-sm">
-            {activeTab ? (
-              <RoutingUsingTabUrl tabViewUrl={activeTab.TabViewURL} patient={selectedPatient} />
-            ) : (
-              <div className="py-12 text-center text-gray-500">No active tab selected</div>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {loading && <CustomLoader isLoading={loading} />}
     </div>
