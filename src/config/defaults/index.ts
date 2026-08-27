@@ -501,6 +501,9 @@ const ENDPOINTS = {
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",
+  // also reused by MedicineListControl.tsx as the medicine search source (in place of
+  // GET_SERVICE_ITEM_LIST) when a branch has IsMedicationOrderOnGenericNameOnly=1
+  // (getAssignBranchRight) — doctors there must order by generic/salt name only, not brand
   GET_SALT_NAME_MASTER_LIST: "EMR/getSaltNameMasterList",
   CREATE_UPDATE_ALLERGY_MASTER: "EMR/createUpdateAllergyMaster",
   DELETE_ALLERGY_MASTER: "EMR/deleteAllergyMaster",

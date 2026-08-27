@@ -28,6 +28,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { TemplateItem } from "@/screens/emrTemplates/types";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showSuccess } from "@/utils/alert";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -144,6 +145,11 @@ const DoctorConsultationNew = () => {
   const queryClient = useQueryClient();
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
+  const { rights: branchRights } = useAssignBranchRight();
+  console.log(branchRights);
+  const isMedicationOrderOnGenericNameOnly = Number(
+    branchRights?.IsMedicationOrderOnGenericNameOnly
+  );
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
