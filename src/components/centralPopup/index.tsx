@@ -7,6 +7,7 @@ type CentralPopupProps = {
   children: React.ReactNode;
   className?: string;
   title?: string;
+  closeOnOutsideClick?: boolean;
 };
 
 const CentralPopup = ({
@@ -15,6 +16,7 @@ const CentralPopup = ({
   children,
   className = "",
   title = "Central Popup",
+  closeOnOutsideClick = true,
 }: CentralPopupProps) => {
   useScrollLock(isOpen);
   if (!isOpen) return null;
@@ -22,7 +24,10 @@ const CentralPopup = ({
   return createPortal(
     <div className="fixed inset-0 z-999 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={closeOnOutsideClick ? onClose : undefined}
+      />
 
       {/* Popup */}
       <div

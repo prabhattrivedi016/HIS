@@ -642,7 +642,6 @@ const AddNewCorporateMaster = ({
                       onChange={insuranceCompanySelectHandler}
                       value={selectedInsuranceCompanyId}
                     >
-                      <option value={0}>Self</option>
                       {insuranceCompanyList.map(i => (
                         <option value={i?.insuranceCompanyId} key={i?.insuranceCompanyId}>
                           {i?.insuranceCompanyName}

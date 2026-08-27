@@ -110,14 +110,14 @@ const TabOrdering = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   };
 
   return (
-    <CentralPopup title="Tab Ordering" isOpen={isOpen} onClose={onClose}>
+    <CentralPopup title="Tab Ordering" isOpen={isOpen} onClose={onClose} className="lg:min-w-150">
       <div className="space-y-4">
         {successMessage && <SuccessMessage text={successMessage} />}
         {errorMessage && <ErrorMessage text={errorMessage} />}
 
         <div className="table-container ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-60 lg:max-h-60">
+            <div className="table-size lg:min-h-90 lg:max-h-90">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>

@@ -5,7 +5,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
-import { SubMenuItem } from "../types";
+import { SubMenuItem, tabDropdownItem } from "../types";
 
 const SubMenuOrdering = ({
   isOpen,
@@ -25,6 +25,8 @@ const SubMenuOrdering = ({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
 
+  const [selectedTab, setSelectedTab] = useState<tabDropdownItem | null>(null);
+
   const getSubMenuList = async () => {
     const resp = await fetchApi(
       "GET",
@@ -43,12 +45,15 @@ const SubMenuOrdering = ({
     enabled: isOpen,
   });
 
-  // Sync React Query data to local state
+  // Sync React Query data to local state based on selectedTab
   useEffect(() => {
-    if (subMenuList) {
-      setOrderedSubMenus(subMenuList);
+    if (subMenuList && selectedTab) {
+      const filtered = subMenuList.filter((item: SubMenuItem) => item.tabId === selectedTab.tabId);
+      setOrderedSubMenus(filtered);
+    } else if (subMenuList) {
+      setOrderedSubMenus([]);
     }
-  }, [subMenuList]);
+  }, [subMenuList, selectedTab]);
 
   // Reset local state when popup is closed
   useEffect(() => {
@@ -56,6 +61,7 @@ const SubMenuOrdering = ({
       setSuccessMessage("");
       setErrorMessage("");
       setDraggedItem(null);
+      setSelectedTab(null);
     }
   }, [isOpen]);
 
@@ -115,17 +121,39 @@ const SubMenuOrdering = ({
     onSuccess?.();
 
     setTimeout(() => {
-      onClose();
       setSuccessMessage("");
     }, 1000);
   };
 
+  // tab  list
+  const getNavigationTab = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_NAVIGATION_TAB_MASTER,
+      {},
+      {},
+      { component: "TabOrdering" }
+    );
+
+    return resp?.data ?? [];
+  };
+
+  const { data: navigationTabList = [] } = useQuery({
+    queryKey: ["navigation-tab-list"],
+    queryFn: getNavigationTab,
+    enabled: isOpen,
+  });
+
+  useEffect(() => {
+    setSelectedTab(navigationTabList[0]);
+  }, [navigationTabList]);
   return (
     <CentralPopup
       title="Sub Menu Ordering"
       isOpen={isOpen}
       onClose={onClose}
       className="w-[95vw] lg:min-w-210 "
+      closeOnOutsideClick={false}
     >
       <div className="space-y-4">
         {successMessage && <SuccessMessage text={successMessage} />}
@@ -133,14 +161,14 @@ const SubMenuOrdering = ({
 
         <div className="table-container ">
           <div className="table-scroll-wrapper ">
-            <div className="table-size lg:min-h-80 lg:max-h-80">
+            <div className="table-size lg:min-h-90 lg:max-h-90">
               <table className="base-table ">
                 <thead className="table-head">
                   <tr>
                     <th className="table-th text-center w-16">Seq No</th>
                     <th className="table-th ml-10">Tab Name</th>
                     <th className="table-th">SubMenu Name</th>
-                    <th className="table-th">URL</th>
+                    {/* <th className="table-th">URL</th> */}
                     <th className="table-th">Status</th>
                   </tr>
                 </thead>
@@ -170,7 +198,7 @@ const SubMenuOrdering = ({
                       <td className="table-td text-center font-semibold">{idx + 1}</td>
                       <td className="table-td">{item?.tabName || "-"}</td>
                       <td className="table-td">{item?.subMenuName || "-"}</td>
-                      <td className="table-td">{item?.url || "-"}</td>
+                      {/* <td className="table-td">{item?.url || "-"}</td> */}
                       <td
                         className={`table-td ${
                           Number(item?.isActive) === 1 ? "active-text" : "inactive-text"
@@ -186,8 +214,25 @@ const SubMenuOrdering = ({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-1">
-          <button className="save-btn" onClick={handleSave} disabled={saving}>
+        <div className="flex items-center justify-end gap-3 p-1">
+          <select
+            className="input-field !mb-0 "
+            value={selectedTab?.tabId}
+            onChange={e => {
+              setSelectedTab(
+                navigationTabList.find(
+                  (t: tabDropdownItem) => t?.tabId === Number(e.target.value)
+                ) || null
+              );
+            }}
+          >
+            {navigationTabList.map((t: tabDropdownItem) => (
+              <option key={t?.tabId} value={t?.tabId}>
+                {t?.tabName}
+              </option>
+            ))}
+          </select>
+          <button className="save-btn px-4 py-2" onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </button>
         </div>

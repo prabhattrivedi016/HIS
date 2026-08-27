@@ -9,6 +9,7 @@ export const tabMasterSchema = yup.object().shape({
   tabTypeId: yup.number().min(1, "Tab type is required").required("Tab type is required"),
   tabType: yup.string().required("Tab type is required"),
   roomTypeId: yup.number().min(1, "Room type is required").required("Room type is required"),
+  faIconId: yup.number().required("Icon is required"),
   isActive: yup.number().required("Status is required"),
 });
 

@@ -69,6 +69,8 @@ type TabNameItem = {
   TabType: string;
   RoomTypeId: number;
   RoomType: string;
+  FaIconId?: number | null;
+  IconClass?: string | null;
   IsActive: number;
   CreatedBy: string;
   CreatedOn: string;
@@ -213,7 +215,63 @@ type ServiceItem = {
   isPackageExpired: number;
 };
 
+type ApprovalLists = {
+  CorporateTransferId: number;
+  TokenNo: string;
+  IPDNo?: string | null;
+  BranchId: number;
+  PatientId: number;
+  VisitId: number;
+  TypeId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  TypeId1: number;
+  InsuranceCompanyId: number;
+  InsuranceCompanyName: string;
+  CorporateId: number;
+  CorporateName: string;
+  BillingTypeId: number;
+  IsChangeTariff: number;
+  ChangeFromDate: string | null;
+  ChangeToDate: string | null;
+  Relation: string;
+  RelativeName: string;
+  CardNo: string;
+  TransferDate: string;
+  AuthorizationNumber: string;
+  ReasonForTransfer: string;
+  Remarks: string;
+  IsCorporateTransferCreated: number;
+  IsCorporateTransferApproved: number;
+  ApprovalRemarks: string;
+  IsLevel1Approve: number;
+  Level1ApproveId: number;
+  Level1ApproveOn: string;
+  IsLevel2Approve: number;
+  Level2ApproveId: number;
+  Level2ApproveOn: string;
+  IsLevel3Approve: number | null;
+  Level3ApproveId: number | null;
+  Level3ApproveOn: string | null;
+  IsLevel4Approve: number | null;
+  Level4ApproveId: number | null;
+  Level4ApproveOn: string | null;
+  IsCancel: number;
+  Status: string;
+  StatusId: number;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  CancelReason: string | null;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string;
+  LastModifiedOn: string;
+};
+
 export type {
+  ApprovalLists,
   BillingTypeItem,
   CategoryItem,
   CorporateItem,

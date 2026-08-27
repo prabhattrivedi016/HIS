@@ -569,7 +569,6 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
                   }
                 }}
               >
-                <option value={0}>Self</option>
                 {insuranceList.map(item => (
                   <option key={item.insuranceCompanyId} value={item.insuranceCompanyId}>
                     {item.insuranceCompanyName}
