@@ -8,6 +8,7 @@ import {
 } from "@/store/usePrintSettingsStore";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
+import { toCanvas } from "html-to-image";
 import {
   Building2,
   FileImage,
@@ -44,10 +45,15 @@ interface PrintPreviewModalProps {
   allergy?: AllergySection | null;
   /** "consultation" (default) prints the doctor's normal EMR Sections panel, with the full set of
    * toggles below. "template" prints one Template's own data (opened from TemplateInlineSections)
-   * — hides the past-visit switcher (a Template isn't tied to a visit) and the Vitals/Allergy
-   * toggles (not part of a Template), and labels the panel with templateName. */
+   * — hides the Vitals/Allergy toggles (not part of a Template) and labels the panel with
+   * templateName. The past-visit "Visit" switcher stays available in both variants; in template
+   * mode it's additionally scoped down to just this templateId (see printEmrSectionsData). */
   variant?: "consultation" | "template";
   templateName?: string;
+  /** only meaningful when variant === "template" — which template's rows to keep when a past
+   * visit is selected (a visit's raw rows mix the doctor's plain EMR panel with every template
+   * filled that visit, distinguished only by TemplateId). */
+  templateId?: number;
 }
 
 /** headerId -> where it lives and what it's called, resolved once per doctor via
@@ -98,15 +104,92 @@ const formatEntryValue = (value: unknown): ReactNode => {
     if (value.length === 0) return "-";
     if (typeof value[0] === "object" && value[0] !== null) {
       const rows = value as Record<string, unknown>[];
+
+      // Medicine List entries (MedicineListEntry[] from MedicineListControl) nest each dose's
+      // frequency/duration/route inside a `schedule` array — the generic key-dump below just calls
+      // String() on that array, which prints "[object Object]" instead of anything useful. Detect
+      // the shape and render it the same way the doctor edits it: Medicine Name / Dose / Frequency
+      // / Duration / Route, one row per scheduled dose.
+      if ("medicineName" in rows[0] && Array.isArray(rows[0].schedule)) {
+        type ScheduleRow = {
+          doseQty?: string;
+          doseUnit?: string;
+          frequency?: string;
+          durationValue?: string;
+          durationUnit?: string;
+          route?: string;
+        };
+        const meds = rows as Array<{
+          medicineName?: string;
+          isTapering?: boolean;
+          schedule?: ScheduleRow[];
+        }>;
+        const trs: ReactNode[] = [];
+        meds.forEach((med, medIdx) => {
+          const schedule = med.schedule && med.schedule.length > 0 ? med.schedule : [undefined];
+          schedule.forEach((row, rowIdx) => {
+            trs.push(
+              <tr key={`${medIdx}-${rowIdx}`} className="border-b border-slate-100">
+                {rowIdx === 0 && (
+                  <td
+                    rowSpan={schedule.length}
+                    className="py-1 pr-1.5 text-slate-700 align-top break-words font-medium"
+                  >
+                    {med.medicineName || "-"}
+                    {med.isTapering ? " (Tapering)" : ""}
+                  </td>
+                )}
+                <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
+                  {row ? [row.doseQty, row.doseUnit].filter(Boolean).join(" ") || "-" : "-"}
+                </td>
+                <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
+                  {row?.frequency || "-"}
+                </td>
+                <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
+                  {row ? [row.durationValue, row.durationUnit].filter(Boolean).join(" ") || "-" : "-"}
+                </td>
+                <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
+                  {row?.route || "-"}
+                </td>
+              </tr>
+            );
+          });
+        });
+        return (
+          <table className="w-full table-fixed border-collapse mt-1 text-[9.5px] leading-tight">
+            <thead>
+              <tr>
+                {["Medicine Name", "Dose", "Frequency", "Duration", "Route"].map(col => (
+                  <th
+                    key={col}
+                    className="text-left border-b border-slate-300 pb-1 pr-1.5 font-semibold text-slate-500 uppercase break-words"
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>{trs}</tbody>
+          </table>
+        );
+      }
+
       const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
       return (
-        <table className="w-full border-collapse mt-1">
+        // table-fixed forces columns to share the available width instead of each auto-sizing to
+        // its own content's natural width — without it, a table with many columns (e.g. Family
+        // History's 8 columns) can force this whole row wider than the printable page, and print
+        // silently clips anything past the page edge rather than wrapping/shrinking it
+        // a smaller, tighter-tracking font specifically for these dense multi-column tables — with
+        // table-fixed splitting width equally, normal body-text size + letter-spacing was forcing
+        // even short one-word headers (e.g. "Sex") to wrap, which looked broken
+        <table className="w-full table-fixed border-collapse mt-1 text-[9.5px] leading-tight">
           <thead>
             <tr>
               {columns.map(col => (
                 <th
                   key={col}
-                  className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
+                  className="text-left border-b border-slate-300 pb-1 pr-1.5 font-semibold text-slate-500 uppercase break-words"
                 >
                   {col}
                 </th>
@@ -117,7 +200,7 @@ const formatEntryValue = (value: unknown): ReactNode => {
             {rows.map((row, idx) => (
               <tr key={idx} className="border-b border-slate-100">
                 {columns.map(col => (
-                  <td key={col} className="py-1 pr-3 text-slate-700 align-top">
+                  <td key={col} className="py-1 pr-1.5 text-slate-700 align-top break-words">
                     {String(row[col] ?? "-")}
                   </td>
                 ))}
@@ -161,6 +244,7 @@ const PrintPreviewModal = ({
   allergy,
   variant = "consultation",
   templateName,
+  templateId,
 }: PrintPreviewModalProps) => {
   const isTemplateVariant = variant === "template";
   const authUser = useContext(AuthContext)?.user;
@@ -176,6 +260,7 @@ const PrintPreviewModal = ({
   const [branchDetails, setBranchDetails] = useState<BranchDetails | null>(null);
   const [letterheadImage, setLetterheadImage] = useState<string | null>(null);
   const [isLoadingLetterhead, setIsLoadingLetterhead] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // "print a past visit" — the visit list + each visit's saved rows, same source the History
   // drawer/strip already use, so past-visit prints stay consistent with what "Past Visits" shows
@@ -231,12 +316,18 @@ const PrintPreviewModal = ({
   );
 
   // what actually gets printed: the live in-progress data, or a past visit's saved rows resolved
-  // back to real names via headerMetaByHeaderId
+  // back to real names via headerMetaByHeaderId. In template mode, a visit's raw rows mix the
+  // doctor's plain EMR panel with every template filled that visit (TemplateId is the only thing
+  // distinguishing them), so also filter down to just this templateId.
   const printEmrSectionsData = useMemo<EmrSectionAnswerEntry[]>(() => {
     if (selectedVisitId === "current") return emrSectionsData;
     if (!selectedPastVisit || !headerMetaByHeaderId) return [];
     return selectedPastVisit.rows
-      .filter(r => headerMetaByHeaderId.has(r.HeaderId))
+      .filter(
+        r =>
+          headerMetaByHeaderId.has(r.HeaderId) &&
+          (!isTemplateVariant || r.TemplateId === templateId)
+      )
       .map(r => {
         const meta = headerMetaByHeaderId.get(r.HeaderId)!;
         let value: unknown;
@@ -255,7 +346,14 @@ const PrintPreviewModal = ({
           value,
         };
       });
-  }, [selectedVisitId, selectedPastVisit, headerMetaByHeaderId, emrSectionsData]);
+  }, [
+    selectedVisitId,
+    selectedPastVisit,
+    headerMetaByHeaderId,
+    emrSectionsData,
+    isTemplateVariant,
+    templateId,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -345,6 +443,10 @@ const PrintPreviewModal = ({
   const groupedSections = useMemo(() => {
     const map = new Map<number, SectionGroup>();
     printEmrSectionsData.forEach(e => {
+      // "Diagnosis Image" (and any other *Image entry) holds raw file-upload metadata rows
+      // (PatientId/HeaderId/FileName/Pages/UploadedOn/...) meant for the attachment viewer, not the
+      // printed chart — skip it rather than dumping that metadata as an unreadable generic table.
+      if (/image/i.test(e.headerName)) return;
       const bucket = map.get(e.sectionId) ?? {
         sectionId: e.sectionId,
         sectionName: e.sectionName,
@@ -389,13 +491,123 @@ const PrintPreviewModal = ({
     saveSettings(doctorId, settings);
   };
 
-  const handlePrint = () => {
-    const styleEl = document.createElement("style");
-    styleEl.id = "emr-print-page-size";
-    styleEl.textContent = `@page { size: ${settings.paperSize === "A5" ? "A5" : "A4"}; margin: 14mm; }`;
-    document.head.appendChild(styleEl);
-    window.print();
-    setTimeout(() => styleEl.remove(), 1000);
+  // Every earlier print bug (letterhead offset, overflowing cards, wrapped table headers) came
+  // from the same root cause: the browser's @media print pass re-lays-out the DOM differently
+  // from how it rendered on screen, so tuning against the on-screen preview never reliably
+  // predicted the printed result. Rasterizing the exact preview DOM into an image removes that
+  // re-layout step entirely — there is no second CSS pass left to disagree with what's on screen.
+  //
+  // html-to-image (toCanvas), not html2canvas: html2canvas ships its own hand-rolled CSS color
+  // parser that has no support for oklch() — Tailwind v4's default palette — and throws
+  // "Attempting to parse an unsupported color function" the moment it walks this DOM. html-to-image
+  // instead serializes the DOM into an SVG <foreignObject> and lets the browser's own renderer draw
+  // it to an Image/canvas, so color parsing is done by the same engine that already renders this
+  // page correctly on screen — no reimplemented CSS parser to disagree with it.
+  //
+  // Not a PDF: wrapping the captured image in a jsPDF document and opening it in a new tab handed
+  // control to Chrome's built-in PDF viewer, whose own "automatic zoom" was inconsistently choosing
+  // something other than fit-to-width for this page — sometimes right, sometimes cropped, and a
+  // `#zoom=page-width` URL hint didn't reliably fix it either. Printing a plain HTML page containing
+  // just the captured <img> sidesteps that viewer entirely: the browser's native print dialog always
+  // fits an image sized to 100% of the page to the page, with no separate viewer zoom setting to
+  // second-guess it.
+  const handlePrint = async () => {
+    const node = document.getElementById("emr-print-preview-wrapper");
+    if (!node) return;
+
+    // opened synchronously, in direct response to the click — before the async capture below, not
+    // after. Calling window.open() once toCanvas has already awaited puts it outside the original
+    // click's call stack, and Chrome silently treats that as a script-initiated popup and blocks
+    // it instead of a user-initiated one. Grabbing the window handle first, then filling it in
+    // once the capture is ready, avoids that.
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.alert("Please allow pop-ups for this site to print.");
+      return;
+    }
+    printWindow.document.write(
+      "<title>Print</title><p style=\"font:14px sans-serif;padding:24px\">Preparing print…</p>"
+    );
+
+    setIsGeneratingPdf(true);
+    try {
+      // html-to-image only waits for an <img> to load when it has to fetch/re-encode it as a data
+      // URL first — the letterhead is already a data: URI (fetched as base64 from the backend), so
+      // that code path is skipped entirely and the capture can run before the browser has actually
+      // finished decoding it, silently rendering it blank. Explicitly waiting for every <img> in
+      // the node to decode first (data URIs decode fast, but not synchronously) closes that gap.
+      await Promise.all(
+        Array.from(node.querySelectorAll("img")).map(img =>
+          img.decode ? img.decode().catch(() => {}) : Promise.resolve()
+        )
+      );
+
+      // explicit width/height rather than trusting auto-detection, in case that's disagreeing
+      // with the node's real content size for any reason.
+      const canvas = await toCanvas(node, {
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        width: node.scrollWidth,
+        height: node.scrollHeight,
+      });
+      const imgData = canvas.toDataURL("image/png");
+
+      const pageWidthMm = settings.paperSize === "A5" ? 148 : 210;
+      const pageHeightMm = settings.paperSize === "A5" ? 210 : 297;
+      const imgHeightMm = (canvas.height * pageWidthMm) / canvas.width;
+      // -1mm tolerance before rounding up: imgHeightMm frequently lands a hair's width over an
+      // exact multiple of the page height (float rounding in the canvas-ratio math above, or the
+      // browser's own mm-to-device-pixel conversion at print time), which was always manufacturing
+      // one extra, almost-entirely-blank page for that sliver of "overflow" that isn't real content.
+      const pageCount = Math.max(1, Math.ceil((imgHeightMm - 1) / pageHeightMm));
+
+      // one <img> per physical page, each showing the same full captured image but shifted up by
+      // one page-height and clipped to that page's box — the plain-HTML equivalent of the earlier
+      // jsPDF pagination loop. A document that fits on one page (the common case here) is just one
+      // page with no shift.
+      const pagesHtml = Array.from({ length: pageCount }, (_, i) => {
+        const offsetMm = -i * pageHeightMm;
+        return `<div class="print-page"><img src="${imgData}" style="margin-top:${offsetMm}mm" /></div>`;
+      }).join("");
+
+      // document.open() first: the placeholder written above never called document.close(), so
+      // without this a plain document.write() here would just append after "Preparing print…"
+      // instead of replacing it — open() resets the document for a fresh write.
+      //
+      // No auto-triggered window.print(): every time it fires automatically, the right edge of the
+      // page comes out cropped; the plain tab underneath (no dialog auto-opening on top of it) has
+      // shown the full, correct page every time. Whatever's causing that is inside the print
+      // dialog's own preview rendering, not this page's HTML/CSS — so instead of fighting that,
+      // show the page plainly and let a real button (hidden from the print output itself) trigger
+      // print only once you've already seen it render correctly.
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html>
+<html>
+  <head>
+    <title>Print</title>
+    <style>
+      @page { size: ${settings.paperSize === "A5" ? "A5" : "A4"}; margin: 0; }
+      html, body { margin: 0; padding: 0; }
+      .print-page { width: ${pageWidthMm}mm; height: ${pageHeightMm}mm; overflow: hidden; }
+      .print-page img { display: block; width: 100%; }
+      .print-trigger {
+        position: fixed; top: 12px; right: 12px; z-index: 10;
+        font: 600 13px sans-serif; padding: 8px 16px; border-radius: 6px;
+        background: #0B5394; color: #fff; border: none; cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      }
+      @media print { .print-trigger { display: none; } }
+    </style>
+  </head>
+  <body>
+    <button type="button" class="print-trigger" onclick="window.print()">Print this page</button>
+    ${pagesHtml}
+  </body>
+</html>`);
+      printWindow.document.close();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const visibleSections = groupedSections.filter(
@@ -431,38 +643,38 @@ const PrintPreviewModal = ({
           </div>
 
           <div className="flex-1 p-4 flex flex-col gap-5">
-            {!isTemplateVariant && (
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                  <History size={12} />
-                  Visit
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <History size={12} />
+                Visit
+              </p>
+              <select
+                className="input-field !mb-0 w-full"
+                value={String(selectedVisitId)}
+                onChange={e => {
+                  const v = e.target.value;
+                  setSelectedVisitId(v === "current" ? "current" : Number(v));
+                }}
+                disabled={isPastVisitsLoading}
+              >
+                <option value="current">Current (unsaved) visit</option>
+                {pastVisits.map(v => (
+                  <option key={v.visitId} value={v.visitId}>
+                    {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
+                  </option>
+                ))}
+              </select>
+              {isPastVisitsLoading && (
+                <p className="text-[11px] text-slate-400 mt-1">Loading past visits…</p>
+              )}
+              {selectedVisitId !== "current" && groupedSections.length === 0 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  {isTemplateVariant
+                    ? "This template wasn't filled during this visit."
+                    : "No EMR data saved for this visit."}
                 </p>
-                <select
-                  className="input-field !mb-0 w-full"
-                  value={String(selectedVisitId)}
-                  onChange={e => {
-                    const v = e.target.value;
-                    setSelectedVisitId(v === "current" ? "current" : Number(v));
-                  }}
-                  disabled={isPastVisitsLoading}
-                >
-                  <option value="current">Current (unsaved) visit</option>
-                  {pastVisits.map(v => (
-                    <option key={v.visitId} value={v.visitId}>
-                      {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
-                    </option>
-                  ))}
-                </select>
-                {isPastVisitsLoading && (
-                  <p className="text-[11px] text-slate-400 mt-1">Loading past visits…</p>
-                )}
-                {selectedVisitId !== "current" && groupedSections.length === 0 && (
-                  <p className="text-[11px] text-amber-600 mt-1">
-                    No EMR data saved for this visit.
-                  </p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             <div>
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -499,6 +711,37 @@ const PrintPreviewModal = ({
                   ))}
               </div>
             </div>
+
+            {settings.showLetterhead && (
+              <div>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Letterhead spacing
+                </p>
+                {/* every hospital's letterhead image has a differently-sized header (logo, seal,
+                    tagline) — there's no way to know that from code, so this is a tunable knob
+                    instead of a hardcoded guess. Drag until the content below clears the
+                    letterhead's own header art in the preview on the right, then Save as default. */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={400}
+                    step={5}
+                    value={settings.letterheadTopOffset}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        letterheadTopOffset: Number(e.target.value),
+                      }))
+                    }
+                    className="flex-1 accent-[#0B5394]"
+                  />
+                  <span className="text-[11px] font-semibold text-slate-500 w-10 text-right">
+                    {settings.letterheadTopOffset}px
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -600,10 +843,15 @@ const PrintPreviewModal = ({
               <button
                 type="button"
                 onClick={handlePrint}
-                className="save-btn !py-1.5 !text-xs flex items-center gap-1.5"
+                disabled={isGeneratingPdf}
+                className="save-btn !py-1.5 !text-xs flex items-center gap-1.5 disabled:opacity-60"
               >
-                <Printer size={14} />
-                Print
+                {isGeneratingPdf ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Printer size={14} />
+                )}
+                {isGeneratingPdf ? "Preparing…" : "Print"}
               </button>
               <button className="close-drawer-btn" onClick={onClose}>
                 &times;
@@ -614,217 +862,267 @@ const PrintPreviewModal = ({
           <div className="flex-1 overflow-y-auto bg-slate-200 p-8">
             <div
               id="emr-print-preview-wrapper"
-              className={`emr-print-page mx-auto ${
+              className={`emr-print-page relative mx-auto ${
                 settings.paperSize === "A5" ? "emr-print-page-a5" : "emr-print-page-a4"
-              } p-10 ${FONT_SIZE_CLASS[settings.fontSize]}`}
+              } px-4 py-10 ${FONT_SIZE_CLASS[settings.fontSize]}`}
             >
-              {settings.showLetterhead && (
-                <div className="flex flex-col items-center pb-3 mb-5">
-                  {isLoadingLetterhead ? (
-                    <Loader2 size={18} className="animate-spin text-slate-300" />
-                  ) : letterheadImage ? (
-                    <img
-                      src={letterheadImage}
-                      alt="Hospital letterhead"
-                      className="max-h-24 object-contain"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 text-slate-900">
-                      <FileImage size={18} />
-                      <span className="text-lg font-bold tracking-wide">
-                        {branchDetails?.branchName || "Hospital"}
-                      </span>
-                    </div>
-                  )}
-                  {/* masthead double-rule — a thick rule with a thin echo below it, the way an
-                      official letterhead/report typically separates the header from the body */}
-                  <div className="w-full mt-3 border-b-2 border-slate-900" />
-                  <div className="w-full mt-[3px] border-b border-slate-300" />
-                </div>
+              {/* the letterhead is a whole-page template (header art + watermark + footer baked
+                  into one image) — it sits behind everything else, spanning the full page, rather
+                  than being squeezed into a small logo strip at the top. Only used this way once
+                  the real image has actually loaded; the loading/missing-image states below stay
+                  a normal small header line since there's no page template to show yet. */}
+              {settings.showLetterhead && letterheadImage && (
+                <img
+                  src={letterheadImage}
+                  alt="Hospital letterhead"
+                  className="emr-print-letterhead absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                  // the watermark baked into this letterhead is naturally pale (by design, so it
+                  // doesn't fight with printed text) — a mild contrast/saturation boost makes its
+                  // faint ink stand out without noticeably darkening the already-bold header/footer
+                  // artwork, which stays near its natural look since it's far from mid-gray already
+                  style={{ filter: "contrast(1.3) saturate(1.2)" }}
+                />
               )}
 
-              {(settings.showPatientDetails || settings.showHospitalDetails) && (
-                <div
-                  className={`grid gap-4 mb-5 ${
-                    settings.showPatientDetails && settings.showHospitalDetails
-                      ? "grid-cols-2"
-                      : "grid-cols-1"
-                  }`}
-                >
-                  {settings.showPatientDetails && (
-                    <div className="border border-slate-300 rounded-sm overflow-hidden">
-                      <div className="flex items-center gap-1.5 bg-[#0B5394] text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
-                        <User size={11} />
-                        Patient Details
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 p-3 text-[11.5px]">
-                        <span className="text-slate-500 font-medium">Name</span>
-                        <span className="font-semibold text-slate-800">
-                          {patient?.PatientName || "-"}
-                        </span>
-                        <span className="text-slate-500 font-medium">UHID</span>
-                        <span className="text-slate-700">{patient?.UHID || "-"}</span>
-                        <span className="text-slate-500 font-medium">Age / Gender</span>
-                        <span className="text-slate-700">
-                          {patient?.Age || "-"} / {patient?.Gender || "-"}
-                        </span>
-                        <span className="text-slate-500 font-medium">Doctor</span>
-                        <span className="text-slate-700">
-                          {selectedPastVisit
-                            ? selectedPastVisit.doctorName || "-"
-                            : patient?.DoctorName || "-"}
-                        </span>
-                        <span className="text-slate-500 font-medium">Visit</span>
-                        <span className="text-slate-700">
-                          {selectedPastVisit
-                            ? formatVisitDate(selectedPastVisit.recordedOn)
-                            : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
-                        </span>
-                        {patient?.BedNo && (
-                          <>
-                            <span className="text-slate-500 font-medium">Bed</span>
-                            <span className="text-slate-700">{patient.BedNo}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {settings.showHospitalDetails && (
-                    <div className="border border-slate-300 rounded-sm overflow-hidden">
-                      <div className="flex items-center gap-1.5 bg-slate-700 text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
-                        <Building2 size={11} />
-                        Hospital Details
-                      </div>
-                      <div className="p-3 text-[11.5px]">
-                        <p className="font-semibold text-slate-800">
-                          {branchDetails?.branchName || "-"}
-                        </p>
-                        <p className="text-slate-600 mt-0.5">{branchDetails?.address || "-"}</p>
-                        <p className="text-slate-600 mt-0.5">
-                          {[branchDetails?.contactNo1, branchDetails?.contactNo2]
-                            .filter(Boolean)
-                            .join(", ") || "-"}
-                        </p>
-                        {branchDetails?.email && (
-                          <p className="text-slate-600 mt-0.5">{branchDetails.email}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {settings.showVitals && filledVitals.length > 0 && (
-                <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
-                  <PrintSectionHeading>Vitals</PrintSectionHeading>
-                  <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 p-3">
-                    {filledVitals.map(v => (
-                      <div key={v.vitalId} className="grid grid-cols-[1fr_auto] gap-2">
-                        <span className="font-semibold text-slate-600">{v.vitalName}</span>
-                        <span className="text-slate-800">
-                          {vitalsData[v.vitalId]} {v.unitName || ""}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {settings.showAllergy && hasAllergyData && allergy && (
-                <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
-                  <PrintSectionHeading>Allergy</PrintSectionHeading>
-                  <div className="p-3">
-                    {allergy.notKnownAllergy ? (
-                      <p className="text-slate-700">No known allergy</p>
+              <div
+                className="relative z-10"
+                style={
+                  settings.showLetterhead && letterheadImage
+                    ? { paddingTop: settings.letterheadTopOffset }
+                    : undefined
+                }
+              >
+                {settings.showLetterhead && (isLoadingLetterhead || !letterheadImage) && (
+                  <div className="flex flex-col items-center pb-3 mb-5">
+                    {isLoadingLetterhead ? (
+                      <Loader2 size={18} className="animate-spin text-slate-300" />
                     ) : (
-                      <>
-                        {allergy.summary && (
-                          <p className="text-slate-700 mb-1.5">{allergy.summary}</p>
-                        )}
-                        {allergy.records.length > 0 && (
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr>
-                                {["Allergy", "Type", "Reaction", "Severity", "Remarks"].map(col => (
-                                  <th
-                                    key={col}
-                                    className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
-                                  >
-                                    {col}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {allergy.records.map(r => (
-                                <tr key={r.id} className="border-b border-slate-100">
-                                  <td className="py-1 pr-3 text-slate-700 align-top">
-                                    {r.allergyName || "-"}
-                                  </td>
-                                  <td className="py-1 pr-3 text-slate-700 align-top">
-                                    {r.allergyType || "-"}
-                                  </td>
-                                  <td className="py-1 pr-3 text-slate-700 align-top">
-                                    {r.reaction || "-"}
-                                  </td>
-                                  <td className="py-1 pr-3 text-slate-700 align-top">
-                                    {r.interactionSeverity || "-"}
-                                  </td>
-                                  <td className="py-1 pr-3 text-slate-700 align-top">
-                                    {r.remarks || "-"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </>
+                      <div className="flex items-center gap-2 text-slate-900">
+                        <FileImage size={18} />
+                        <span className="text-lg font-bold tracking-wide">
+                          {branchDetails?.branchName || "Hospital"}
+                        </span>
+                      </div>
+                    )}
+                    {/* masthead double-rule — a thick rule with a thin echo below it, the way an
+                        official letterhead/report typically separates the header from the body */}
+                    <div className="w-full mt-3 border-b-2 border-slate-900" />
+                    <div className="w-full mt-[3px] border-b border-slate-300" />
+                  </div>
+                )}
+
+                {(settings.showPatientDetails || settings.showHospitalDetails) && (
+                  <div
+                    className={`grid gap-4 mb-5 ${
+                      settings.showPatientDetails && settings.showHospitalDetails
+                        ? "grid-cols-2"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {settings.showPatientDetails && (
+                      // min-w-0 — this card is a grid-cols-2 item; without it, a CSS grid item
+                      // refuses to shrink below its content's natural min-width, so it (and the
+                      // Hospital Details card beside it) can grow past its 1fr track and spill off
+                      // the right edge of the page. Screen text happens to render just narrow
+                      // enough to avoid tipping over this cliff; print's slightly different font
+                      // metrics tip it over, which is why this only showed up once actually printed.
+                      <div className="border border-slate-300 rounded-sm overflow-hidden min-w-0">
+                        <div className="flex items-center gap-1.5 bg-[#0B5394] text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
+                          <User size={11} />
+                          Patient Details
+                        </div>
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 p-3 text-[11.5px]">
+                          <span className="text-slate-500 font-medium">Name</span>
+                          <span className="font-semibold text-slate-800 min-w-0 break-words">
+                            {patient?.PatientName || "-"}
+                          </span>
+                          <span className="text-slate-500 font-medium">UHID</span>
+                          <span className="text-slate-700 min-w-0 break-words">
+                            {patient?.UHID || "-"}
+                          </span>
+                          <span className="text-slate-500 font-medium">Age / Gender</span>
+                          <span className="text-slate-700 min-w-0 break-words">
+                            {patient?.Age || "-"} / {patient?.Gender || "-"}
+                          </span>
+                          <span className="text-slate-500 font-medium">Doctor</span>
+                          <span className="text-slate-700 min-w-0 break-words">
+                            {selectedPastVisit
+                              ? selectedPastVisit.doctorName || "-"
+                              : patient?.DoctorName || "-"}
+                          </span>
+                          <span className="text-slate-500 font-medium">Visit</span>
+                          <span className="text-slate-700 min-w-0 break-words">
+                            {selectedPastVisit
+                              ? formatVisitDate(selectedPastVisit.recordedOn)
+                              : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
+                          </span>
+                          {patient?.BedNo && (
+                            <>
+                              <span className="text-slate-500 font-medium">Bed</span>
+                              <span className="text-slate-700">{patient.BedNo}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {settings.showHospitalDetails && (
+                      <div className="border border-slate-300 rounded-sm overflow-hidden min-w-0">
+                        <div className="flex items-center gap-1.5 bg-slate-700 text-white font-bold uppercase tracking-wide text-[10px] px-3 py-1.5">
+                          <Building2 size={11} />
+                          Hospital Details
+                        </div>
+                        <div className="p-3 text-[11.5px]">
+                          <p className="font-semibold text-slate-800">
+                            {branchDetails?.branchName || "-"}
+                          </p>
+                          <p className="text-slate-600 mt-0.5">{branchDetails?.address || "-"}</p>
+                          <p className="text-slate-600 mt-0.5">
+                            {[branchDetails?.contactNo1, branchDetails?.contactNo2]
+                              .filter(Boolean)
+                              .join(", ") || "-"}
+                          </p>
+                          {branchDetails?.email && (
+                            <p className="text-slate-600 mt-0.5">{branchDetails.email}</p>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-4">
-                {visibleSections.length === 0 && (
-                  <p className="text-slate-400 text-center py-10">No sections selected to print</p>
                 )}
-                {visibleSections.map(group => (
-                  <div
-                    key={group.sectionId}
-                    className="emr-print-section border border-slate-200 rounded-sm overflow-hidden"
-                  >
-                    <PrintSectionHeading>{group.sectionName}</PrintSectionHeading>
-                    <div className="flex flex-col">
-                      {group.entries.map((entry, entryIdx) => (
-                        <div
-                          key={entry.headerId}
-                          className={`grid grid-cols-[minmax(120px,180px)_1fr] gap-3 px-3 py-1.5 ${
-                            entryIdx % 2 === 1 ? "bg-slate-50/70" : ""
-                          }`}
-                        >
-                          <span className="font-semibold text-slate-600">{entry.headerName}</span>
-                          <span className="text-slate-700">{formatEntryValue(entry.value)}</span>
+
+                {settings.showVitals && filledVitals.length > 0 && (
+                  <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
+                    <PrintSectionHeading>Vitals</PrintSectionHeading>
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 p-3">
+                      {filledVitals.map(v => (
+                        <div key={v.vitalId} className="grid grid-cols-[1fr_auto] gap-2">
+                          <span className="font-semibold text-slate-600 min-w-0 break-words">
+                            {v.vitalName}
+                          </span>
+                          <span className="text-slate-800 shrink-0">
+                            {vitalsData[v.vitalId]} {v.unitName || ""}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
 
-              {/* signature footer — every printed medical document needs a closing line for the
+                {settings.showAllergy && hasAllergyData && allergy && (
+                  <div className="emr-print-section mb-4 border border-slate-200 rounded-sm overflow-hidden">
+                    <PrintSectionHeading>Allergy</PrintSectionHeading>
+                    <div className="p-3">
+                      {allergy.notKnownAllergy ? (
+                        <p className="text-slate-700">No known allergy</p>
+                      ) : (
+                        <>
+                          {allergy.summary && (
+                            <p className="text-slate-700 mb-1.5">{allergy.summary}</p>
+                          )}
+                          {allergy.records.length > 0 && (
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr>
+                                  {["Allergy", "Type", "Reaction", "Severity", "Remarks"].map(
+                                    col => (
+                                      <th
+                                        key={col}
+                                        className="text-left border-b border-slate-300 pb-1 pr-3 font-semibold text-slate-500 uppercase tracking-wide"
+                                      >
+                                        {col}
+                                      </th>
+                                    )
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {allergy.records.map(r => (
+                                  <tr key={r.id} className="border-b border-slate-100">
+                                    <td className="py-1 pr-3 text-slate-700 align-top">
+                                      {r.allergyName || "-"}
+                                    </td>
+                                    <td className="py-1 pr-3 text-slate-700 align-top">
+                                      {r.allergyType || "-"}
+                                    </td>
+                                    <td className="py-1 pr-3 text-slate-700 align-top">
+                                      {r.reaction || "-"}
+                                    </td>
+                                    <td className="py-1 pr-3 text-slate-700 align-top">
+                                      {r.interactionSeverity || "-"}
+                                    </td>
+                                    <td className="py-1 pr-3 text-slate-700 align-top">
+                                      {r.remarks || "-"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* grid, not flex — a plain flex column relies on align-items:stretch to give each
+                    card the container's full width, and print rendering showed that isn't holding:
+                    a wide table inside (e.g. Chief Complaints' 4-column row) was pushing the whole
+                    card past the page's right edge in the actual printout despite looking fine in
+                    the on-screen preview. Grid + min-w-0 on each item is the same combination that
+                    already fixed the identical overflow on the Patient/Hospital Details cards above,
+                    so reuse it here instead of trusting flex stretch to hold under print layout. */}
+                <div className="grid grid-cols-1 gap-4">
+                  {visibleSections.length === 0 && (
+                    <p className="text-slate-400 text-center py-10">
+                      No sections selected to print
+                    </p>
+                  )}
+                  {visibleSections.map(group => (
+                    <div
+                      key={group.sectionId}
+                      className="emr-print-section border border-slate-200 rounded-sm overflow-hidden min-w-0"
+                    >
+                      <PrintSectionHeading>{group.sectionName}</PrintSectionHeading>
+                      <div className="grid grid-cols-1">
+                        {group.entries.map((entry, entryIdx) => (
+                          <div
+                            key={entry.headerId}
+                            className={`grid grid-cols-[minmax(120px,180px)_1fr] gap-3 px-3 py-1.5 min-w-0 ${
+                              entryIdx % 2 === 1 ? "bg-slate-50/70" : ""
+                            }`}
+                          >
+                            <span className="font-semibold text-slate-600 min-w-0">
+                              {entry.headerName}
+                            </span>
+                            {/* min-w-0 is load-bearing here — a CSS grid's 1fr track otherwise
+                              refuses to shrink below its content's natural min-width (e.g. a wide
+                              table's columns), which pushes the whole row past the page edge in
+                              print instead of wrapping within it */}
+                            <span className="text-slate-700 min-w-0 overflow-hidden">
+                              {formatEntryValue(entry.value)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* signature footer — every printed medical document needs a closing line for the
                   doctor's signature; without it the page just stopped after the last section */}
-              <div className="flex items-end justify-between mt-10 pt-4 border-t border-slate-300">
-                <p className="text-[9.5px] text-slate-400">
-                  Printed on {previewOpenedAt.toLocaleString()}
-                </p>
-                <div className="text-center">
-                  <div className="w-48 border-b border-slate-400 mb-1" />
-                  <p className="text-[11px] font-semibold text-slate-700">
-                    Dr.{" "}
-                    {(selectedPastVisit ? selectedPastVisit.doctorName : patient?.DoctorName) ||
-                      "—"}
+                <div className="flex items-end justify-between mt-10 pt-4 border-t border-slate-300">
+                  <p className="text-[9.5px] text-slate-400">
+                    Printed on {previewOpenedAt.toLocaleString()}
                   </p>
-                  <p className="text-[9.5px] text-slate-400 uppercase tracking-wide">Signature</p>
+                  <div className="text-center">
+                    <div className="w-48 border-b border-slate-400 mb-1" />
+                    <p className="text-[11px] font-semibold text-slate-700">
+                      Dr.{" "}
+                      {(selectedPastVisit ? selectedPastVisit.doctorName : patient?.DoctorName) ||
+                        "—"}
+                    </p>
+                    <p className="text-[9.5px] text-slate-400 uppercase tracking-wide">Signature</p>
+                  </div>
                 </div>
               </div>
             </div>

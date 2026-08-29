@@ -146,7 +146,6 @@ const DoctorConsultationNew = () => {
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
   const { rights: branchRights } = useAssignBranchRight();
-  console.log(branchRights);
   const isMedicationOrderOnGenericNameOnly = Number(
     branchRights?.IsMedicationOrderOnGenericNameOnly
   );
@@ -176,6 +175,7 @@ const DoctorConsultationNew = () => {
   const [printTemplateContext, setPrintTemplateContext] = useState<{
     name: string;
     entries: EmrSectionAnswerEntry[];
+    templateId: number;
   } | null>(null);
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
   const [isDetailsExpandedMobile, setIsDetailsExpandedMobile] = useState(false);
@@ -185,6 +185,15 @@ const DoctorConsultationNew = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
   const isFileClosed = selectedPatient?.IsConsultationDone === 1;
+  // lets a doctor temporarily unlock a closed file's EMR sections to fix a mistake, without
+  // silently reopening it — resets to locked every time a different visit is opened (below), and
+  // saving while unlocked still sends isFileClosed:1 (see the Save button in the action row) so
+  // the file stays closed afterward instead of accidentally falling back to "pending".
+  const [isEditUnlocked, setIsEditUnlocked] = useState(false);
+  useEffect(() => {
+    setIsEditUnlocked(false);
+  }, [selectedPatient?.VisitId]);
+  const effectiveFileClosed = isFileClosed && !isEditUnlocked;
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
@@ -1047,7 +1056,7 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={() => setShowUploadDocument(true)}
-                          disabled={isFileClosed}
+                          disabled={effectiveFileClosed}
                           className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
                         >
                           <Upload size={14} />
@@ -1056,7 +1065,7 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={() => setShowTemplatePicker(true)}
-                          disabled={isFileClosed}
+                          disabled={effectiveFileClosed}
                           className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
                         >
                           <LayoutTemplate size={14} />
@@ -1084,11 +1093,38 @@ const DoctorConsultationNew = () => {
                           <Printer size={14} />
                           Print
                         </button>
-                        {isFileClosed ? (
+                        {isFileClosed && !isEditUnlocked ? (
                           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-3 sm:px-4 py-1.5">
                             <FileCheck size={14} />
                             File Closed — read only
+                            <button
+                              type="button"
+                              onClick={() => setIsEditUnlocked(true)}
+                              className="inline-flex items-center gap-1 text-[#0B5394] hover:underline ml-1"
+                            >
+                              <Edit size={13} />
+                              Enable Edit
+                            </button>
                           </span>
+                        ) : isFileClosed && isEditUnlocked ? (
+                          // editing a file that was already closed — always re-save with
+                          // isFileClosed:1 so it stays closed afterward instead of silently
+                          // falling back to "pending" the way plain Save & Out would (that button
+                          // doesn't pass isFileClosed, which defaults to 0 in handleFinalSave)
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleFinalSave({
+                                isFileClosed: 1,
+                                goBackAfterSave: true,
+                                goToTab: "fileClose",
+                              })
+                            }
+                            className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                          >
+                            <FileCheck size={14} />
+                            Save
+                          </button>
                         ) : (
                           <>
                             <button
@@ -1211,7 +1247,7 @@ const DoctorConsultationNew = () => {
                                   type="text"
                                   value={v.value}
                                   onChange={e => updateVital(v.key, e.target.value)}
-                                  disabled={isFileClosed}
+                                  disabled={effectiveFileClosed}
                                   placeholder="--"
                                   className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                     v.value ? v.text : "text-slate-300"
@@ -1288,7 +1324,7 @@ const DoctorConsultationNew = () => {
                                     type="text"
                                     value={v.value}
                                     onChange={e => updateVital(v.key, e.target.value)}
-                                    disabled={isFileClosed}
+                                    disabled={effectiveFileClosed}
                                     placeholder="--"
                                     className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                       v.value ? v.text : "text-slate-300"
@@ -1314,12 +1350,14 @@ const DoctorConsultationNew = () => {
                 visitId={selectedPatient?.VisitId}
                 usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
-                disabled={isFileClosed}
+                disabled={effectiveFileClosed}
                 templateEntriesByTemplateId={templateEntriesByTemplateId}
                 onTemplateEntriesChange={(templateId, entries) =>
                   setTemplateEntriesByTemplateId(prev => ({ ...prev, [templateId]: entries }))
                 }
-                onPrintTemplate={(name, entries) => setPrintTemplateContext({ name, entries })}
+                onPrintTemplate={(name, entries, templateId) =>
+                  setPrintTemplateContext({ name, entries, templateId })
+                }
               />
             </div>
           )}
@@ -1340,7 +1378,7 @@ const DoctorConsultationNew = () => {
         patientId={selectedPatient?.PatientId}
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
-        disabled={isFileClosed}
+        disabled={effectiveFileClosed}
       />
       <TemplatePicker
         isOpen={showTemplatePicker}
@@ -1383,6 +1421,7 @@ const DoctorConsultationNew = () => {
         emrSectionsData={printTemplateContext?.entries ?? []}
         variant="template"
         templateName={printTemplateContext?.name}
+        templateId={printTemplateContext?.templateId}
       />
       <UploadDocumentModal
         isOpen={showUploadDocument}

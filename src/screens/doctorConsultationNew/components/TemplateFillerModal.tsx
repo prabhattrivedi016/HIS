@@ -111,10 +111,12 @@ const TemplateFillerModal = ({
 
   // this visit's previously-saved header values, so reopening/refilling a template shows prior
   // answers and upserts (dataId) instead of duplicating rows — same hook TemplateInlineSections
-  // uses, so both entry points into a Template stay consistent
+  // uses, so both entry points into a Template stay consistent. Skipped entirely for an
+  // isMultipleEntryAllow template: every filling of one of those must persist as its own new row,
+  // so it must never hydrate from (or resolve a dataId against) a previous save.
   const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } = useVisitSavedHeaderValues(
     visitId,
-    isOpen
+    isOpen && template?.isMultipleEntryAllow !== 1
   );
 
   const handleSectionEntries = useCallback(

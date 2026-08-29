@@ -161,6 +161,12 @@ const INVESTIGATION_ORDER_TYPE_OPTIONS: OptionSchema[] = INVESTIGATION_ORDER_TYP
   value: v,
 }));
 
+const EMPTY_HEADERS: SectionHeaderMappingRecord[] = [];
+// same reasoning as EMPTY_HEADERS above, for the conditional-config query below
+const EMPTY_ATTRIBUTE_CONDITIONS: SectionAttributeCondition[] = [];
+const EMPTY_LOV_OPTIONS: OptionSchema[] = [];
+const EMPTY_TABLE_COLUMNS: TableColumnSchema[] = [];
+
 const EmrSectionRenderer = ({
   sectionId,
   sectionName,
@@ -213,7 +219,9 @@ const EmrSectionRenderer = ({
       .sort((a, b) => a.sequenceNo - b.sequenceNo);
   };
 
-  const { data: headers = [], isLoading: headersLoading } = useQuery<SectionHeaderMappingRecord[]>({
+  const { data: headers = EMPTY_HEADERS, isLoading: headersLoading } = useQuery<
+    SectionHeaderMappingRecord[]
+  >({
     queryKey: ["emrSectionHeaders", sectionId],
     queryFn: getSectionHeaderMapping,
   });
@@ -262,7 +270,9 @@ const EmrSectionRenderer = ({
     return groupAttributeConditionRows(rawRows);
   };
 
-  const { data: attributeConditions = [] } = useQuery<SectionAttributeCondition[]>({
+  const { data: attributeConditions = EMPTY_ATTRIBUTE_CONDITIONS } = useQuery<
+    SectionAttributeCondition[]
+  >({
     queryKey: ["emrSectionConditionalConfig", sectionId],
     queryFn: getConditionalConfig,
   });
@@ -350,20 +360,26 @@ const EmrSectionRenderer = ({
     [headers]
   );
 
-  const lovsQueries = useQueries({
+  // `combine` matters here beyond convenience: useQueries on its own returns a brand-new results
+  // array on every render even when every query's data is unchanged, and building lovsByHeaderId
+  // from that in a separate useMemo meant a fresh object every render too — which fed straight into
+  // reportedEntries's dependency array below and caused a real "Maximum update depth exceeded" loop
+  // (setEntriesBySectionId -> re-render -> new lovsByHeaderId -> new reportedEntries -> repeat).
+  // combine's result is passed through react-query's own deep-equality check, so it only produces a
+  // new reference when a query's data actually changed.
+  const lovsByHeaderId = useQueries({
     queries: headerIdsNeedingOptions.map(headerId => ({
       queryKey: ["emrHeaderLovs", headerId],
       queryFn: () => getHeaderLovs(headerId),
     })),
+    combine: results => {
+      const map: Record<number, OptionSchema[]> = {};
+      headerIdsNeedingOptions.forEach((headerId, idx) => {
+        map[headerId] = results[idx]?.data ?? EMPTY_LOV_OPTIONS;
+      });
+      return map;
+    },
   });
-
-  const lovsByHeaderId = useMemo(() => {
-    const map: Record<number, OptionSchema[]> = {};
-    headerIdsNeedingOptions.forEach((headerId, idx) => {
-      map[headerId] = lovsQueries[idx]?.data ?? [];
-    });
-    return map;
-  }, [headerIdsNeedingOptions, lovsQueries]);
 
   const getTableColumns = async (
     headerId: number,
@@ -433,21 +449,24 @@ const EmrSectionRenderer = ({
     [headers]
   );
 
-  const tableColumnsQueries = useQueries({
+  // combine (not a separate useQueries + useMemo) — see the lovsByHeaderId comment below for why:
+  // without it this rebuilds a fresh object every render regardless of whether any query's data
+  // actually changed, which feeds the schema-building useMemo further down and was part of the
+  // same "Maximum update depth exceeded" loop reported against this component.
+  const tableColumnsByHeaderId = useQueries({
     queries: tableHeaderIds.map(headerId => ({
       queryKey: ["emrHeaderTableColumns", headerId],
       queryFn: () =>
         getTableColumns(headerId, headers.find(h => h.headerId === headerId)?.headerName ?? ""),
     })),
+    combine: results => {
+      const map: Record<number, TableColumnSchema[]> = {};
+      tableHeaderIds.forEach((headerId, idx) => {
+        map[headerId] = results[idx]?.data ?? EMPTY_TABLE_COLUMNS;
+      });
+      return map;
+    },
   });
-
-  const tableColumnsByHeaderId = useMemo(() => {
-    const map: Record<number, TableColumnSchema[]> = {};
-    tableHeaderIds.forEach((headerId, idx) => {
-      map[headerId] = tableColumnsQueries[idx]?.data ?? [];
-    });
-    return map;
-  }, [tableHeaderIds, tableColumnsQueries]);
 
   // non-table headers whose behavior declares a plain (non-search) dataSource — fetched once,
   // same as static LOVs; a dataSource with searchParamKey becomes an asyncSearch instead (below)
@@ -463,7 +482,8 @@ const EmrSectionRenderer = ({
     [headers]
   );
 
-  const dataSourceQueries = useQueries({
+  // combine, same reasoning as tableColumnsByHeaderId/lovsByHeaderId above.
+  const dataSourceOptionsByHeaderId = useQueries({
     queries: dataSourceHeaderIds.map(headerId => {
       const headerName = headers.find(h => h.headerId === headerId)?.headerName ?? "";
       const dataSource = resolveHeaderBehavior(headerName)?.dataSource;
@@ -475,15 +495,14 @@ const EmrSectionRenderer = ({
             : Promise.resolve([]),
       };
     }),
+    combine: results => {
+      const map: Record<number, OptionSchema[]> = {};
+      dataSourceHeaderIds.forEach((headerId, idx) => {
+        map[headerId] = results[idx]?.data ?? EMPTY_LOV_OPTIONS;
+      });
+      return map;
+    },
   });
-
-  const dataSourceOptionsByHeaderId = useMemo(() => {
-    const map: Record<number, OptionSchema[]> = {};
-    dataSourceHeaderIds.forEach((headerId, idx) => {
-      map[headerId] = dataSourceQueries[idx]?.data ?? [];
-    });
-    return map;
-  }, [dataSourceHeaderIds, dataSourceQueries]);
 
   // several plain (non-table) attributes together describe one repeatable record (e.g. Family
   // History: Condition/Relationship/Sex/...) — render them as one add-a-card-per-entry control

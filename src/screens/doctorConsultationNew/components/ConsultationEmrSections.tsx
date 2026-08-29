@@ -80,7 +80,7 @@ interface ConsultationEmrSectionsProps {
   onTemplateEntriesChange?: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
   /** opens a print-preview scoped to just the selected template's data — relayed straight up to
    * index.tsx, which is the only place that holds the full PatientItem the print modal needs */
-  onPrintTemplate?: (templateName: string, entries: EmrSectionAnswerEntry[]) => void;
+  onPrintTemplate?: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
 }
 
 const getSectionIcon = (name: string): LucideIcon => {

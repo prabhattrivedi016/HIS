@@ -22,8 +22,11 @@ interface TemplateInlineSectionsProps {
   onEntriesChange: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
   /** opens a print-preview scoped to just this template's currently-filled data — the caller
    * (ConsultationEmrSections → index.tsx) owns the actual PrintPreviewModal instance, since only
-   * index.tsx holds the full PatientItem that modal needs */
-  onPrint: (templateName: string, entries: EmrSectionAnswerEntry[]) => void;
+   * index.tsx holds the full PatientItem that modal needs. templateId is passed explicitly (not
+   * inferred from entries[0]) because entries can be empty — a doctor opening Print to browse this
+   * template's past-visit history, without having typed anything this session, must still be able
+   * to filter that history down to just this template. */
+  onPrint: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
 }
 
 /**
@@ -121,8 +124,15 @@ const TemplateInlineSections = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template.templateId]);
 
-  const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } =
-    useVisitSavedHeaderValues(visitId);
+  // isMultipleEntryAllow templates must persist every filling as its own new row instead of
+  // overwriting the same one — so they must never hydrate from a previous save at all: no
+  // savedDataIdsByHeaderId means every entry's dataId resolves to undefined -> 0 (insert) all the
+  // way down to the actual save call, and no savedHeaderValues means each filling starts blank
+  // instead of pre-populated with whatever was entered last time.
+  const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } = useVisitSavedHeaderValues(
+    visitId,
+    template.isMultipleEntryAllow !== 1
+  );
 
   const handleSectionEntries = useCallback(
     (sectionId: number, entries: EmrSectionAnswerEntry[]) => {
@@ -171,7 +181,7 @@ const TemplateInlineSections = ({
     const entries = Object.values(entriesBySectionId)
       .flat()
       .map(entry => ({ ...entry, templateId: template.templateId }));
-    onPrint(template.displayName || template.templateName, entries);
+    onPrint(template.displayName || template.templateName, entries, template.templateId);
   };
 
   return (
