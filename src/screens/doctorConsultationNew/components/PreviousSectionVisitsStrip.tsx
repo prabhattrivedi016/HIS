@@ -17,6 +17,12 @@ const formatTabDate = (iso: string) => {
   return `${day}-${month}-${d.getFullYear()}`;
 };
 
+const formatRowTime = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+};
+
 const formatSnapshotValue = (value: unknown): string => {
   if (value === null || value === undefined || value === "") return "—";
   if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? "" : "s"}`;
@@ -112,7 +118,11 @@ const PreviousSectionVisitsStrip = ({
   onCopyToCurrent,
 }: PreviousSectionVisitsStripProps) => {
   const [activeSnapshotId, setActiveSnapshotId] = useState(snapshots[0]?.id ?? "");
-  const [selectedHeaderIds, setSelectedHeaderIds] = useState<Set<number>>(new Set());
+  // keyed by dataId, not headerId — an ordinary header is always upserted (one row per headerId
+  // per visit), but a multi-entry template's header can have several rows sharing a headerId
+  // within one visit. Keying by headerId here used to mean checking one of two such rows visually
+  // checked both (they shared the same Set entry); dataId is unique per row.
+  const [selectedDataIds, setSelectedDataIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!snapshots.some(s => s.id === activeSnapshotId)) {
@@ -122,35 +132,42 @@ const PreviousSectionVisitsStrip = ({
   }, [snapshots]);
 
   useEffect(() => {
-    setSelectedHeaderIds(new Set());
+    setSelectedDataIds(new Set());
   }, [activeSnapshotId]);
 
   if (snapshots.length === 0) return null;
 
   const activeSnapshot = snapshots.find(s => s.id === activeSnapshotId) ?? snapshots[0];
   const rows = activeSnapshot.values;
-  const allSelected = rows.length > 0 && rows.every(r => selectedHeaderIds.has(r.headerId));
+  const allSelected = rows.length > 0 && rows.every(r => selectedDataIds.has(r.dataId));
 
-  const toggleOne = (headerId: number) => {
-    setSelectedHeaderIds(prev => {
+  // headerId -> how many rows in this snapshot share it — only a multi-entry template's header can
+  // be > 1; used below to decide whether a row needs its time shown to tell it apart from a sibling
+  const headerCounts = rows.reduce<Map<number, number>>((map, r) => {
+    map.set(r.headerId, (map.get(r.headerId) ?? 0) + 1);
+    return map;
+  }, new Map());
+
+  const toggleOne = (dataId: number) => {
+    setSelectedDataIds(prev => {
       const next = new Set(prev);
-      if (next.has(headerId)) next.delete(headerId);
-      else next.add(headerId);
+      if (next.has(dataId)) next.delete(dataId);
+      else next.add(dataId);
       return next;
     });
   };
 
   const toggleAll = () => {
-    setSelectedHeaderIds(allSelected ? new Set() : new Set(rows.map(r => r.headerId)));
+    setSelectedDataIds(allSelected ? new Set() : new Set(rows.map(r => r.dataId)));
   };
 
   const handleCopy = () => {
-    if (selectedHeaderIds.size === 0) return;
-    onCopyToCurrent(rows.filter(r => selectedHeaderIds.has(r.headerId)));
+    if (selectedDataIds.size === 0) return;
+    onCopyToCurrent(rows.filter(r => selectedDataIds.has(r.dataId)));
     showSuccess(
-      `Copied ${selectedHeaderIds.size} field(s) from ${formatTabDate(activeSnapshot.recordedOn)}`
+      `Copied ${selectedDataIds.size} field(s) from ${formatTabDate(activeSnapshot.recordedOn)}`
     );
-    setSelectedHeaderIds(new Set());
+    setSelectedDataIds(new Set());
   };
 
   return (
@@ -180,14 +197,14 @@ const PreviousSectionVisitsStrip = ({
           <button
             type="button"
             onClick={handleCopy}
-            disabled={selectedHeaderIds.size === 0}
+            disabled={selectedDataIds.size === 0}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold border shadow-sm transition-colors whitespace-nowrap ${
-              selectedHeaderIds.size > 0
+              selectedDataIds.size > 0
                 ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                 : "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed"
             }`}
           >
-            Copy to Current {selectedHeaderIds.size > 0 ? `(${selectedHeaderIds.size})` : ""}
+            Copy to Current {selectedDataIds.size > 0 ? `(${selectedDataIds.size})` : ""}
           </button>
         </div>
       </div>
@@ -218,21 +235,29 @@ const PreviousSectionVisitsStrip = ({
             ) : (
               rows.map(r => {
                 const rowArray = isRowArray(r.value) ? r.value : undefined;
+                // more than one row shares this headerId — only possible for a multi-entry
+                // template's header — so show which save time this particular row is
+                const showTime = (headerCounts.get(r.headerId) ?? 0) > 1;
 
                 return (
                   <tr
-                    key={r.headerId}
+                    key={r.dataId}
                     className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 transition-colors"
                   >
                     <td className="px-4 py-2 align-top">
                       <input
                         type="checkbox"
-                        checked={selectedHeaderIds.has(r.headerId)}
-                        onChange={() => toggleOne(r.headerId)}
+                        checked={selectedDataIds.has(r.dataId)}
+                        onChange={() => toggleOne(r.dataId)}
                       />
                     </td>
                     <td className="px-4 py-2 text-[12.5px] text-slate-700 align-top whitespace-nowrap">
                       {r.headerName}
+                      {showTime && (
+                        <span className="ml-1.5 text-[11px] font-normal text-slate-400">
+                          {formatRowTime(r.createdOn)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-[12.5px] text-slate-600">
                       {rowArray ? (

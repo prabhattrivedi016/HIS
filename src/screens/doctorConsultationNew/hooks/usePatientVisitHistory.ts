@@ -73,13 +73,25 @@ export const usePatientVisitHistory = (patientId?: number) => {
   const historyEntries = useMemo<PatientVisitHistoryEntry[]>(
     () =>
       visits
-        .map((v, idx) => ({
-          visitId: v.VisitId,
-          doctorId: v.DoctorId,
-          doctorName: v.DoctorName,
-          recordedOn: toIsoDate(v.VisitDate),
-          rows: consultationQueries[idx]?.data ?? [],
-        }))
+        .map((v, idx) => {
+          const rows = consultationQueries[idx]?.data ?? [];
+          // a row's CreatedOn is a real date+time (confirmed present in the API response); the
+          // visit-list endpoint's VisitDate is date-only. Prefer the latest CreatedOn among this
+          // visit's rows when there is one — strictly more precise, and lets an actual time show
+          // up wherever recordedOn is rendered, with no change for a visit with no rows saved yet
+          // (still falls back to the date-only value).
+          const latestCreatedOn = rows.reduce<string | null>((latest, row) => {
+            if (!row.CreatedOn) return latest;
+            return !latest || row.CreatedOn > latest ? row.CreatedOn : latest;
+          }, null);
+          return {
+            visitId: v.VisitId,
+            doctorId: v.DoctorId,
+            doctorName: v.DoctorName,
+            recordedOn: latestCreatedOn ?? toIsoDate(v.VisitDate),
+            rows,
+          };
+        })
         .sort((a, b) => b.recordedOn.localeCompare(a.recordedOn)),
     [visits, consultationQueries]
   );

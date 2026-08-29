@@ -28,6 +28,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { TemplateItem } from "@/screens/emrTemplates/types";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { showError, showSuccess } from "@/utils/alert";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -144,6 +145,10 @@ const DoctorConsultationNew = () => {
   const queryClient = useQueryClient();
   const authUser = useContext(AuthContext)?.user;
   const branchId = authUser?.branchId ?? 1;
+  const { rights: branchRights } = useAssignBranchRight();
+  const isMedicationOrderOnGenericNameOnly = Number(
+    branchRights?.IsMedicationOrderOnGenericNameOnly
+  );
 
   const [selectedType, setSelectedType] = useState<number>(1);
 
@@ -170,6 +175,7 @@ const DoctorConsultationNew = () => {
   const [printTemplateContext, setPrintTemplateContext] = useState<{
     name: string;
     entries: EmrSectionAnswerEntry[];
+    templateId: number;
   } | null>(null);
   const [isVitalsExpandedMobile, setIsVitalsExpandedMobile] = useState(false);
   const [isDetailsExpandedMobile, setIsDetailsExpandedMobile] = useState(false);
@@ -179,6 +185,15 @@ const DoctorConsultationNew = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
   const isFileClosed = selectedPatient?.IsConsultationDone === 1;
+  // lets a doctor temporarily unlock a closed file's EMR sections to fix a mistake, without
+  // silently reopening it — resets to locked every time a different visit is opened (below), and
+  // saving while unlocked still sends isFileClosed:1 (see the Save button in the action row) so
+  // the file stays closed afterward instead of accidentally falling back to "pending".
+  const [isEditUnlocked, setIsEditUnlocked] = useState(false);
+  useEffect(() => {
+    setIsEditUnlocked(false);
+  }, [selectedPatient?.VisitId]);
+  const effectiveFileClosed = isFileClosed && !isEditUnlocked;
   const [allergySection, setAllergySection] = useState<AllergySection | null>(null);
   const [emrSectionsData, setEmrSectionsData] = useState<EmrSectionAnswerEntry[]>([]);
   const [vitalsData, setVitalsData] = useState<Record<number, string>>({});
@@ -422,18 +437,6 @@ const DoctorConsultationNew = () => {
     vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
   );
 
-  // matches the real backend contract (api/EMR/savePatientConsultation) — one flat row per EMR
-  // header, headerValue always a JSON string (JSON.stringify'd regardless of the underlying
-  // value's own type, so the backend can uniformly JSON.parse it back on load rather than having
-  // to guess whether a given headerValue is raw text or JSON-encoded text). dataId 0 means "new
-  // row, let the backend assign one" — GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns each header's
-  // real dataId once saved, for a proper upsert on the next save.
-  //
-  // allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
-  // attribute-type concept) — they aren't sent here. Allergy is saved separately via
-  // saveAllergyDetails() (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS, one row per record) as a gate
-  // before handleFinalSave calls SAVE_PATIENT_CONSULTATION. Vitals DO fit — they ride along in the
-  // same call as the payload's own patientVitalValue array (see below), not consultationHeadersData.
   const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
     if (!selectedPatient) return null;
 
@@ -476,11 +479,7 @@ const DoctorConsultationNew = () => {
         visitId: selectedPatient.VisitId,
         visitTypeId: selectedPatient.TypeId,
         isFileClosed: 0,
-        // 0 for a visit with no vitals saved yet (insert); otherwise the id loadVitalsForPatient
-        // captured off this visit's existing saved vitals (upsert)
         patientVitalId: savedPatientVitalId,
-        // placeholder — handleFinalSave overwrites this with the actual save-time timestamp, the
-        // same way it overwrites isFileClosed; this memo only shapes the data, not when it's sent
         vitalDateTime: "",
       },
       consultationHeadersData,
@@ -494,11 +493,6 @@ const DoctorConsultationNew = () => {
     savedPatientVitalId,
   ]);
 
-  // Allergy has its own save endpoint (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS), one row per
-  // allergy record — it doesn't fit SAVE_PATIENT_CONSULTATION's flat EMR-header contract, so it
-  // must be persisted separately before the final save. `id` is only sent for a record already
-  // persisted (loaded from GET_PATIENT_ALLERGY_DETAIL_LIST, or saved earlier this session); a
-  // record added in this session but never saved sends id 0 so the backend inserts it.
   const saveAllergyDetails = async (): Promise<boolean> => {
     if (!selectedPatient || !allergySection || allergySection.records.length === 0) {
       return true;
@@ -551,7 +545,6 @@ const DoctorConsultationNew = () => {
 
     const isAllergySaved = await saveAllergyDetails();
     if (!isAllergySaved) return;
-
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_PATIENT_CONSULTATION,
@@ -1041,7 +1034,7 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={() => setShowUploadDocument(true)}
-                          disabled={isFileClosed}
+                          disabled={effectiveFileClosed}
                           className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
                         >
                           <Upload size={14} />
@@ -1050,7 +1043,7 @@ const DoctorConsultationNew = () => {
                         <button
                           type="button"
                           onClick={() => setShowTemplatePicker(true)}
-                          disabled={isFileClosed}
+                          disabled={effectiveFileClosed}
                           className="inline-flex items-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
                         >
                           <LayoutTemplate size={14} />
@@ -1078,11 +1071,38 @@ const DoctorConsultationNew = () => {
                           <Printer size={14} />
                           Print
                         </button>
-                        {isFileClosed ? (
+                        {isFileClosed && !isEditUnlocked ? (
                           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-3 sm:px-4 py-1.5">
                             <FileCheck size={14} />
                             File Closed — read only
+                            <button
+                              type="button"
+                              onClick={() => setIsEditUnlocked(true)}
+                              className="inline-flex items-center gap-1 text-[#0B5394] hover:underline ml-1"
+                            >
+                              <Edit size={13} />
+                              Enable Edit
+                            </button>
                           </span>
+                        ) : isFileClosed && isEditUnlocked ? (
+                          // editing a file that was already closed — always re-save with
+                          // isFileClosed:1 so it stays closed afterward instead of silently
+                          // falling back to "pending" the way plain Save & Out would (that button
+                          // doesn't pass isFileClosed, which defaults to 0 in handleFinalSave)
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleFinalSave({
+                                isFileClosed: 1,
+                                goBackAfterSave: true,
+                                goToTab: "fileClose",
+                              })
+                            }
+                            className="save-btn !px-3 sm:!px-4 !py-1.5 !text-sm inline-flex items-center gap-1.5"
+                          >
+                            <FileCheck size={14} />
+                            Save
+                          </button>
                         ) : (
                           <>
                             <button
@@ -1205,7 +1225,7 @@ const DoctorConsultationNew = () => {
                                   type="text"
                                   value={v.value}
                                   onChange={e => updateVital(v.key, e.target.value)}
-                                  disabled={isFileClosed}
+                                  disabled={effectiveFileClosed}
                                   placeholder="--"
                                   className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                     v.value ? v.text : "text-slate-300"
@@ -1282,7 +1302,7 @@ const DoctorConsultationNew = () => {
                                     type="text"
                                     value={v.value}
                                     onChange={e => updateVital(v.key, e.target.value)}
-                                    disabled={isFileClosed}
+                                    disabled={effectiveFileClosed}
                                     placeholder="--"
                                     className={`bg-transparent border-none outline-none p-0 text-[13.5px] font-bold leading-none w-11 placeholder:text-slate-300 disabled:cursor-not-allowed ${
                                       v.value ? v.text : "text-slate-300"
@@ -1308,12 +1328,14 @@ const DoctorConsultationNew = () => {
                 visitId={selectedPatient?.VisitId}
                 usedForPatientTypeId={selectedPatient?.TypeId}
                 onSectionsChange={setEmrSectionsData}
-                disabled={isFileClosed}
+                disabled={effectiveFileClosed}
                 templateEntriesByTemplateId={templateEntriesByTemplateId}
                 onTemplateEntriesChange={(templateId, entries) =>
                   setTemplateEntriesByTemplateId(prev => ({ ...prev, [templateId]: entries }))
                 }
-                onPrintTemplate={(name, entries) => setPrintTemplateContext({ name, entries })}
+                onPrintTemplate={(name, entries, templateId) =>
+                  setPrintTemplateContext({ name, entries, templateId })
+                }
               />
             </div>
           )}
@@ -1334,7 +1356,7 @@ const DoctorConsultationNew = () => {
         patientId={selectedPatient?.PatientId}
         visitId={selectedPatient?.VisitId}
         onBind={setAllergySection}
-        disabled={isFileClosed}
+        disabled={effectiveFileClosed}
       />
       <TemplatePicker
         isOpen={showTemplatePicker}
@@ -1377,6 +1399,7 @@ const DoctorConsultationNew = () => {
         emrSectionsData={printTemplateContext?.entries ?? []}
         variant="template"
         templateName={printTemplateContext?.name}
+        templateId={printTemplateContext?.templateId}
       />
       <UploadDocumentModal
         isOpen={showUploadDocument}

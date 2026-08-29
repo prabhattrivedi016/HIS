@@ -83,6 +83,10 @@ type EmrSectionAnswerEntry = {
    * undefined for an entry from the doctor's normal EMR Sections panel, which saves as
    * templateId 0. See src/screens/emrControls/types.ts's TemplateItem. */
   templateId?: number;
+  /** set only for a past-visit entry (PrintPreviewModal's printEmrSectionsData) — the row's real
+   * save timestamp, used to tell apart multiple same-headerId entries a multi-entry template can
+   * produce within one visit. Undefined for a live/current-session entry. */
+  createdOn?: string;
 };
 
 // matches the real backend contract for api/EMR/savePatientConsultation /
@@ -143,6 +147,10 @@ type RawConsultationHeaderRow = {
   TemplateId: number;
   /** JSON.stringify'd — JSON.parse before use, same convention as ConsultationHeaderDataEntry */
   HeaderValue: string;
+  /** ISO datetime this specific row was saved, confirmed present in the real API response —
+   * lets a visit (or a multi-entry template's individual fillings within one visit) be labeled
+   * with a real date+time instead of only the date-only VisitDate from the visit-list endpoint */
+  CreatedOn: string;
 };
 
 /** one row exactly as GET_PATIENT_VISIT_DETAILS_BY_PATIENT_ID returns it — PascalCase wire shape,
@@ -165,7 +173,18 @@ type EmrSectionVisitSnapshotEntry = {
   doctorName: string;
   /** ISO yyyy-mm-dd */
   recordedOn: string;
-  values: { headerId: number; headerName: string; controlType: string; value: unknown }[];
+  /** dataId/createdOn: a plain (non-template) header is always upserted, one row per headerId per
+   * visit — but a multi-entry-allowed template's header can have several rows sharing a headerId
+   * within one visit, distinguishable only by these two fields (their own row id and the real
+   * save timestamp the API now returns) */
+  values: {
+    headerId: number;
+    headerName: string;
+    controlType: string;
+    value: unknown;
+    dataId: number;
+    createdOn: string;
+  }[];
 };
 
 /** a doctor's saved "Care Plan" — a named preset of whatever EMR Sections data they'd filled in

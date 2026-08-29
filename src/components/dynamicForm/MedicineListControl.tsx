@@ -6,6 +6,7 @@ import { useDoseMasterList } from "@/hooks/useDoseMasterList";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { usePatientVisitHistory } from "@/screens/doctorConsultationNew/hooks/usePatientVisitHistory";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { safeRandomUUID } from "@/utils/uuid";
@@ -240,6 +241,11 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   const sectionId = parseSectionId(schema.dataPath);
   const entries: MedicineListEntry[] = Array.isArray(value) ? (value as MedicineListEntry[]) : [];
 
+  // when this branch right is on, doctors here must order by generic/salt name only — medicine
+  // search is redirected to the salt name master instead of the normal brand/service-item catalog
+  const { rights: branchRights } = useAssignBranchRight();
+  const isGenericNameOnly = Number(branchRights?.IsMedicationOrderOnGenericNameOnly) === 1;
+
   const [searchScope, setSearchScope] = useState<SearchScope>("all");
   const [rowFilter, setRowFilter] = useState("");
   const [isTaperingMode, setIsTaperingMode] = useState(false);
@@ -260,7 +266,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   const [nameQuery, setNameQuery] = useState("");
   const [searchResults, setSearchResults] = useState<OptionSchema[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Dose master (from the "Dose Master" popup, e.g. "1-1-1") — DB-backed only, deliberately no
   // local/dummy fallback like the option lists below, since a fake pattern here wouldn't map to
@@ -320,22 +326,42 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     searchTimerRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const resp = await fetchApi(
-          "GET",
-          ENDPOINTS.GET_SERVICE_ITEM_LIST,
-          {},
-          { params: { categoryTypeId: 6, isActive: 1, serviceName: q, searchScope } },
-          { component: "MedicineListControl", silent: true }
-        );
-        const raw: Record<string, unknown>[] = Array.isArray(resp?.data) ? resp.data : [];
-        const mapped = raw.map(item => ({
-          label: String(item.name ?? ""),
-          value: String(item.name ?? ""),
-          key: String(item.serviceItemId ?? ""),
-        }));
-        // no real "medicine" catalog rows yet for this query — fall back to dummy data so the
-        // add/search flow stays testable, never used once the backend actually returns matches
-        setSearchResults(mapped.length > 0 ? mapped : searchDummyMedicines(q));
+        if (isGenericNameOnly) {
+          // branch mandates generic/salt-name-only ordering — search the salt name master
+          // instead of the normal brand/service-item catalog, ignoring the all/generic/brand
+          // toggle entirely (that toggle is hidden in the UI for this same reason)
+          const resp = await fetchApi(
+            "GET",
+            ENDPOINTS.GET_SALT_NAME_MASTER_LIST,
+            {},
+            { params: { saltName: q } },
+            { component: "MedicineListControl", silent: true }
+          );
+          const raw: Record<string, unknown>[] = Array.isArray(resp?.data) ? resp.data : [];
+          const mapped = raw.map(item => ({
+            label: String(item.SaltName ?? item.saltName ?? ""),
+            value: String(item.SaltName ?? item.saltName ?? ""),
+            key: String(item.SaltNameId ?? item.saltNameId ?? ""),
+          }));
+          setSearchResults(mapped.length > 0 ? mapped : searchDummyMedicines(q));
+        } else {
+          const resp = await fetchApi(
+            "GET",
+            ENDPOINTS.GET_SERVICE_ITEM_LIST,
+            {},
+            { params: { categoryTypeId: 6, isActive: 1, serviceName: q, searchScope } },
+            { component: "MedicineListControl", silent: true }
+          );
+          const raw: Record<string, unknown>[] = Array.isArray(resp?.data) ? resp.data : [];
+          const mapped = raw.map(item => ({
+            label: String(item.name ?? ""),
+            value: String(item.name ?? ""),
+            key: String(item.serviceItemId ?? ""),
+          }));
+          // no real "medicine" catalog rows yet for this query — fall back to dummy data so the
+          // add/search flow stays testable, never used once the backend actually returns matches
+          setSearchResults(mapped.length > 0 ? mapped : searchDummyMedicines(q));
+        }
       } catch {
         setSearchResults(searchDummyMedicines(q));
       } finally {
@@ -345,7 +371,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
-  }, [nameQuery, searchScope]);
+  }, [nameQuery, searchScope, isGenericNameOnly]);
 
   const isDuplicateName = (name: string) =>
     entries.some(e => e.medicineName.trim().toLowerCase() === name.trim().toLowerCase());
@@ -530,25 +556,36 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
           >
             <Plus size={15} />
           </button>
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-            Search by
-          </span>
-          <div className="flex rounded-full border border-slate-200 overflow-hidden">
-            {(["all", "generic", "brand"] as SearchScope[]).map(scope => (
-              <button
-                key={scope}
-                type="button"
-                onClick={() => setSearchScope(scope)}
-                className={`px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors ${
-                  searchScope === scope
-                    ? "bg-slate-700 text-white"
-                    : "bg-white text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
+          {isGenericNameOnly ? (
+            <span
+              title="This branch requires medicines to be ordered by generic/salt name only"
+              className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1"
+            >
+              Generic Name Only
+            </span>
+          ) : (
+            <>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                Search by
+              </span>
+              <div className="flex rounded-full border border-slate-200 overflow-hidden">
+                {(["all", "generic", "brand"] as SearchScope[]).map(scope => (
+                  <button
+                    key={scope}
+                    type="button"
+                    onClick={() => setSearchScope(scope)}
+                    className={`px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors ${
+                      searchScope === scope
+                        ? "bg-slate-700 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    {scope}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="relative flex-1 min-w-[160px] max-w-xs">
@@ -639,7 +676,9 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
             type="text"
             value={nameQuery}
             onChange={e => setNameQuery(e.target.value)}
-            placeholder="Search medicine to add…"
+            placeholder={
+              isGenericNameOnly ? "Search generic/salt name to add…" : "Search medicine to add…"
+            }
             className="input-field !mb-0 flex-1"
           />
           <button

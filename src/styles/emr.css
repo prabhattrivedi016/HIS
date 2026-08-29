@@ -162,16 +162,31 @@
     visibility: hidden;
   }
 
+  /* Chromium mutes CSS background-colors/images when printing unless the browser's own "Background
+     graphics" print-dialog checkbox is on — most doctors won't know to enable it, and without it the
+     section heading bands, accent bars, and alternating row stripes render washed-out. Force them to
+     print at full, designed intensity instead of depending on that dialog setting. */
+  #emr-print-preview-wrapper,
+  #emr-print-preview-wrapper * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   #emr-print-preview-wrapper,
   #emr-print-preview-wrapper * {
     visibility: visible;
   }
 
   #emr-print-preview-wrapper {
+    /* no `width` override here: the page's actual width (210mm/148mm) already comes from
+       .emr-print-page-a4/-a5. Forcing width:100% at print time made this wrapper resolve
+       against the printable area (page width minus @page margins) instead, which is narrower
+       than the 210mm the on-screen preview renders at — so the letterhead <img> (object-contain,
+       fills this wrapper) scaled differently in the real printout than in the preview, throwing
+       off letterheadTopOffset (fine on screen, insufficient once actually printed). */
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
   }
 
   .emr-print-no-print {
@@ -180,6 +195,35 @@
 
   .emr-print-section {
     break-inside: avoid;
+  }
+
+  /* When printed content (diagnosis/procedure/medication sections etc.) runs longer than one
+     physical page, #emr-print-preview-wrapper grows taller than a single page to hold it all.
+     The letterhead <img> is sized to that wrapper (w-full h-full), so as a plain `absolute` box
+     it stretched to the wrapper's full multi-page height — meaning its header art landed correctly
+     on page 1, but its footer art (baked into the bottom of the same image) ended up wherever the
+     wrapper happened to end, sliced by the page break instead of sitting on that page's own bottom
+     edge, and no header/footer appeared on page 2+ at all. `position: fixed` in print re-anchors
+     to each physical page individually and repeats there, so every page gets its own correctly
+     bounded copy of the full letterhead template (header top, footer bottom) regardless of how
+     many pages the content spans. */
+  .emr-print-letterhead {
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  /* safety net: printing (unlike screen) has no scrollbar to fall back on — any element that
+     ends up wider than the page (a many-column table, a long unbroken value, ...) gets silently
+     clipped at the page edge instead of wrapping. Force everything printed to respect the page's
+     own width and let text wrap rather than push content past the edge. */
+  #emr-print-preview-wrapper * {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  #emr-print-preview-wrapper table {
+    table-layout: fixed;
+    width: 100%;
   }
 }
 
