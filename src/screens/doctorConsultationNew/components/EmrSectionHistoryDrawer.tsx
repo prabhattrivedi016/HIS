@@ -1,6 +1,7 @@
 import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { useEmrSectionHistoryStore } from "@/store/useEmrSectionHistoryStore";
-import { History as HistoryIcon, ListChecks, Loader2 } from "lucide-react";
+import { showSuccess } from "@/utils/alert";
+import { Copy, History as HistoryIcon, ListChecks, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { usePatientVisitHistory } from "../hooks/usePatientVisitHistory";
 import { EmrSectionVisitSnapshotEntry } from "../types";
@@ -76,7 +77,12 @@ const EmrSectionHistoryDrawer = ({
   // Save-triggered logEdit actually re-renders this drawer instead of only showing up after it's
   // closed and reopened
   const editLogRaw = useEmrSectionHistoryStore(s => s.editLog);
-  const { isLoading: isHistoryLoading, getSectionRows } = usePatientVisitHistory(patientId);
+  const {
+    isLoading: isHistoryLoading,
+    getSectionRows,
+    visits,
+  } = usePatientVisitHistory(patientId);
+  const [copyVisitId, setCopyVisitId] = useState<number | "">("");
 
   useEffect(() => {
     if (isOpen) setSelectedSectionId(initialSectionId);
@@ -103,6 +109,45 @@ const EmrSectionHistoryDrawer = ({
     onDataChange(prev =>
       applySnapshotToSectionData(prev, selectedSectionId, selectedHeaders, values)
     );
+  };
+
+  // bulk version of the above — copies EVERY section a past visit touched, not just whichever
+  // one is currently selected. Mirrors ConsultationEmrSections' handleApplyCarePlan (same
+  // per-section applySnapshotToSectionData loop over one setData call), just fed from a past
+  // visit's rows instead of a care plan's.
+  const handleCopyWholeVisit = () => {
+    if (copyVisitId === "") return;
+    const visit = visits.find(v => v.visitId === copyVisitId);
+    if (!visit) return;
+    if (
+      !window.confirm(
+        `Copy ALL sections' data from ${formatDateTime(visit.recordedOn)} into the current visit? This will overwrite any data already entered in those sections.`
+      )
+    ) {
+      return;
+    }
+
+    const rowsBySectionId = new Map<number, EmrSectionVisitSnapshotEntry["values"]>();
+    visit.rows.forEach(row => {
+      let value: unknown;
+      try {
+        value = JSON.parse(row.HeaderValue);
+      } catch {
+        value = row.HeaderValue;
+      }
+      const bucket = rowsBySectionId.get(row.SectionId) ?? [];
+      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      rowsBySectionId.set(row.SectionId, bucket);
+    });
+
+    onDataChange(prev => {
+      let next = prev;
+      rowsBySectionId.forEach((values, sectionId) => {
+        next = applySnapshotToSectionData(next, sectionId, headersBySection[sectionId] ?? [], values);
+      });
+      return next;
+    });
+    showSuccess(`Copied ${rowsBySectionId.size} section(s) from ${formatDateTime(visit.recordedOn)}`);
   };
 
   if (!isOpen) return null;
@@ -142,6 +187,37 @@ const EmrSectionHistoryDrawer = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Copy whole visit — bulk version of the per-section "Copy to Current" below; applies
+              to every section a past visit touched at once, so it doesn't depend on which section
+              is currently selected above */}
+          <div className="emr-modal-toolbar flex items-center gap-2 px-5 py-2.5 border-b shrink-0 bg-slate-50/60">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+              Copy whole visit
+            </span>
+            <select
+              className="emr-modal-select input-field !mb-0 !py-1.5 text-xs flex-1"
+              value={copyVisitId}
+              onChange={e => setCopyVisitId(e.target.value === "" ? "" : Number(e.target.value))}
+              disabled={visits.length === 0}
+            >
+              <option value="">Select a past visit…</option>
+              {visits.map(v => (
+                <option key={v.visitId} value={v.visitId}>
+                  {formatDateTime(v.recordedOn)} — Dr. {v.doctorName || "—"}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleCopyWholeVisit}
+              disabled={copyVisitId === ""}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0B5394] border border-[#0B5394]/30 rounded-md px-2.5 py-1.5 hover:bg-[#0B5394]/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors shrink-0"
+            >
+              <Copy size={13} />
+              Copy Whole Visit
+            </button>
           </div>
 
           {/* Tabs */}

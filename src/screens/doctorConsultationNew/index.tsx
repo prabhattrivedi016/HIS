@@ -437,18 +437,6 @@ const DoctorConsultationNew = () => {
     vitalMasterList.map((v: VitalMasterItem) => [v.vitalName, v.unitName])
   );
 
-  // matches the real backend contract (api/EMR/savePatientConsultation) — one flat row per EMR
-  // header, headerValue always a JSON string (JSON.stringify'd regardless of the underlying
-  // value's own type, so the backend can uniformly JSON.parse it back on load rather than having
-  // to guess whether a given headerValue is raw text or JSON-encoded text). dataId 0 means "new
-  // row, let the backend assign one" — GET_DOCTOR_CONSULTATION_BY_VISIT_ID returns each header's
-  // real dataId once saved, for a proper upsert on the next save.
-  //
-  // allergy/uploaded documents don't fit this contract (it's per-EMR-header only, no
-  // attribute-type concept) — they aren't sent here. Allergy is saved separately via
-  // saveAllergyDetails() (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS, one row per record) as a gate
-  // before handleFinalSave calls SAVE_PATIENT_CONSULTATION. Vitals DO fit — they ride along in the
-  // same call as the payload's own patientVitalValue array (see below), not consultationHeadersData.
   const consultationPayload: PatientConsultationPayload | null = useMemo(() => {
     if (!selectedPatient) return null;
 
@@ -491,11 +479,7 @@ const DoctorConsultationNew = () => {
         visitId: selectedPatient.VisitId,
         visitTypeId: selectedPatient.TypeId,
         isFileClosed: 0,
-        // 0 for a visit with no vitals saved yet (insert); otherwise the id loadVitalsForPatient
-        // captured off this visit's existing saved vitals (upsert)
         patientVitalId: savedPatientVitalId,
-        // placeholder — handleFinalSave overwrites this with the actual save-time timestamp, the
-        // same way it overwrites isFileClosed; this memo only shapes the data, not when it's sent
         vitalDateTime: "",
       },
       consultationHeadersData,
@@ -509,11 +493,6 @@ const DoctorConsultationNew = () => {
     savedPatientVitalId,
   ]);
 
-  // Allergy has its own save endpoint (CREATE_UPDATE_PATIENT_ALLERGY_DETAILS), one row per
-  // allergy record — it doesn't fit SAVE_PATIENT_CONSULTATION's flat EMR-header contract, so it
-  // must be persisted separately before the final save. `id` is only sent for a record already
-  // persisted (loaded from GET_PATIENT_ALLERGY_DETAIL_LIST, or saved earlier this session); a
-  // record added in this session but never saved sends id 0 so the backend inserts it.
   const saveAllergyDetails = async (): Promise<boolean> => {
     if (!selectedPatient || !allergySection || allergySection.records.length === 0) {
       return true;
@@ -566,7 +545,6 @@ const DoctorConsultationNew = () => {
 
     const isAllergySaved = await saveAllergyDetails();
     if (!isAllergySaved) return;
-
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_PATIENT_CONSULTATION,

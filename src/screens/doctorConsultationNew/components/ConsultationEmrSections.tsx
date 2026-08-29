@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
+  Copy,
   Eye,
   FlaskConical,
   LayoutTemplate,
@@ -880,6 +881,21 @@ const ConsultationEmrSections = ({
           >
             <ClipboardCheck size={13} className="shrink-0" />
             <span>Care Plan</span>
+          </button>
+
+          {/* Copy to Current (whole visit) — opens the History drawer straight to its "Copy whole
+              visit" row, so a doctor doesn't have to first open History from a specific section
+              just to reach a feature that isn't section-scoped. historySectionId only decides
+              which section the drawer's "Section" switcher starts on (any valid one works, since
+              the whole-visit copy doesn't depend on it) — see EmrSectionHistoryDrawer.tsx. */}
+          <button
+            type="button"
+            onClick={() => setHistorySectionId(mappedSections[0]?.sectionId ?? 0)}
+            className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-md text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-white hover:text-[#0B5394] hover:border-blue-200 transition-colors shrink-0"
+            title="Copy a whole past visit's data into this visit"
+          >
+            <Copy size={13} className="shrink-0" />
+            <span>Copy to Current</span>
           </button>
         </div>
 

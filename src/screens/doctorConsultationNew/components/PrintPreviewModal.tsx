@@ -87,14 +87,30 @@ const FONT_SIZE_CLASS: Record<PrintSettings["fontSize"], string> = {
   lg: "text-[14px]",
 };
 
-/** v.recordedOn is ISO yyyy-mm-dd (usePatientVisitHistory) — displayed as dd-mm-yyyy to match the
- * rest of this screen's date formatting (PreviousSectionVisitsStrip's formatTabDate) */
+/** v.recordedOn (usePatientVisitHistory) is ISO yyyy-mm-dd when a visit has no saved rows yet, or
+ * a full ISO datetime (from a saved row's real CreatedOn) once it does — displayed as dd-mm-yyyy
+ * to match the rest of this screen's date formatting (PreviousSectionVisitsStrip's formatTabDate).
+ * Either way `new Date(...)` parses it fine; this just never reads the time portion. */
 const formatVisitDate = (isoDate: string): string => {
   const d = new Date(isoDate);
   if (Number.isNaN(d.getTime())) return isoDate;
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   return `${day}-${month}-${d.getFullYear()}`;
+};
+
+/** same as formatVisitDate but also renders the time — only used for the Template print variant's
+ * Visit picker (per explicit request: date+time there, date-only everywhere else) now that a
+ * saved row's real CreatedOn timestamp makes that meaningful. A visit with no saved rows yet still
+ * only has the date-only fallback (no "T" in the string) — showing a time for that would just be a
+ * fake midnight, so this only appends one when there's a real timestamp to show. */
+const formatVisitDateTime = (isoDate: string): string => {
+  const datePart = formatVisitDate(isoDate);
+  if (!isoDate.includes("T")) return datePart;
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return datePart;
+  const timePart = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `${datePart} ${timePart}`;
 };
 
 const formatEntryValue = (value: unknown): ReactNode => {
@@ -344,6 +360,8 @@ const PrintPreviewModal = ({
           controlType: "",
           controlTypeId: r.ControlTypeId,
           value,
+          dataId: r.DataId,
+          createdOn: r.CreatedOn,
         };
       });
   }, [
@@ -610,9 +628,71 @@ const PrintPreviewModal = ({
     }
   };
 
-  const visibleSections = groupedSections.filter(
-    g => !settings.excludedSectionIds.includes(g.sectionId)
-  );
+  const visibleSections = groupedSections
+    .filter(g => !settings.excludedSectionIds.includes(g.sectionId))
+    .map(g => ({
+      ...g,
+      // dataId is only ever set on a past-visit entry (see printEmrSectionsData) — a live/current
+      // entry has no dataId yet and is never excludable here
+      entries: g.entries.filter(
+        e => e.dataId == null || !settings.excludedDataIds.includes(e.dataId)
+      ),
+    }));
+
+  // headerId -> how many of THIS visible entry set share it — only a multi-entry template's
+  // header can be > 1 within one visit; drives both the duplicate-entry time label below and the
+  // "which duplicate to exclude" sidebar checklist
+  const headerCountsBySection = new Map<number, Map<number, number>>();
+  visibleSections.forEach(g => {
+    const counts = new Map<number, number>();
+    g.entries.forEach(e => counts.set(e.headerId, (counts.get(e.headerId) ?? 0) + 1));
+    headerCountsBySection.set(g.sectionId, counts);
+  });
+  // one group per (section, header) that has more than one entry — each becomes its own
+  // "Timespan" dropdown in the sidebar, letting a doctor pick exactly one of that day's several
+  // timed fillings to print instead of printing all of them
+  const duplicateGroups = visibleSections.flatMap(g => {
+    const counts = headerCountsBySection.get(g.sectionId);
+    const seen = new Set<number>();
+    return g.entries
+      .filter(e => (counts?.get(e.headerId) ?? 0) > 1)
+      .filter(e => (seen.has(e.headerId) ? false : (seen.add(e.headerId), true)))
+      .map(e => ({
+        sectionId: g.sectionId,
+        headerId: e.headerId,
+        headerName: e.headerName,
+        entries: g.entries.filter(x => x.headerId === e.headerId),
+      }));
+  });
+
+  const formatEntryTime = (iso?: string): string => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+      ? ""
+      : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // "all" (the default — print every timed entry for this header) or one specific dataId (print
+  // only that one), derived from which of the group's dataIds are currently NOT excluded
+  const selectedTimespanFor = (group: { entries: { dataId?: number }[] }): "all" | number => {
+    const visible = group.entries.filter(
+      e => e.dataId != null && !settings.excludedDataIds.includes(e.dataId)
+    );
+    return visible.length === 1 && visible[0].dataId != null ? visible[0].dataId : "all";
+  };
+
+  const chooseTimespan = (
+    group: { entries: { dataId?: number }[] },
+    choice: "all" | number
+  ) => {
+    const groupIds = group.entries.map(e => e.dataId).filter((id): id is number => id != null);
+    setSettings(prev => {
+      const withoutGroup = prev.excludedDataIds.filter(id => !groupIds.includes(id));
+      const toExclude = choice === "all" ? [] : groupIds.filter(id => id !== choice);
+      return { ...prev, excludedDataIds: [...withoutGroup, ...toExclude] };
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -660,7 +740,9 @@ const PrintPreviewModal = ({
                 <option value="current">Current (unsaved) visit</option>
                 {pastVisits.map(v => (
                   <option key={v.visitId} value={v.visitId}>
-                    {formatVisitDate(v.recordedOn)} — Dr. {v.doctorName || "—"}
+                    {isTemplateVariant ? formatVisitDateTime(v.recordedOn) : formatVisitDate(v.recordedOn)}
+                    {" — Dr. "}
+                    {v.doctorName || "—"}
                   </option>
                 ))}
               </select>
@@ -815,6 +897,45 @@ const PrintPreviewModal = ({
                 })}
               </div>
             </div>
+
+            {/* only shows up when the selected visit actually has a header with more than one
+                saved row — structurally only possible for a multi-entry template's header, since
+                an ordinary header always upserts. One "Timespan" dropdown per such header, so a
+                doctor can print just one of that day's timed fillings instead of always all of
+                them — defaults to "All", matching what always printed before this existed. */}
+            {duplicateGroups.length > 0 && (
+              <div className="shrink-0 flex flex-col gap-3 mt-1 pt-3 border-t border-slate-200">
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Timespan
+                </p>
+                {duplicateGroups.map(group => {
+                  const selected = selectedTimespanFor(group);
+                  return (
+                    <div key={`${group.sectionId}-${group.headerId}`}>
+                      <p className="text-[11px] text-slate-500 mb-1 truncate">{group.headerName}</p>
+                      <select
+                        className="input-field !mb-0 w-full !py-1.5 text-xs"
+                        value={String(selected)}
+                        onChange={e => {
+                          const v = e.target.value;
+                          chooseTimespan(group, v === "all" ? "all" : Number(v));
+                        }}
+                      >
+                        <option value="all">All ({group.entries.length})</option>
+                        {group.entries.map(
+                          e =>
+                            e.dataId != null && (
+                              <option key={e.dataId} value={e.dataId}>
+                                {formatEntryTime(e.createdOn)}
+                              </option>
+                            )
+                        )}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {!isTemplateVariant && (
@@ -953,7 +1074,9 @@ const PrintPreviewModal = ({
                           <span className="text-slate-500 font-medium">Visit</span>
                           <span className="text-slate-700 min-w-0 break-words">
                             {selectedPastVisit
-                              ? formatVisitDate(selectedPastVisit.recordedOn)
+                              ? isTemplateVariant
+                                ? formatVisitDateTime(selectedPastVisit.recordedOn)
+                                : formatVisitDate(selectedPastVisit.recordedOn)
                               : `${patient?.TypeName || "-"} · ${patient?.AppDateTime || "-"}`}
                           </span>
                           {patient?.BedNo && (
@@ -1084,25 +1207,35 @@ const PrintPreviewModal = ({
                     >
                       <PrintSectionHeading>{group.sectionName}</PrintSectionHeading>
                       <div className="grid grid-cols-1">
-                        {group.entries.map((entry, entryIdx) => (
-                          <div
-                            key={entry.headerId}
-                            className={`grid grid-cols-[minmax(120px,180px)_1fr] gap-3 px-3 py-1.5 min-w-0 ${
-                              entryIdx % 2 === 1 ? "bg-slate-50/70" : ""
-                            }`}
-                          >
-                            <span className="font-semibold text-slate-600 min-w-0">
-                              {entry.headerName}
-                            </span>
-                            {/* min-w-0 is load-bearing here — a CSS grid's 1fr track otherwise
-                              refuses to shrink below its content's natural min-width (e.g. a wide
-                              table's columns), which pushes the whole row past the page edge in
-                              print instead of wrapping within it */}
-                            <span className="text-slate-700 min-w-0 overflow-hidden">
-                              {formatEntryValue(entry.value)}
-                            </span>
-                          </div>
-                        ))}
+                        {group.entries.map((entry, entryIdx) => {
+                          const isDuplicateHeader =
+                            (headerCountsBySection.get(group.sectionId)?.get(entry.headerId) ??
+                              0) > 1;
+                          return (
+                            <div
+                              key={entry.dataId ?? entryIdx}
+                              className={`grid grid-cols-[minmax(120px,180px)_1fr] gap-3 px-3 py-1.5 min-w-0 ${
+                                entryIdx % 2 === 1 ? "bg-slate-50/70" : ""
+                              }`}
+                            >
+                              <span className="font-semibold text-slate-600 min-w-0">
+                                {entry.headerName}
+                                {isDuplicateHeader && (
+                                  <span className="ml-1.5 font-normal text-slate-400">
+                                    {formatEntryTime(entry.createdOn)}
+                                  </span>
+                                )}
+                              </span>
+                              {/* min-w-0 is load-bearing here — a CSS grid's 1fr track otherwise
+                                refuses to shrink below its content's natural min-width (e.g. a
+                                wide table's columns), which pushes the whole row past the page
+                                edge in print instead of wrapping within it */}
+                              <span className="text-slate-700 min-w-0 overflow-hidden">
+                                {formatEntryValue(entry.value)}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}

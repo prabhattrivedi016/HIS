@@ -10,6 +10,11 @@ export interface PrintSettings {
   paperSize: "A4" | "A5";
   fontSize: "sm" | "md" | "lg";
   excludedSectionIds: number[];
+  /** dataIds to leave out of a past-visit print — only meaningful when a multi-entry template
+   * produced more than one saved row for the same header within one visit (an ordinary header is
+   * always upserted, so this never applies to it); lets a doctor print just one of those entries
+   * instead of always all of them. */
+  excludedDataIds: number[];
   /** px of top padding reserved above the content when the letterhead renders as a full-page
    * background — every hospital's letterhead image has a differently-sized header (logo/seal/
    * tagline), so this can't be inferred from code; it's a doctor/branch-tunable knob instead of a
@@ -28,6 +33,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   paperSize: "A4",
   fontSize: "md",
   excludedSectionIds: [],
+  excludedDataIds: [],
   letterheadTopOffset: 65,
   updatedOn: "",
 };

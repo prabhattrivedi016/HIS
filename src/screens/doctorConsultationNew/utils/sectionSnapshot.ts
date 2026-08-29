@@ -165,6 +165,8 @@ export const buildVisitSnapshots = (
           headerName: headerNameById.get(r.HeaderId) ?? "",
           controlType: controlTypeById.get(r.HeaderId) ?? "",
           value,
+          dataId: r.DataId,
+          createdOn: r.CreatedOn,
         };
       }),
   }));
