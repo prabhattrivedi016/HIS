@@ -1,25 +1,42 @@
+import BillingDetails from "@/components/BillingDetails";
+import { BillingDetailsHandle, BillingValuesItem } from "@/components/BillingDetails/types";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
+import CommentIconButton from "@/components/globalButtons/CommentIconButton";
+import ViewIconButton from "@/components/globalButtons/ViewIconButton";
 import InputFieldModal from "@/components/inputFieldModal";
 import { ENDPOINTS } from "@/config/defaults";
-import { OpdBillingServiceTableHeader } from "@/constants/tableHeaders";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { SelectItem } from "@/types";
+import { showError, showSuccess } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Select from "react-select";
 import {
   CategoryItem,
   DoctorItem,
   IpdPatientItem,
   ServiceItemList,
+  ServiceTableItem,
   SubCategoryItem,
   SubSubCategoryItem,
 } from "../types";
+import RemarkPopup from "./RemarkPopup";
+import SeparateBillButton from "./SeparateBillButton";
+import ServiceViewPopup from "./ServiceViewDetails";
 
 const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const roleId = useContext(RoleContext)?.roleId ?? 0;
+
+  const { rights: branchRights } = useAssignBranchRight();
+  const isIPDCaseBilling = Number(branchRights?.IsIPDCaseBillingRequired);
+  const isPerformingDoctor = Number(branchRights?.IsPerformingDoctorEnabled);
+  console.log("isPerformingDoctor", isPerformingDoctor);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number>(0);
@@ -35,7 +52,53 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [serviceNameList, setServiceNameList] = useState<ServiceItemList[]>([]);
   const [showPopup, setShowPopup] = useState<boolean>(false);
   const [activeServiceIndex, setActiveServiceIndex] = useState<number>(0);
-  const [serviceDataTableItem, setServiceDataTableItem] = useState<any[]>([]);
+  const [serviceDataTableItem, setServiceDataTableItem] = useState<ServiceTableItem[]>([]);
+
+  const [selectedDoctor, setSelectedDoctor] = useState<SelectItem | null>(null);
+
+  const [openPopup, setOpenPopup] = useState<boolean>(false);
+  const [renderPopup, setRenderPopup] = useState<boolean>(false);
+
+  const [openShowRemarkPopup, setOpenShowRemarkPopup] = useState<boolean>(false);
+  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
+  const [selectedServiceRemark, setSelectedServiceRemark] = useState<ServiceTableItem | null>(null);
+  const [selectedRemarkIndex, setSelectedRemarkIndex] = useState<number | null>(null);
+
+  const [showBillingDetailsForm, setShowBillingDetailsForm] = useState<boolean>(false);
+  const billingDetailsRef = useRef<BillingDetailsHandle>(null);
+  const [billingValues, setBillingValues] = useState<BillingValuesItem>({
+    grossBillAmount: 0,
+    totalDiscPerOnBill: 0,
+    totalDiscAmtOnBill: 0,
+    roundOff: 0,
+    netAmount: 0,
+    balanceAmount: 0,
+    discApprovedById: 0,
+    discApprovedName: "",
+    discountReason: "",
+    remarks: "",
+  });
+
+  const billingPaymentDetails = useMemo(() => {
+    const grossBillAmount = serviceDataTableItem.reduce(
+      (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
+      0
+    );
+    const totalDiscAmtOnBill = serviceDataTableItem.reduce((sum, item) => sum + (item.dis ?? 0), 0);
+    const totalDiscPerOnBill =
+      grossBillAmount > 0 ? (totalDiscAmtOnBill / grossBillAmount) * 100 : 0;
+    const netAmount = Math.round(grossBillAmount - totalDiscAmtOnBill);
+
+    return {
+      grossBillAmount,
+      totalDiscPerOnBill,
+      totalDiscAmtOnBill,
+      netAmount,
+    };
+  }, [serviceDataTableItem]);
+
+  const [renderServiceViewPopup, setRenderServiceViewPopup] = useState<boolean>(false);
+  const [openServiceViewPopup, setServiceViewPopup] = useState<boolean>(false);
 
   //   doctor
   const getDoctorByBranchId = async () => {
@@ -62,13 +125,161 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     }));
   }, [doctorLists]);
 
+  useEffect(() => {
+    if (patient && doctorSelectOption) {
+      const defaultDoc = doctorSelectOption?.find(
+        (doc: SelectItem) => Number(doc?.value) === Number(patient.PrimaryDoctorId)
+      );
+
+      setSelectedDoctor(defaultDoc);
+    } else {
+      setSelectedDoctor(null);
+    }
+  }, [patient?.PrimaryDoctorId, doctorSelectOption, doctorLists]);
+
+  const handleDoctorChange = (option: { value: number; label: string } | null) => {
+    setSelectedDoctor(option);
+  };
+
+  const getPerformingDoctorOptions = (doctorDepartmentIds?: string) => {
+    if (!doctorLists) return [];
+    if (!doctorDepartmentIds || !doctorDepartmentIds.trim()) {
+      return doctorLists.map((doc: DoctorItem) => ({
+        value: doc.doctorId,
+        label: doc.name,
+      }));
+    }
+    const deptIds = doctorDepartmentIds.split(",").map(id => Number(id.trim()));
+    const filtered = doctorLists.filter((doc: DoctorItem) =>
+      deptIds.includes(Number(doc.departmentId))
+    );
+    return filtered.map((doc: DoctorItem) => ({
+      value: doc.doctorId,
+      label: doc.name,
+    }));
+  };
+
+  const performingDoctorChangeHandler = (rowIndex: number, doctorId: number) => {
+    const selectedDoc = doctorLists?.find(
+      (doc: DoctorItem) => Number(doc.doctorId) === Number(doctorId)
+    );
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) =>
+        index === rowIndex
+          ? {
+              ...item,
+              performingDoctorId: doctorId,
+              performingDoctorName: selectedDoc ? selectedDoc.name : "",
+            }
+          : item
+      )
+    );
+  };
+
+  const urgentChangeHandler = (rowIndex: number, checked: boolean) => {
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) =>
+        index === rowIndex ? { ...item, isUrgent: checked ? 1 : 0 } : item
+      )
+    );
+  };
+
+  const qtyChangeHandler = (rowIndex: number, val: string) => {
+    const value = Math.max(1, Number(val) || 0);
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) => {
+        if (index === rowIndex) {
+          const rate = item.rate ?? 0;
+          const discountPer = item.discountPer ?? 0;
+          const grossAmt = rate * value;
+          const dis = grossAmt * (discountPer / 100);
+          const netAmount = grossAmt - dis;
+          return {
+            ...item,
+            qty: value,
+            dis: Number(dis.toFixed(2)),
+            netAmount: Number(netAmount.toFixed(2)),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const rateChangeHandler = (rowIndex: number, val: string) => {
+    const value = Math.max(0, Number(val) || 0);
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) => {
+        if (index === rowIndex) {
+          const qty = item.qty ?? 1;
+          const discountPer = item.discountPer ?? 0;
+          const grossAmt = value * qty;
+          const dis = grossAmt * (discountPer / 100);
+          const netAmount = grossAmt - dis;
+          return {
+            ...item,
+            rate: value,
+            dis: Number(dis.toFixed(2)),
+            netAmount: Number(netAmount.toFixed(2)),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const discountPercentageChangeHandler = (rowIndex: number, val: string) => {
+    const discountPer = Math.min(100, Math.max(0, Number(val) || 0));
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) => {
+        if (index === rowIndex) {
+          const qty = item.qty ?? 1;
+          const rate = item.rate ?? 0;
+          const grossAmt = rate * qty;
+          const dis = grossAmt * (discountPer / 100);
+          const netAmount = grossAmt - dis;
+          return {
+            ...item,
+            discountPer,
+            dis: Number(dis.toFixed(2)),
+            netAmount: Number(netAmount.toFixed(2)),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const discountChangeHandler = (rowIndex: number, val: string) => {
+    const dis = Math.max(0, Number(val) || 0);
+    setServiceDataTableItem(prev =>
+      prev.map((item, index) => {
+        if (index === rowIndex) {
+          const qty = item.qty ?? 1;
+          const rate = item.rate ?? 0;
+          const grossAmt = rate * qty;
+          const finalDis = Math.min(grossAmt, dis);
+          const discountPer = grossAmt > 0 ? (finalDis / grossAmt) * 100 : 0;
+          const netAmount = grossAmt - finalDis;
+          return {
+            ...item,
+            discountPer: Number(discountPer.toFixed(2)),
+            dis: Number(finalDis.toFixed(2)),
+            netAmount: Number(netAmount.toFixed(2)),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
   //   category lists
   const getCategoryLists = async () => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryTypeIds: "1,3,4,5,8,9,10,11,12" } },
+      { params: { categoryTypeIds: "1,3,4,5,8,10" } },
       { component: "IpdBillingComponent" }
     );
     return resp?.data ?? [];
@@ -252,6 +463,34 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       return;
     }
 
+    const getDatesInRange = (fromStr: string, toStr: string) => {
+      if (fromStr === toStr) {
+        const parts = fromStr.split("-");
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return [`${day}/${month}/${year}`];
+        }
+        return [fromStr];
+      }
+
+      const dates: string[] = [];
+      const current = new Date(fromStr);
+      const end = new Date(toStr);
+      current.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      while (current <= end) {
+        const day = String(current.getDate()).padStart(2, "0");
+        const month = String(current.getMonth() + 1).padStart(2, "0");
+        const year = current.getFullYear();
+        dates.push(`${day}/${month}/${year}`);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    };
+
+    const datesList = getDatesInRange(fromDate, toDate);
+
     try {
       const resp = await fetchApi(
         "GET",
@@ -261,7 +500,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           params: {
             branchId: patient?.BranchId,
             corporateId: patient?.CorporateId || 0,
-            doctorId: patient?.PrimaryDoctorId || 0,
+            doctorId: selectedDoctor?.value || patient?.PrimaryDoctorId || 0,
             serviceItemId: item?.serviceItemId,
             categoryId: item?.categoryId,
             subCategoryId: item?.subCategoryId,
@@ -274,7 +513,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
       if (resp?.data) {
         const data = resp.data;
-        const newRow = {
+        const newRows = datesList.map(dateText => ({
           rate: Number(data.rate ?? 0),
           rateListId: Number(data.rateListId ?? 0),
           isRateEditable: Number(data.isRateEditable ?? 0),
@@ -298,17 +537,21 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           reportTypeId: Number(data.reportTypeId ?? 0),
           doctorDepartmentIds: data.doctorDepartmentIds || "",
           isRequiredSeparatePerformingDoctor: Number(data.isRequiredSeparatePerformingDoctor ?? 0),
-          doctorId: Number(patient?.PrimaryDoctorId || 0),
-          doctorName: patient?.PrimaryDoctor || "",
+          doctorId: Number(selectedDoctor?.value || patient?.PrimaryDoctorId || 0),
+          doctorName: selectedDoctor?.label || patient?.PrimaryDoctor || "",
+          performingDoctorId: 0,
+          performingDoctorName: "",
           qty: 1,
           dis: 0,
           netAmount: Number(data.rate ?? 0),
           isUrgent: 0,
           isUnderPackage: 0,
           remarks: "",
-        };
+          Billing: dateText,
+          labTypeId: item?.labTypeId,
+        }));
 
-        setServiceDataTableItem(prev => [...prev, newRow]);
+        setServiceDataTableItem(prev => [...prev, ...newRows]);
       }
     } catch (error) {
       console.error("Failed to load service details:", error);
@@ -319,6 +562,393 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setServiceDataTableItem(prev => prev.filter((_, i) => i !== index));
   };
 
+  const minDate = useMemo(() => {
+    if (!patient?.AdmissionDate) return undefined;
+    const clean = patient.AdmissionDate.replace(/\//g, "-");
+    const parts = clean.split("-");
+    if (parts.length >= 3) {
+      const [day, month, year] = parts;
+      const cleanYear = year.split(" ")[0];
+      const monthMap: Record<string, string> = {
+        jan: "01",
+        feb: "02",
+        mar: "03",
+        apr: "04",
+        may: "05",
+        jun: "06",
+        jul: "07",
+        aug: "08",
+        sep: "09",
+        oct: "10",
+        nov: "11",
+        dec: "12",
+      };
+      const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
+      return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
+    }
+    return undefined;
+  }, [patient?.AdmissionDate]);
+
+  const maxDate = useMemo(() => {
+    if (
+      !patient?.DischargeDate ||
+      patient.DischargeDate === "--" ||
+      patient.DischargeDate === "null"
+    )
+      return undefined;
+    const clean = patient.DischargeDate.replace(/\//g, "-");
+    const parts = clean.split("-");
+    if (parts.length >= 3) {
+      const [day, month, year] = parts;
+      const cleanYear = year.split(" ")[0];
+      const monthMap: Record<string, string> = {
+        jan: "01",
+        feb: "02",
+        mar: "03",
+        apr: "04",
+        may: "05",
+        jun: "06",
+        jul: "07",
+        aug: "08",
+        sep: "09",
+        oct: "10",
+        nov: "11",
+        dec: "12",
+      };
+      const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
+      return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
+    }
+    return undefined;
+  }, [patient?.DischargeDate]);
+
+  useEffect(() => {
+    if (minDate) {
+      setFromDate(minDate);
+      setToDate(maxDate || currentDate);
+    } else {
+      setFromDate(currentDate);
+      setToDate(currentDate);
+    }
+  }, [minDate, maxDate, currentDate]);
+
+  const handleFromDateChange = (date: string) => {
+    let finalDate = date;
+    if (minDate && date < minDate) {
+      finalDate = minDate;
+    }
+    if (maxDate && date > maxDate) {
+      finalDate = maxDate;
+    }
+    setFromDate(finalDate);
+  };
+
+  const handleToDateChange = (date: string) => {
+    let finalDate = date;
+    const effectiveMin = fromDate || minDate;
+    if (effectiveMin && date < effectiveMin) {
+      finalDate = effectiveMin;
+    }
+    if (maxDate && date > maxDate) {
+      finalDate = maxDate;
+    }
+    setToDate(finalDate);
+  };
+
+  // create paylaod
+  const buildCompletePayload = (paymentType: "savePayload" | "generateSeparateBill") => {
+    const grossBillAmount = serviceDataTableItem.reduce(
+      (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
+      0
+    );
+    const totalDiscAmtOnBill = serviceDataTableItem.reduce((sum, item) => sum + (item.dis ?? 0), 0);
+    const totalDiscPerOnBill =
+      grossBillAmount > 0 ? (totalDiscAmtOnBill / grossBillAmount) * 100 : 0;
+
+    const totalNet = grossBillAmount - totalDiscAmtOnBill;
+    const roundedNet = Math.round(totalNet);
+    const roundOff = roundedNet - totalNet;
+
+    const visitDetails = {
+      patientId: Number(patient?.PatientId) || 0,
+      branchId: Number(patient?.BranchId) || 0,
+      roleId: roleId,
+      visitId: Number(patient?.VisitId) || 0,
+      corporateId: Number(patient?.CorporateId) || 0,
+      grossBillAmount: Number(grossBillAmount.toFixed(2)),
+      totalDiscPerOnBill: Number(totalDiscPerOnBill.toFixed(2)),
+      totalDiscAmtOnBill: Number(totalDiscAmtOnBill.toFixed(2)),
+      roundOff: Number(roundOff.toFixed(2)),
+      netAmount: roundedNet,
+      discApprovedById: 0,
+      discountReason: "",
+      remarks: patient?.Remarks || "",
+      uniqueId: "",
+      isSupplementaryBill: 1,
+    };
+
+    const billingItems = serviceDataTableItem.map((item: ServiceTableItem) => {
+      const grossAmt = (item.qty ?? 1) * (item.rate ?? 0);
+      return {
+        serviceItemId: item.serviceItemId,
+        subSubCategoryId: item?.subSubCategoryId,
+        subCategoryId: item?.subCategoryId,
+        categoryId: item?.categoryId,
+        categoryTypeId: item?.categoryTypeId,
+        labTypeId: item?.labTypeId ?? 0,
+        serviceName: item?.serviceName,
+        code: item?.code,
+        remarks: item?.remarks || "",
+        corporateAlias: item?.corporateAlias || "",
+        corporateCode: item?.corporateCode || "",
+        discountReason: item?.discountReason || "",
+        isNonPayable: item?.isNonPayable ?? 0,
+        rateListId: item?.rateListId ?? 0,
+        doctorId: item?.doctorId ?? 0,
+        performingDoctorId: item?.performingDoctorId ?? 0,
+        qty: item?.qty ?? 1,
+        rate: item?.rate ?? 0,
+        discPer: item?.discountPer ?? 0,
+        discAmt: item?.dis ?? 0,
+        grossAmt: Number(grossAmt.toFixed(2)),
+        netAmt: item?.netAmount ?? grossAmt,
+        isUrgent: item?.isUrgent ?? 0,
+        sampleTypeId: item?.sampleTypeId ?? 0,
+        billingDate: item?.Billing || "",
+      };
+    });
+
+    const paymentDetails =
+      paymentType === "savePayload"
+        ? []
+        : [
+            {
+              paymentModeId: 1, // Cash
+              paymentModeTypeId: 1,
+              amount: roundedNet,
+              isCopaymentReceipt: 0,
+              isPatientAdvanceAmount: 0,
+              bankId: 0,
+              refNo: "",
+              plutusTransactionReferenceID: "",
+              transactionLogId: "",
+            },
+          ];
+
+    return {
+      visitDetails,
+      billingItems,
+      paymentDetails,
+      isBillDiscount: totalDiscAmtOnBill > 0 ? 1 : 0,
+    };
+  };
+
+  const saveSeparateBillHandler = async () => {
+    console.log("saveSeparateBillHandler initiated");
+    try {
+      const isValid = await billingDetailsRef.current?.validateForm?.();
+      console.log("Validation status:", isValid);
+      if (!isValid) {
+        alert("Validation failed! Please verify payment methods and match the net bill amount.");
+        return;
+      }
+
+      const billingPayload = billingDetailsRef.current?.getPayload?.();
+      console.log("Billing details payload:", billingPayload);
+      if (!billingPayload) {
+        alert("Unable to fetch payload from billing details.");
+        return;
+      }
+
+      const grossBillAmount = Number(billingPayload.grossBillAmount ?? 0);
+      const totalDiscAmtOnBill = Number(billingPayload.totalDiscAmtOnBill ?? 0);
+      const totalDiscPerOnBill = Number(billingPayload.totalDiscPerOnBill ?? 0);
+      const netAmount = Number(billingPayload.netAmount ?? 0);
+      const roundOff = Number(billingPayload.roundOff ?? 0);
+
+      const visitDetails = {
+        patientId: Number(patient?.PatientId) || 0,
+        branchId: Number(patient?.BranchId) || 0,
+        roleId: roleId,
+        visitId: Number(patient?.VisitId) || 0,
+        corporateId: Number(patient?.CorporateId) || 0,
+        grossBillAmount: Number(grossBillAmount.toFixed(2)),
+        totalDiscPerOnBill: Number(totalDiscPerOnBill.toFixed(2)),
+        totalDiscAmtOnBill: Number(totalDiscAmtOnBill.toFixed(2)),
+        roundOff: Number(roundOff.toFixed(2)),
+        netAmount: netAmount,
+        discApprovedById: Number(billingPayload.discApprovedById ?? 0),
+        discountReason: String(billingPayload.discountReason ?? ""),
+        remarks: String(billingPayload.remarks || patient?.Remarks || ""),
+        uniqueId: "",
+        isSupplementaryBill: 1,
+      };
+
+      const billingItems = serviceDataTableItem.map((item: ServiceTableItem) => {
+        const grossAmt = (item.qty ?? 1) * (item.rate ?? 0);
+        return {
+          serviceItemId: item.serviceItemId,
+          subSubCategoryId: item?.subSubCategoryId,
+          subCategoryId: item?.subCategoryId,
+          categoryId: item?.categoryId,
+          categoryTypeId: item?.categoryTypeId,
+          labTypeId: item?.labTypeId ?? 0,
+          serviceName: item?.serviceName,
+          code: item?.code,
+          remarks: item?.remarks || "",
+          corporateAlias: item?.corporateAlias || "",
+          corporateCode: item?.corporateCode || "",
+          discountReason: item?.discountReason || "",
+          isNonPayable: item?.isNonPayable ?? 0,
+          rateListId: item?.rateListId ?? 0,
+          doctorId: item?.doctorId ?? 0,
+          performingDoctorId: item?.performingDoctorId ?? 0,
+          qty: item?.qty ?? 1,
+          rate: item?.rate ?? 0,
+          discPer: item?.discountPer ?? 0,
+          discAmt: item?.dis ?? 0,
+          grossAmt: Number(grossAmt.toFixed(2)),
+          netAmt: item?.netAmount ?? grossAmt,
+          isUrgent: item?.isUrgent ?? 0,
+          sampleTypeId: item?.sampleTypeId ?? 0,
+          billingDate: item?.Billing || "",
+        };
+      });
+
+      const paymentsList = Array.isArray(billingPayload.payments) ? billingPayload.payments : [];
+      const paymentDetails = paymentsList.map((payment: any) => ({
+        paymentModeId: Number(payment?.paymentModeId) || 0,
+        paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
+        amount: Number(payment?.amount) || 0,
+        isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
+        isPatientAdvanceAmount: Number(payment?.isPatientAdvanceAmount ?? 0),
+        bankId: Number(payment?.bankId) || 0,
+        refNo: String(payment?.refNo ?? ""),
+        plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
+        transactionLogId: String(payment?.transactionLogId ?? ""),
+      }));
+
+      const payload = {
+        visitDetails,
+        billingItems,
+        paymentDetails,
+        isBillDiscount: totalDiscAmtOnBill > 0 ? 1 : 0,
+      };
+
+      console.log("payload", payload);
+      const resp = await fetchApi(
+        "POST",
+        ENDPOINTS.SAVE_IPD_BILLING,
+        payload,
+        {},
+        { component: "IpdBillingComponent" }
+      );
+      if (!resp?.result) {
+        showError(resp?.message ?? "Error while saving ipd billing");
+        return;
+      }
+      showSuccess(resp?.message ?? "Data saved successfully");
+      setServiceDataTableItem([]);
+    } catch (err) {
+      console.error("Error generating separate bill payload:", err);
+      alert("Error generating payload: " + String(err));
+    }
+  };
+
+  // save button click handler
+  const saveButtonClickHandler = async (value: string) => {
+    switch (value) {
+      case "openPopup": {
+        setOpenPopup(true);
+        setRenderPopup(true);
+        return;
+      }
+      case "savePayload": {
+        const payload = buildCompletePayload("savePayload");
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.SAVE_IPD_BILLING,
+          payload,
+          {},
+          { component: "IpdBillingComponent" }
+        );
+        if (!resp?.result) {
+          showError(resp?.message ?? "Error while saving ipd billing");
+          return;
+        }
+        showSuccess(resp?.message ?? "Data saved successfully");
+        setServiceDataTableItem([]);
+        return;
+      }
+    }
+  };
+
+  // close Button PopupHandler
+  const closeButtonPopupHandler = useCallback(() => {
+    setOpenPopup(false);
+    setRenderPopup(false);
+  }, []);
+
+  // generate bill button handler
+  const generateBillButtonHandler = async (value: string) => {
+    console.log("value", value);
+    switch (value) {
+      case "generateSeparateBill": {
+        setShowBillingDetailsForm(true);
+        setOpenPopup(false);
+        setRenderPopup(false);
+        return;
+      }
+      case "addInMainBill": {
+        const payload = buildCompletePayload("savePayload");
+        console.log("payload", payload);
+
+        setOpenPopup(false);
+        setRenderPopup(false);
+        const resp = await fetchApi(
+          "POST",
+          ENDPOINTS.SAVE_IPD_BILLING,
+          payload,
+          {},
+          { component: "IpdBillingComponent" }
+        );
+        if (!resp?.result) {
+          showError(resp?.message ?? "Error while saving ipd billing");
+          return;
+        }
+        showSuccess(resp?.message ?? "Data saved successfully");
+        setServiceDataTableItem([]);
+        return;
+      }
+    }
+  };
+
+  // show remark popup handler
+  const showRemarksPopupHandler = (item: ServiceTableItem, index: number) => {
+    setSelectedServiceRemark(item);
+    setSelectedRemarkIndex(index);
+    setOpenShowRemarkPopup(true);
+    setRenderRemarkPopup(true);
+  };
+
+  const closeShowRemarkPopupHandler = useCallback(() => {
+    setOpenShowRemarkPopup(false);
+    setRenderRemarkPopup(false);
+    setSelectedServiceRemark(null);
+    setSelectedRemarkIndex(null);
+  }, []);
+
+  // show remark popup handler
+  const serviceViewPopupHandler = (item: ServiceTableItem) => {
+    setSelectedServiceRemark(item);
+    setServiceViewPopup(true);
+    setRenderServiceViewPopup(true);
+  };
+
+  const closeServiceViewPopupHandler = useCallback(() => {
+    setServiceViewPopup(false);
+    setRenderServiceViewPopup(false);
+    setSelectedServiceRemark(null);
+  }, []);
   return (
     <div>
       <div className="form-grid-4">
@@ -326,14 +956,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           <Select
             options={doctorSelectOption}
             name="doctorId"
-            value={
-              patient?.PrimaryDoctorId
-                ? doctorSelectOption?.find(
-                    (opt: any) => Number(opt.value) === Number(patient.PrimaryDoctorId)
-                  ) || null
-                : null
-            }
-            // onChange={handleDoctorChange}
+            value={selectedDoctor}
+            onChange={handleDoctorChange}
             placeholder="Select Doctor"
             styles={SelectStyles as any}
             isSearchable
@@ -396,10 +1020,20 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           />
         </InputField>
         <InputField label="From Date">
-          <CustomDateInput value={fromDate} onChange={setFromDate} />
+          <CustomDateInput
+            value={fromDate}
+            onChange={handleFromDateChange}
+            min={minDate}
+            max={maxDate}
+          />
         </InputField>
         <InputField label="To Date">
-          <CustomDateInput value={toDate} onChange={setToDate} />
+          <CustomDateInput
+            value={toDate}
+            onChange={handleToDateChange}
+            min={fromDate || minDate}
+            max={maxDate}
+          />
         </InputField>
         <InputField label="Search Service">
           <div className="relative">
@@ -453,11 +1087,11 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                 Corporate Wise Discount
               </div>
 
-              <div className="flex items-center gap-1 text-pink-400">
+              {/* <div className="flex items-center gap-1 text-pink-400">
                 <span className="w-3 h-3 rounded-full opd-privileged-card-discount border border-pink-300"></span>
                 Privileged Card Discount
                 <span className="text-red-500 ml-1">ⓘ</span>
-              </div>
+              </div> */}
             </div>
 
             <div className="overflow-x-auto">
@@ -467,21 +1101,37 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                     <table className="base-table ">
                       <thead className="table-head">
                         <tr>
-                          {OpdBillingServiceTableHeader.map((h, index) => (
+                          {/* {OpdBillingServiceTableHeader.map((h, index) => (
                             <th key={index} className="table-th ">
                               {h}
                             </th>
-                          ))}
+                          ))} */}
+                          <th className="table-th ">#</th>
+                          <th className="table-th ">Billing Date</th>
+                          <th className="table-th ">Service Name</th>
+                          <th className="table-th ">Code</th>
+                          <th className="table-th ">Doctor</th>
+                          {isPerformingDoctor ? (
+                            <th className="table-th ">Performing Doctor</th>
+                          ) : (
+                            <></>
+                          )}
+                          <th className="table-th ">QTY</th>
+                          <th className="table-th ">Rate</th>
+                          <th className="table-th ">Disc (%)</th>
+                          <th className="table-th ">Disc</th>
+                          <th className="table-th ">Net Amt</th>
+                          <th className="table-th ">Remarks</th>
+                          <th className="table-th ">Urgent</th>
+                          {}
+                          {/* <th className="table-th ">View</th> */}
                         </tr>
                       </thead>
 
                       <tbody>
                         {serviceDataTableItem?.length === 0 && (
                           <tr>
-                            <td
-                              colSpan={OpdBillingServiceTableHeader.length}
-                              className="table-empty"
-                            >
+                            <td colSpan={13} className="table-empty">
                               No records found
                             </td>
                           </tr>
@@ -491,22 +1141,66 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                           const isQtyFixed = [1, 3, 11].includes(Number(item?.categoryTypeId));
                           const isDiscountLocked = Number(item?.isDiscountLocked ?? 0) === 1;
 
+                          const rowBgClass =
+                            Number(item?.rate ?? 0) === 0
+                              ? "opd-zero-rate"
+                              : Number(item?.isNonPayable ?? 0) === 1
+                                ? "opd-non-payable"
+                                : Number(item?.isCorporateDiscount ?? 0) === 1
+                                  ? "opd-corporate-discount"
+                                  : "";
+
                           return (
                             <tr
                               key={idx}
-                              className={`table-row`}
+                              className={`table-row ${rowBgClass}`}
                               onDoubleClick={() => {
                                 deleteHandler(idx);
                               }}
                             >
                               <td className="table-td">{idx + 1}</td>
+                              <td className="table-td">{item?.Billing ?? "--"}</td>
+
                               <td className="table-td ">
                                 <div className="flex items-center justify-between ">
                                   <span>{item?.serviceName || "-"}</span>
+                                  {item?.reportTypeId === 1 ? (
+                                    <ViewIconButton onClick={() => serviceViewPopupHandler(item)} />
+                                  ) : (
+                                    <></>
+                                  )}
                                 </div>
                               </td>
                               <td className="table-td">{item?.code || "-"}</td>
                               <td className="table-td max-w-35">{item?.doctorName || "-"}</td>
+
+                              {isPerformingDoctor ? (
+                                <td className="table-td wrap-break-word max-w-30">
+                                  {Number(item?.isRequiredSeparatePerformingDoctor) === 1 ? (
+                                    <select
+                                      className="input-field max-w-50 max-h-10"
+                                      value={Number(item?.performingDoctorId ?? 0)}
+                                      onChange={e =>
+                                        performingDoctorChangeHandler(idx, Number(e.target.value))
+                                      }
+                                    >
+                                      <option value={0}>Select doctor</option>
+                                      {getPerformingDoctorOptions(item?.doctorDepartmentIds).map(
+                                        doctor => (
+                                          <option key={doctor.value} value={doctor.value}>
+                                            {doctor.label}
+                                          </option>
+                                        )
+                                      )}
+                                    </select>
+                                  ) : (
+                                    <></>
+                                  )}
+                                </td>
+                              ) : (
+                                <></>
+                              )}
+
                               <td className="table-td">
                                 <input
                                   className={`max-w-20 max-h-10 ${
@@ -515,7 +1209,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                       : "input-field"
                                   }`}
                                   value={item?.qty ?? 1}
-                                  //   onChange={e => qtyChangeHandler(idx, e.target.value)}
+                                  onChange={e => qtyChangeHandler(idx, e.target.value)}
                                   onKeyDown={e => {
                                     if (e.key === "Enter") {
                                       e.currentTarget.blur();
@@ -528,7 +1222,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                               <td className="table-td">
                                 <input
                                   value={item?.rate ?? 0}
-                                  //   onChange={e => rateChangeHandler(idx, e.target.value)}
+                                  onChange={e => rateChangeHandler(idx, e.target.value)}
                                   className={`max-w-20 max-h-10 ${
                                     item?.isRateEditable === 1
                                       ? "input-field "
@@ -545,9 +1239,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                       : "input-field max-w-20 max-h-10"
                                   }`}
                                   value={item?.discountPer ?? 0}
-                                  //   onChange={e =>
-                                  //     discountPercentageChangeHandler(idx, e.target.value)
-                                  //   }
+                                  onChange={e =>
+                                    discountPercentageChangeHandler(idx, e.target.value)
+                                  }
                                   disabled={
                                     isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
                                   }
@@ -561,10 +1255,10 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                       : "input-field max-w-20 max-h-10"
                                   }`}
                                   value={item?.dis ?? 0}
-                                  //   onChange={e => discountChangeHandler(idx, e.target.value)}
-                                  //   disabled={
-                                  //     isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
-                                  //   }
+                                  onChange={e => discountChangeHandler(idx, e.target.value)}
+                                  disabled={
+                                    isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
+                                  }
                                 />
                               </td>
                               <td className="table-td input-field-error">
@@ -572,16 +1266,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                               </td>
 
                               <td className="table-td">
-                                <input
-                                  className={`input-field max-w-40 max-h-10 ${
-                                    Number(item?.isDisabledItem ?? 0) === 1
-                                      ? "disabled-input-field cursor-not-allowed"
-                                      : ""
-                                  }`}
-                                  value={item?.remarks ?? ""}
-                                  //   onChange={e => remarksChangeHandler(idx, e.target.value)}
-                                  placeholder="Enter remarks"
-                                  disabled={Number(item?.isDisabledItem ?? 0) === 1}
+                                <CommentIconButton
+                                  onClick={() => showRemarksPopupHandler(item, idx)}
                                 />
                               </td>
                               <td className="table-td">
@@ -592,12 +1278,49 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                   onChange={e => urgentChangeHandler(idx, e.target.checked)}
                                 />
                               </td>
+                              {/* <td className="table-td">
+                                {item?.reportTypeId === 1 ? (
+                                  <ViewIconButton onClick={() => serviceViewPopupHandler(item)} />
+                                ) : (
+                                  <></>
+                                )}
+                              </td> */}
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {showBillingDetailsForm && (
+                  <div className="mt-1 card">
+                    <BillingDetails
+                      ref={billingDetailsRef}
+                      setBillingValues={setBillingValues}
+                      billingValues={billingValues}
+                      paymentBilling={billingPaymentDetails}
+                      showPaymentMode={true}
+                      corporateId={patient?.CorporateId || 1}
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end mt-2 pr-1">
+                  {!showBillingDetailsForm ? (
+                    <button
+                      className="save-btn"
+                      onClick={() =>
+                        saveButtonClickHandler(isIPDCaseBilling ? "openPopup" : "savePayload")
+                      }
+                    >
+                      Save
+                    </button>
+                  ) : (
+                    <button className="save-btn" onClick={saveSeparateBillHandler}>
+                      Save
+                    </button>
+                  )}
                 </div>
               </div>
               {/* {!!showDuplicateError && <p className="input-field-error">{showDuplicateError}</p>}
@@ -608,6 +1331,44 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           </div>
         </div>
       </div>
+
+      {/* separate bill button */}
+      {renderPopup && (
+        <SeparateBillButton
+          isOpen={openPopup}
+          onClose={closeButtonPopupHandler}
+          buttonClickHandler={generateBillButtonHandler}
+        />
+      )}
+
+      {/* remark popup */}
+      {renderRemarkPopup && (
+        <RemarkPopup
+          isOpen={openShowRemarkPopup}
+          onClose={closeShowRemarkPopupHandler}
+          serviceData={selectedServiceRemark}
+          onSave={remarks => {
+            if (selectedRemarkIndex !== null) {
+              setServiceDataTableItem(prev =>
+                prev.map((item, idx) => (idx === selectedRemarkIndex ? { ...item, remarks } : item))
+              );
+            }
+            closeShowRemarkPopupHandler();
+          }}
+        />
+      )}
+
+      {/* service view popup */}
+      {renderServiceViewPopup && (
+        <ServiceViewPopup
+          isOpen={openServiceViewPopup}
+          onClose={closeServiceViewPopupHandler}
+          serviceData={selectedServiceRemark}
+          patientData={patient}
+          buttonClickHandler={() => {}}
+          //   buttonClickHandler={generateBillButtonHandler}
+        />
+      )}
     </div>
   );
 };

@@ -500,6 +500,7 @@ const ENDPOINTS = {
     "Patient/getServiceDetailsForCorporateRateComparison",
   GET_CORPORATE_TRANSFER_REQUEST_DETAILS_BY_VISIT_ID:
     "IPD/getCorporateTransferRequestDetailsByVisitId",
+  SAVE_IPD_BILLING: "IPD/saveIPDBilling",
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

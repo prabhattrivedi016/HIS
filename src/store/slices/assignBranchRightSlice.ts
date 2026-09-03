@@ -13,8 +13,25 @@ export type AssignBranchRight = {
   IsMedicationOrderOnGenericNameOnly: number;
   IsPatientRegistrationChargeRequired: number;
   IsPatientCorporateTransferApprovalRequired: number;
+  IsIPDCaseBillingRequired: number;
+  IsPerformingDoctorEnabled: number;
 };
 
+/*
+{
+    "IsCreditNoteApprovalRequired": 1,
+    "IsIPDCaseBillingRequired": 0,
+    "IsMedicationOrderOnGenericNameOnly": 1,
+    "IsOPDBillingAllowedForIPDPatient": 0,
+    "IsOPDBillingDiscountApprovalRequired": 1,
+    "IsOPDRefundApprovalRequired": 1,
+    "IsOutstandingAllowedForCashCorporate": 0,
+    "IsPatientCorporateTransferApprovalRequired": 1,
+    "IsPatientRegistrationChargeRequired": 1,
+    "IsPerformingDoctorEnabled": 1,
+    "IsSeparateCollectionCounterEnabled": 0,
+    "IsWriteOffApprovalRequired": 1
+} */
 type FetchAssignBranchRightPayload = {
   branchId: number;
 };
