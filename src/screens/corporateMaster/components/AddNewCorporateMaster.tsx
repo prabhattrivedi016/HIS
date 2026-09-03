@@ -51,10 +51,11 @@ const resetFormData = () => ({
   hikePerOut: 0,
   hikePerIn: 0,
   activePaymentModes: "",
-  activeBranches: "",
-  rateListIdOPD: "",
-  rateListIdIPD: "",
+  // activeBranches: "",
+  // rateListIdOPD: "",
+  // rateListIdIPD: "",
   isRegistrationChargeApplicable: 0,
+  isCaseBillingApplicable: 0,
 });
 
 /*
@@ -383,10 +384,11 @@ const AddNewCorporateMaster = ({
       hikePerOut: previous?.hikePerOut ?? 0,
       hikePerIn: previous?.hikePerIn ?? 0,
       activePaymentModes: previous?.activePaymentModes ?? "",
-      activeBranches: previous?.activeBranches ?? "",
-      rateListIdOPD: previous?.rateListIdOPD ?? "",
-      rateListIdIPD: previous?.rateListIdIPD ?? "",
+      // activeBranches: previous?.activeBranches ?? "",
+      // rateListIdOPD: previous?.rateListIdOPD ?? "",
+      // rateListIdIPD: previous?.rateListIdIPD ?? "",
       isRegistrationChargeApplicable: Number(previous?.isRegistrationChargeApplicable ?? 0),
+      isCaseBillingApplicable: Number(previous?.isCaseBillingApplicable ?? 0),
     });
     setSelectedCorporateTypeId(corporateTypeIdFromApi);
     setEditCorporateTypeName(corporateTypeNameFromApi);
@@ -517,10 +519,13 @@ const AddNewCorporateMaster = ({
       contractStartFrom: formatToDDMMYYYY(formData?.contractStartFrom),
       contractExpiresOn: formatToDDMMYYYY(formData?.contractExpiresOn),
       activePaymentModes: selectedPaymentIds || formData.activePaymentModes || "",
-      activeBranches: formData.activeBranches || "",
-      rateListIdOPD: formData.rateListIdOPD || "",
-      rateListIdIPD: formData.rateListIdIPD || "",
+      // activeBranches: formData.activeBranches || "",
+      // rateListIdOPD: formData.rateListIdOPD || "",
+      // rateListIdIPD: formData.rateListIdIPD || "",
+      isRegistrationChargeApplicable: Number(formData.isRegistrationChargeApplicable ?? 0),
+      isCaseBillingApplicable: Number(formData.isCaseBillingApplicable ?? 0),
     };
+    console.log(payload, "payload");
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_CORPORATE_MASTER,
@@ -729,6 +734,18 @@ const AddNewCorporateMaster = ({
                   <select
                     className="input-field"
                     {...register("isRegistrationChargeApplicable", {
+                      valueAsNumber: true,
+                    })}
+                  >
+                    <option value={1}>Yes</option>
+                    <option value={0}>No</option>
+                  </select>
+                </InputField>
+
+                <InputField label="Case Billing Applicable">
+                  <select
+                    className="input-field"
+                    {...register("isCaseBillingApplicable", {
                       valueAsNumber: true,
                     })}
                   >

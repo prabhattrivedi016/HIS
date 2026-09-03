@@ -215,6 +215,72 @@ type ServiceItem = {
   isPackageExpired: number;
 };
 
+type ServiceTableItem = {
+  rate: number;
+  rateListId: number;
+  isRateEditable: number;
+  serviceName: string;
+  code: string;
+  corporateAlias: string;
+  corporateCode: string;
+  validityDays: number;
+  discountPer: number;
+  discountReason: string;
+  isNonPayable: number;
+  serviceItemId: number;
+  corporateId: number;
+  categoryTypeId: number;
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number;
+  isCorporateDiscount: number;
+  gstPer: number;
+  sampleTypeId: number;
+  reportTypeId: number;
+  doctorDepartmentIds: string;
+  isRequiredSeparatePerformingDoctor: number;
+  doctorId: number;
+  doctorName: string;
+  performingDoctorId: number;
+  performingDoctorName: string;
+  qty: number;
+  dis: number;
+  netAmount: number;
+  isUrgent: number;
+  isUnderPackage: number;
+  remarks: string;
+  Billing: string;
+  labTypeId?: number;
+  tatTimeInMin?: number;
+};
+
+/*"rate": 0.000000,
+        "rateListId": 0,
+        "isRateEditable": 1,
+        "serviceName": "KFT (SERUM)",
+        "code": "",
+        "corporateAlias": "",
+        "corporateCode": "",
+        "validityDays": 0,
+        "discountPer": 0.000000,
+        "discountReason": "",
+        "isNonPayable": 0,
+        "serviceItemId": 291,
+        "corporateId": 3,
+        "categoryTypeId": 3,
+        "categoryId": 3,
+        "subCategoryId": 1,
+        "subSubCategoryId": 10,
+        "isCorporateDiscount": 0,
+        "isPrivilegedCardDiscount": 0,
+        "gstPer": 0.000000,
+        "sampleTypeId": 165,
+        "reportTypeId": 1,
+        "doctorDepartmentIds": "",
+        "isRequiredSeparatePerformingDoctor": 0,
+        "labTypeId": 1,
+        "tatTimeInMin": 0 */
+
 type ApprovalLists = {
   CorporateTransferId: number;
   TokenNo: string;
@@ -270,6 +336,22 @@ type ApprovalLists = {
   LastModifiedOn: string;
 };
 
+type ServiceObservationMappingItem = {
+  InvestigationName: string;
+  ObservationName: string;
+  ObservationId: 1;
+  Prefix: string;
+  Suffix: string;
+  MinValue: string;
+  MaxValue: string;
+  DisplayRange: string;
+  Unit: string;
+  MethodName: string;
+  FieldTypeId: number;
+  tatTimeInMin?: string;
+  Tat?: string;
+};
+
 export type {
   ApprovalLists,
   BillingTypeItem,
@@ -283,6 +365,8 @@ export type {
   RoomItem,
   ServiceItem,
   ServiceItemList,
+  ServiceObservationMappingItem,
+  ServiceTableItem,
   SubCategoryItem,
   SubSubCategoryItem,
   TabNameItem,

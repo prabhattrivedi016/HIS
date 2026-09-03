@@ -143,7 +143,7 @@ const BranchRightMapping = () => {
           </div>
         </div>
 
-        <div className="form-actions-responsive -mt-40 ">
+        <div className="form-actions-responsive m-1 ">
           <button type="submit" className="save-btn" onClick={saveBranchRightMappingHandler}>
             Update
           </button>
