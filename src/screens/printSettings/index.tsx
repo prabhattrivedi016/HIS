@@ -11,7 +11,7 @@ import QrCodeBarCode from "./components/QrCodeBarCode";
 import ReportFooterRemark from "./components/ReportFooterRemark";
 import SequenceMapping from "./components/SequenceMapping";
 
-const HeaderFooterMaster = () => {
+const PrintSettings = () => {
   const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(HeaderFooterTabName?.HEADER);
 
   const renderComponent = (tabName: string) => {
@@ -174,4 +174,4 @@ const HeaderFooterMaster = () => {
   );
 };
 
-export default HeaderFooterMaster;
+export default PrintSettings;

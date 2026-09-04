@@ -70,9 +70,9 @@ type SequenceDrawerProps = {
   data: SequenceEditItem | null;
   onClose: () => void;
   onExited?: () => void;
-  handleRefresh: () => Promise<void>;
-  resetType: () => void;
-  resetSequence: () => void;
+  handleRefresh: (typeId?: number) => Promise<void>;
+  resetType?: () => void;
+  resetSequence?: () => void;
 };
 
 type SequenceEditItem = {

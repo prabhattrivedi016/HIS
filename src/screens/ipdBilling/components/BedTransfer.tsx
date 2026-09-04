@@ -185,9 +185,10 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             ))}
           </select>
         </InputField>
-      </div>
-      <div className="form-actions-responsive mt-5">
-        <SubmitButton label="Transfer" onClick={transferButtonHandler} />
+
+        <div className="col-span-1 md:col-span-3 lg:col-span-1 flex items-end justify-end mb-2">
+          <SubmitButton label="Transfer" onClick={transferButtonHandler} />
+        </div>
       </div>
 
       <h3 className="ipd-billing-text mt-8 mb-3">Bed Transfer History</h3>

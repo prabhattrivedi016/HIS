@@ -27,7 +27,6 @@ import EmrControls from "../emrControls";
 import EMRTemplates from "../emrTemplates";
 import FormulaMaster from "../formulaMaster";
 import GravityMaster from "../gravityMaster";
-import HeaderFooterMaster from "../headerFooterMaster";
 import HistoReportMaster from "../histoReportMaster";
 import HistoResultEntry from "../histoResultEntry";
 import ImportTariffs from "../importTariffs";
@@ -56,6 +55,7 @@ import OPRefundPayment from "../opRefundPayment";
 import PackageMaster from "../packageMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
+import PrintSettings from "../printSettings";
 import ProcedureMaster from "../procedureMaster";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
@@ -90,7 +90,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "navigation-pane": <NavigationPanel />,
   "branch-master": <BranchMaster />,
   "location-master": <LocationMaster />,
-  "print-settings": <HeaderFooterMaster />,
+  "print-settings": <PrintSettings />,
   "bank-master": <BankMaster />,
   "vendor-master": <VendorMaster />,
   "mrd-location": <MrdLocationMaster />,

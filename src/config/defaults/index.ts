@@ -501,6 +501,9 @@ const ENDPOINTS = {
   GET_CORPORATE_TRANSFER_REQUEST_DETAILS_BY_VISIT_ID:
     "IPD/getCorporateTransferRequestDetailsByVisitId",
   SAVE_IPD_BILLING: "IPD/saveIPDBilling",
+  GET_IPD_PATIENT_BILL_AMOUNTS: "IPD/getIPDPatientBillAmounts",
+  GET_IPD_BILLING_SUMMARY: "IPD/getIPDBillingSummary",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",
