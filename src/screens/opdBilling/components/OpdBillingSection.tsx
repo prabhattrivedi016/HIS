@@ -428,11 +428,11 @@ const OpdBillingSection = ({
               Corporate Wise Discount
             </div>
 
-            <div className="flex items-center gap-1 text-pink-400">
+            {/* <div className="flex items-center gap-1 text-pink-400">
               <span className="w-3 h-3 rounded-full opd-privileged-card-discount border border-pink-300"></span>
               Privileged Card Discount
               <span className="text-red-500 ml-1">ⓘ</span>
-            </div>
+            </div> */}
           </div>
 
           <div className="overflow-x-auto">
@@ -475,9 +475,7 @@ const OpdBillingSection = ({
                                 ? "opd-non-payable"
                                 : Number(item?.isCorporateDiscount ?? 0) === 1
                                   ? "opd-corporate-discount"
-                                  : Number(item?.isPrivilegedCardDiscount ?? 0) === 1
-                                    ? "opd-privileged-card-discount"
-                                    : "";
+                                  : "";
 
                         return (
                           <tr

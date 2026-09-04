@@ -627,7 +627,7 @@ const IpdBilling = () => {
 
               {/* active tab sections */}
               <div className="flex-1 overflow-y-auto mt-2 pr-0.5 hide-scrollbar">
-                <div className="w-full bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4 min-h-[300px]">
+                <div className="w-full bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4 min-h-100 ">
                   {activeTab ? (
                     <RoutingUsingTabUrl
                       tabViewUrl={activeTab.TabViewURL}

@@ -1,5 +1,6 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { showError } from "@/utils/alert";
 import { sequenceMappingDrawerSchema } from "@/validation/printSettingSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useEffect, useState } from "react";
@@ -119,13 +120,28 @@ const SequenceDrawer = ({
     };
 
     const resp = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_SEQUENCE_MASTER, payload);
-    if (!resp) return;
-    if (resp?.result) {
-      await handleRefresh();
-      setSuccessMessage(resp?.message ?? "Saved successfully");
-      resetType?.();
-      resetSequence?.();
+    if (!resp.result) {
+      showError(resp?.message ?? "Something went wrong");
+      return;
     }
+    await handleRefresh?.(formData?.typeId);
+    setSuccessMessage(resp?.message ?? "Saved successfully");
+    reset({
+      sequenceId: 0,
+      name: "",
+      typeId: 0,
+      typeName: "",
+      prefix: "",
+      firstSeprator: "",
+      fyFormatId: 0,
+      fyFormat: "",
+      secondSeprator: "",
+      length: 6,
+      preview: "",
+    });
+    setPreview("");
+    resetType?.();
+    resetSequence?.();
 
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -133,6 +149,7 @@ const SequenceDrawer = ({
 
     timerRef.current = setTimeout(() => {
       onClose();
+      setSuccessMessage("");
     }, 1000);
   };
 

@@ -6,12 +6,15 @@ import { SelectStyles } from "@/components/customSelect";
 import CommentIconButton from "@/components/globalButtons/CommentIconButton";
 import ViewIconButton from "@/components/globalButtons/ViewIconButton";
 import InputFieldModal from "@/components/inputFieldModal";
+import IpdBillingReceipt from "@/components/reportTemplates/IpdBillingReceipt";
 import { ENDPOINTS } from "@/config/defaults";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { openReceiptInNewTab } from "@/screens/opdBilling/components/OpdReceiptNewTab";
+import { PaymentModeItem } from "@/screens/opdBilling/types";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { SelectItem } from "@/types";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Select from "react-select";
@@ -36,7 +39,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const { rights: branchRights } = useAssignBranchRight();
   const isIPDCaseBilling = Number(branchRights?.IsIPDCaseBillingRequired);
   const isPerformingDoctor = Number(branchRights?.IsPerformingDoctorEnabled);
-  console.log("isPerformingDoctor", isPerformingDoctor);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number>(0);
@@ -99,6 +101,10 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [renderServiceViewPopup, setRenderServiceViewPopup] = useState<boolean>(false);
   const [openServiceViewPopup, setServiceViewPopup] = useState<boolean>(false);
+
+  const [patientReceiptDetails, setPatientReceiptDetails] = useState<any[]>([]);
+  const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
+  const [totalPaidAmount, setTotalPaidAmount] = useState<number>(0);
 
   //   doctor
   const getDoctorByBranchId = async () => {
@@ -279,7 +285,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryTypeIds: "1,3,4,5,8,10" } },
+      { params: { categoryTypeIds: "2,3,4,5,8,10" } },
       { component: "IpdBillingComponent" }
     );
     return resp?.data ?? [];
@@ -622,13 +628,15 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   }, [patient?.DischargeDate]);
 
   useEffect(() => {
-    if (minDate) {
-      setFromDate(minDate);
-      setToDate(maxDate || currentDate);
-    } else {
-      setFromDate(currentDate);
-      setToDate(currentDate);
+    let defaultDate = currentDate;
+    if (maxDate && defaultDate > maxDate) {
+      defaultDate = maxDate;
     }
+    if (minDate && defaultDate < minDate) {
+      defaultDate = minDate;
+    }
+    setFromDate(defaultDate);
+    setToDate(defaultDate);
   }, [minDate, maxDate, currentDate]);
 
   const handleFromDateChange = (date: string) => {
@@ -640,6 +648,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       finalDate = maxDate;
     }
     setFromDate(finalDate);
+    if (toDate && finalDate > toDate) {
+      setToDate(finalDate);
+    }
   };
 
   const handleToDateChange = (date: string) => {
@@ -683,7 +694,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       discountReason: "",
       remarks: patient?.Remarks || "",
       uniqueId: "",
-      isSupplementaryBill: 1,
+      isSupplementaryBill: paymentType === "generateSeparateBill" ? 1 : 0,
     };
 
     const billingItems = serviceDataTableItem.map((item: ServiceTableItem) => {
@@ -742,18 +753,119 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     };
   };
 
+  // null rate checker
+  const nullRateChacker = (serviceDataTableItem: ServiceTableItem[]) => {
+    if (!serviceDataTableItem || serviceDataTableItem.length === 0) {
+      showWarning("No billing items found");
+      return false;
+    }
+    const nullRateItems = serviceDataTableItem.some(
+      (item: ServiceTableItem) =>
+        item.rate === null || item.rate === undefined || Number(item?.rate) <= 0
+    );
+    if (nullRateItems) {
+      showWarning("Please enter valid rate for all service items.");
+      return false;
+    }
+    return true;
+  };
+
+  /*
+  {
+    "visitId": 7,
+    "ftid": 27,
+    "receiptId": 0,
+    "isReceipt": false,
+    "isLabInvestigations": true
+}
+  */
+  const fetchAndPrintIpdBillAfterSave = async (responseData: Record<string, unknown>) => {
+    let receiptData: any[] = [];
+    let paymentModes: PaymentModeItem[] = [];
+
+    const promises = [
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
+        {},
+        {
+          params: {
+            ftid: responseData?.ftid,
+            isReceipt: responseData?.isReceipt === true ? 1 : 0,
+            receiptId: responseData?.receiptId,
+          },
+        },
+        { component: "IpdBilling" }
+      ),
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_OPD_RECEIPT_LIST,
+        {},
+        { params: { visitNo: responseData?.visitId } },
+        { component: "IpdBilling" }
+      ),
+    ];
+
+    const [receiptResult, paymentResult] = await Promise.allSettled(promises);
+
+    if (receiptResult.status === "fulfilled") {
+      receiptData = receiptResult.value?.data ?? [];
+    } else {
+      console.error("Receipt details fetch failed:", receiptResult.reason);
+    }
+
+    if (paymentResult.status === "fulfilled") {
+      paymentModes = paymentResult.value?.data ?? [];
+    } else {
+      console.error("Payment mode list fetch failed:", paymentResult.reason);
+    }
+
+    const paidAmountFromApi = paymentModes.reduce(
+      (sum, item) => sum + Number(item?.Amount ?? 0),
+      0
+    );
+    const paidAmountFromReceipt = receiptData.reduce(
+      (sum, item) => sum + Number(item?.NetAmt ?? item?.NetAmount ?? 0),
+      0
+    );
+    const paidAmount =
+      paidAmountFromApi > 0
+        ? paidAmountFromApi
+        : paidAmountFromReceipt > 0
+          ? paidAmountFromReceipt
+          : Number(responseData.netAmount ?? responseData.NetAmount ?? 0);
+
+    setPatientReceiptDetails(receiptData);
+    setPaymentModeList(paymentModes);
+    setTotalPaidAmount(paidAmount);
+
+    await new Promise(res => setTimeout(res, 120));
+
+    if (!receiptData?.length) {
+      showError("Billing saved, but receipt data is unavailable for printing.");
+      return false;
+    }
+
+    openReceiptInNewTab(receiptData);
+    return true;
+  };
+
+  // separate bill handler
   const saveSeparateBillHandler = async () => {
-    console.log("saveSeparateBillHandler initiated");
     try {
+      if (!nullRateChacker(serviceDataTableItem ?? [])) {
+        return;
+      }
+
       const isValid = await billingDetailsRef.current?.validateForm?.();
-      console.log("Validation status:", isValid);
       if (!isValid) {
-        alert("Validation failed! Please verify payment methods and match the net bill amount.");
+        showWarning(
+          "Validation failed! Please verify payment methods and match the net bill amount."
+        );
         return;
       }
 
       const billingPayload = billingDetailsRef.current?.getPayload?.();
-      console.log("Billing details payload:", billingPayload);
       if (!billingPayload) {
         alert("Unable to fetch payload from billing details.");
         return;
@@ -834,7 +946,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         isBillDiscount: totalDiscAmtOnBill > 0 ? 1 : 0,
       };
 
-      console.log("payload", payload);
       const resp = await fetchApi(
         "POST",
         ENDPOINTS.SAVE_IPD_BILLING,
@@ -848,6 +959,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       }
       showSuccess(resp?.message ?? "Data saved successfully");
       setServiceDataTableItem([]);
+      setShowBillingDetailsForm(false);
+      await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
     } catch (err) {
       console.error("Error generating separate bill payload:", err);
       alert("Error generating payload: " + String(err));
@@ -856,6 +969,10 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
   // save button click handler
   const saveButtonClickHandler = async (value: string) => {
+    const isItemValid = nullRateChacker(serviceDataTableItem ?? []);
+    if (!isItemValid) {
+      return;
+    }
     switch (value) {
       case "openPopup": {
         setOpenPopup(true);
@@ -877,6 +994,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         }
         showSuccess(resp?.message ?? "Data saved successfully");
         setServiceDataTableItem([]);
+        await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
         return;
       }
     }
@@ -890,7 +1008,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
   // generate bill button handler
   const generateBillButtonHandler = async (value: string) => {
-    console.log("value", value);
     switch (value) {
       case "generateSeparateBill": {
         setShowBillingDetailsForm(true);
@@ -900,10 +1017,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       }
       case "addInMainBill": {
         const payload = buildCompletePayload("savePayload");
-        console.log("payload", payload);
 
-        setOpenPopup(false);
-        setRenderPopup(false);
         const resp = await fetchApi(
           "POST",
           ENDPOINTS.SAVE_IPD_BILLING,
@@ -917,6 +1031,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         }
         showSuccess(resp?.message ?? "Data saved successfully");
         setServiceDataTableItem([]);
+        setOpenPopup(false);
+        setRenderPopup(false);
+        // await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
         return;
       }
     }
@@ -1024,7 +1141,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
             value={fromDate}
             onChange={handleFromDateChange}
             min={minDate}
-            max={maxDate}
+            max={maxDate || currentDate}
           />
         </InputField>
         <InputField label="To Date">
@@ -1032,7 +1149,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
             value={toDate}
             onChange={handleToDateChange}
             min={fromDate || minDate}
-            max={maxDate}
+            max={maxDate || currentDate}
           />
         </InputField>
         <InputField label="Search Service">
@@ -1044,11 +1161,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
               value={searchTerm}
               onChange={serviceItemHandler}
               onKeyDown={serviceInputKeyDownHandler}
-            />
-
-            <i
-              className="fa-solid fa-magnifying-glass input-search-icon input-search-icon-right"
-              aria-hidden="true"
             />
 
             <InputFieldModal
@@ -1154,7 +1266,11 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                             <tr
                               key={idx}
                               className={`table-row ${rowBgClass}`}
-                              onDoubleClick={() => {
+                              onDoubleClick={e => {
+                                const target = e.target as HTMLElement;
+                                if (target.closest("input, select, textarea, button")) {
+                                  return;
+                                }
                                 deleteHandler(idx);
                               }}
                             >
@@ -1369,6 +1485,18 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           //   buttonClickHandler={generateBillButtonHandler}
         />
       )}
+
+      {/* hidden printable templates */}
+      <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+        {patientReceiptDetails && patientReceiptDetails.length > 0 && (
+          <IpdBillingReceipt
+            data={patientReceiptDetails}
+            printOnMount={false}
+            paymentModeList={paymentModeList}
+            paidAmt={totalPaidAmount}
+          />
+        )}
+      </div>
     </div>
   );
 };

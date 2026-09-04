@@ -352,6 +352,38 @@ type ServiceObservationMappingItem = {
   Tat?: string;
 };
 
+type IpdSummaryBillingTableList = {
+  CategoryId: number;
+  CategoryName: string;
+  SubCategoryName: string;
+  SubCategoryId: number;
+  SubSubCategoryName: string;
+  PrintGroupName: string;
+  SubSubCategoryId: number;
+  ServiceItemId: number;
+  ServiceCode: string;
+  ServiceName: string;
+  DoctorId: number;
+  Rate: number;
+  Qty: number;
+  GrossAmt: number;
+  DiscPer: number;
+  DiscAmt: number;
+  NetAmt: number;
+  BillingDate: string;
+  CreatedOnWithTime: string;
+  DoctorName: string;
+  UserId: number;
+  UserName: string;
+  FTID: number;
+  FTDId: number;
+  VisitId: number;
+  IsCorporateNonPayable: number;
+  IsUnderPackage: number;
+  Package: string;
+  IsSampleCollected: number;
+};
+
 export type {
   ApprovalLists,
   BillingTypeItem,
@@ -360,6 +392,7 @@ export type {
   DoctorItem,
   InsuranceItem,
   IpdPatientItem,
+  IpdSummaryBillingTableList,
   PreviousBedListItem,
   PreviousDoctorListItem,
   RoomItem,

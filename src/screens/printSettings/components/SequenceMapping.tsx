@@ -58,7 +58,7 @@ const SequenceMapping = () => {
     resolver: yupResolver(sequenceMappingSchema),
     defaultValues: {
       mappingId: 0,
-      branchId: defaultBranch?.branchId,
+      branchId: 0,
       roleId: 0,
       typeId: 0,
       sequenceId: 0,
@@ -75,11 +75,11 @@ const SequenceMapping = () => {
 
   const branches = useMemo(() => branchList?.branchList?.data ?? [], [branchList]);
 
-  useEffect(() => {
-    const selected = branches.find(b => b?.branchId === 1);
-    setValue("branchId", selected?.branchId!);
-    setDefaultBranch(selected!);
-  }, [branches]);
+  // useEffect(() => {
+  //   const selected = branches.find(b => b?.branchId === 1);
+  //   setValue("branchId", selected?.branchId!);
+  //   setDefaultBranch(selected!);
+  // }, [branches]);
 
   /*-------------------roles------------------------ */
   const getRoles = async () => {
@@ -174,7 +174,9 @@ const SequenceMapping = () => {
       { component: "SequenceMaster" }
     );
 
-    setSequenceDropDown(resp?.data ?? []);
+    const list: SequenceDropDownItem[] = resp?.data ?? [];
+    setSequenceDropDown(list);
+    return list;
   }, []);
 
   /*-----------------------------submit handler------------------------- */
@@ -193,14 +195,6 @@ const SequenceMapping = () => {
     }
 
     showSuccess(resp?.message ?? "Data saved successfully");
-
-    reset({
-      mappingId: 0,
-      branchId: defaultBranch?.branchId,
-      roleId: 0,
-      typeId: 0,
-      sequenceId: 0,
-    });
 
     setSelectedRole(defaultRoleOption);
     setSelectedSequenceType(null);
@@ -272,6 +266,40 @@ const SequenceMapping = () => {
       setSequenceToEdit(null);
     }
   }, [openDrawer]);
+
+  const handleRefreshSequence = useCallback(
+    async (refreshTypeId?: number) => {
+      const activeTypeId = refreshTypeId || typeId || sequenceToEdit?.typeId;
+      if (activeTypeId) {
+        const list = await fetchSequenceMaster(activeTypeId);
+
+        const currentSelectedId = Number(watch("sequenceId")) || 0;
+        if (currentSelectedId && list?.some(s => s?.sequenceId === currentSelectedId)) {
+          setValue("sequenceId", currentSelectedId, { shouldValidate: true });
+        } else if (list?.length > 0) {
+          const prevIds = new Set(sequenceDropDown.map(s => s?.sequenceId));
+          const newItems = list.filter(s => !prevIds.has(s?.sequenceId));
+          if (newItems.length > 0) {
+            setValue("sequenceId", newItems[newItems.length - 1]?.sequenceId, {
+              shouldValidate: true,
+            });
+          }
+        }
+      }
+      if (showDetails) {
+        await getBranchSequence();
+      }
+    },
+    [
+      typeId,
+      sequenceToEdit?.typeId,
+      fetchSequenceMaster,
+      watch,
+      setValue,
+      sequenceDropDown,
+      showDetails,
+    ]
+  );
 
   /*--------------------------edit handler--------------------------- */
 
@@ -498,9 +526,7 @@ const SequenceMapping = () => {
           data={sequenceToEdit}
           onClose={closeHandler}
           onExited={handleDrawerExited}
-          handleRefresh={getBranchSequence}
-          resetType={resetSequenceType}
-          resetSequence={resetSequenceSelection}
+          handleRefresh={handleRefreshSequence}
         />
       )}
 

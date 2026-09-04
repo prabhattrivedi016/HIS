@@ -676,16 +676,16 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             disabled={isInputsDisabled}
           />
         </InputField>
-      </div>
 
-      <div className="form-actions-responsive mt-1">
-        {isConfirmationMode ? (
-          <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
-        ) : isPatientCorporateTransferApprovalRequired ? (
-          <SubmitButton label="Send For Approval" onClick={sendForApprovalHandler} />
-        ) : (
-          <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
-        )}
+        <div className="col-span-1 md:col-span-2 lg:col-span-2 flex items-end justify-end mb-2">
+          {isConfirmationMode ? (
+            <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
+          ) : isPatientCorporateTransferApprovalRequired ? (
+            <SubmitButton label="Send For Approval" onClick={sendForApprovalHandler} />
+          ) : (
+            <SubmitButton label="Transfer" onClick={transferCorporateHandler} />
+          )}
+        </div>
       </div>
 
       {!!loading && <CustomLoader isLoading={loading} />}
