@@ -322,18 +322,6 @@ export enum VISIT_TYPE {
   IN_PATIENT = 2,
 }
 
-export enum ButtonName {
-  CAN_OPD_BILLING = "CanOPDBilling",
-  CAN_IVF_ADMISSION = "CanIVFAdmission",
-  CAN_IPD_ADMISSION = "CanIPDAdmission",
-  CAN_EMERGENCY_ADMISSION = "CanEmergencyAdmission",
-  CAN_DIALYSIS_ADMISSION = "CanDialysisAdmission",
-  CAN_DAYCARE_ADMISSION = "CanDayCareAdmission",
-  CAN_OPD_CONSULTATION_BOOKING = "CanOPDConsulationBooking",
-  CANCEL = "cancel",
-  CAN_UPDATE_PATIENT_REGISTRATION = "CanUpdtaePatientregistration",
-}
-
 export enum SampleManagementButtons {
   all = "All",
   collectionPending = "Collection Pending",

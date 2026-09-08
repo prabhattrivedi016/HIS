@@ -7,11 +7,13 @@ import CommentIconButton from "@/components/globalButtons/CommentIconButton";
 import ViewIconButton from "@/components/globalButtons/ViewIconButton";
 import InputFieldModal from "@/components/inputFieldModal";
 import IpdBillingReceipt from "@/components/reportTemplates/IpdBillingReceipt";
+import IpdOrderReceipt from "@/components/reportTemplates/IpdOrderReceipt";
 import { ENDPOINTS } from "@/config/defaults";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { openReceiptInNewTab } from "@/screens/opdBilling/components/OpdReceiptNewTab";
 import { PaymentModeItem } from "@/screens/opdBilling/types";
+import { useAppSelector } from "@/store/hooks";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { SelectItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -33,6 +35,10 @@ import ServiceViewPopup from "./ServiceViewDetails";
 
 const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const accessRights = useAppSelector(state => state.accessRights.accessRights);
+
+  const canPerformCaseBilling = Number(accessRights?.CanPerformCaseBillingForIPDPatient);
 
   const roleId = useContext(RoleContext)?.roleId ?? 0;
 
@@ -105,6 +111,11 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [patientReceiptDetails, setPatientReceiptDetails] = useState<any[]>([]);
   const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
   const [totalPaidAmount, setTotalPaidAmount] = useState<number>(0);
+  const [receiptFtid, setReceiptFtid] = useState<number | undefined>(undefined);
+  const [receiptIdState, setReceiptIdState] = useState<number | undefined>(undefined);
+
+  const [orderReceiptDetails, setOrderReceiptDetails] = useState<any[]>([]);
+  const [showOrderReceipt, setShowOrderReceipt] = useState<boolean>(false);
 
   //   doctor
   const getDoctorByBranchId = async () => {
@@ -407,7 +418,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           {
             params: {
               serviceName: searchTerm,
-              categoryId: selectedCategoryId || 0,
+              categoryId: selectedCategoryId || "2,3,4,5,8,10",
               subCategoryId: selectedSubCategoryId || 0,
               subSubCategoryId: selectedSubSubCategoryId || 0,
               isActive: 1,
@@ -780,78 +791,53 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 }
   */
   const fetchAndPrintIpdBillAfterSave = async (responseData: Record<string, unknown>) => {
-    let receiptData: any[] = [];
-    let paymentModes: PaymentModeItem[] = [];
+    try {
+      const ftid = responseData?.ftid;
+      const receiptId = responseData?.receiptId;
 
-    const promises = [
-      fetchApi(
+      if (!ftid) {
+        showError("Invalid response: FTID is missing.");
+        return false;
+      }
+
+      // Fetch patient and service details using FTID
+      const patientDetailsResult = await fetchApi(
         "GET",
         ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
         {},
-        {
-          params: {
-            ftid: responseData?.ftid,
-            isReceipt: responseData?.isReceipt === true ? 1 : 0,
-            receiptId: responseData?.receiptId,
-          },
-        },
-        { component: "IpdBilling" }
-      ),
-      fetchApi(
-        "GET",
-        ENDPOINTS.GET_OPD_RECEIPT_LIST,
-        {},
-        { params: { visitNo: responseData?.visitId } },
-        { component: "IpdBilling" }
-      ),
-    ];
+        { params: { isReceipt: 0, receiptId: 0, ftid } },
+        { component: "IpdBilling", silent: true }
+      );
 
-    const [receiptResult, paymentResult] = await Promise.allSettled(promises);
+      let receiptData: any[] = [];
+      if (patientDetailsResult?.data) {
+        receiptData = Array.isArray(patientDetailsResult.data)
+          ? patientDetailsResult.data
+          : [patientDetailsResult.data];
+      }
 
-    if (receiptResult.status === "fulfilled") {
-      receiptData = receiptResult.value?.data ?? [];
-    } else {
-      console.error("Receipt details fetch failed:", receiptResult.reason);
-    }
+      if (!receiptData?.length) {
+        showError("Billing saved, but receipt data is unavailable for printing.");
+        return false;
+      }
 
-    if (paymentResult.status === "fulfilled") {
-      paymentModes = paymentResult.value?.data ?? [];
-    } else {
-      console.error("Payment mode list fetch failed:", paymentResult.reason);
-    }
+      setPatientReceiptDetails(receiptData);
+      setReceiptFtid(Number(ftid));
+      setReceiptIdState(Number(receiptId ?? 0));
 
-    const paidAmountFromApi = paymentModes.reduce(
-      (sum, item) => sum + Number(item?.Amount ?? 0),
-      0
-    );
-    const paidAmountFromReceipt = receiptData.reduce(
-      (sum, item) => sum + Number(item?.NetAmt ?? item?.NetAmount ?? 0),
-      0
-    );
-    const paidAmount =
-      paidAmountFromApi > 0
-        ? paidAmountFromApi
-        : paidAmountFromReceipt > 0
-          ? paidAmountFromReceipt
-          : Number(responseData.netAmount ?? responseData.NetAmount ?? 0);
+      await new Promise(res => setTimeout(res, 120));
 
-    setPatientReceiptDetails(receiptData);
-    setPaymentModeList(paymentModes);
-    setTotalPaidAmount(paidAmount);
-
-    await new Promise(res => setTimeout(res, 120));
-
-    if (!receiptData?.length) {
-      showError("Billing saved, but receipt data is unavailable for printing.");
+      openReceiptInNewTab(receiptData);
+      return true;
+    } catch (error) {
+      console.error("Error fetching receipt data:", error);
+      showError("Failed to fetch receipt data for printing.");
       return false;
     }
-
-    openReceiptInNewTab(receiptData);
-    return true;
   };
 
   // separate bill handler
-  const saveSeparateBillHandler = async () => {
+  const saveSeparateBillHandler = async (value: string = "") => {
     try {
       if (!nullRateChacker(serviceDataTableItem ?? [])) {
         return;
@@ -892,7 +878,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         discountReason: String(billingPayload.discountReason ?? ""),
         remarks: String(billingPayload.remarks || patient?.Remarks || ""),
         uniqueId: "",
-        isSupplementaryBill: 1,
+        isSupplementaryBill: value === "separateBill" ? 1 : 0,
       };
 
       const billingItems = serviceDataTableItem.map((item: ServiceTableItem) => {
@@ -1000,6 +986,70 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     }
   };
 
+  // fetch and print IPD order
+  const fetchAndPrintIpdOrder = async (ftid: number) => {
+    try {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_IPD_PATIENT_ORDER_DETAILS,
+        {},
+        { params: { ftid } },
+        { component: "IpdBillingComponent" }
+      );
+
+      console.log("Order details response:", resp);
+
+      // Check if the API returned an error
+      if (!resp || (resp?.result === false && !resp?.data)) {
+        console.error("API error response:", resp);
+        showError(resp?.message || "Order details are unavailable for printing.");
+        return false;
+      }
+
+      // Get the data - handle both direct array and nested response
+      let orderData = resp?.data;
+
+      // If no data is returned, show error
+      if (!orderData) {
+        console.error("No data returned from API");
+        showError("Order details are unavailable for printing.");
+        return false;
+      }
+
+      // Ensure orderData is an array
+      const finalOrderData = Array.isArray(orderData) ? orderData : [orderData];
+
+      // Check if the array is empty
+      if (finalOrderData.length === 0) {
+        console.error("Empty order data returned");
+        showError("Order details are unavailable for printing.");
+        return false;
+      }
+
+      setOrderReceiptDetails(finalOrderData);
+      setShowOrderReceipt(true);
+
+      // Wait longer for React to render the component before copying HTML
+      await new Promise(res => setTimeout(res, 500));
+
+      console.log("Opening receipt with data:", finalOrderData);
+      const receiptElement = document.getElementById("receipt-print-wrapper");
+      console.log(
+        "Receipt element found:",
+        !!receiptElement,
+        "innerHTML length:",
+        receiptElement?.innerHTML?.length
+      );
+
+      openReceiptInNewTab(finalOrderData);
+      return true;
+    } catch (error) {
+      console.error("Error fetching order details:", error);
+      showError("Failed to fetch order details for printing.");
+      return false;
+    }
+  };
+
   // close Button PopupHandler
   const closeButtonPopupHandler = useCallback(() => {
     setOpenPopup(false);
@@ -1033,7 +1083,18 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         setServiceDataTableItem([]);
         setOpenPopup(false);
         setRenderPopup(false);
-        // await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
+
+        // Fetch and print order receipt using ftid from response
+        const ftid = Number(resp?.data?.ftid) || 0;
+        if (ftid > 0) {
+          await fetchAndPrintIpdOrder(ftid);
+        }
+        return;
+      }
+      case "mainBillWithAdvance": {
+        setShowBillingDetailsForm(true);
+        setOpenPopup(false);
+        setRenderPopup(false);
         return;
       }
     }
@@ -1425,15 +1486,24 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                 <div className="flex justify-end mt-2 pr-1">
                   {!showBillingDetailsForm ? (
                     <button
-                      className="save-btn"
+                      className="save-btn w-25 mr-2"
                       onClick={() =>
-                        saveButtonClickHandler(isIPDCaseBilling ? "openPopup" : "savePayload")
+                        saveButtonClickHandler(
+                          isIPDCaseBilling ||
+                            Number(patient?.IsCaseBillingApplicable) === 1 ||
+                            canPerformCaseBilling === 1
+                            ? "openPopup"
+                            : "savePayload"
+                        )
                       }
                     >
                       Save
                     </button>
                   ) : (
-                    <button className="save-btn" onClick={saveSeparateBillHandler}>
+                    <button
+                      className="save-btn w-25 mr-2"
+                      onClick={() => saveSeparateBillHandler("separateBill")}
+                    >
                       Save
                     </button>
                   )}
@@ -1494,7 +1564,12 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
             printOnMount={false}
             paymentModeList={paymentModeList}
             paidAmt={totalPaidAmount}
+            ftid={receiptFtid}
+            receiptId={receiptIdState}
           />
+        )}
+        {orderReceiptDetails && orderReceiptDetails.length > 0 && showOrderReceipt && (
+          <IpdOrderReceipt data={orderReceiptDetails} printOnMount={false} />
         )}
       </div>
     </div>

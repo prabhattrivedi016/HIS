@@ -72,27 +72,18 @@ const numberToWords = (num: number): string => {
 //   </div>
 // );
 
-export default function IpdBillingReceipt({
+export default function IpdOrder({
   printOnMount = false,
   data,
-  paymentModeList: initialPaymentModeList,
-  paidAmt,
-  ftid,
-  receiptId,
 }: {
   printOnMount?: boolean;
   data: any;
-  paymentModeList?: PaymentModeItem[];
-  paidAmt?: number;
-  ftid?: number;
-  receiptId?: number;
 }) {
   const patientDetails = data?.[0];
   const { loading, fetchApi } = useGlobalApi();
 
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
   const [branchDetails, setBranchDetails] = useState<BranchItem | null>(null);
-  const [paymentModes, setPaymentModes] = useState<PaymentModeItem[]>(initialPaymentModeList || []);
   const branchAddress = branchDetails?.address?.trim() || "";
   const branchName = branchDetails?.branchName?.trim() || "";
 
@@ -108,45 +99,19 @@ export default function IpdBillingReceipt({
     setBranchDetails(resp?.data?.[0]);
   };
 
-  // Fetch payment methods using predefined query if ftid is provided
-  const fetchPaymentMethods = async () => {
-    if (!ftid) return;
-    try {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_PREDEFINE_QUERY_RESULT,
-        {},
-        { params: { queryName: "GetReceiptListByFTID", filter1: ftid } },
-        { component: "IpdBillingReceipt", silent: true }
-      );
-      if (resp?.data) {
-        const payments = Array.isArray(resp.data) ? resp.data : [resp.data];
-        setPaymentModes(payments);
-      }
-    } catch (error) {
-      console.error("Error fetching payment methods:", error);
-    }
-  };
-
   useEffect(() => {
     getBranchDetails();
   }, [branchId]);
 
   useEffect(() => {
-    if (ftid) {
-      fetchPaymentMethods();
-    }
-  }, [ftid]);
-
-  useEffect(() => {
-    if (printOnMount && paymentModes?.length > 0) {
+    if (printOnMount && paymentModeList?.length > 0) {
       const timer = setTimeout(() => {
         window.print();
       }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [printOnMount, paymentModes]);
+  }, [printOnMount, paymentModeList]);
 
   // current date and time
   const today = new Date();
@@ -163,9 +128,9 @@ export default function IpdBillingReceipt({
     const rows = Array.isArray(data) ? data : [];
     const firstRow = rows[0] ?? {};
 
-    const grossFromApi = toNumber(firstRow?.GrossAmount ?? firstRow?.GrossAmt);
-    const discountFromApi = toNumber(firstRow?.DiscountAmount ?? firstRow?.DiscAmt);
-    const netFromApi = toNumber(firstRow?.NetAmount ?? firstRow?.NetAmt);
+    const grossFromApi = toNumber(firstRow?.GrossAmount);
+    const discountFromApi = toNumber(firstRow?.DiscountAmount);
+    const netFromApi = toNumber(firstRow?.NetAmount);
     const balanceFromApi = toNumber(firstRow?.TotalBalanceAmount);
 
     const grossFromRows = rows.reduce(
@@ -182,13 +147,7 @@ export default function IpdBillingReceipt({
     const finalGross = grossFromApi || grossFromRows;
     const finalDiscount = discountFromApi || discountFromRows;
     const finalNet = netFromApi || netFromRows;
-
-    // Calculate paid amount from payment modes or use paidAmt
-    const finalPaid =
-      paidAmt !== undefined
-        ? toNumber(paidAmt)
-        : paymentModes.reduce((sum, item) => sum + toNumber(item?.Amount), 0);
-
+    const finalPaid = toNumber(paidAmt);
     const finalBalance = balanceFromApi || Number((finalNet - finalPaid).toFixed(2));
 
     return {
@@ -197,7 +156,7 @@ export default function IpdBillingReceipt({
       netAmount: Number(finalNet.toFixed(2)),
       balanceAmount: Number(finalBalance.toFixed(2)),
     };
-  }, [data, paidAmt, paymentModes]);
+  }, [data, paidAmt]);
 
   const amountInWords = numberToWords(Math.floor(netAmount));
 
@@ -266,7 +225,7 @@ export default function IpdBillingReceipt({
               fontWeight: "normal",
             }}
           >
-            IPD Details Bill
+            Details Bill
           </div>
 
           {/* Barcodes 
@@ -297,7 +256,10 @@ export default function IpdBillingReceipt({
                     <td style={{ verticalAlign: "top" }}>Contact No</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ContactNumber}</td>
                   </tr>
-
+                  <tr>
+                    <td style={{ verticalAlign: "top" }}>Relative Name</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
+                  </tr>
                   <tr>
                     <td style={{ verticalAlign: "top" }}>Address</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address}</td>
@@ -321,29 +283,25 @@ export default function IpdBillingReceipt({
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.CompleteName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Relative Name</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
-                  </tr>
-                  {/* <tr>
                     <td style={{ verticalAlign: "top" }}>Refer Doctor</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReferDoctorName}</td>
-                  </tr> */}
+                  </tr>
                   <tr>
                     <td style={{ verticalAlign: "top" }}>Corporate</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Corporat}</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.CorporateName}</td>
                   </tr>
-                  <tr>
+                  {/* <tr>
                     <td style={{ verticalAlign: "top" }}>Bill No.</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.BillNo}</td>
-                  </tr>
-                  {/* <tr>
+                  </tr> */}
+                  <tr>
                     <td style={{ verticalAlign: "top" }}>Receipt No.</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReceiptNo}</td>
-                  </tr> */}
-                  {/* <tr>
+                  </tr>
+                  <tr>
                     <td style={{ verticalAlign: "top" }}>Doc Token No.</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.DocTokenNo}</td>
-                  </tr> */}
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -499,12 +457,7 @@ export default function IpdBillingReceipt({
             <span>Total Amount : {totalAmount}</span>
             <span>Total Discount : {totalDiscount}</span>
             <span>Net Amount : {netAmount}</span>
-            <span>
-              Paid Amount :{" "}
-              {paymentModes.reduce((sum, item) => sum + toNumber(item?.Amount ?? 0), 0) ||
-                paidAmt ||
-                0}
-            </span>
+            <span>Paid Amount : {paidAmt}</span>
             <span>Balance Amount : {balanceAmount}</span>
           </div>
           <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
@@ -547,7 +500,7 @@ export default function IpdBillingReceipt({
               </tr>
             </thead>
             <tbody>
-              {paymentModes.map((receipt: PaymentModeItem, index: number) => (
+              {paymentModeList.map((receipt: PaymentModeItem, index: number) => (
                 <tr key={index}>
                   <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
                     {todayDate} & {todayTime}

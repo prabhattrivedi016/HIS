@@ -56,6 +56,7 @@ type IpdPatientItem = {
   TPA?: string;
   Status?: string;
   InsuranceCompanyId?: number;
+  IsCaseBillingApplicable?: number;
 };
 
 type TabNameItem = {
@@ -371,6 +372,8 @@ type IpdSummaryBillingTableList = {
   DiscAmt: number;
   NetAmt: number;
   BillingDate: string;
+  BillNo: null;
+  BillId: 55;
   CreatedOnWithTime: string;
   DoctorName: string;
   UserId: number;
@@ -382,10 +385,61 @@ type IpdSummaryBillingTableList = {
   IsUnderPackage: number;
   Package: string;
   IsSampleCollected: number;
+  IsSupplementaryBill: 0;
+};
+
+/*
+{
+            "CategoryId": 3,
+            "CategoryName": "Investigations",
+            "SubCategoryName": "Pathology",
+            "SubCategoryId": 1,
+            "SubSubCategoryName": "HEMATOLOGY",
+            "PrintGroupName": "string",
+            "SubSubCategoryId": 5,
+            "ServiceItemId": 40754,
+            "ServiceCode": "",
+            "ServiceName": "CBC",
+            "DoctorId": 2,
+            "Rate": 200.000000,
+            "Qty": 1.000000,
+            "GrossAmt": 200.000000,
+            "DiscPer": 0.000000,
+            "DiscAmt": 0.000000,
+            "NetAmt": 200.000000,
+            "BillingDate": "05-09-2026 09:21 AM",
+            "BillNo": null,
+            "BillId": 55,
+            "CreatedOnWithTime": "05-09-2026 11:00AM",
+            "DoctorName": "Dr. Rajan Sahi",
+            "UserId": 3,
+            "UserName": "Prabhat  Trivedi (Prabhat)",
+            "FTID": 58,
+            "FTDId": 86,
+            "VisitId": 26,
+            "IsCorporateNonPayable": 0,
+            "IsUnderPackage": 0,
+            "Package": "",
+            "IsSampleCollected": 0,
+            "IsSupplementaryBill": 0
+        } */
+
+type BillFilterItem = {
+  BillId: number;
+  BillNo: string;
+};
+
+type PaymentListItem = {
+  PaymentModeName: string;
+  Amount: number;
+  UserName: string;
+  ReceiptNo: string;
+  BillDate: string;
 };
 
 export type {
   ApprovalLists,
+  BillFilterItem,
   BillingTypeItem,
   CategoryItem,
   CorporateItem,
@@ -393,6 +447,7 @@ export type {
   InsuranceItem,
   IpdPatientItem,
   IpdSummaryBillingTableList,
+  PaymentListItem,
   PreviousBedListItem,
   PreviousDoctorListItem,
   RoomItem,
