@@ -501,6 +501,7 @@ const ENDPOINTS = {
   GET_CORPORATE_TRANSFER_REQUEST_DETAILS_BY_VISIT_ID:
     "IPD/getCorporateTransferRequestDetailsByVisitId",
   SAVE_IPD_BILLING: "IPD/saveIPDBilling",
+  GET_IPD_PATIENT_ORDER_DETAILS: "IPD/getIPDPatientOrderDetails",
   GET_IPD_PATIENT_BILL_AMOUNTS: "IPD/getIPDPatientBillAmounts",
   GET_IPD_BILLING_SUMMARY: "IPD/getIPDBillingSummary",
 
@@ -670,6 +671,9 @@ const ENDPOINTS = {
   // surgery component master
   CREATE_UPDATE_SURGERY_COMPONENT_MASTER: "Admin/createUpdateSurgeryComponentMaster",
   GET_SURGERY_COMPONENTS_LIST: "Admin/getSurgeryComponentsList",
+
+  // common
+  GET_PREDEFINE_QUERY_RESULT: "Home/getPredefineQueryResult",
 };
 
 export { ENDPOINTS };

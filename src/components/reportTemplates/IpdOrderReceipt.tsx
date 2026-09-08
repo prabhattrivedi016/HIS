@@ -1,7 +1,6 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { PaymentModeItem } from "@/screens/opdBilling/types";
 import { useContext, useEffect, useMemo, useState } from "react";
 import logoImg from "../../../assets/logo.jpg";
 
@@ -64,35 +63,18 @@ const numberToWords = (num: number): string => {
   return getWords(num).trim() + " Rupees Only";
 };
 
-//     {/* barcode  */}
-//     <div style={{ fontSize: 12, marginTop: 4, fontWeight: "bold" }}>{value}</div>
-
-//     {/* Optional label */}
-//     {label && <div style={{ fontSize: 11, marginTop: 2 }}>{label}</div>}
-//   </div>
-// );
-
-export default function IpdBillingReceipt({
+export default function IpdOrderReceipt({
   printOnMount = false,
   data,
-  paymentModeList: initialPaymentModeList,
-  paidAmt,
-  ftid,
-  receiptId,
 }: {
   printOnMount?: boolean;
   data: any;
-  paymentModeList?: PaymentModeItem[];
-  paidAmt?: number;
-  ftid?: number;
-  receiptId?: number;
 }) {
   const patientDetails = data?.[0];
-  const { loading, fetchApi } = useGlobalApi();
+  const { fetchApi } = useGlobalApi();
 
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
   const [branchDetails, setBranchDetails] = useState<BranchItem | null>(null);
-  const [paymentModes, setPaymentModes] = useState<PaymentModeItem[]>(initialPaymentModeList || []);
   const branchAddress = branchDetails?.address?.trim() || "";
   const branchName = branchDetails?.branchName?.trim() || "";
 
@@ -103,29 +85,9 @@ export default function IpdBillingReceipt({
       ENDPOINTS.GET_BRANCH_DETAILS,
       {},
       { params: { branchId } },
-      { component: "OpdDetails" }
+      { component: "IpdOrderReceipt" }
     );
     setBranchDetails(resp?.data?.[0]);
-  };
-
-  // Fetch payment methods using predefined query if ftid is provided
-  const fetchPaymentMethods = async () => {
-    if (!ftid) return;
-    try {
-      const resp = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_PREDEFINE_QUERY_RESULT,
-        {},
-        { params: { queryName: "GetReceiptListByFTID", filter1: ftid } },
-        { component: "IpdBillingReceipt", silent: true }
-      );
-      if (resp?.data) {
-        const payments = Array.isArray(resp.data) ? resp.data : [resp.data];
-        setPaymentModes(payments);
-      }
-    } catch (error) {
-      console.error("Error fetching payment methods:", error);
-    }
   };
 
   useEffect(() => {
@@ -133,20 +95,14 @@ export default function IpdBillingReceipt({
   }, [branchId]);
 
   useEffect(() => {
-    if (ftid) {
-      fetchPaymentMethods();
-    }
-  }, [ftid]);
-
-  useEffect(() => {
-    if (printOnMount && paymentModes?.length > 0) {
+    if (printOnMount) {
       const timer = setTimeout(() => {
         window.print();
       }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [printOnMount, paymentModes]);
+  }, [printOnMount]);
 
   // current date and time
   const today = new Date();
@@ -158,15 +114,9 @@ export default function IpdBillingReceipt({
     return Number.isFinite(n) ? n : 0;
   };
 
-  // amount calculation from API response (aggregate fields preferred)
-  const { totalAmount, totalDiscount, netAmount, balanceAmount } = useMemo(() => {
+  // amount calculation from API response
+  const { totalAmount, totalDiscount, netAmount } = useMemo(() => {
     const rows = Array.isArray(data) ? data : [];
-    const firstRow = rows[0] ?? {};
-
-    const grossFromApi = toNumber(firstRow?.GrossAmount ?? firstRow?.GrossAmt);
-    const discountFromApi = toNumber(firstRow?.DiscountAmount ?? firstRow?.DiscAmt);
-    const netFromApi = toNumber(firstRow?.NetAmount ?? firstRow?.NetAmt);
-    const balanceFromApi = toNumber(firstRow?.TotalBalanceAmount);
 
     const grossFromRows = rows.reduce(
       (acc: number, item: any) =>
@@ -179,29 +129,25 @@ export default function IpdBillingReceipt({
     );
     const netFromRows = rows.reduce((acc: number, item: any) => acc + toNumber(item?.NetAmt), 0);
 
-    const finalGross = grossFromApi || grossFromRows;
-    const finalDiscount = discountFromApi || discountFromRows;
-    const finalNet = netFromApi || netFromRows;
-
-    // Calculate paid amount from payment modes or use paidAmt
-    const finalPaid =
-      paidAmt !== undefined
-        ? toNumber(paidAmt)
-        : paymentModes.reduce((sum, item) => sum + toNumber(item?.Amount), 0);
-
-    const finalBalance = balanceFromApi || Number((finalNet - finalPaid).toFixed(2));
-
     return {
-      totalAmount: Number(finalGross.toFixed(2)),
-      totalDiscount: Number(finalDiscount.toFixed(2)),
-      netAmount: Number(finalNet.toFixed(2)),
-      balanceAmount: Number(finalBalance.toFixed(2)),
+      totalAmount: Number(grossFromRows.toFixed(2)),
+      totalDiscount: Number(discountFromRows.toFixed(2)),
+      netAmount: Number(netFromRows.toFixed(2)),
     };
-  }, [data, paidAmt, paymentModes]);
+  }, [data]);
 
   const amountInWords = numberToWords(Math.floor(netAmount));
 
-  if (!data) return null;
+  if (!data || !patientDetails) {
+    console.warn("IpdOrderReceipt: No data or patientDetails available", { data, patientDetails });
+    return (
+      <div id="receipt-print-wrapper">
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <h2>No data available for printing</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="receipt-print-wrapper">
@@ -255,7 +201,7 @@ export default function IpdBillingReceipt({
             />
           </div>
 
-          {/* Details Bill Title */}
+          {/* Order Title */}
           <div
             style={{
               border: "1px solid #ccc",
@@ -263,18 +209,11 @@ export default function IpdBillingReceipt({
               padding: "4px",
               marginBottom: "15px",
               fontSize: "16px",
-              fontWeight: "normal",
+              fontWeight: "bold",
             }}
           >
-            IPD Details Bill
+            IPD ORDER
           </div>
-
-          {/* Barcodes 
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-            <BarcodeBlock value={patientDetails?.UHID} />
-            <BarcodeBlock value={patientDetails?.BillNo} />
-          </div>
-          */}
 
           {/* Patient Details */}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
@@ -282,29 +221,30 @@ export default function IpdBillingReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "130px", verticalAlign: "top" }}>UHID</td>
+                    <td style={{ width: "130px", verticalAlign: "top", fontWeight: "bold" }}>
+                      UHID
+                    </td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.UHID}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Name</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Name</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.PatientName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Age/Sex</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Age}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ verticalAlign: "top" }}>Contact No</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Contact No</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.ContactNumber}</td>
                   </tr>
-
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Address</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address}</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Relative Name</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Diagnostic No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.DiagnosticNo}</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Department</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.DepartmentName}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>IPD No.</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.IPDNo}</td>
                   </tr>
                 </tbody>
               </table>
@@ -313,37 +253,33 @@ export default function IpdBillingReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "130px", verticalAlign: "top" }}>BillDate & Time</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.BillDate}</td>
+                    <td style={{ width: "130px", verticalAlign: "top", fontWeight: "bold" }}>
+                      Date & Time
+                    </td>
+                    <td style={{ verticalAlign: "top" }}>
+                      : {patientDetails?.OrderDate || `${todayDate} ${todayTime}`}
+                    </td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Doctor</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Age/Sex</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Age}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Corporate</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.CorporateName}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Address</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Doctor</td>
                     <td style={{ verticalAlign: "top" }}>: {patientDetails?.CompleteName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top" }}>Relative Name</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
+                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Bed No.</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.BedNo}</td>
                   </tr>
-                  {/* <tr>
-                    <td style={{ verticalAlign: "top" }}>Refer Doctor</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReferDoctorName}</td>
-                  </tr> */}
-                  <tr>
-                    <td style={{ verticalAlign: "top" }}>Corporate</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Corporat}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ verticalAlign: "top" }}>Bill No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.BillNo}</td>
-                  </tr>
-                  {/* <tr>
-                    <td style={{ verticalAlign: "top" }}>Receipt No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.ReceiptNo}</td>
-                  </tr> */}
-                  {/* <tr>
-                    <td style={{ verticalAlign: "top" }}>Doc Token No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.DocTokenNo}</td>
-                  </tr> */}
                 </tbody>
               </table>
             </div>
@@ -421,7 +357,7 @@ export default function IpdBillingReceipt({
                   Disc.
                 </th>
                 <th style={{ textAlign: "right", padding: "2px 5px", fontWeight: "bold" }}>
-                  Net Amt
+                  NetAmt
                 </th>
               </tr>
             </thead>
@@ -473,7 +409,7 @@ export default function IpdBillingReceipt({
                   <td style={{ textAlign: "right", padding: "2px 5px" }}>{service?.NetAmt}</td>
                 </tr>
               ))}
-              {/* Add an empty row for spacing if needed to match height */}
+              {/* Add an empty row for spacing if needed */}
               <tr>
                 <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}>&nbsp;</td>
                 <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}></td>
@@ -489,90 +425,29 @@ export default function IpdBillingReceipt({
           {/* Summary Details */}
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontWeight: "bold",
-              marginBottom: "5px",
-              fontSize: "15px",
+              textAlign: "right",
+              marginBottom: "15px",
+              fontSize: "14px",
+              paddingRight: "10px",
             }}
           >
-            <span>Total Amount : {totalAmount}</span>
-            <span>Total Discount : {totalDiscount}</span>
-            <span>Net Amount : {netAmount}</span>
-            <span>
-              Paid Amount :{" "}
-              {paymentModes.reduce((sum, item) => sum + toNumber(item?.Amount ?? 0), 0) ||
-                paidAmt ||
-                0}
-            </span>
-            <span>Balance Amount : {balanceAmount}</span>
+            <div style={{ marginBottom: "5px" }}>
+              <span style={{ fontWeight: "bold" }}>GrossAmount</span>
+              <span style={{ marginLeft: "30px" }}>: {totalAmount}</span>
+            </div>
+            <div style={{ marginBottom: "5px" }}>
+              <span style={{ fontWeight: "bold" }}>Disc Amt</span>
+              <span style={{ marginLeft: "50px" }}>: {totalDiscount}</span>
+            </div>
+            <div style={{ marginBottom: "5px" }}>
+              <span style={{ fontWeight: "bold" }}>NetAmount</span>
+              <span style={{ marginLeft: "40px" }}>: {netAmount}</span>
+            </div>
           </div>
+
           <div style={{ fontWeight: "bold", marginBottom: "15px", fontSize: "14px" }}>
             Amount In Words(INR): {amountInWords}
           </div>
-
-          {/* Receipt Table */}
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              border: "1px solid #000",
-              marginBottom: "10px",
-              textAlign: "center",
-            }}
-          >
-            <thead>
-              <tr style={{ borderBottom: "1px solid #000" }}>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt Date & Time.
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt No
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Amount
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Payment Mode
-                </th>
-                <th style={{ padding: "4px 5px", fontWeight: "bold" }}>Collected By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentModes.map((receipt: PaymentModeItem, index: number) => (
-                <tr key={index}>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {todayDate} & {todayTime}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.ReceiptNo}
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 5px",
-                      borderRight: "1px solid #000",
-                      // color: "blue",
-                      // textDecoration: "underline",
-                    }}
-                  >
-                    {receipt?.Amount}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.PaymentModeName}
-                  </td>
-                  <td style={{ padding: "4px 5px" }}>{receipt?.UserName}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
 
           {/* Footer Area */}
           <div
@@ -585,8 +460,8 @@ export default function IpdBillingReceipt({
               zIndex: 1,
             }}
           >
-            <span>Prepared By : {patientDetails?.CreatedBy}</span>
-            <span>Printed By : {patientDetails?.PrintBy}</span>
+            <span>Prepared By :{patientDetails?.CreatedBy || "TEAM GWS"}</span>
+            <span>Printed By :{patientDetails?.PrintBy || "TEAM GWS"}</span>
           </div>
           <div
             style={{
@@ -600,7 +475,7 @@ export default function IpdBillingReceipt({
             }}
           >
             <span id="receipt-branch-address">{`Subject to ${branchAddress} Jurisdiction`}</span>
-            <span style={{ paddingLeft: "40px" }}>E. & O.E.</span>
+            <span style={{ paddingLeft: "40px" }}>E.& O.E.</span>
             <span id="receipt-branch-name">{`For ${branchName}`}</span>
           </div>
         </div>

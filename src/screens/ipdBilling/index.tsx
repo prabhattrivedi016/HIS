@@ -1,3 +1,4 @@
+import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
@@ -7,6 +8,7 @@ import { useClickOutside } from "@/hooks/useClickOutside";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
+import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -46,7 +48,7 @@ const IpdBilling = () => {
 
   const [searchQuery, setSearchQuery] = useState({
     branchId: branchId,
-    searchBy: "",
+    searchBy: "FirstName",
     searchValue: "",
     statusId: 0,
   });
@@ -54,12 +56,21 @@ const IpdBilling = () => {
   // table list
 
   const getTableDataList = async (searchQuery: SearchQueryItem) => {
+    const hasSearchValue = Boolean(searchQuery?.searchValue?.trim());
+
+    const params: SearchQueryItem = {
+      ...searchQuery,
+      branchId: branchId || searchQuery?.branchId,
+      searchBy: hasSearchValue ? searchQuery?.searchBy : "",
+      searchValue: hasSearchValue ? searchQuery?.searchValue.trim() : "",
+    };
+
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.SEARCH_IPD_PATIENT,
       {},
       {
-        params: searchQuery,
+        params,
       },
       {
         component: "IpdBilling",
@@ -70,8 +81,15 @@ const IpdBilling = () => {
   };
 
   const { data: IpdPatientList = [] } = useQuery({
-    queryKey: ["getTableDataList", searchQuery],
+    queryKey: [
+      "getTableDataList",
+      branchId,
+      searchQuery?.searchBy,
+      searchQuery?.searchValue,
+      searchQuery?.statusId,
+    ],
     queryFn: () => getTableDataList(searchQuery),
+    enabled: !!branchId,
   });
 
   // pre fill auto data for card details
@@ -108,6 +126,7 @@ const IpdBilling = () => {
     setSearchQuery(prev => ({
       ...prev,
       [name]: value,
+      ...(name === "searchBy" ? { searchValue: "" } : {}),
     }));
   };
 
@@ -215,11 +234,11 @@ const IpdBilling = () => {
   };
 
   const visitFields = [
-    { label: "UHID", value: selectedPatient?.UHID, highlight: true },
+    // { label: "UHID", value: selectedPatient?.UHID, highlight: true },
     // { label: "VisitId", value: selectedPatient?.VisitId, highlight: true },
-    { label: "IPD No", value: selectedPatient?.IPDNo, highlight: true },
-    { label: "Doctor", value: selectedPatient?.PrimaryDoctor, highlight: true },
-    { label: "Corporate", value: selectedPatient?.Corporate, highlight: true },
+    // { label: "IPD No", value: selectedPatient?.IPDNo, highlight: true },
+    // { label: "Doctor", value: selectedPatient?.PrimaryDoctor, highlight: true },
+    // { label: "Corporate", value: selectedPatient?.Corporate, highlight: true },
     { label: "Bed", value: selectedPatient?.BedNo, highlight: true },
     {
       label: "Admission Date & Time",
@@ -240,16 +259,16 @@ const IpdBilling = () => {
     { label: "Address", value: selectedPatient?.FullAddress, highlight: true },
     { label: "PRO Name", value: selectedPatient?.ProName, highlight: true },
     { label: "Billing Type", value: selectedPatient?.BillingType, highlight: true },
-    { label: "Bill Amount", value: selectedPatient?.TotalBillAmount, highlight: true },
-    { label: "Disc (%) On Bill", value: selectedPatient?.TotalDiscountPerOnBill, highlight: true },
-    {
-      label: "Disc Amt on Bill",
-      value: selectedPatient?.TotalDiscountAmountOnBill,
-      highlight: true,
-    },
-    { label: "Round Off", value: selectedPatient?.RoundOff, highlight: true },
-    { label: "Net Payable Amt", value: selectedPatient?.TotalPayableAmount, highlight: true },
-    { label: "Patient Advance", value: selectedPatient?.PatientAdvanceAmt, highlight: true },
+    // { label: "Bill Amount", value: selectedPatient?.TotalBillAmount, highlight: true },
+    // { label: "Disc (%) On Bill", value: selectedPatient?.TotalDiscountPerOnBill, highlight: true },
+    // {
+    //   label: "Disc Amt on Bill",
+    //   value: selectedPatient?.TotalDiscountAmountOnBill,
+    //   highlight: true,
+    // },
+    // { label: "Round Off", value: selectedPatient?.RoundOff, highlight: true },
+    // { label: "Net Payable Amt", value: selectedPatient?.TotalPayableAmount, highlight: true },
+    // { label: "Patient Advance", value: selectedPatient?.PatientAdvanceAmt, highlight: true },
     { label: "Bill No", value: selectedPatient?.BillNo, highlight: true },
     // { label: "Bill Date", value: selectedPatient?.BillDate, highlight: false },
   ];
@@ -327,14 +346,29 @@ const IpdBilling = () => {
                 </div>
 
                 <InputField label="Search Value">
-                  <input
-                    type="text"
-                    className="input-field text-xs py-1.5"
-                    placeholder="Enter search value"
-                    name="searchValue"
-                    value={searchQuery?.searchValue}
-                    onChange={inputChangeHandler}
-                  />
+                  {searchQuery?.searchBy === "AdmissionDate" ||
+                  searchQuery?.searchBy === "DischargeDate" ? (
+                    <CustomDateInput
+                      className="input-field text-xs py-1.5"
+                      placeholder="Select date"
+                      value={formatToDDMMYYYY(searchQuery?.searchValue)}
+                      onChange={(value: string) =>
+                        setSearchQuery(prev => ({
+                          ...prev,
+                          searchValue: value ? formatToDDMMYYYY(value) : "",
+                        }))
+                      }
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      className="input-field text-xs py-1.5"
+                      placeholder="Enter search value"
+                      name="searchValue"
+                      value={searchQuery?.searchValue}
+                      onChange={inputChangeHandler}
+                    />
+                  )}
                 </InputField>
               </form>
 
@@ -396,8 +430,10 @@ const IpdBilling = () => {
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-100/80 pt-1.5 mt-1.5">
-                          <span>IPD No.</span>
-                          <span className="font-bold text-[#0B5394]">{item?.IPDNo || "-"}</span>
+                          {/* <span>Corporate</span> */}
+                          <span className="font-bold text-[#0B5394] no-wrap">
+                            {item?.Corporate}
+                          </span>
                         </div>
                       </div>
                     );
@@ -423,19 +459,19 @@ const IpdBilling = () => {
         <div className="flex-1 min-w-0">
           {selectedPatient === null ? (
             /* Empty State */
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-slate-400 gap-3 py-20 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-150px)] text-slate-400 gap-3 py-20 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
               <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-200/60 flex items-center justify-center">
                 <i className="fa-solid fa-user-injured text-2xl text-slate-300" />
               </div>
               <p className="text-base font-bold text-slate-500">No patient selected</p>
-              <p className="text-xs text-slate-400 max-w-[280px] text-center leading-relaxed">
+              <p className="text-xs text-slate-400 max-w-200 text-center leading-relaxed">
                 Select a patient from the list on the left side to view their IPD billing details
                 and perform billing operations.
               </p>
             </div>
           ) : (
             <div className="max-h-[calc(100vh-150px)] flex flex-col pr-0.5">
-              <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] mb-3 overflow-hidden flex-shrink-0">
+              <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] mb-3 overflow-hidden shrink-0">
                 <div className="h-1 w-full bg-[#0B5394]" />
                 {/* ── Section 1: Name / badges / actions ── */}
                 <div className="flex flex-wrap items-start justify-between gap-3 px-3 sm:px-4 py-3">
@@ -453,6 +489,22 @@ const IpdBilling = () => {
                         </span>
                         <span className="text-sm text-gray-500">
                           {selectedPatient.Age} · {selectedPatient.Gender}
+                        </span>
+
+                        <span className="text-sm text-green-500 font-semibold border rounded-sm px-2 py-1">
+                          UHID : {selectedPatient.UHID}
+                        </span>
+
+                        <span className="text-sm text-blue-500 font-semibold border rounded-sm px-2 py-1">
+                          IPD No : {selectedPatient.IPDNo}
+                        </span>
+
+                        <span className="text-sm text-purple-500 font-semibold border rounded-sm px-2 py-1">
+                          Doctor : {selectedPatient?.PrimaryDoctor}
+                        </span>
+
+                        <span className="text-sm text-cyan-500 font-semibold border rounded-sm px-2 py-1">
+                          Corporate : {selectedPatient?.Corporate}
                         </span>
                       </div>
                       {/* Phone */}
@@ -485,21 +537,29 @@ const IpdBilling = () => {
                 </div>
 
                 {/* ── Section 2: Visit info strip ── */}
-                <div className="hidden sm:flex bg-slate-50/70 border-t border-b border-slate-100 px-3 sm:px-4 py-2.5 flex-wrap gap-x-6 gap-y-2">
+                <div className="hidden sm:flex bg-gradient-to-r from-slate-50 via-teal-50/30 to-slate-50 border-t border-b border-slate-200/70 px-2 sm:px-1.5 py-2.5 flex-wrap gap-x-2 gap-y-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
                   {visitFields
                     .filter(f => f?.value !== "" && f?.value !== null && f?.value !== 0)
                     .map(f => (
                       <div
                         key={f.label}
-                        className={`flex flex-col px-2.5 py-1 rounded-lg ${f.highlight ? "bg-teal-50 ring-1 ring-teal-100" : ""}`}
+                        className={`flex flex-col px-2 py-1 rounded-lg transition-all duration-150 ${
+                          f.highlight
+                            ? "bg-white/90 backdrop-blur-xs border border-emerald-100 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-sm hover:border-emerald-200"
+                            : "bg-white/50 border border-slate-100"
+                        }`}
                       >
                         {f?.value && (
                           <>
-                            <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                               {f.label}
                             </span>
                             <span
-                              className={`text-sm font-semibold ${f.highlight ? "text-teal-600" : "text-gray-800"}`}
+                              className={`text-sm font-bold ${
+                                f.highlight
+                                  ? "bg-gradient-to-r from-slate-800 to-emerald-700 bg-clip-text text-transparent"
+                                  : "text-slate-800"
+                              }`}
                             >
                               {f.value}
                             </span>
@@ -537,7 +597,7 @@ const IpdBilling = () => {
 
                 {/* More Actions Dropdown */}
                 <div
-                  className="relative flex-shrink-0 pr-1 pl-3 border-l border-slate-200"
+                  className="relative shrink-0 pr-1 pl-3 border-l border-slate-200"
                   ref={moreActionsRef}
                 >
                   <button

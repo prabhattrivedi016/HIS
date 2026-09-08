@@ -33,6 +33,8 @@ export const fetchUserRightAccess = createAsyncThunk<
 
     const rights = response?.data?.data;
 
+    console.log("response of access rights", response);
+
     return rights && typeof rights === "object" && !Array.isArray(rights) ? rights : {};
   } catch (error: any) {
     return rejectWithValue(error?.response?.data?.message || "Failed to fetch user access rights");
