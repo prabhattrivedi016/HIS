@@ -505,6 +505,14 @@ const ENDPOINTS = {
   GET_IPD_PATIENT_BILL_AMOUNTS: "IPD/getIPDPatientBillAmounts",
   GET_IPD_BILLING_SUMMARY: "IPD/getIPDBillingSummary",
 
+  UPDATE_IPD_SERVICE_QTY: "IPD/updateIPDServiceQty",
+  UPDATE_IPD_SERVICE_RATE: "IPD/updateIPDServiceRate",
+  UPDATE_IPD_SERVICE_DISC_PER: "IPD/updateIPDServiceDiscPer",
+  UPDATE_IPD_SERVICE_DISC_AMT: "IPD/updateIPDServiceDiscAmt",
+  UPDATE_IPD_SERVICE_CORPORATE_NON_PAYABLE: "IPD/updateIPDServiceCorporateNonPayable",
+  UPDATE_IPD_SERVICE_PACKAGE: "IPD/updateIPDServicePackage",
+  REMOVE_IPD_SERVICE_ITEM: "IPD/removeIPDServiceItem",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

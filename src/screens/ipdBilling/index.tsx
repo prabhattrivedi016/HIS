@@ -238,7 +238,7 @@ const IpdBilling = () => {
     // { label: "VisitId", value: selectedPatient?.VisitId, highlight: true },
     // { label: "IPD No", value: selectedPatient?.IPDNo, highlight: true },
     // { label: "Doctor", value: selectedPatient?.PrimaryDoctor, highlight: true },
-    // { label: "Corporate", value: selectedPatient?.Corporate, highlight: true },
+    { label: "Corporate", value: selectedPatient?.Corporate, highlight: true },
     { label: "Bed", value: selectedPatient?.BedNo, highlight: true },
     {
       label: "Admission Date & Time",
@@ -275,7 +275,7 @@ const IpdBilling = () => {
 
   return (
     <div className="page-container w-full min-w-0">
-      <div className="flex items-center justify-between w-full mb-3 flex-wrap gap-2">
+      <div className="flex items-center justify-between w-full mb-1 flex-wrap gap-2">
         <div>
           <h1 className="page-heading">Patient IPD Journey</h1>
           <nav className="helper-text">
@@ -484,7 +484,7 @@ const IpdBilling = () => {
                     <div className="flex flex-col gap-1">
                       {/* Name + age + allergy */}
                       <div className="flex items-center flex-wrap gap-2">
-                        <span className="text-base font-bold text-gray-900">
+                        <span className="text-base font-bold text-gray-900 whitespace-nowrap">
                           {selectedPatient.PatientName}
                         </span>
                         <span className="text-sm text-gray-500">
@@ -503,9 +503,9 @@ const IpdBilling = () => {
                           Doctor : {selectedPatient?.PrimaryDoctor}
                         </span>
 
-                        <span className="text-sm text-cyan-500 font-semibold border rounded-sm px-2 py-1">
+                        {/* <span className="text-sm text-cyan-500 font-semibold border rounded-sm px-2 py-1">
                           Corporate : {selectedPatient?.Corporate}
-                        </span>
+                        </span> */}
                       </div>
                       {/* Phone */}
                       <div className="flex items-center gap-3 flex-wrap">

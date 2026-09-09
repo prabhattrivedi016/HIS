@@ -4,6 +4,7 @@ import CorporateTransfer from "./CorporateTransfer";
 import DoctorTransfer from "./DoctorTransfer";
 import IpdBillingComponent from "./IpdBillingComponent";
 import IpdBillingSummary from "./IpdBillingSummary";
+import PackageDetails from "./PackageDetails";
 import SurgeryOrder from "./SurgeryOrder";
 
 interface RoutingUsingTabUrlProps {
@@ -28,8 +29,11 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
     case "ipd-billing-summary":
       return <IpdBillingSummary patient={patient} />;
 
-    case "surgery-order":
+    case "surgery-billing":
       return <SurgeryOrder patient={patient} />;
+
+    case "package-details":
+      return <PackageDetails patient={patient} />;
 
     default:
       return (

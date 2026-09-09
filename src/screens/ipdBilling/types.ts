@@ -437,6 +437,11 @@ type PaymentListItem = {
   BillDate: string;
 };
 
+type PackageItemList = {
+  categoryTypeId: number;
+  categoryTypeName: string;
+};
+
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -447,6 +452,7 @@ export type {
   InsuranceItem,
   IpdPatientItem,
   IpdSummaryBillingTableList,
+  PackageItemList,
   PaymentListItem,
   PreviousBedListItem,
   PreviousDoctorListItem,

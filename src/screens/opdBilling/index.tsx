@@ -376,7 +376,6 @@ const OpdBilling = () => {
       { component: "OpdBilling" }
     );
 
-    console.log("resp of appointment", resp?.data?.[0]);
     if (resp?.data?.[0]) {
       const details = resp.data[0];
       await patientDataRef.current?.prefillPatientDetails(details);
@@ -398,20 +397,21 @@ const OpdBilling = () => {
         const matched = list.find(
           (c: Record<string, unknown>) => Number(c.corporateId ?? c.CorporateId) === corpId
         );
+
         if (matched) {
           setSelectedCorporate({
             value: matched.corporateId,
-            label: matched.corporateName,
+            label: matched.corporateName || matched.CorporateName,
           });
           void loadCorporateOpdRateListIds(matched.corporateId);
         } else {
           setSelectedCorporate(defaultCorporate);
-          void loadCorporateOpdRateListIds(defaultCorporate.value);
+          void loadCorporateOpdRateListIds(Number(defaultCorporate.value!));
         }
       } else {
         setCorporateList([]);
         setSelectedCorporate(defaultCorporate);
-        void loadCorporateOpdRateListIds(defaultCorporate.value);
+        void loadCorporateOpdRateListIds(Number(defaultCorporate.value!));
       }
 
       setOpdBillingFormData(prev => ({
@@ -457,18 +457,18 @@ const OpdBilling = () => {
         if (matched) {
           setSelectedCorporate({
             value: matched.corporateId,
-            label: matched.corporateName,
+            label: matched.corporateName || matched.CorporateName,
           });
           void loadCorporateOpdRateListIds(matched.corporateId);
         } else {
           setSelectedCorporate(defaultCorporate);
-          void loadCorporateOpdRateListIds(defaultCorporate.value);
+          void loadCorporateOpdRateListIds(Number(defaultCorporate.value!));
         }
       });
     } else {
       setCorporateList([]);
       setSelectedCorporate(defaultCorporate);
-      void loadCorporateOpdRateListIds(defaultCorporate.value);
+      void loadCorporateOpdRateListIds(Number(defaultCorporate.value!));
     }
 
     setOpdBillingFormData(prev => ({
@@ -563,6 +563,7 @@ const OpdBilling = () => {
     }
     return null;
   });
+
   const [activeTab, setActiveTab] = useState<string>(OPDBillingTabName.PATIENT_DETAILS);
   const [patientTabError, setPatientTabError] = useState<boolean>(false);
   const [billingTabError, setBillingTabError] = useState<boolean>(false);
@@ -817,17 +818,17 @@ const OpdBilling = () => {
           if (matched) {
             setSelectedCorporate({
               value: matched.corporateId,
-              label: matched.corporateName,
+              label: matched.corporateName || matched.CorporateName,
             });
             void loadCorporateOpdRateListIds(matched.corporateId);
           } else {
             setSelectedCorporate(defaultCorporate);
-            void loadCorporateOpdRateListIds(defaultCorporate.value);
+            void loadCorporateOpdRateListIds(Number(defaultCorporate.value));
           }
         } else {
           setCorporateList([]);
           setSelectedCorporate(defaultCorporate);
-          void loadCorporateOpdRateListIds(defaultCorporate.value);
+          void loadCorporateOpdRateListIds(Number(defaultCorporate.value));
         }
 
         setOpdBillingFormData(prev => ({
@@ -1086,7 +1087,7 @@ const OpdBilling = () => {
       const cacheKey = getPerformingDoctorsCacheKey(doctorDepartmentIds);
       return (performingDoctorsCache[cacheKey] ?? []).map(doctor => ({
         value: doctor.doctorId,
-        label: doctor.completeName || doctor.name,
+        label: doctor?.name,
       }));
     },
     [performingDoctorsCache]
@@ -2070,14 +2071,20 @@ const OpdBilling = () => {
       const bookingDoctorId = Number(bookingItems[0]?.doctorId ?? bookingItems[0]?.DoctorId ?? 0);
 
       setSelectedInsurance(insuranceCompanyId);
-      if (insuranceCompanyId) {
-        await getCorporateList(insuranceCompanyId);
-      }
+      const bookingCorporateList = insuranceCompanyId
+        ? await getCorporateList(insuranceCompanyId)
+        : [];
+      const matchedCorporate = bookingCorporateList.find(
+        (item: CorporateItem) => Number(item.corporateId) === corporateId
+      );
 
       const corporateOption =
         corporateId === defaultCorporate.value
           ? defaultCorporate
-          : { value: corporateId, label: String(corporateId) };
+          : {
+              value: corporateId,
+              label: matchedCorporate?.corporateName ?? String(corporateId),
+            };
       setSelectedCorporate(corporateOption);
       await loadCorporateOpdRateListIds(corporateId);
 
@@ -2285,6 +2292,8 @@ const OpdBilling = () => {
 
     void loadPaymentCollectionBooking();
   }, [
+    corporateList,
+    doctorList,
     isPaymentCollectionMode,
     bookingDetails,
     patientRegistrationDetails?.PatientId,
