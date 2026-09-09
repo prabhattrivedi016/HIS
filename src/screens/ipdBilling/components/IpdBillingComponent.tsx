@@ -1486,7 +1486,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                 <div className="flex justify-end mt-2 pr-1">
                   {!showBillingDetailsForm ? (
                     <button
-                      className="save-btn w-25 mr-2"
+                      className="save-btn w-30 mr-2"
                       onClick={() =>
                         saveButtonClickHandler(
                           isIPDCaseBilling ||
@@ -1501,7 +1501,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                     </button>
                   ) : (
                     <button
-                      className="save-btn w-25 mr-2"
+                      className="save-btn w-30 mr-2"
                       onClick={() => saveSeparateBillHandler("separateBill")}
                     >
                       Save
