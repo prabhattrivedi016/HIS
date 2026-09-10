@@ -496,15 +496,20 @@ const AddNewBedMaster = ({
                     <option value={1}>Active</option>
                   </select>
                 </InputField>
-              </div>
 
-              <div className="form-actions-responsive mt-5">
-                <button type="submit" className="save-btn">
-                  {buttonTitle}
-                </button>
-                <button type="button" className="cancel-button" onClick={cancelHandler}>
-                  Cancel
-                </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-2 mt-3  ">
+                  <button type="submit" className="save-btn w-full sm:w-auto">
+                    {buttonTitle}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cancel-button w-full sm:w-auto"
+                    onClick={cancelHandler}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </form>
           </div>

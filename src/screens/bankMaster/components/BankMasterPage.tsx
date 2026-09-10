@@ -115,10 +115,9 @@ const BankMasterPage = () => {
   return (
     <div className="mt-1">
       <div className="card mb-1">
-        <h2 className="card-title ">Bank Master Details</h2>
         {/* form */}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-grid-4">
+          <form className="form-grid-4">
             <InputField label="Bank Name" required>
               <input
                 className="input-field"
@@ -139,21 +138,22 @@ const BankMasterPage = () => {
               </select>
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
-          </div>
-          <div className="form-actions-responsive">
-            <SubmitButton
-              label={buttonTitle}
-              className="save-btn-color"
-              type="submit"
-              onClick={handleSubmit(onSubmit)}
-            />
-            <CancelButton
-              label="Cancel"
-              className="cancel-btn-color"
-              type="button"
-              onClick={cancelHandler}
-            />
-          </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4 mt-4">
+              <SubmitButton
+                label={buttonTitle}
+                className="save-btn-color"
+                type="submit"
+                onClick={handleSubmit(onSubmit)}
+              />
+              <CancelButton
+                label="Cancel"
+                className="cancel-btn-color"
+                type="button"
+                onClick={cancelHandler}
+              />
+            </div>
+          </form>
         </form>
       </div>
 

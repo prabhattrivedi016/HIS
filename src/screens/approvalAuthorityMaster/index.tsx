@@ -711,15 +711,15 @@ const ApprovalAuthorityMaster = () => {
                 )}
               </InputField>
             )}
-          </div>
 
-          <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {buttonTitle}
-            </button>
-            <button type="button" className="cancel-button" onClick={cancelHandler}>
-              Cancel
-            </button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4 mt-4">
+              <button type="submit" className="save-btn">
+                {buttonTitle}
+              </button>
+              <button type="button" className="cancel-button" onClick={cancelHandler}>
+                Cancel
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -561,9 +561,9 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
 
                           <th className="table-th p-2">Bill Date</th>
 
-                          <th className="table-th">Amount</th>
-
                           <th className="table-th">Receipt No</th>
+
+                          <th className="table-th">Amount</th>
 
                           <th className="table-th">Payment Mode</th>
 
@@ -586,9 +586,9 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
 
                             <td className="table-td">{item?.BillDate || "-"}</td>
 
-                            <td className="table-td">{item?.Amount || "-"}</td>
-
                             <td className="table-td">{item?.ReceiptNo || "-"}</td>
+
+                            <td className="table-td">{item?.Amount || "-"}</td>
 
                             <td className="table-td">{item?.PaymentModeName || "-"}</td>
 

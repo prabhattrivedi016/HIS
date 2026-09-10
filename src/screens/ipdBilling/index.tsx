@@ -305,11 +305,11 @@ const IpdBilling = () => {
       <div className="relative flex flex-col lg:flex-row w-full items-stretch gap-0">
         {/* LEFT PANEL */}
         <div
-          className={`transition-all duration-300 flex-shrink-0 mr-1 ${
+          className={`transition-all duration-300 shrink-0 mr-1 ${
             leftPanelVisible ? "lg:w-80 w-full opacity-100" : "hidden lg:block lg:w-0 lg:opacity-0"
           }`}
         >
-          <div className="card lg:mr-3 h-full flex flex-col p-0 max-h-[calc(100vh-150px)] overflow-hidden">
+          <div className="card lg:mr-3 h-full flex flex-col p-0 max-h-[calc(100vh-50px)] overflow-hidden">
             <div className="p-3 flex flex-col gap-1 overflow-y-auto hide-scrollbar flex-1">
               <form onSubmit={e => e.preventDefault()} className="flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -372,7 +372,7 @@ const IpdBilling = () => {
                 </InputField>
               </form>
 
-              <div className="h-[1px] bg-slate-100 my-1" />
+              <div className="h-px bg-slate-100 my-1" />
 
               <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
                 {IpdPatientList.length === 0 ? (
@@ -392,7 +392,7 @@ const IpdBilling = () => {
                         }}
                         className={`w-full rounded-xl border shadow-sm p-3 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
                           isSelected
-                            ? "bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-500 ring-2 ring-blue-100 shadow-md"
+                            ? "bg-linear-to-br from-blue-50 to-cyan-50 border-blue-500 ring-2 ring-blue-100 shadow-md"
                             : "bg-white border-slate-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30"
                         }`}
                       >

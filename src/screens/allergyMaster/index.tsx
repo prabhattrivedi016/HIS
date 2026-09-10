@@ -168,7 +168,6 @@ const AllergyMaster = () => {
       {/* allergy sub type form data */}
 
       <div className="card mb-1">
-        <h2 className="card-title ">Allergy Sub Type Details</h2>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-grid-4">
             <InputField label="Allergy Type" required>
@@ -290,20 +289,21 @@ const AllergyMaster = () => {
               </select>
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
-          </div>
 
-          <div className="form-actions-responsive mt-5">
-            <button type="submit" className="save-btn">
-              {buttonTitle}
-            </button>
-            <button type="button" className="cancel-button ">
-              Cancel
-            </button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4  ">
+              <button type="submit" className="save-btn w-full sm:w-auto">
+                {buttonTitle}
+              </button>
+
+              <button type="button" className="cancel-button w-full sm:w-auto">
+                Cancel
+              </button>
+            </div>
           </div>
         </form>
       </div>
       {/* table */}
-      <div className="card">
+      <div className="card min-w-0 max-w-full overflow-hidden">
         <div className="card-header">
           <h2 className="card-title ">Allergy Sub Type List</h2>
 
@@ -330,7 +330,7 @@ const AllergyMaster = () => {
                   <tbody>
                     {AllergySubTypeMasterList.length === 0 ? (
                       <tr>
-                        <td colSpan={17} className="text-center py-6 text-gray-500">
+                        <td colSpan={10} className="text-center py-6 text-gray-500">
                           No data found
                         </td>
                       </tr>

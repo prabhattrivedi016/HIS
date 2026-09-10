@@ -314,11 +314,7 @@
 }
 
 /*-------------------NORMAL PAGES ---------------- */
-/* Do NOT add overflow-y-auto / min-h-screen here — Sidebar <main> already scrolls.
-   Nested page scroll traps break scrolling once content (billing + payment) grows. */
-.page-container {
-  @apply w-full min-w-0 max-w-full bg-gray-50 flex-1 px-2 sm:px-3 py-3 sm:py-4 -mt-6;
-}
+
 .page-heading {
   @apply text-xl sm:text-2xl font-bold text-gray-900;
 }
@@ -412,13 +408,6 @@
 }
 .opacity-full {
   @apply opacity-100 scale-100;
-}
-
-.active-text {
-  @apply text-green-600 font-semibold;
-}
-.inactive-text {
-  @apply text-red-600 font-semibold;
 }
 
 /* Hide scrollbar arrows (Windows / WebKit browsers) */

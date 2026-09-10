@@ -239,7 +239,7 @@ const BankDetails = () => {
               {errors.isActive && <p className="input-field-error">{errors.isActive.message}</p>}
             </InputField>
 
-            <div className="form-actions-responsive ">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4 mt-4">
               <SubmitButton
                 label={buttonTitle}
                 className="save-btn-color "
