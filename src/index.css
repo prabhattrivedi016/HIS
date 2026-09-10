@@ -653,3 +653,15 @@ select:-webkit-autofill {
 .slot-expired-dot {
   color: #ccc !important;
 }
+
+/* normal pages */
+.page-container {
+  @apply w-full min-w-0 max-w-full bg-gray-50 flex-1 px-2 sm:px-3 py-3 sm:py-4 -mt-6;
+}
+
+.active-text {
+  @apply text-green-600 font-semibold;
+}
+.inactive-text {
+  @apply text-red-600 font-semibold;
+}

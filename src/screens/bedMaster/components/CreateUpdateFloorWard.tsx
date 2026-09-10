@@ -241,7 +241,7 @@ const CreateUpdateFloorWard = ({
               />
               {errors.blockName && <p className="input-field-error">{errors.blockName.message}</p>}
             </InputField>
-            <div className="form-actions-responsive mt-5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-2">
               <button type="submit" className="save-btn">
                 {blockButtonTitle}
               </button>
@@ -270,7 +270,7 @@ const CreateUpdateFloorWard = ({
               />
               {errors.floorName && <p className="input-field-error">{errors.floorName.message}</p>}
             </InputField>
-            <div className="form-actions-responsive mt-5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-2">
               <button type="submit" className="save-btn">
                 {floorButtonTitle}
               </button>
@@ -300,7 +300,7 @@ const CreateUpdateFloorWard = ({
               />
               {errors.wardName && <p className="input-field-error">{errors.wardName.message}</p>}
             </InputField>
-            <div className="form-actions-responsive mt-5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-2">
               <button type="submit" className="save-btn">
                 {wardButtonTitle}
               </button>
