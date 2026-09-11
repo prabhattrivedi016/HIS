@@ -48,6 +48,20 @@ const RatePopup = ({ isOpen, onClose, selectedItems, refetch }: RatePopupProps) 
       showWarning("No selected items to update rate or invalid rate.");
       return;
     }
+
+    const restrictedItems = selectedItems.filter(
+      item => Number(item?.CategoryTypeId) === 6 || Number(item?.CategoryTypeId) === 9
+    );
+
+    if (restrictedItems.length > 0) {
+      const itemDetails = restrictedItems
+        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
+        .join("\n");
+
+      showWarning(`Rate cannot be updated of the following items.:\n${itemDetails}`);
+
+      return;
+    }
     const payload = createPayload();
     if (!payload) return;
 

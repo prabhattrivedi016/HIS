@@ -77,6 +77,7 @@ type TabNameItem = {
   CreatedOn: string;
   LastModifiedBy: string;
   LastModifiedOn: string;
+  IsFavorite?: number;
 };
 
 type DoctorItem = {
@@ -354,6 +355,7 @@ type ServiceObservationMappingItem = {
 };
 
 type IpdSummaryBillingTableList = {
+  CategoryTypeId?: number;
   CategoryId: number;
   CategoryName: string;
   SubCategoryName: string;
@@ -387,42 +389,6 @@ type IpdSummaryBillingTableList = {
   IsSampleCollected: number;
   IsSupplementaryBill: 0;
 };
-
-/*
-{
-            "CategoryId": 3,
-            "CategoryName": "Investigations",
-            "SubCategoryName": "Pathology",
-            "SubCategoryId": 1,
-            "SubSubCategoryName": "HEMATOLOGY",
-            "PrintGroupName": "string",
-            "SubSubCategoryId": 5,
-            "ServiceItemId": 40754,
-            "ServiceCode": "",
-            "ServiceName": "CBC",
-            "DoctorId": 2,
-            "Rate": 200.000000,
-            "Qty": 1.000000,
-            "GrossAmt": 200.000000,
-            "DiscPer": 0.000000,
-            "DiscAmt": 0.000000,
-            "NetAmt": 200.000000,
-            "BillingDate": "05-09-2026 09:21 AM",
-            "BillNo": null,
-            "BillId": 55,
-            "CreatedOnWithTime": "05-09-2026 11:00AM",
-            "DoctorName": "Dr. Rajan Sahi",
-            "UserId": 3,
-            "UserName": "Prabhat  Trivedi (Prabhat)",
-            "FTID": 58,
-            "FTDId": 86,
-            "VisitId": 26,
-            "IsCorporateNonPayable": 0,
-            "IsUnderPackage": 0,
-            "Package": "",
-            "IsSampleCollected": 0,
-            "IsSupplementaryBill": 0
-        } */
 
 type BillFilterItem = {
   BillId: number;

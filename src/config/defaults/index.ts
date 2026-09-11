@@ -513,6 +513,8 @@ const ENDPOINTS = {
   UPDATE_IPD_SERVICE_PACKAGE: "IPD/updateIPDServicePackage",
   REMOVE_IPD_SERVICE_ITEM: "IPD/removeIPDServiceItem",
 
+  UPDATE_FAVORITE_BILLING_TAB: "Home/updateFavoriteBillingTab",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

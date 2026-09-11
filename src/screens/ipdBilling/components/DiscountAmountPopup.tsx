@@ -67,8 +67,22 @@ const DiscountAmountPopup = ({
       );
       return;
     }
+
+    const restrictedItems = selectedItems.filter(
+      item => Number(item?.CategoryTypeId) === 6 || Number(item?.CategoryTypeId) === 9
+    );
+
+    if (restrictedItems.length > 0) {
+      const itemDetails = restrictedItems
+        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
+        .join("\n");
+
+      showWarning(`Discount amount cannot be updated of the following items.:\n${itemDetails}`);
+
+      return;
+    }
     const payload = createPayload();
-    console.log("payload in updateDiscAmtHandler:", payload);
+
     setDiscAmtValue(Number(discAmtValue));
     const resp = await fetchApi(
       "PATCH",

@@ -286,141 +286,146 @@ export default function IpdOrderReceipt({
           </div>
 
           {/* Services Table */}
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              border: "1px solid #000",
-              marginBottom: "4px",
-            }}
-          >
-            <thead>
-              <tr style={{ borderBottom: "1px solid #000", background: "#fff" }}>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Service Name
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Code
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  QTY
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Rate
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Disc(%)
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "2px 5px",
-                    borderRight: "1px solid #000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Disc.
-                </th>
-                <th style={{ textAlign: "right", padding: "2px 5px", fontWeight: "bold" }}>
-                  NetAmt
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.map((service: any, index: number) => (
-                <tr key={index}>
-                  <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
-                    {service?.ServiceName}
-                  </td>
-                  <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
-                    {service?.Code}
-                  </td>
-                  <td
+
+          {!!data && data?.length > 0 ? (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                border: "1px solid #000",
+                marginBottom: "4px",
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "1px solid #000", background: "#fff" }}>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "2px 5px",
+                      borderRight: "1px solid #000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Service Name
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "2px 5px",
+                      borderRight: "1px solid #000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Code
+                  </th>
+                  <th
                     style={{
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
+                      fontWeight: "bold",
                     }}
                   >
-                    {service?.Qty}
-                  </td>
-                  <td
+                    QTY
+                  </th>
+                  <th
                     style={{
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
+                      fontWeight: "bold",
                     }}
                   >
-                    {service?.Rate}
-                  </td>
-                  <td
+                    Rate
+                  </th>
+                  <th
                     style={{
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
+                      fontWeight: "bold",
                     }}
                   >
-                    {service?.DiscPer}
-                  </td>
-                  <td
+                    Disc(%)
+                  </th>
+                  <th
                     style={{
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
+                      fontWeight: "bold",
                     }}
                   >
-                    {service?.DiscAmt}
-                  </td>
-                  <td style={{ textAlign: "right", padding: "2px 5px" }}>{service?.NetAmt}</td>
+                    Disc.
+                  </th>
+                  <th style={{ textAlign: "right", padding: "2px 5px", fontWeight: "bold" }}>
+                    NetAmt
+                  </th>
                 </tr>
-              ))}
-              {/* Add an empty row for spacing if needed */}
-              <tr>
-                <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}>&nbsp;</td>
-                <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}></td>
-                <td style={{ borderRight: "1px solid #000" }}></td>
-                <td style={{ borderRight: "1px solid #000" }}></td>
-                <td style={{ borderRight: "1px solid #000" }}></td>
-                <td style={{ borderRight: "1px solid #000" }}></td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data?.map((service: any, index: number) => (
+                  <tr key={index}>
+                    <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
+                      {service?.ServiceName}
+                    </td>
+                    <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
+                      {service?.Code}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "2px 5px",
+                        borderRight: "1px solid #000",
+                      }}
+                    >
+                      {service?.Qty}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "2px 5px",
+                        borderRight: "1px solid #000",
+                      }}
+                    >
+                      {service?.Rate}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "2px 5px",
+                        borderRight: "1px solid #000",
+                      }}
+                    >
+                      {service?.DiscPer}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "2px 5px",
+                        borderRight: "1px solid #000",
+                      }}
+                    >
+                      {service?.DiscAmt}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "2px 5px" }}>{service?.NetAmt}</td>
+                  </tr>
+                ))}
+                {/* Add an empty row for spacing if needed */}
+                <tr>
+                  <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}>&nbsp;</td>
+                  <td style={{ padding: "10px 5px", borderRight: "1px solid #000" }}></td>
+                  <td style={{ borderRight: "1px solid #000" }}></td>
+                  <td style={{ borderRight: "1px solid #000" }}></td>
+                  <td style={{ borderRight: "1px solid #000" }}></td>
+                  <td style={{ borderRight: "1px solid #000" }}></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <></>
+          )}
 
           {/* Summary Details */}
           <div

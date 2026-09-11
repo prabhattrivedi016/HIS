@@ -51,6 +51,25 @@ const QuantityUpdatePopup = ({
       showWarning("No selected items to update quantity or invalid quantity.");
       return;
     }
+    const restrictedItems = selectedItems.filter(
+      item =>
+        Number(item?.CategoryTypeId) === 2 ||
+        Number(item?.CategoryTypeId) === 3 ||
+        Number(item?.CategoryTypeId) === 6 ||
+        Number(item?.CategoryTypeId) === 9 ||
+        Number(item?.CategoryTypeId) === 11 ||
+        Number(item?.CategoryTypeId) === 12
+    );
+
+    if (restrictedItems.length > 0) {
+      const itemDetails = restrictedItems
+        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
+        .join("\n");
+
+      showWarning(`Quantity  cannot be updated of the following items.:\n${itemDetails}`);
+
+      return;
+    }
     const payload = createPayload();
     setQtyValue(Number(qtyValue));
     const resp = await fetchApi(

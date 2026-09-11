@@ -1,11 +1,11 @@
 import CentralPopup from "@/components/centralPopup";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { IpdSummaryBillingTableList, PackageItemList } from "../types";
+import { ChangeEvent, useEffect, useState } from "react";
+import { IpdSummaryBillingTableList } from "../types";
 
 type PackagePopupProps = {
   isOpen: boolean;
@@ -17,30 +17,33 @@ type PackagePopupProps = {
 const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const [selectedPackage, setSelectedPackage] = useState<PackageItemList | null>(null);
+  const [packageLists, setPackageLists] = useState<IpdSummaryBillingTableList[]>([]);
 
-  const getPackageLists = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_CATEGORY_TYPE_LIST,
-      {},
-      { params: { categoryTypeIds: 12 } },
-      { component: "PackagePopup" }
+  const [selectedPackage, setSelectedPackage] = useState<IpdSummaryBillingTableList | null>(null);
+
+  useEffect(() => {
+    const filteredPackage = selectedItems.filter(
+      (s: IpdSummaryBillingTableList) =>
+        Number(s?.CategoryTypeId) === 12 && Number(s?.IsSupplementaryBill) === 0
     );
-    return resp?.data || [];
+
+    setPackageLists(filteredPackage);
+  }, [selectedItems]);
+
+  // package select handler
+  const packageSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    const selectedPackage = packageLists.find(
+      (item: IpdSummaryBillingTableList) => item?.ServiceItemId === Number(value)
+    );
+    setSelectedPackage(selectedPackage || null);
   };
-  const { data: packageLists = [] } = useQuery({
-    queryKey: ["packageLists"],
-    queryFn: getPackageLists,
-    enabled: isOpen, // Fetch only when the popup is open
-  });
-  console.log("packageLists in PackagePopup:", packageLists);
 
   const createPayload = () => {
     return {
       visitId: selectedItems?.[0]?.VisitId!,
       ftdIdList: selectedItems!.map(item => item?.FTDId).join(","),
-      packageId: selectedPackage?.categoryTypeId,
+      packageId: selectedPackage?.CategoryTypeId!,
     };
   };
 
@@ -48,6 +51,20 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
   const packageUpdateHandler = async () => {
     if (!selectedPackage) {
       showWarning("Please select a package.");
+      return;
+    }
+
+    const restrictedItems = selectedItems.filter(
+      item => Number(item?.CategoryTypeId) === 11 || Number(item?.CategoryTypeId) === 12
+    );
+
+    if (restrictedItems.length > 0) {
+      const itemDetails = restrictedItems
+        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
+        .join("\n");
+
+      showWarning(`The following items cannot be added to the package:\n${itemDetails}`);
+
       return;
     }
     const payload = createPayload();
@@ -73,17 +90,13 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
         <InputField>
           <select
             className="input-field"
-            value={selectedPackage?.categoryTypeId || ""}
-            onChange={e => {
-              const packageId = parseInt(e.target.value);
-              const selected = packageLists.find(p => p.categoryTypeId === packageId) || null;
-              setSelectedPackage(selected);
-            }}
+            value={selectedPackage?.CategoryTypeId}
+            onChange={packageSelectHandler}
           >
-            <option>Select Package</option>
-            {packageLists.map((item: PackageItemList) => (
-              <option key={item.categoryTypeId} value={item.categoryTypeId}>
-                {item.categoryTypeName}
+            <option value={0}>No Package</option>
+            {packageLists?.map((item: IpdSummaryBillingTableList) => (
+              <option key={item?.ServiceItemId} value={item?.ServiceItemId}>
+                {item?.ServiceName}
               </option>
             ))}
           </select>
@@ -93,6 +106,8 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
             Update Package
           </button>
         </div>
+
+        {!!loading && <CustomLoader isLoading={loading} />}
       </div>
     </CentralPopup>
   );

@@ -350,6 +350,7 @@ export default function IpdBillingReceipt({
           </div>
 
           {/* Services Table */}
+
           <table
             style={{
               width: "100%",
@@ -512,67 +513,86 @@ export default function IpdBillingReceipt({
           </div>
 
           {/* Receipt Table */}
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              border: "1px solid #000",
-              marginBottom: "10px",
-              textAlign: "center",
-            }}
-          >
-            <thead>
-              <tr style={{ borderBottom: "1px solid #000" }}>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt Date & Time.
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Receipt No
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Amount
-                </th>
-                <th
-                  style={{ padding: "4px 5px", borderRight: "1px solid #000", fontWeight: "bold" }}
-                >
-                  Payment Mode
-                </th>
-                <th style={{ padding: "4px 5px", fontWeight: "bold" }}>Collected By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentModes.map((receipt: PaymentModeItem, index: number) => (
-                <tr key={index}>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {todayDate} & {todayTime}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.ReceiptNo}
-                  </td>
-                  <td
+
+          {!!paymentModes && paymentModes.length > 0 && (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                border: "1px solid #000",
+                marginBottom: "10px",
+                textAlign: "center",
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "1px solid #000" }}>
+                  <th
                     style={{
                       padding: "4px 5px",
                       borderRight: "1px solid #000",
-                      // color: "blue",
-                      // textDecoration: "underline",
+                      fontWeight: "bold",
                     }}
                   >
-                    {receipt?.Amount}
-                  </td>
-                  <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
-                    {receipt?.PaymentModeName}
-                  </td>
-                  <td style={{ padding: "4px 5px" }}>{receipt?.UserName}</td>
+                    Receipt Date & Time.
+                  </th>
+                  <th
+                    style={{
+                      padding: "4px 5px",
+                      borderRight: "1px solid #000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Receipt No
+                  </th>
+                  <th
+                    style={{
+                      padding: "4px 5px",
+                      borderRight: "1px solid #000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Amount
+                  </th>
+                  <th
+                    style={{
+                      padding: "4px 5px",
+                      borderRight: "1px solid #000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Payment Mode
+                  </th>
+                  <th style={{ padding: "4px 5px", fontWeight: "bold" }}>Collected By</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paymentModes.map((receipt: PaymentModeItem, index: number) => (
+                  <tr key={index}>
+                    <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                      {todayDate} & {todayTime}
+                    </td>
+                    <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                      {receipt?.ReceiptNo}
+                    </td>
+                    <td
+                      style={{
+                        padding: "4px 5px",
+                        borderRight: "1px solid #000",
+                        // color: "blue",
+                        // textDecoration: "underline",
+                      }}
+                    >
+                      {receipt?.Amount}
+                    </td>
+                    <td style={{ padding: "4px 5px", borderRight: "1px solid #000" }}>
+                      {receipt?.PaymentModeName}
+                    </td>
+                    <td style={{ padding: "4px 5px" }}>{receipt?.UserName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
 
           {/* Footer Area */}
           <div
