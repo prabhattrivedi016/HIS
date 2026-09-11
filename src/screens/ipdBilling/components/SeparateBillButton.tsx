@@ -16,10 +16,6 @@ const SeparateBillButton = ({
   const canCollectIPDAdvanceAmountDuringIPDBilling = Number(
     accessRights?.CanCollectIPDAdvanceAmountDuringIPDBilling
   );
-  console.log(
-    "canCollectIPDAdvanceAmountDuringIPDBilling",
-    canCollectIPDAdvanceAmountDuringIPDBilling
-  );
 
   return (
     <CentralPopup isOpen={isOpen} onClose={onClose} className="w-full!" title="Billing Preference">

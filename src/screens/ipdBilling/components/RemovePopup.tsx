@@ -19,6 +19,8 @@ const RemovePopup = ({ isOpen, onClose, selectedItems, refetch, onSuccess }: Rem
   const { loading, fetchApi } = useGlobalApi();
   const [cancelReason, setCancelReason] = useState("");
 
+  console.log("selectedItems", selectedItems);
+
   useEffect(() => {
     if (!isOpen) setCancelReason("");
   }, [isOpen]);
@@ -36,6 +38,17 @@ const RemovePopup = ({ isOpen, onClose, selectedItems, refetch, onSuccess }: Rem
       return;
     }
 
+    const restrictedItems = selectedItems.filter(item => Number(item?.CategoryTypeId) === 6);
+
+    if (restrictedItems.length > 0) {
+      const itemDetails = restrictedItems
+        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
+        .join("\n");
+
+      showWarning(`The following items cannot be removed:\n${itemDetails}`);
+
+      return;
+    }
     const payload = {
       visitId: selectedItems[0].VisitId,
       ftdIdList: selectedItems.map(item => item.FTDId).join(","),

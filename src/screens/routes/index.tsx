@@ -34,6 +34,7 @@ import InvestigationInterpretationTemplate from "../investigationInterpretationT
 import InvestigationObservationMapping from "../investigationObservationMapping";
 import IPDAdmission from "../ipdAdmission";
 import IpdBilling from "../ipdBilling";
+import IpdPackageMaster from "../ipdPackageMaster";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
 import LaboratoryHelpDesk from "../laboratoryHelpDesk";
@@ -48,11 +49,11 @@ import OpdAppointment from "../opdAppointment";
 import OpdAppointmentConfirmation from "../opdAppointmentConfirmation";
 import OpdBilling from "../opdBilling";
 import OPDiscountApproval from "../opDiscountApproval";
+import OpdPackageMaster from "../opdPackageMaster";
 import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
-import PackageMaster from "../packageMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import PrintSettings from "../printSettings";
@@ -154,11 +155,12 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "write-off-approval": <WriteOffApproval />,
   "credit-note-generation": <CreditNoteGeneration />,
   "write-off-generation": <WriteOffGeneration />,
-  "package-master": <PackageMaster />,
+  "opd-package-master": <OpdPackageMaster />,
   "opd-appointment": <OpdAppointment />,
   "opd-appointment-confirmation": <OpdAppointmentConfirmation />,
   "emr-templates": <EMRTemplates />,
   "corporate-transfer-approval": <CorporateTransferApproval />,
   "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
   "surgery-master": <SurgeryMaster />,
+  "ipd-package-master": <IpdPackageMaster />,
 };

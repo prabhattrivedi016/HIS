@@ -5,18 +5,21 @@ import ToggleButton from "@/components/toggleButton";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterTableHeader } from "@/constants/tableHeaders";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { SubSubCategoryItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import debounce from "lodash/debounce";
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Select, { MultiValue, SingleValue } from "react-select";
 import AddPackageMaster from "./components/AddPackageMaster";
-import { CategoryItem, ServiceTableItem, SubcategoryItem, SubSubCategoryItem } from "./types";
+import { CategoryItem, ServiceTableItem, SubcategoryItem } from "./types";
 
-const PackageMaster = () => {
+const IpdPackageMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
-  const [selectedcategoryId, setSelectedcategoryId] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubCategory, setSelectedSubcategory] = useState<
     SingleValue<CustomOptionItem> | MultiValue<CustomOptionItem>
   >(null);
@@ -26,7 +29,7 @@ const PackageMaster = () => {
 
   const [serviceName, setServiceName] = useState("");
   const [debouncedServiceName, setDebouncedServiceName] = useState("");
-  const [showTable, setShowtable] = useState<boolean>(false);
+  const [showTable, setShowTable] = useState<boolean>(false);
 
   const [openAddPackageDrawer, setOpenAddPackageDrawer] = useState<boolean>(false);
   const [renderAddPackageDrawer, setRenderAddPackageDrawer] = useState<boolean>(false);
@@ -39,27 +42,42 @@ const PackageMaster = () => {
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryTypeIds: "11,12" } }
+      { params: { categoryTypeIds: "12" } }
     );
     return resp?.data ?? [];
   };
 
-  const { data: categoryList } = useQuery({
+  const { data: categoryList = [] } = useQuery({
     queryKey: ["getCategoryList"],
     queryFn: getCategoryList,
   });
+
+  useEffect(() => {
+    if (!categoryList?.length) {
+      setSelectedCategory(null);
+      setSelectedCategoryId(0);
+      return;
+    }
+
+    const selected = categoryList.find((c: CategoryItem) => Number(c?.categoryTypeId) === 12);
+
+    if (selected) {
+      setSelectedCategory(selected);
+      setSelectedCategoryId(Number(selected.categoryId));
+    }
+  }, [categoryList]);
 
   //   category change handler
   const categoryChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
     if (!value) {
-      setSelectedcategoryId(0);
+      setSelectedCategoryId(0);
       setSelectedSubcategory(null);
       setSelectedSubSubcategory(null);
-      setShowtable(false);
+      setShowTable(false);
       return;
     }
-    setSelectedcategoryId(value);
+    setSelectedCategoryId(value);
     setSelectedSubcategory(null);
     setSelectedSubSubcategory(null);
   };
@@ -77,9 +95,9 @@ const PackageMaster = () => {
   };
 
   const { data: subCategoryList } = useQuery({
-    queryKey: ["getSubCategoryList", selectedcategoryId],
-    queryFn: () => getSubCategoryList(selectedcategoryId),
-    enabled: !!selectedcategoryId,
+    queryKey: ["getSubCategoryList", selectedCategoryId],
+    queryFn: () => getSubCategoryList(selectedCategoryId),
+    enabled: !!selectedCategoryId,
   });
 
   const subCategorySelectOption = useMemo<CustomOptionItem[]>(() => {
@@ -112,7 +130,7 @@ const PackageMaster = () => {
       ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
       {},
       { params: { subCategoryIds } },
-      { component: "PackageMaster" }
+      { component: "IpdPackageMaster" }
     );
     return resp?.data ?? [];
   };
@@ -183,33 +201,33 @@ const PackageMaster = () => {
           isActive: 1,
         },
       },
-      { component: "PackageMaster" }
+      { component: "IpdPackageMaster" }
     );
     if (!resp?.result) {
-      setShowtable(false);
+      setShowTable(false);
       showWarning(resp?.message ?? "No data found");
       return;
     }
-    setShowtable(true);
+    setShowTable(true);
     return resp?.data ?? [];
   };
 
   const { data: serviceTableList = [], refetch: refetchPackageList } = useQuery({
     queryKey: [
       "getServiceItemListForPackage",
-      selectedcategoryId,
+      selectedCategoryId,
       selectedSubCategory,
       selectedSubSubCategory,
       debouncedServiceName,
     ],
     queryFn: () =>
       getServiceItemList(
-        selectedcategoryId,
+        selectedCategoryId,
         Number(selectedSubCategory?.value ?? 0),
         Number(selectedSubSubCategory?.value ?? 0),
         debouncedServiceName
       ),
-    enabled: selectedcategoryId > 0 || serviceName.trim().length > 2,
+    enabled: selectedCategoryId > 0 || serviceName.trim().length > 2,
   });
 
   // status update handler
@@ -255,14 +273,14 @@ const PackageMaster = () => {
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mb-1">
         <div>
-          <h1 className="page-heading">Package Master</h1>
+          <h1 className="page-heading">IPD Package Master</h1>
 
           <nav className="helper-text flex items-center gap-2">
             <NavLink to="/dashboard" className="hover:underline">
               Home
             </NavLink>
             <span>››</span>
-            <span>Package Master</span>
+            <span>IPD Package Master</span>
           </nav>
         </div>
 
@@ -273,7 +291,11 @@ const PackageMaster = () => {
       {/* form data */}
       <div className="form-grid-4 card">
         <InputField label="Category">
-          <select className="input-field" onChange={categoryChangeHandler}>
+          <select
+            className="input-field"
+            onChange={categoryChangeHandler}
+            value={selectedCategoryId}
+          >
             <option value={0}>--Select--</option>
             {categoryList?.map((item: CategoryItem) => (
               <option key={item?.categoryId} value={item?.categoryId}>
@@ -402,4 +424,4 @@ const PackageMaster = () => {
   );
 };
 
-export default PackageMaster;
+export default IpdPackageMaster;

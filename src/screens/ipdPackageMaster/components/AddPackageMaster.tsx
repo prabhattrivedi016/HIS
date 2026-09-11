@@ -10,7 +10,8 @@ import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
-import { SelectItem } from "@/types";
+import { SubCategoryItem } from "@/screens/opdBilling/types";
+import { SelectItem, SubSubCategoryItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
@@ -20,14 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
-import {
-  CategoryItem,
-  PackageDetailsItem,
-  RateListItem,
-  ServiceTableItem,
-  SubcategoryItem as SubCategoryItem,
-  SubSubCategoryItem,
-} from "../types";
+import { CategoryItem, PackageDetailsItem } from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
 
 const AddPackageMaster = ({
@@ -50,7 +44,7 @@ const AddPackageMaster = ({
   const [popupName, setPopupName] = useState<string>("");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [categoryId, setCategoryId] = useState<number>(0);
+  const [categoryId, setCategoryId] = useState<number>(12);
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(null);
 
   const [selectSubCategory, setSelectSubCategory] = useState<SubCategoryItem | null>(null);
@@ -90,7 +84,7 @@ const AddPackageMaster = ({
     resolver: yupResolver(addPackageMasterSchema),
     defaultValues: {
       packageId: 0,
-      categoryId: 0,
+      categoryId: 12,
       subCategoryId: 0,
       subSubCategoryId: 0,
       name: "",
@@ -110,7 +104,7 @@ const AddPackageMaster = ({
       "GET",
       ENDPOINTS.GET_CATEGORY_LIST,
       {},
-      { params: { categoryTypeIds: "11,12" } }
+      { params: { categoryTypeIds: "12" } }
     );
     return resp?.data ?? [];
   };
@@ -391,7 +385,7 @@ const AddPackageMaster = ({
       isActive: 1,
       subSubCategoryId: 0,
       subCategoryId: 0,
-      categoryId: 0,
+      categoryId: 12,
       startsFrom: "",
       expiresOn: "",
       packageServiceNameCode: `${selectedService.name} (${selectedService.code})`,
@@ -510,7 +504,7 @@ const AddPackageMaster = ({
     if (!itemValue) {
       reset({
         packageId: 0,
-        categoryId: 0,
+        categoryId: 12,
         subCategoryId: 0,
         subSubCategoryId: 0,
         name: "",
@@ -522,7 +516,7 @@ const AddPackageMaster = ({
         validityEndsOn: "",
         isActive: 1,
       });
-      setCategoryId(0);
+      setCategoryId(12);
       setSelectSubCategory(null);
       setSelectSubCategoryValue(null);
       setSelectSubSubCategory(null);
@@ -665,7 +659,6 @@ const AddPackageMaster = ({
       { params: { isActive: 1 } },
       { component: "AddPackageMaster" }
     );
-    console.log("resp", resp?.data);
     return resp?.data ?? [];
   };
   const { data: rateList } = useQuery({
@@ -729,11 +722,7 @@ const AddPackageMaster = ({
         <div className="card form-grid-4 m-1">
           <InputField label="Category" required>
             <div className="flex gap-2 items-center">
-              <select
-                className="input-field"
-                value={watch("categoryId")}
-                onChange={categorySelectHandler}
-              >
+              <select className="input-field" value={categoryId} onChange={categorySelectHandler}>
                 <option value={0}>--Select--</option>
                 {categoryList?.map((item: CategoryItem) => (
                   <option key={item?.categoryId} value={item?.categoryId}>
@@ -1024,7 +1013,7 @@ const AddPackageMaster = ({
                   </table>
                 </div>
               </div>
-              <div className="form-actions-responsive">
+              <div className="form-actions-responsive mt-2">
                 <SubmitButton label="Update" type="submit" />
               </div>
             </div>

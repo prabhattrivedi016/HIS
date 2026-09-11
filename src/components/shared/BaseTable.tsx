@@ -507,7 +507,7 @@ const BaseTable = <T extends object>({
             fontSize: "12px",
           },
           "& .MuiTypography-root": {
-            fontSize: "13px",
+            fontSize: "12px",
             fontWeight: 500,
           },
         },

@@ -117,6 +117,10 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [orderReceiptDetails, setOrderReceiptDetails] = useState<any[]>([]);
   const [showOrderReceipt, setShowOrderReceipt] = useState<boolean>(false);
 
+  const billingTypeRef = useRef<"separateBill" | "mainBillWithAdvance" | "addInMainBill" | null>(
+    null
+  );
+
   //   doctor
   const getDoctorByBranchId = async () => {
     const resp = await fetchApi(
@@ -677,7 +681,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   };
 
   // create paylaod
-  const buildCompletePayload = (paymentType: "savePayload" | "generateSeparateBill") => {
+  const buildCompletePayload = (
+    paymentType: "savePayload" | "generateSeparateBill" | "mainBillWithAdvance"
+  ) => {
     const grossBillAmount = serviceDataTableItem.reduce(
       (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
       0
@@ -781,15 +787,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     return true;
   };
 
-  /*
-  {
-    "visitId": 7,
-    "ftid": 27,
-    "receiptId": 0,
-    "isReceipt": false,
-    "isLabInvestigations": true
-}
-  */
   const fetchAndPrintIpdBillAfterSave = async (responseData: Record<string, unknown>) => {
     try {
       const ftid = responseData?.ftid;
@@ -1060,12 +1057,14 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const generateBillButtonHandler = async (value: string) => {
     switch (value) {
       case "generateSeparateBill": {
+        billingTypeRef.current = "separateBill";
         setShowBillingDetailsForm(true);
         setOpenPopup(false);
         setRenderPopup(false);
         return;
       }
       case "addInMainBill": {
+        billingTypeRef.current = "addInMainBill";
         const payload = buildCompletePayload("savePayload");
 
         const resp = await fetchApi(
@@ -1092,6 +1091,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         return;
       }
       case "mainBillWithAdvance": {
+        billingTypeRef.current = "mainBillWithAdvance";
+
         setShowBillingDetailsForm(true);
         setOpenPopup(false);
         setRenderPopup(false);
@@ -1127,6 +1128,29 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setRenderServiceViewPopup(false);
     setSelectedServiceRemark(null);
   }, []);
+
+  // main bill with advance handler
+
+  const mainBillWithAdvanceHandler = async () => {
+    const payload = buildCompletePayload("mainBillWithAdvance");
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_IPD_BILLING,
+      payload,
+      {},
+      { component: "IpdBillingComponent" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while saving ipd billing");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setServiceDataTableItem([]);
+    setShowBillingDetailsForm(false);
+    await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
+
+    return;
+  };
   return (
     <div>
       <div className="form-grid-4">
@@ -1502,17 +1526,20 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                   ) : (
                     <button
                       className="save-btn w-30 mr-2"
-                      onClick={() => saveSeparateBillHandler("separateBill")}
+                      onClick={() => {
+                        if (billingTypeRef.current === "mainBillWithAdvance") {
+                          mainBillWithAdvanceHandler();
+                          return;
+                        }
+
+                        saveSeparateBillHandler("separateBill");
+                      }}
                     >
                       Save
                     </button>
                   )}
                 </div>
               </div>
-              {/* {!!showDuplicateError && <p className="input-field-error">{showDuplicateError}</p>}
-                    {!!serviceValidationError && (
-                      <p className="input-field-error">{serviceValidationError}</p>
-                    )} */}
             </div>
           </div>
         </div>
