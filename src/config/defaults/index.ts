@@ -515,6 +515,8 @@ const ENDPOINTS = {
 
   UPDATE_FAVORITE_BILLING_TAB: "Home/updateFavoriteBillingTab",
 
+  SAVE_IPD_PATIENT_ADVANCE: "IPD/saveIPDPatientAdvance",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",
@@ -684,6 +686,12 @@ const ENDPOINTS = {
 
   // common
   GET_PREDEFINE_QUERY_RESULT: "Home/getPredefineQueryResult",
+
+  // discharge process master
+  GET_DISCHARGE_PROCESS_MASTER: "Admin/getDischargeProcessMaster",
+  CREATE_UPDATE_DISCHARGE_PROCESS_MASTER: "Admin/createUpdateDischargeProcessMaster",
+  GET_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/getDischargeProcessCorporateMapping",
+  SAVE_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/saveDischargeProcessCorporateMapping",
 };
 
 export { ENDPOINTS };

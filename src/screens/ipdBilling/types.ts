@@ -408,10 +408,26 @@ type PackageItemList = {
   categoryTypeName: string;
 };
 
+type BillSettlementItem = {
+  TotalBillAmount: number;
+  TotalDiscountPerOnBill: number;
+  TotalDiscountAmountOnBill: number;
+  DiscountReason: string;
+  DiscountApprovedBy: number;
+  RoundOff: number;
+  TotalPayableAmount: number;
+  TotalBalanceAmount: number;
+  PatientAdvanceAmt: number;
+  GSTAmt: number;
+  BillNo: string;
+  BillDate: string;
+};
+
 export type {
   ApprovalLists,
   BillFilterItem,
   BillingTypeItem,
+  BillSettlementItem,
   CategoryItem,
   CorporateItem,
   DoctorItem,

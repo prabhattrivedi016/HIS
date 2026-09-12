@@ -109,6 +109,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
     >({});
 
     const [copaymentAmount, setCopaymentAmount] = useState<number>(0);
+    const [isPaymentAmountManuallyChanged, setIsPaymentAmountManuallyChanged] =
+      useState<boolean>(false);
 
     useEffect(() => {
       if (!creditCopayment) {
@@ -306,6 +308,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         },
       }));
 
+      if (key === "amount") {
+        setIsPaymentAmountManuallyChanged(true);
+      }
+
       const updatedRows = [...rows];
       updatedRows[index] = { ...updatedRows[index], [key]: value };
 
@@ -429,6 +435,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       if (previousCorporateIdRef.current === nextCorporateId) return;
       previousCorporateIdRef.current = nextCorporateId;
 
+      setIsPaymentAmountManuallyChanged(false);
       setRows([
         {
           paymentModeId: null,
@@ -443,6 +450,8 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
     useEffect(() => {
       if (!paymentList.length) return;
+
+      if (isPaymentAmountManuallyChanged) return;
 
       const cash =
         paymentList.find(p => p.paymentModeName?.toLowerCase() === "cash") ?? paymentList[0];
@@ -491,6 +500,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       });
     }, [
       getCollectibleTargetAmount,
+      isPaymentAmountManuallyChanged,
       paymentList,
       shouldShowPaymentMode,
       showPatientAdvanceRow,
@@ -923,6 +933,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
         }),
         getNetAmount: () => toNumber(billingValues?.netAmount),
         reset: () => {
+          setIsPaymentAmountManuallyChanged(false);
           const cash = paymentList.find(p => p.paymentModeName?.toLowerCase() === "cash");
           setRows([
             {

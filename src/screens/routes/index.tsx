@@ -19,6 +19,7 @@ import CreditNoteGeneration from "../creditNoteGeneration";
 import CreditNoteWriteOff from "../creditNoteWriteOff";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
+import DischargeProcessMaster from "../dischargeProcessMaster";
 import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
@@ -163,4 +164,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
   "surgery-master": <SurgeryMaster />,
   "ipd-package-master": <IpdPackageMaster />,
+  "discharge-process-master": <DischargeProcessMaster />,
 };

@@ -22,7 +22,7 @@ const CentralPopup = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-999 flex items-center justify-center">
+    <div className="fixed inset-0 z-999 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -31,7 +31,7 @@ const CentralPopup = ({
 
       {/* Popup */}
       <div
-        className={`relative z-10 w-[30%]  max-w-2xl! max-h-[calc(100vh-20px)] overflow-auto rounded-xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 ${className}`}
+        className={`relative z-10 w-full max-w-[calc(100vw-24px)] sm:max-w-lg md:w-[70%] lg:w-[50%] xl:w-[30%] max-h-[calc(100dvh-24px)] overflow-auto rounded-xl bg-white p-4 sm:p-5 md:p-6 shadow-xl animate-in fade-in zoom-in-95 ${className}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="truncate text-lg font-semibold">{title}</h2>
