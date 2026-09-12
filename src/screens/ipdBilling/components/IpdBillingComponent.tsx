@@ -684,6 +684,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const buildCompletePayload = (
     paymentType: "savePayload" | "generateSeparateBill" | "mainBillWithAdvance"
   ) => {
+    const billingPayload = billingDetailsRef.current?.getPayload?.();
+
     const grossBillAmount = serviceDataTableItem.reduce(
       (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
       0
@@ -707,9 +709,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       totalDiscAmtOnBill: Number(totalDiscAmtOnBill.toFixed(2)),
       roundOff: Number(roundOff.toFixed(2)),
       netAmount: roundedNet,
-      discApprovedById: 0,
-      discountReason: "",
-      remarks: patient?.Remarks || "",
+      discApprovedById: Number(billingPayload?.discApprovedById ?? 0),
+      discountReason: String(billingPayload?.discountReason ?? ""),
+      remarks: String(billingPayload?.remarks || patient?.Remarks || ""),
       uniqueId: "",
       isSupplementaryBill: paymentType === "generateSeparateBill" ? 1 : 0,
     };
@@ -745,22 +747,39 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       };
     });
 
+    const paymentsList =
+      billingPayload?.payments && Array.isArray(billingPayload.payments)
+        ? billingPayload.payments
+        : [];
+
     const paymentDetails =
       paymentType === "savePayload"
         ? []
-        : [
-            {
-              paymentModeId: 1, // Cash
-              paymentModeTypeId: 1,
-              amount: roundedNet,
-              isCopaymentReceipt: 0,
-              isPatientAdvanceAmount: 0,
-              bankId: 0,
-              refNo: "",
-              plutusTransactionReferenceID: "",
-              transactionLogId: "",
-            },
-          ];
+        : paymentsList.length > 0
+          ? paymentsList.map((payment: any) => ({
+              paymentModeId: Number(payment?.paymentModeId) || 0,
+              paymentModeTypeId: Number(payment?.paymentModeTypeId) || 0,
+              amount: Number(payment?.amount) || 0,
+              isCopaymentReceipt: Number(payment?.isCopaymentReceipt ?? 0),
+              isPatientAdvanceAmount: Number(payment?.isPatientAdvanceAmount ?? 0),
+              bankId: Number(payment?.bankId) || 0,
+              refNo: String(payment?.refNo ?? ""),
+              plutusTransactionReferenceID: String(payment?.plutusTransactionReferenceID ?? ""),
+              transactionLogId: String(payment?.transactionLogId ?? ""),
+            }))
+          : [
+              {
+                paymentModeId: 1, // Cash
+                paymentModeTypeId: 1,
+                amount: roundedNet,
+                isCopaymentReceipt: 0,
+                isPatientAdvanceAmount: 0,
+                bankId: 0,
+                refNo: "",
+                plutusTransactionReferenceID: "",
+                transactionLogId: "",
+              },
+            ];
 
     return {
       visitDetails,

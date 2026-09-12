@@ -8,7 +8,7 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
 import { MRT_ColumnDef, MRT_RowSelectionState } from "material-react-table";
-import { useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useState } from "react";
 import {
   BillFilterItem,
   IpdPatientItem,
@@ -23,6 +23,8 @@ import QuantityUpdatePopup from "./QuantityUpdatePopup";
 import RatePopup from "./RatePopup";
 import RemovePopup from "./RemovePopup";
 
+type TableView = "billing" | "department";
+
 const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -30,21 +32,14 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [selectedBillId, setSelectedBillId] = useState<number>(0);
 
+  const [selectedTable, setSelectedTable] = useState<TableView>("billing");
+
   const [selectedFilteredData, setSelectedFilteredData] = useState<IpdSummaryBillingTableList[]>(
     []
   );
 
   const [groupBy, setGroupBy] = useState<string[]>([]);
 
-  /**
-   * MRT row selection state.
-   *
-   * Example:
-   * {
-   *   "101": true,
-   *   "105": true
-   * }
-   */
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
 
   const [openFilterPopup, setOpenFilterPopup] = useState(false);
@@ -76,9 +71,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
       filter1: patient?.VisitId,
     })?.predefinedQueryResult ?? [];
 
-  // ─────────────────────────────────────────────
-  // Bill Summary Details
-  // ─────────────────────────────────────────────
+  //  bill summary details
 
   const getBillSummaryDetails = async () => {
     const resp = await fetchApi(
@@ -143,6 +136,30 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
       filter1: patient?.VisitId,
     })?.predefinedQueryResult ?? [];
 
+  // Currency Formatter
+  const formatCurrency = useCallback((val: number | string | undefined | null) => {
+    return new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(val ?? 0));
+  }, []);
+
+  const renderGroupedCellWithTotal = useCallback(
+    ({ cell, row }: { cell: any; row: any }) => {
+      const groupTotal = row.leafRows.reduce(
+        (sum: number, leaf: any) => sum + (Number(leaf.original?.NetAmt) || 0),
+        0
+      );
+      return (
+        <span className="font-semibold text-blue-950">
+          {String(cell.getValue() ?? "")} ({row.subRows?.length ?? 0} items — Total: ₹
+          {formatCurrency(groupTotal)})
+        </span>
+      );
+    },
+    [formatCurrency]
+  );
+
   // Table Columns
 
   const columns = useMemo<MRT_ColumnDef<IpdSummaryBillingTableList>[]>(
@@ -152,6 +169,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Billing Date",
         minSize: 100,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -159,6 +177,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Category",
         minSize: 130,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -166,6 +185,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Sub Category",
         minSize: 120,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -173,6 +193,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Sub Sub Category",
         minSize: 130,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -181,6 +202,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Print Group Name",
         minSize: 130,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -188,6 +210,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Date Time",
         minSize: 200,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -195,6 +218,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Service / Item",
         minSize: 200,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -202,6 +226,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Code",
         minSize: 100,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -209,6 +234,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Doctor",
         minSize: 150,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
 
       {
@@ -216,7 +242,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Is Under Package",
         minSize: 150,
         enableGrouping: true,
-
+        GroupedCell: renderGroupedCellWithTotal,
         Cell: ({ cell }) => {
           const value = cell.getValue<number>();
 
@@ -235,6 +261,10 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Qty",
         minSize: 100,
         enableGrouping: true,
+        aggregationFn: "sum",
+        AggregatedCell: ({ cell }) => (
+          <span className="font-semibold text-blue-900">{cell.getValue<number>() ?? 0}</span>
+        ),
       },
 
       {
@@ -242,6 +272,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Rate",
         minSize: 100,
         enableGrouping: true,
+        Cell: ({ cell }) => formatCurrency(cell.getValue<number>()),
       },
 
       {
@@ -256,6 +287,13 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Discount",
         minSize: 100,
         enableGrouping: true,
+        Cell: ({ cell }) => formatCurrency(cell.getValue<number>()),
+        aggregationFn: "sum",
+        AggregatedCell: ({ cell }) => (
+          <span className="font-semibold text-blue-900">
+            {formatCurrency(cell.getValue<number>())}
+          </span>
+        ),
       },
 
       {
@@ -263,6 +301,13 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "Amount",
         minSize: 100,
         enableGrouping: true,
+        Cell: ({ cell }) => formatCurrency(cell.getValue<number>()),
+        aggregationFn: "sum",
+        AggregatedCell: ({ cell }) => (
+          <span className="font-bold text-blue-900">
+            ₹{formatCurrency(cell.getValue<number>())}
+          </span>
+        ),
       },
 
       {
@@ -270,19 +315,11 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         header: "User Name",
         minSize: 100,
         enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
       },
     ],
-    []
+    [formatCurrency, renderGroupedCellWithTotal]
   );
-
-  // Currency Formatter
-
-  const formatCurrency = (val: number | undefined | null) => {
-    return new Intl.NumberFormat("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number(val ?? 0));
-  };
 
   // Filter Billing Data
 
@@ -461,86 +498,130 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-4">
             {/* Header */}
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-1">
-              <h3 className="text-slate-800 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                <i className="fa-solid fa-list-check text-[#0B5394]"></i>
-                Billing Items
-              </h3>
+            <div className="flex items-center justify-between gap-6 px-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tableView"
+                  value="billing"
+                  checked={selectedTable === "billing"}
+                  onChange={() => setSelectedTable("billing")}
+                />
+
+                <span className="text-md font-bold ">Billing Items</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tableView"
+                  value="department"
+                  checked={selectedTable === "department"}
+                  onChange={() => setSelectedTable("department")}
+                />
+
+                <span className="text-md font-bold">Department Details</span>
+              </label>
 
               {/* Bill Filter */}
 
-              <InputField>
-                <select
-                  className="input-field"
-                  value={selectedBillId}
-                  onChange={e => setSelectedBillId(Number(e.target.value))}
-                >
-                  <option value={0}>All Items</option>
+              {selectedTable === "billing" ? (
+                <InputField>
+                  <select
+                    className="input-field"
+                    value={selectedBillId}
+                    onChange={e => setSelectedBillId(Number(e.target.value))}
+                  >
+                    <option value={0}>All Items</option>
 
-                  {getFilterValue.map((f: BillFilterItem) => (
-                    <option key={f?.BillId} value={f?.BillId}>
-                      {f?.BillNo}
-                    </option>
-                  ))}
-                </select>
-              </InputField>
+                    {getFilterValue.map((f: BillFilterItem) => (
+                      <option key={f?.BillId} value={f?.BillId}>
+                        {f?.BillNo}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+              ) : (
+                <InputField>
+                  <select
+                    className="input-field"
+                    value={selectedBillId}
+                    onChange={e => setSelectedBillId(Number(e.target.value))}
+                  >
+                    <option value={0}>All Items</option>
+
+                    {getFilterValue.map((f: BillFilterItem) => (
+                      <option key={f?.BillId} value={f?.BillId}>
+                        {f?.BillNo}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+              )}
             </div>
 
             {/* BILLING TABLE */}
 
-            <BaseTable
-              columns={columns}
-              data={tableData}
-              showIndex
-              enableRowSelection={row => Number(row.IsSupplementaryBill) === 0}
-              rowSelection={rowSelection}
-              onRowSelectionChange={setRowSelection}
-              getRowId={row => String(row.FTDId)}
-              enableGrouping
-              groupBy={groupBy}
-              onGroupingChange={setGroupBy}
-              enableGroupingOnHeaderDoubleClick
-            />
+            {selectedTable === "billing" && (
+              <>
+                <BaseTable
+                  columns={columns}
+                  data={tableData}
+                  showIndex
+                  enableRowSelection={row => Number(row.IsSupplementaryBill) === 0}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                  getRowId={row => String(row.FTDId)}
+                  enableGrouping
+                  groupBy={groupBy}
+                  onGroupingChange={setGroupBy}
+                  enableGroupingOnHeaderDoubleClick
+                />
 
-            {/* ACTION BUTTONS */}
+                <div className="flex items-center justify-end gap-2 flex-wrap overflow-auto">
+                  <button className="save-btn" onClick={handleFilterClick}>
+                    Filter
+                  </button>
 
-            <div className="flex items-center justify-end gap-2 flex-wrap overflow-auto">
-              <button className="save-btn" onClick={handleFilterClick}>
-                Filter
-              </button>
+                  <button className="save-btn" onClick={rateUpdateHandler}>
+                    Rate
+                  </button>
 
-              <button className="save-btn" onClick={rateUpdateHandler}>
-                Rate
-              </button>
+                  <button className="save-btn" onClick={quantityUpdateHandler}>
+                    Quantity
+                  </button>
 
-              <button className="save-btn" onClick={quantityUpdateHandler}>
-                Quantity
-              </button>
+                  <button className="save-btn" onClick={discountPercentageUpdateHandler}>
+                    Disc(%)
+                  </button>
 
-              <button className="save-btn" onClick={discountPercentageUpdateHandler}>
-                Disc(%)
-              </button>
+                  <button className="save-btn" onClick={discountAmountUpdateHandler}>
+                    Disc(Amt)
+                  </button>
 
-              <button className="save-btn" onClick={discountAmountUpdateHandler}>
-                Disc(Amt)
-              </button>
+                  <button className="save-btn" onClick={nonPayableHandler}>
+                    Non Payable
+                  </button>
 
-              <button className="save-btn" onClick={nonPayableHandler}>
-                Non Payable
-              </button>
+                  <button className="save-btn" onClick={payableHandler}>
+                    Payable
+                  </button>
 
-              <button className="save-btn" onClick={payableHandler}>
-                Payable
-              </button>
+                  <button className="save-btn" onClick={packageHandler}>
+                    Package
+                  </button>
 
-              <button className="save-btn" onClick={packageHandler}>
-                Package
-              </button>
-
-              <button className="save-btn" onClick={removeHandler}>
-                Remove
-              </button>
-            </div>
+                  <button className="save-btn" onClick={removeHandler}>
+                    Remove
+                  </button>
+                </div>
+              </>
+            )}
+            {selectedTable === "department" && (
+              <div className="bg-slate-50 rounded-xl p-4 min-h-[400px] flex flex-col items-center justify-center">
+                <p className="text-slate-500 text-lg">Department View</p>
+              </div>
+            )}
           </div>
 
           {/* PAYMENT HISTORY */}

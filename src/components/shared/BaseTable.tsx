@@ -543,15 +543,17 @@ const BaseTable = <T extends object>({
       },
     },
 
-    muiTableBodyRowProps: {
+    muiTableBodyRowProps: ({ row }) => ({
       hover: true,
       sx: {
+        backgroundColor: row.getIsGrouped() ? "#EFF6FF !important" : undefined,
+        fontWeight: row.getIsGrouped() ? 600 : "normal",
         transition: "background-color 0.12s",
         "&:hover td": {
-          backgroundColor: "#F3F4F6",
+          backgroundColor: row.getIsGrouped() ? "#DBEAFE !important" : "#F3F4F6",
         },
       },
-    },
+    }),
 
     renderEmptyRowsFallback: () => (
       <div

@@ -1,5 +1,6 @@
 import React from "react";
 import BedTransfer from "./BedTransfer";
+import BillSettlement from "./BillSettlement";
 import CorporateTransfer from "./CorporateTransfer";
 import DoctorTransfer from "./DoctorTransfer";
 import IpdBillingComponent from "./IpdBillingComponent";
@@ -34,6 +35,9 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
 
     case "package-details":
       return <PackageDetails patient={patient} />;
+
+    case "bill-settlement":
+      return <BillSettlement patient={patient} />;
 
     default:
       return (
