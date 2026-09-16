@@ -6,13 +6,14 @@ import { SelectStyles } from "@/components/customSelect";
 import CommentIconButton from "@/components/globalButtons/CommentIconButton";
 import ViewIconButton from "@/components/globalButtons/ViewIconButton";
 import InputFieldModal from "@/components/inputFieldModal";
-import IpdBillingReceipt from "@/components/reportTemplates/IpdBillingReceipt";
-import IpdOrderReceipt from "@/components/reportTemplates/IpdOrderReceipt";
+import IpdMainBillReceipt from "@/components/reportTemplates/IpdMainBillReceipt";
+import IpdMainBillWithAdvanceReceipt from "@/components/reportTemplates/IpdMainBillWithAdvanceReceipt";
+import IpdSupplementaryBill from "@/components/reportTemplates/IpdSupplementaryBill";
 import { ENDPOINTS } from "@/config/defaults";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { openReceiptInNewTab } from "@/screens/opdBilling/components/OpdReceiptNewTab";
 import { PaymentModeItem } from "@/screens/opdBilling/types";
+import { openPatientAdvanceReceiptInNewTab } from "@/screens/patientAdvance/utils/patientAdvanceReceiptPrint";
 import { useAppSelector } from "@/store/hooks";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { SelectItem } from "@/types";
@@ -23,7 +24,10 @@ import Select from "react-select";
 import {
   CategoryItem,
   DoctorItem,
+  IpdPatientAdvancePaymentModeItem,
   IpdPatientItem,
+  MainBillWithPatientAdvanceItem,
+  PatientDetailsMainBillItem,
   ServiceItemList,
   ServiceTableItem,
   SubCategoryItem,
@@ -32,6 +36,8 @@ import {
 import RemarkPopup from "./RemarkPopup";
 import SeparateBillButton from "./SeparateBillButton";
 import ServiceViewPopup from "./ServiceViewDetails";
+
+type ReceiptType = "supplementary" | "mainBillWithAdvance" | "mainBill" | null;
 
 const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
@@ -114,12 +120,20 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [receiptFtid, setReceiptFtid] = useState<number | undefined>(undefined);
   const [receiptIdState, setReceiptIdState] = useState<number | undefined>(undefined);
 
-  const [orderReceiptDetails, setOrderReceiptDetails] = useState<any[]>([]);
-  const [showOrderReceipt, setShowOrderReceipt] = useState<boolean>(false);
-
   const billingTypeRef = useRef<"separateBill" | "mainBillWithAdvance" | "addInMainBill" | null>(
     null
   );
+
+  // main bill details
+  const [mainBillDetails, setMainBillDetails] = useState<PatientDetailsMainBillItem[]>([]);
+
+  // main bill with advance receipt details
+  const [mainBillWithAdvanceReceiptData, setMainBillWithAdvanceReceiptData] = useState<
+    MainBillWithPatientAdvanceItem[]
+  >([]);
+  const [mainBillWithAdvancePaymentModes, setMainBillWithAdvancePaymentModes] = useState<
+    IpdPatientAdvancePaymentModeItem[]
+  >([]);
 
   //   doctor
   const getDoctorByBranchId = async () => {
@@ -806,51 +820,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     return true;
   };
 
-  const fetchAndPrintIpdBillAfterSave = async (responseData: Record<string, unknown>) => {
-    try {
-      const ftid = responseData?.ftid;
-      const receiptId = responseData?.receiptId;
-
-      if (!ftid) {
-        showError("Invalid response: FTID is missing.");
-        return false;
-      }
-
-      // Fetch patient and service details using FTID
-      const patientDetailsResult = await fetchApi(
-        "GET",
-        ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
-        {},
-        { params: { isReceipt: 0, receiptId: 0, ftid } },
-        { component: "IpdBilling", silent: true }
-      );
-
-      let receiptData: any[] = [];
-      if (patientDetailsResult?.data) {
-        receiptData = Array.isArray(patientDetailsResult.data)
-          ? patientDetailsResult.data
-          : [patientDetailsResult.data];
-      }
-
-      if (!receiptData?.length) {
-        showError("Billing saved, but receipt data is unavailable for printing.");
-        return false;
-      }
-
-      setPatientReceiptDetails(receiptData);
-      setReceiptFtid(Number(ftid));
-      setReceiptIdState(Number(receiptId ?? 0));
-
-      await new Promise(res => setTimeout(res, 120));
-
-      openReceiptInNewTab(receiptData);
-      return true;
-    } catch (error) {
-      console.error("Error fetching receipt data:", error);
-      showError("Failed to fetch receipt data for printing.");
-      return false;
-    }
-  };
+  //
 
   // separate bill handler
   const saveSeparateBillHandler = async (value: string = "") => {
@@ -960,12 +930,162 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         return;
       }
       showSuccess(resp?.message ?? "Data saved successfully");
+
+      const ftid = Number(resp?.data?.ftid ?? resp?.data?.[0]?.FTID ?? resp?.data?.[0]?.ftid) || 0;
+      if (ftid > 0) {
+        await fetchAndPrintSupplementaryBillReceipt(ftid);
+      }
+
       setServiceDataTableItem([]);
       setShowBillingDetailsForm(false);
-      await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
     } catch (err) {
       console.error("Error generating separate bill payload:", err);
       alert("Error generating payload: " + String(err));
+    }
+  };
+
+  // fetch and print supplementary bill receipt
+  const fetchAndPrintSupplementaryBillReceipt = async (ftid: number) => {
+    try {
+      setMainBillDetails([]);
+      setMainBillWithAdvanceReceiptData([]);
+      setMainBillWithAdvancePaymentModes([]);
+
+      const [receiptResult, paymentResult] = await Promise.allSettled([
+        fetchApi(
+          "GET",
+          ENDPOINTS.GET_RECEIPT_DETAILS_BY_FTID,
+          {},
+          { params: { isReceipt: 0, receiptId: 0, ftid } },
+          { component: "IpdBillingComponent" }
+        ),
+        fetchApi(
+          "GET",
+          ENDPOINTS.GET_PREDEFINE_QUERY_RESULT,
+          {},
+          { params: { queryName: "GetReceiptListByFTID", filter1: ftid } },
+          { component: "IpdBillingComponent" }
+        ),
+      ]);
+
+      const receiptResp = receiptResult.status === "fulfilled" ? receiptResult.value : null;
+      const paymentResp = paymentResult.status === "fulfilled" ? paymentResult.value : null;
+
+      if (!receiptResp?.result || !receiptResp?.data) {
+        showError(receiptResp?.message || "Order details are unavailable for printing.");
+        return false;
+      }
+
+      const receiptDataList = Array.isArray(receiptResp.data)
+        ? receiptResp.data
+        : [receiptResp.data];
+      const paymentDataList = paymentResp?.data
+        ? Array.isArray(paymentResp.data)
+          ? paymentResp.data
+          : [paymentResp.data]
+        : [];
+
+      setPatientReceiptDetails(receiptDataList);
+      setPaymentModeList(paymentDataList);
+      setReceiptFtid(ftid);
+
+      await new Promise(resolve => window.setTimeout(resolve, 150));
+      openPatientAdvanceReceiptInNewTab();
+
+      return true;
+    } catch (error) {
+      showError("Failed to fetch order details for printing.");
+      return false;
+    }
+  };
+
+  // fetch and print main bill with advance receipt
+  const fetchAndPrintMainBillWithAdvanceReceipt = async (ftid: number, receiptId: number) => {
+    try {
+      setPatientReceiptDetails([]);
+
+      const [receiptResult, paymentResult] = await Promise.allSettled([
+        fetchApi(
+          "GET",
+          ENDPOINTS.GET_IPD_PATIENT_ORDER_DETAILS,
+          {},
+          { params: { ftid } },
+          { component: "IpdBillingComponent" }
+        ),
+        fetchApi(
+          "GET",
+          ENDPOINTS.GET_RECEIPT_PAYMENT_DETAILS,
+          {},
+          { params: { receiptId } },
+          { component: "IpdBillingComponent" }
+        ),
+      ]);
+
+      const resolvedReceipt = receiptResult.status === "fulfilled" ? receiptResult.value?.data : [];
+      const resolvedPaymentModes =
+        paymentResult.status === "fulfilled" ? (paymentResult.value?.data?.slice(0, 10) ?? []) : [];
+
+      if (!resolvedReceipt) {
+        showError("Receipt details are unavailable for printing.");
+        return false;
+      }
+
+      setMainBillWithAdvanceReceiptData(resolvedReceipt);
+      setMainBillWithAdvancePaymentModes(resolvedPaymentModes);
+
+      await new Promise(resolve => window.setTimeout(resolve, 150));
+      openPatientAdvanceReceiptInNewTab();
+
+      return true;
+    } catch (error) {
+      showError("Failed to fetch receipt details for printing.");
+      return false;
+    }
+  };
+
+  // main bill with advance handler
+  const mainBillWithAdvanceHandler = async () => {
+    try {
+      if (!nullRateChacker(serviceDataTableItem ?? [])) {
+        return;
+      }
+
+      const isValid = await billingDetailsRef.current?.validateForm?.();
+      if (!isValid) {
+        showWarning(
+          "Validation failed! Please verify payment methods and match the net bill amount."
+        );
+        return;
+      }
+
+      const payload = buildCompletePayload("mainBillWithAdvance");
+
+      const resp = await fetchApi(
+        "POST",
+        ENDPOINTS.SAVE_IPD_BILLING,
+        payload,
+        {},
+        { component: "IpdBillingComponent" }
+      );
+
+      if (!resp?.result) {
+        showError(resp?.message ?? "Error while saving ipd billing");
+        return;
+      }
+
+      showSuccess(resp?.message ?? "Data saved successfully");
+
+      const ftid = Number(resp?.data?.ftid ?? 0);
+      const receiptId = Number(resp?.data?.receiptId ?? 0);
+      if (ftid > 0) {
+        await fetchAndPrintMainBillWithAdvanceReceipt(ftid, receiptId);
+      }
+
+      setServiceDataTableItem([]);
+      setShowBillingDetailsForm(false);
+    } catch (err) {
+      console.error("Error saving main bill with advance:", err);
+      showError("Error saving main bill with advance: " + String(err));
     }
   };
 
@@ -994,17 +1114,20 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           showError(resp?.message ?? "Error while saving ipd billing");
           return;
         }
+
         showSuccess(resp?.message ?? "Data saved successfully");
         setServiceDataTableItem([]);
-        await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
-        return;
       }
     }
   };
 
-  // fetch and print IPD order
-  const fetchAndPrintIpdOrder = async (ftid: number) => {
+  // fetch and print main bill receipt
+  const fetchAndPrintMainBillReceipt = async (ftid: number) => {
     try {
+      setPatientReceiptDetails([]);
+      setMainBillWithAdvanceReceiptData([]);
+      setMainBillWithAdvancePaymentModes([]);
+
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_IPD_PATIENT_ORDER_DETAILS,
@@ -1013,54 +1136,19 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         { component: "IpdBillingComponent" }
       );
 
-      console.log("Order details response:", resp);
-
       // Check if the API returned an error
-      if (!resp || (resp?.result === false && !resp?.data)) {
-        console.error("API error response:", resp);
+      if (!resp?.result) {
         showError(resp?.message || "Order details are unavailable for printing.");
         return false;
       }
 
-      // Get the data - handle both direct array and nested response
-      let orderData = resp?.data;
+      setMainBillDetails(resp?.data);
 
-      // If no data is returned, show error
-      if (!orderData) {
-        console.error("No data returned from API");
-        showError("Order details are unavailable for printing.");
-        return false;
-      }
+      await new Promise(resolve => window.setTimeout(resolve, 120));
+      openPatientAdvanceReceiptInNewTab();
 
-      // Ensure orderData is an array
-      const finalOrderData = Array.isArray(orderData) ? orderData : [orderData];
-
-      // Check if the array is empty
-      if (finalOrderData.length === 0) {
-        console.error("Empty order data returned");
-        showError("Order details are unavailable for printing.");
-        return false;
-      }
-
-      setOrderReceiptDetails(finalOrderData);
-      setShowOrderReceipt(true);
-
-      // Wait longer for React to render the component before copying HTML
-      await new Promise(res => setTimeout(res, 500));
-
-      console.log("Opening receipt with data:", finalOrderData);
-      const receiptElement = document.getElementById("receipt-print-wrapper");
-      console.log(
-        "Receipt element found:",
-        !!receiptElement,
-        "innerHTML length:",
-        receiptElement?.innerHTML?.length
-      );
-
-      openReceiptInNewTab(finalOrderData);
       return true;
     } catch (error) {
-      console.error("Error fetching order details:", error);
       showError("Failed to fetch order details for printing.");
       return false;
     }
@@ -1082,6 +1170,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         setRenderPopup(false);
         return;
       }
+
+      // add in main bill
       case "addInMainBill": {
         billingTypeRef.current = "addInMainBill";
         const payload = buildCompletePayload("savePayload");
@@ -1097,16 +1187,16 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           showError(resp?.message ?? "Error while saving ipd billing");
           return;
         }
+
         showSuccess(resp?.message ?? "Data saved successfully");
+
+        if (Number(resp?.data?.ftid) > 0) {
+          await fetchAndPrintMainBillReceipt(Number(resp?.data?.ftid));
+        }
         setServiceDataTableItem([]);
         setOpenPopup(false);
         setRenderPopup(false);
 
-        // Fetch and print order receipt using ftid from response
-        const ftid = Number(resp?.data?.ftid) || 0;
-        if (ftid > 0) {
-          await fetchAndPrintIpdOrder(ftid);
-        }
         return;
       }
       case "mainBillWithAdvance": {
@@ -1148,28 +1238,6 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setSelectedServiceRemark(null);
   }, []);
 
-  // main bill with advance handler
-
-  const mainBillWithAdvanceHandler = async () => {
-    const payload = buildCompletePayload("mainBillWithAdvance");
-    const resp = await fetchApi(
-      "POST",
-      ENDPOINTS.SAVE_IPD_BILLING,
-      payload,
-      {},
-      { component: "IpdBillingComponent" }
-    );
-    if (!resp?.result) {
-      showError(resp?.message ?? "Error while saving ipd billing");
-      return;
-    }
-    showSuccess(resp?.message ?? "Data saved successfully");
-    setServiceDataTableItem([]);
-    setShowBillingDetailsForm(false);
-    await fetchAndPrintIpdBillAfterSave(resp?.data?.[0] ?? resp?.data ?? {});
-
-    return;
-  };
   return (
     <div>
       <div className="form-grid-4">
@@ -1604,8 +1672,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
       {/* hidden printable templates */}
       <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+        {/* supplementary bill receipt */}
         {patientReceiptDetails && patientReceiptDetails.length > 0 && (
-          <IpdBillingReceipt
+          <IpdSupplementaryBill
             data={patientReceiptDetails}
             printOnMount={false}
             paymentModeList={paymentModeList}
@@ -1614,8 +1683,21 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
             receiptId={receiptIdState}
           />
         )}
-        {orderReceiptDetails && orderReceiptDetails.length > 0 && showOrderReceipt && (
-          <IpdOrderReceipt data={orderReceiptDetails} printOnMount={false} />
+
+        {/* main bill */}
+        {mainBillDetails && mainBillDetails.length > 0 && (
+          <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+            <IpdMainBillReceipt printOnMount={false} patientDetail={mainBillDetails} />
+          </div>
+        )}
+
+        {/* main bill with advance receipt */}
+        {mainBillWithAdvanceReceiptData && mainBillWithAdvanceReceiptData.length > 0 && (
+          <IpdMainBillWithAdvanceReceipt
+            printOnMount={false}
+            patientDetails={mainBillWithAdvanceReceiptData}
+            paymentModeList={mainBillWithAdvancePaymentModes}
+          />
         )}
       </div>
     </div>

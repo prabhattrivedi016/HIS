@@ -1,5 +1,6 @@
 import CentralPopup from "@/components/centralPopup";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import RemoveIconButton from "@/components/globalButtons/RemoveIconButton";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
@@ -21,7 +22,7 @@ const CorporateMapping = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  item: DischargeProcessItem;
+  item: DischargeProcessItem | null;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
@@ -30,8 +31,6 @@ const CorporateMapping = ({
   const [selectedCorporate, setSelectedCorporate] = useState<CorpoarteItem | null>(null);
 
   const [mappedCorporateLists, setMappedCorporateLists] = useState<MappedCorporateItem[]>([]);
-
-  console.log("mappedCorporateLists", mappedCorporateLists);
 
   // insurance company lists
   const getInsuranceLists = async () => {
@@ -198,7 +197,7 @@ const CorporateMapping = ({
       <div>
         {/* <h1>Discharge Process: {item?.ProcessName}</h1> */}
         <div className="flex flex-row">
-          <h3 className="name-header">Discharge Process : </h3> <span>{item?.ProcessName}</span>
+          <h3 className="name-header"> Process : </h3> <span>{item?.ProcessName}</span>
         </div>
         <div className="form-grid-2 gap-4">
           <InputField label="Insurance">
@@ -273,6 +272,7 @@ const CorporateMapping = ({
             </button>
           </div>
         </div>
+        {loading && <CustomLoader isLoading={loading} />}
       </div>
     </CentralPopup>
   );

@@ -110,12 +110,12 @@ const getPickMasterId = (item?: PickMasterItem): number => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-const DEFAULT_CASH_CORPORATE: CorporateItem = {
-  corporateId: 1,
-  corporateName: "CASH",
-  insuranceCompanyId: 0,
-  isActive: 1,
-};
+// const DEFAULT_CASH_CORPORATE: CorporateItem = {
+//   corporateId: 1,
+//   corporateName: "CASH",
+//   insuranceCompanyId: 0,
+//   isActive: 1,
+// };
 
 const EMPTY_CORPORATE_LIST: CorporateItem[] = [];
 
@@ -436,24 +436,24 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
       setValue("corporateId", corpId, { shouldValidate: true });
     }, [patientDetails, setValue]);
 
-    useEffect(() => {
-      if (Number(insuranceCompanyId) > 0) return;
+    // useEffect(() => {
+    //   if (Number(insuranceCompanyId) > 0) return;
 
-      const cashCorporate =
-        corporateList.find(
-          item =>
-            item.corporateId === DEFAULT_CASH_CORPORATE.corporateId ||
-            item.corporateName?.toUpperCase().includes("CASH")
-        ) ?? DEFAULT_CASH_CORPORATE;
+    //   const cashCorporate =
+    //     corporateList.find(
+    //       item =>
+    //         item.corporateId === DEFAULT_CASH_CORPORATE.corporateId ||
+    //         item.corporateName?.toUpperCase().includes("CASH")
+    //     ) ?? DEFAULT_CASH_CORPORATE;
 
-      const currentCorporateId = Number(getValues("corporateId") ?? 0);
-      if (currentCorporateId === cashCorporate.corporateId) return;
+    //   const currentCorporateId = Number(getValues("corporateId") ?? 0);
+    //   if (currentCorporateId === cashCorporate.corporateId) return;
 
-      setValue("corporateId", cashCorporate.corporateId, {
-        shouldDirty: false,
-        shouldValidate: false,
-      });
-    }, [insuranceCompanyId, corporateList, getValues, setValue]);
+    //   setValue("corporateId", cashCorporate.corporateId, {
+    //     shouldDirty: false,
+    //     shouldValidate: false,
+    //   });
+    // }, [insuranceCompanyId, corporateList, getValues, setValue]);
 
     useEffect(() => {
       if (Number(getValues("bedId") ?? 0) === 0) return;

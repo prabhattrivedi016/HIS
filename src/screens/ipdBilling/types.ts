@@ -256,33 +256,6 @@ type ServiceTableItem = {
   tatTimeInMin?: number;
 };
 
-/*"rate": 0.000000,
-        "rateListId": 0,
-        "isRateEditable": 1,
-        "serviceName": "KFT (SERUM)",
-        "code": "",
-        "corporateAlias": "",
-        "corporateCode": "",
-        "validityDays": 0,
-        "discountPer": 0.000000,
-        "discountReason": "",
-        "isNonPayable": 0,
-        "serviceItemId": 291,
-        "corporateId": 3,
-        "categoryTypeId": 3,
-        "categoryId": 3,
-        "subCategoryId": 1,
-        "subSubCategoryId": 10,
-        "isCorporateDiscount": 0,
-        "isPrivilegedCardDiscount": 0,
-        "gstPer": 0.000000,
-        "sampleTypeId": 165,
-        "reportTypeId": 1,
-        "doctorDepartmentIds": "",
-        "isRequiredSeparatePerformingDoctor": 0,
-        "labTypeId": 1,
-        "tatTimeInMin": 0 */
-
 type ApprovalLists = {
   CorporateTransferId: number;
   TokenNo: string;
@@ -423,6 +396,154 @@ type BillSettlementItem = {
   BillDate: string;
 };
 
+type DischargeProcessStepItem = {
+  PatientVisitDischargeProcessId: number;
+  VisitId: number;
+  DischargeProcessId: number;
+  ProcessKey: string;
+  ProcessName: string;
+  SequenceNo: number;
+  IsMandatory: boolean;
+  Status: number;
+  StartedOn: string | null;
+  CompletedOn: string | null;
+  StartedBy: string | null;
+  CompletedBy: string | null;
+  Remarks: string | null;
+  IsCompleted: number;
+  IsPending: number;
+  IsCurrentProcess: number;
+  CanExecute: number;
+  IsFuture: number;
+  IsUserAuthorized: number;
+};
+
+type CurrentProcessItem = {
+  VisitId: number;
+  PatientVisitDischargeProcessId?: number;
+  DischargeProcessId?: number;
+  ProcessKey?: string;
+  ProcessName?: string;
+  SequenceNo?: number;
+  IsMandatory?: boolean;
+  Status?: number;
+  WorkflowInitialized: boolean;
+  AllProcessesCompleted: boolean;
+};
+
+type PatientDetailsMainBillItem = {
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  Address: string;
+  ContactNumber: string;
+  RelativeName: string;
+  ServiceName: string;
+  CorporateAlias: string;
+  CorporateCode: string;
+  GrossAmt: number;
+  NetAmt: number;
+  Rate: number;
+  Qty: number;
+  DiscAmt: number;
+  DiscPer: number;
+  FTID: number;
+  GSTPer: number;
+  GSTAmt: number;
+  GrossAmount: number;
+  DiscountAmount: number;
+  NetAmount: number;
+  CompleteName: string;
+  Department: string;
+  Corporat: string;
+  BillNo: string;
+  BillDate: string;
+  SubSubCategoryName: string;
+  ReceiptHeader: string;
+  TnxType: string;
+  CreatedBy: string;
+  PrintBy: string;
+  VisitNo: string;
+  TypeId: number;
+  CurrentBedNo: string;
+};
+
+type IpdPatientAdvanceItem = {
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  Address: string;
+  ContactNumber: string;
+  Corporat: string;
+  CreatedOn: string;
+  Amount: number;
+  isCorporateReceipt: number;
+  VisitNo: string;
+  BedNo: string;
+  ReceiptHeader: string;
+  ReceiptNo: string;
+  CreatedBy: string;
+  DoctorNumber: string;
+  AmtinWords: string;
+  RelativeName: string;
+  Remarks: string;
+  GuardianName: string;
+};
+
+type IpdPatientAdvancePaymentModeItem = {
+  TotalReceiptAmount: number;
+  ReceiptNo: string;
+  PaymentModeName: string;
+  Amount: number;
+  CreatedOn: string;
+  UserName: string;
+  BankName: string;
+  ReferenceNo: string;
+};
+
+type MainBillWithPatientAdvanceItem = {
+  PatientId: number;
+  UHID: string;
+  PatientName: string;
+  Age: string;
+  Gender: string;
+  Address: string;
+  ContactNumber: string;
+  RelativeName: string | null;
+  ServiceName: string;
+  CorporateAlias: string;
+  CorporateCode: string;
+  GrossAmt: number;
+  NetAmt: number;
+  Rate: number;
+  Qty: number;
+  DiscAmt: number;
+  DiscPer: number;
+  FTID: number;
+  GSTPer: number;
+  GSTAmt: number;
+  GrossAmount: number;
+  DiscountAmount: number;
+  NetAmount: number;
+  CompleteName: string;
+  Department: string;
+  Corporat: string;
+  BillNo: string | null;
+  BillDate: string;
+  SubSubCategoryName: string;
+  ReceiptHeader: string;
+  TnxType: string;
+  CreatedBy: string;
+  PrintBy: string;
+  VisitNo: string;
+  TypeId: number;
+  CurrentBedNo: string;
+};
+
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -430,11 +551,17 @@ export type {
   BillSettlementItem,
   CategoryItem,
   CorporateItem,
+  CurrentProcessItem,
+  DischargeProcessStepItem,
   DoctorItem,
   InsuranceItem,
+  IpdPatientAdvanceItem,
+  IpdPatientAdvancePaymentModeItem,
   IpdPatientItem,
   IpdSummaryBillingTableList,
+  MainBillWithPatientAdvanceItem,
   PackageItemList,
+  PatientDetailsMainBillItem,
   PaymentListItem,
   PreviousBedListItem,
   PreviousDoctorListItem,

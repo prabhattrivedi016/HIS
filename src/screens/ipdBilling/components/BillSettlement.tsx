@@ -1,9 +1,15 @@
 import BillingDetails, { BillingDetailsHandle } from "@/components/BillingDetails";
 import InputField from "@/components/customInputField";
+import BillSettlementReceipt from "@/components/reportTemplates/BillSettlementReceipt";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import {
+  IpdPatientAdvanceItem,
+  IpdPatientAdvancePaymentModeItem,
+} from "@/screens/patientAdvance/types";
+import { openPatientAdvanceReceiptInNewTab } from "@/screens/patientAdvance/utils/patientAdvanceReceiptPrint";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import { useQuery } from "@tanstack/react-query";
@@ -24,8 +30,6 @@ interface BillingDetailsPayload {
 const BillSettlement = ({ patient }: BillSettlementProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  console.log("patient", patient);
-
   const branchId = useContext(BranchContext)?.branchId ?? 1;
   const roleId = useContext(RoleContext)?.roleId ?? 2;
 
@@ -37,6 +41,11 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
     amountValue: "",
     remarks: "",
   });
+
+  const [receiptData, setReceiptData] = useState<IpdPatientAdvanceItem | null>(null);
+  const [paymentModes, setPaymentModes] = useState<IpdPatientAdvancePaymentModeItem[]>([]);
+  const [receiptPaidAmount, setReceiptPaidAmount] = useState<number>(0);
+  const [receiptIsRefund, setReceiptIsRefund] = useState<number>(0);
 
   //   get bill details
 
@@ -64,6 +73,31 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
     // Both values are required
     enabled: !!patient?.PatientId && !!patient?.VisitId,
   });
+
+  // receipt apis
+  const getPatientLadgerReceiptDetails = async (receiptId: number) => {
+    if (!receiptId) return null;
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_IPD_RECEIPT_DETAILS,
+      {},
+      { params: { receiptId } },
+      { component: "BillSettlement" }
+    );
+    return resp?.data?.[0];
+  };
+
+  const getPatientAdvancePaymentModeList = async (receiptId: number) => {
+    if (!receiptId) return [];
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_RECEIPT_PAYMENT_DETAILS,
+      {},
+      { params: { receiptId } },
+      { component: "BillSettlement" }
+    );
+    return resp?.data?.slice(0, 10) ?? [];
+  };
 
   // input change handler
   const inputChangeHandler = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -120,7 +154,6 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
       return;
     }
 
-    console.log("FINAL PAYLOAD:", payload);
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_IPD_PATIENT_ADVANCE,
@@ -132,7 +165,28 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
       showError(resp?.message ?? "Failed while updating patient advance");
       return;
     }
+
+    const receiptId = Number(resp?.data?.receiptId ?? 0);
+
+    const [receiptDetails, paymentModeDetails] = await Promise.allSettled([
+      getPatientLadgerReceiptDetails(receiptId),
+      getPatientAdvancePaymentModeList(receiptId),
+    ]);
+
+    const resolvedReceipt = receiptDetails.status === "fulfilled" ? receiptDetails.value : null;
+    const resolvedPaymentModes =
+      paymentModeDetails.status === "fulfilled" ? (paymentModeDetails.value ?? []) : [];
+
     showSuccess(resp?.message ?? "Data saved successfully");
+
+    const paidAmt = Number(billingDetailsPayload?.amountValue) || 0;
+    const isRefundVal = billingDetailsPayload?.type === "R" ? 1 : 0;
+
+    setReceiptData(resolvedReceipt);
+    setPaymentModes(resolvedPaymentModes);
+    setReceiptPaidAmount(paidAmt);
+    setReceiptIsRefund(isRefundVal);
+
     setBillingDetailsPayload({
       type: "P",
       guardianName: "",
@@ -142,6 +196,15 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
 
     await getBillDetails?.();
     billingDetailsRef?.current?.reset();
+
+    if (!resolvedReceipt) {
+      showError("Patient advance saved, but receipt data is unavailable.");
+      return;
+    }
+
+    await new Promise(resolve => window.setTimeout(resolve, 120));
+
+    openPatientAdvanceReceiptInNewTab();
   };
 
   return (
@@ -287,6 +350,16 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
         <button type="submit" className="save-btn w-30" disabled={loading} onClick={submitHandler}>
           Save
         </button>
+      </div>
+
+      <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
+        {receiptData && (
+          <BillSettlementReceipt
+            printOnMount={false}
+            patientDetails={receiptData}
+            paymentModeList={paymentModes}
+          />
+        )}
       </div>
     </div>
   );

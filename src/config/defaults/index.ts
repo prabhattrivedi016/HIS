@@ -44,6 +44,8 @@ const ENDPOINTS = {
   SAVE_UPDATE_USER_BED_MAPPING: "Admin/saveUpdateUserBedMapping",
   GET_USER_GRANTED_REMAINING_TAB_MASTER: "Admin/getUserGrantedRemainingTabMaster",
   SAVE_UPDATE_USER_IPD_TAB_MAPPING: "Admin/saveUpdateUserIPDTabMapping",
+  GET_USER_WISE_DISCHARGE_PROCESS_MAPPING: "Admin/getUserWiseDischargeProcessMapping",
+  SAVE_UPDATE_USER_DISCHARGE_PROCESS_MAPPING: "Admin/saveUpdateUserDischargeProcessMapping",
 
   // navigation panel
   GET_NAVIGATION_SUB_MENU_MASTER: "Admin/getNavigationSubMenuMaster",
@@ -517,6 +519,16 @@ const ENDPOINTS = {
 
   SAVE_IPD_PATIENT_ADVANCE: "IPD/saveIPDPatientAdvance",
 
+  INITIALIZE_PATIENT_DISCHARGE_PROCESS: "IPD/initializePatientDischargeProcess",
+  GET_PATIENT_DISCHARGE_PROCESS: "IPD/getPatientDischargeProcess",
+  START_PATIENT_DISCHARGE_PROCESS: "IPD/startPatientDischargeProcess",
+  COMPLETE_PATIENT_DISCHARGE_PROCESS: "IPD/completePatientDischargeProcess",
+  GET_CURRENT_DISCHARGE_PROCESS: "IPD/getCurrentDischargeProcess",
+  VALIDATE_PATIENT_DISCHARGE: "IPD/validatePatientDischarge",
+
+  GET_IPD_RECEIPT_DETAILS: "IPD/getIPDReceiptDetails",
+  GET_RECEIPT_PAYMENT_DETAILS: "Home/getReceiptPaymentDetails",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",
@@ -692,6 +704,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_DISCHARGE_PROCESS_MASTER: "Admin/createUpdateDischargeProcessMaster",
   GET_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/getDischargeProcessCorporateMapping",
   SAVE_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/saveDischargeProcessCorporateMapping",
+  UPDATE_DISCHARGE_PROCESS_SEQUENCE: "Admin/updateDischargeProcessSequence",
 };
 
 export { ENDPOINTS };

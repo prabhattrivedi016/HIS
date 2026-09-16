@@ -18,7 +18,12 @@ const SeparateBillButton = ({
   );
 
   return (
-    <CentralPopup isOpen={isOpen} onClose={onClose} className="w-full!" title="Billing Preference">
+    <CentralPopup
+      isOpen={isOpen}
+      onClose={onClose}
+      className="w-full! lg:min-w-200"
+      title="Billing Preference"
+    >
       <div className="flex flex-col gap-4 p-1">
         <p className="text-sm text-gray-500 mb-2 leading-relaxed">
           How would you like to process this charge? Select one of the billing options below to

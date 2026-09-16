@@ -72,7 +72,7 @@ const numberToWords = (num: number): string => {
 //   </div>
 // );
 
-export default function IpdBillingReceipt({
+export default function IpdSupplementaryBill({
   printOnMount = false,
   data,
   paymentModeList: initialPaymentModeList,
@@ -204,7 +204,7 @@ export default function IpdBillingReceipt({
   if (!data) return null;
 
   return (
-    <div id="receipt-print-wrapper">
+    <div id="patient-advance-receipt-print-wrapper">
       <div
         style={{
           width: "100%",

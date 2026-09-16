@@ -12,6 +12,7 @@ import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import CorporateMapping from "./components/CorporateMapping";
+import DischargeProcessMapping from "./components/DischargeProcessMapping";
 import PageAccess from "./components/PageAccess";
 import RoomMapping from "./components/RoomMapping";
 import TabAccess from "./components/TabAccess";
@@ -243,6 +244,14 @@ const UserAuthorization = () => {
     setSelectedButton("roomMapping");
   };
 
+  const dischargeProcessMappingHandler = () => {
+    setShowRoleSelect(false);
+    setSelectedRole(null);
+    setRoleId(null);
+
+    setSelectedButton("dischargeProcessMapping");
+  };
+
   /*--------------------------role handlers---------------------------- */
 
   //toggle single handler
@@ -344,7 +353,7 @@ const UserAuthorization = () => {
                   All
                 </button>
                 <button
-                  className={`table-header-button ${activeButton === "remaining" ? "save-btn text-white" : "cursor-pointer"}`}
+                  className={`table-header-button ${activeButton === "remaining" ? "save-btn " : "cursor-pointer"}`}
                   onClick={remainingHandler}
                 >
                   Remaining
@@ -364,28 +373,25 @@ const UserAuthorization = () => {
             </div>
 
             {/* TABLE */}
-            <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
-              <table className="min-w-full table-fixed border-collapse">
-                <thead className="bg-blue-50 sticky top-0 z-10">
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead className="table-header">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-700 w-16">#</th>
+                    <th className="table-index-header">#</th>
 
-                    {/* Role Name + small search */}
-                    <th className="px-5 py-2 font-semibold text-gray-700">
-                      <div className="flex items-center gap-3">
-                        <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
-                          Role Name
-                        </span>
+                    <th className="table-name-header">
+                      <div className="table-header-content">
+                        <span className="table-title">Role Name</span>
+
                         <input
-                          className="input-field h-10 max-w-[250px] text-sm ml-20 "
+                          className="table-search-input"
                           placeholder="search role name"
                           onChange={onSearchHandler}
                         />
                       </div>
                     </th>
 
-                    {/* Toggle All */}
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700 w-32">
+                    <th className="table-action-header">
                       <ToggleButton
                         disabled={filteredData?.length === 0}
                         checked={
@@ -403,14 +409,22 @@ const UserAuthorization = () => {
                     filteredData.map((item, idx) => (
                       <tr
                         key={item.roleId}
-                        className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                        className="table-row"
                         onClick={() => toggleSingleHandler(item?.roleId)}
                       >
-                        <td className="px-4 py-3">{idx + 1}</td>
+                        <td className="table-cell">{idx + 1}</td>
 
-                        <td className="px-4 py-3">{item.roleName}</td>
+                        <td className="table-cell">
+                          <span
+                            className={`status-badge ${
+                              item?.isGranted === 1 ? "status-success" : "status-inactive"
+                            }`}
+                          >
+                            {item.roleName}
+                          </span>
+                        </td>
 
-                        <td className="px-4 py-3 text-center">
+                        <td className="table-action-cell">
                           <div onClick={e => e.stopPropagation()}>
                             <ToggleButton
                               checked={item?.isGranted === 1}
@@ -422,7 +436,7 @@ const UserAuthorization = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-gray-500 italic">
+                      <td colSpan={3} className="table-empty">
                         No data found
                       </td>
                     </tr>
@@ -456,6 +470,9 @@ const UserAuthorization = () => {
       }
       case "roomMapping": {
         return <RoomMapping branchId={branchId} typeId={typeId} userId={userId} />;
+      }
+      case "dischargeProcessMapping": {
+        return <DischargeProcessMapping branchId={branchId} typeId={typeId} userId={userId} />;
       }
       default:
         return;
@@ -540,7 +557,7 @@ const UserAuthorization = () => {
       </div>
       {pageView && (
         <>
-          <div className="flex gap-1  ">
+          <div className="flex  ">
             <button
               className={`table-header-button ${selectedButton === "roles" ? "save-btn" : "cursor-pointer"}`}
               onClick={roleButtonHandler}
@@ -594,6 +611,16 @@ const UserAuthorization = () => {
               onClick={roomMappingHandler}
             >
               Room Mapping
+            </button>
+
+            {/* dischargeProcessMapping */}
+            <button
+              className={`table-header-button ${
+                selectedButton === "dischargeProcessMapping" ? "save-btn" : "cursor-pointer"
+              }`}
+              onClick={dischargeProcessMappingHandler}
+            >
+              Discharge Process Mapping
             </button>
           </div>
           {/* render components */}

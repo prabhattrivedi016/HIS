@@ -2,6 +2,7 @@ import React from "react";
 import BedTransfer from "./BedTransfer";
 import BillSettlement from "./BillSettlement";
 import CorporateTransfer from "./CorporateTransfer";
+import DischargeProcess from "./DischargeProcess";
 import DoctorTransfer from "./DoctorTransfer";
 import IpdBillingComponent from "./IpdBillingComponent";
 import IpdBillingSummary from "./IpdBillingSummary";
@@ -38,6 +39,9 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
 
     case "bill-settlement":
       return <BillSettlement patient={patient} />;
+
+    case "discharge-process":
+      return <DischargeProcess patient={patient} />;
 
     default:
       return (
