@@ -205,4 +205,13 @@ type PageAccessProps = {
   roleId?: number | null;
 };
 
+export type DischargeProcessItem = {
+  isGranted: number;
+  ProcessKey: string;
+  ProcessName: string;
+  SequenceNo: number;
+  DischargeProcessId: number;
+  IsActive: boolean;
+};
+
 export type { ChildProps, PageAccessProps };

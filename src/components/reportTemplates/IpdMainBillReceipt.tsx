@@ -1,6 +1,7 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { PatientDetailsMainBillItem } from "@/screens/ipdBilling/types";
 import { useContext, useEffect, useMemo, useState } from "react";
 import logoImg from "../../../assets/logo.jpg";
 
@@ -63,15 +64,17 @@ const numberToWords = (num: number): string => {
   return getWords(num).trim() + " Rupees Only";
 };
 
-export default function IpdOrderReceipt({
+export default function IpdMainBillReceipt({
   printOnMount = false,
-  data,
+  patientDetail,
 }: {
   printOnMount?: boolean;
-  data: any;
+  patientDetail: PatientDetailsMainBillItem[];
 }) {
-  const patientDetails = data?.[0];
-  const { fetchApi } = useGlobalApi();
+  const patientDetails = patientDetail?.[0];
+  console.log("patientDetails data", patientDetail);
+
+  const { loading, fetchApi } = useGlobalApi();
 
   const branchId = Number(useContext(AuthContext)?.user?.branchId ?? 1);
   const [branchDetails, setBranchDetails] = useState<BranchItem | null>(null);
@@ -85,7 +88,7 @@ export default function IpdOrderReceipt({
       ENDPOINTS.GET_BRANCH_DETAILS,
       {},
       { params: { branchId } },
-      { component: "IpdOrderReceipt" }
+      { component: "IpdMainBillReceipt" }
     );
     setBranchDetails(resp?.data?.[0]);
   };
@@ -116,7 +119,7 @@ export default function IpdOrderReceipt({
 
   // amount calculation from API response
   const { totalAmount, totalDiscount, netAmount } = useMemo(() => {
-    const rows = Array.isArray(data) ? data : [];
+    const rows = Array.isArray(patientDetail) ? patientDetail : [];
 
     const grossFromRows = rows.reduce(
       (acc: number, item: any) =>
@@ -134,12 +137,15 @@ export default function IpdOrderReceipt({
       totalDiscount: Number(discountFromRows.toFixed(2)),
       netAmount: Number(netFromRows.toFixed(2)),
     };
-  }, [data]);
+  }, [patientDetail]);
 
   const amountInWords = numberToWords(Math.floor(netAmount));
 
-  if (!data || !patientDetails) {
-    console.warn("IpdOrderReceipt: No data or patientDetails available", { data, patientDetails });
+  if (!patientDetail || !patientDetails) {
+    console.warn("IpdMainBillReceipt: No data or patientDetails available", {
+      patientDetail,
+      patientDetails,
+    });
     return (
       <div id="receipt-print-wrapper">
         <div style={{ textAlign: "center", padding: "50px" }}>
@@ -150,7 +156,7 @@ export default function IpdOrderReceipt({
   }
 
   return (
-    <div id="receipt-print-wrapper">
+    <div id="patient-advance-receipt-print-wrapper">
       <div
         style={{
           width: "100%",
@@ -183,7 +189,6 @@ export default function IpdOrderReceipt({
               transform: "translate(-50%, -50%) rotate(-45deg)",
               fontSize: "100px",
               color: "rgba(0, 0, 0, 0.05)",
-              fontWeight: "bold",
               zIndex: 0,
               pointerEvents: "none",
               whiteSpace: "nowrap",
@@ -209,7 +214,6 @@ export default function IpdOrderReceipt({
               padding: "4px",
               marginBottom: "15px",
               fontSize: "16px",
-              fontWeight: "bold",
             }}
           >
             IPD ORDER
@@ -221,31 +225,33 @@ export default function IpdOrderReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "130px", verticalAlign: "top", fontWeight: "bold" }}>
-                      UHID
-                    </td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.UHID}</td>
+                    <td style={{ width: "130px", verticalAlign: "top" }}>UHID</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.UHID}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Name</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.PatientName}</td>
+                    <td style={{ verticalAlign: "top" }}>Name</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.PatientName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Contact No</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.ContactNumber}</td>
+                    <td style={{ verticalAlign: "top" }}>Contact No</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.ContactNumber}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Relative Name</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.RelativeName}</td>
+                    <td style={{ verticalAlign: "top" }}>Relative Name</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.RelativeName}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Department</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.DepartmentName}</td>
+                    <td style={{ verticalAlign: "top" }}>Department</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.Department}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>IPD No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.IPDNo}</td>
+                    <td style={{ verticalAlign: "top" }}>Bed No.</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.CurrentBedNo}</td>
                   </tr>
+                  {/* <tr>
+                    <td style={{ verticalAlign: "top" }}>IPD No.</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.IpdNumber}</td>
+                  </tr> */}
                 </tbody>
               </table>
             </div>
@@ -253,32 +259,26 @@ export default function IpdOrderReceipt({
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
                   <tr>
-                    <td style={{ width: "130px", verticalAlign: "top", fontWeight: "bold" }}>
-                      Date & Time
-                    </td>
+                    <td style={{ width: "130px", verticalAlign: "top" }}>Date & Time</td>
                     <td style={{ verticalAlign: "top" }}>
-                      : {patientDetails?.OrderDate || `${todayDate} ${todayTime}`}
+                      : {patientDetail?.[0]?.BillDate || `${todayDate} ${todayTime}`}
                     </td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Age/Sex</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Age}</td>
+                    <td style={{ verticalAlign: "top" }}>Age/Sex</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.Age}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Corporate</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.CorporateName}</td>
+                    <td style={{ verticalAlign: "top" }}>Corporate</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.Corporat}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Address</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.Address}</td>
+                    <td style={{ verticalAlign: "top" }}>Address</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.Address}</td>
                   </tr>
                   <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Doctor</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.CompleteName}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ verticalAlign: "top", fontWeight: "bold" }}>Bed No.</td>
-                    <td style={{ verticalAlign: "top" }}>: {patientDetails?.BedNo}</td>
+                    <td style={{ verticalAlign: "top" }}>Doctor</td>
+                    <td style={{ verticalAlign: "top" }}>: {patientDetail?.[0]?.CompleteName}</td>
                   </tr>
                 </tbody>
               </table>
@@ -287,7 +287,7 @@ export default function IpdOrderReceipt({
 
           {/* Services Table */}
 
-          {!!data && data?.length > 0 ? (
+          {!!patientDetail && patientDetail?.length > 0 ? (
             <table
               style={{
                 width: "100%",
@@ -303,7 +303,6 @@ export default function IpdOrderReceipt({
                       textAlign: "left",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     Service Name
@@ -313,7 +312,6 @@ export default function IpdOrderReceipt({
                       textAlign: "left",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     Code
@@ -323,7 +321,6 @@ export default function IpdOrderReceipt({
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     QTY
@@ -333,7 +330,6 @@ export default function IpdOrderReceipt({
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     Rate
@@ -343,7 +339,6 @@ export default function IpdOrderReceipt({
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     Disc(%)
@@ -353,18 +348,15 @@ export default function IpdOrderReceipt({
                       textAlign: "right",
                       padding: "2px 5px",
                       borderRight: "1px solid #000",
-                      fontWeight: "bold",
                     }}
                   >
                     Disc.
                   </th>
-                  <th style={{ textAlign: "right", padding: "2px 5px", fontWeight: "bold" }}>
-                    NetAmt
-                  </th>
+                  <th style={{ textAlign: "right", padding: "2px 5px" }}>NetAmt</th>
                 </tr>
               </thead>
               <tbody>
-                {data?.map((service: any, index: number) => (
+                {patientDetail?.map((service: any, index: number) => (
                   <tr key={index}>
                     <td style={{ padding: "2px 5px", borderRight: "1px solid #000" }}>
                       {service?.ServiceName}

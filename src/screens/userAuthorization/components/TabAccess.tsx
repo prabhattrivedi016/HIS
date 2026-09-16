@@ -176,29 +176,29 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
         </button>
       </div>
 
-      {/* TABLE */}
-      <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
-        <table className="min-w-full table-fixed border-collapse">
+      {/* table */}
+      <div className="table-wrapper">
+        <table className="data-table">
           {/* HEADER */}
-          <thead className="bg-blue-50 sticky top-0 z-10">
+          <thead className="table-header">
             <tr>
-              <th className="px-4 py-2 w-16 text-left font-semibold text-gray-700">#</th>
+              <th className="table-index-header">#</th>
 
-              <th className="px-4 py-2 text-left font-semibold text-gray-700">Tab Type</th>
+              <th className="table-name-header">Tab Type</th>
 
-              <th className="px-4 py-2 text-left font-semibold text-gray-700">Tab Name</th>
+              <th className="table-name-header">Tab Name</th>
 
               {/* SEARCH */}
-              <th className="px-10 py-3 w-80 text-right">
+              <th className="table-search-header">
                 <input
                   onChange={onSearchHandler}
                   placeholder="Search tab name"
-                  className="input-field h-9 text-sm"
+                  className="table-search-input input-field"
                 />
               </th>
 
               {/* TOGGLE ALL */}
-              <th className="px-4 py-3 w-32 text-center font-semibold text-gray-700">
+              <th className="table-action-header">
                 <ToggleButton
                   disabled={filteredData?.length === 0}
                   checked={
@@ -216,18 +216,27 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
               filteredData.map((item, idx) => (
                 <tr
                   key={item.TabId}
-                  className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  className="table-row"
                   onClick={() => toggleSingleHandler(item?.TabId)}
                 >
-                  <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                  <td className="table-cell">{idx + 1}</td>
 
-                  <td className="px-4 py-3 text-gray-800 truncate">{item?.TabType}</td>
+                  <td className="table-cell table-text-truncate">{item?.TabType}</td>
 
-                  <td className="px-4 py-3 text-gray-800 truncate">{item?.TabName}</td>
+                  <td className="table-cell">
+                    <span
+                      className={`status-badge ${
+                        item?.isGranted === 1 ? "status-success" : "status-inactive"
+                      }`}
+                    >
+                      {item?.TabName}
+                    </span>
+                  </td>
 
-                  <td className="px-4 py-3" />
+                  {/* Empty search column */}
+                  <td className="table-cell" />
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="table-action-cell">
                     <div onClick={e => e.stopPropagation()}>
                       <ToggleButton
                         checked={item.isGranted === 1}
@@ -239,7 +248,7 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500 italic">
+                <td colSpan={5} className="table-empty">
                   No data found
                 </td>
               </tr>
@@ -247,6 +256,7 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
           </tbody>
         </table>
       </div>
+
       {!!loading ? <CustomLoader isLoading={loading} /> : <></>}
     </div>
   );

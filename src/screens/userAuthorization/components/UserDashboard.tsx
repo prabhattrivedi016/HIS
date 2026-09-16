@@ -154,21 +154,19 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
       </div>
 
       {/* Table */}
-      <div className="border border-gray-300 overflow-y-auto rounded-lg min-h-[300px] max-h-[400px]">
-        <table className="min-w-full table-fixed border-collapse">
+      <div className="table-wrapper">
+        <table className="data-table">
           {/* TABLE HEADER */}
-          <thead className="bg-blue-50 sticky top-0 z-10">
+          <thead className="table-header">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold text-gray-700 w-16">#</th>
+              <th className="table-index-header">#</th>
 
-              {/* Role Name + small search */}
-              <th className="px-5 py-2 font-semibold text-gray-700">
-                <div className="flex items-center gap-3">
-                  <span className="block whitespace-nowrap overflow-hidden text-ellipsis ">
-                    User Dashboard
-                  </span>
+              <th className="table-name-header">
+                <div className="table-header-content">
+                  <span className="table-title">User Dashboard</span>
+
                   <input
-                    className="input-field h-10 max-w-[250px] text-sm ml-20 "
+                    className="table-search-input input-field"
                     placeholder="search user dashboard"
                     onChange={onSearchHandler}
                   />
@@ -176,7 +174,7 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
               </th>
 
               {/* Toggle All */}
-              <th className="px-4 py-3 text-center font-semibold text-gray-700 w-32">
+              <th className="table-action-header">
                 <ToggleButton
                   disabled={filteredData?.length === 0}
                   checked={
@@ -191,19 +189,25 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
           {/* TABLE BODY */}
           <tbody>
             {!!filteredData && filteredData.length > 0 ? (
-              filteredData?.map((item: UserDashboardItem, idx) => (
+              filteredData.map((item: UserDashboardItem, idx) => (
                 <tr
                   key={item?.userRightId}
-                  className={`border-t border-gray-200 hover:bg-gray-50 cursor-pointer 
-                    
-                  }`}
+                  className="table-row"
                   onClick={() => toggleSingleHandler(item?.userRightId)}
                 >
-                  <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                  <td className="table-cell">{idx + 1}</td>
 
-                  <td className="px-4 py-3 text-gray-800">{item?.userRightName}</td>
+                  <td className="table-cell">
+                    <span
+                      className={`status-badge ${
+                        item?.isGranted === 1 ? "status-success" : "status-inactive"
+                      }`}
+                    >
+                      {item?.userRightName}
+                    </span>
+                  </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="table-action-cell">
                     <div onClick={e => e.stopPropagation()}>
                       <ToggleButton
                         checked={item.isGranted === 1}
@@ -215,7 +219,7 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-gray-500 italic">
+                <td colSpan={3} className="table-empty">
                   No data found
                 </td>
               </tr>

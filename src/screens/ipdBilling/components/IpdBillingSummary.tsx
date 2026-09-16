@@ -511,7 +511,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                 <span className="text-md font-bold ">Billing Items</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer">
+              {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="tableView"
@@ -521,7 +521,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                 />
 
                 <span className="text-md font-bold">Department Details</span>
-              </label>
+              </label> */}
 
               {/* Bill Filter */}
 

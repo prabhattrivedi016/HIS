@@ -22,6 +22,7 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import CorporateMapping from "./components/CorporateMapping";
+import SequenceMappingPopup from "./components/SequenceMappingPopup";
 import { DischargeProcessItem } from "./types";
 
 const DischargeProcessMaster = () => {
@@ -33,6 +34,9 @@ const DischargeProcessMaster = () => {
   const [openMappingPopup, setOpenMappingPopup] = useState<boolean>(false);
   const [renderMappingPopup, setRenderMappingPopup] = useState<boolean>(false);
   const [selectProcessItem, setSelectedProcessItem] = useState<DischargeProcessItem | null>(null);
+
+  const [openSequenceMapping, setOpenSequenceMapping] = useState<boolean>(false);
+  const [renderSequenceMapping, setRenderSequenceMapping] = useState<boolean>(false);
 
   const {
     register,
@@ -150,17 +154,38 @@ const DischargeProcessMaster = () => {
     setSelectedProcessItem(null);
   }, []);
 
+  // handle sequence mapping
+  const handleSequenceMapping = () => {
+    setOpenSequenceMapping(true);
+    setRenderSequenceMapping(true);
+  };
+
+  // close sequence mapping
+  const closeSequenceMappingHandler = useCallback(() => {
+    setOpenSequenceMapping(false);
+    setRenderSequenceMapping(false);
+  }, []);
+
   return (
     <div className="page-container">
-      <h1 className="page-heading">Discharge Process Master</h1>
+      <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
+        <div className="flex-1">
+          <h1 className="page-heading">Discharge Process Master</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span>Discharge Process Master</span>
-      </nav>
+          <nav className="helper-text">
+            <NavLink to="/dashboard" className="hover:underline">
+              Home
+            </NavLink>
+            <span>››</span>
+            <span>Discharge Process Master</span>
+          </nav>
+        </div>
+        <div className="flex justify-end flex-1">
+          <button type="button" className="save-btn" onClick={handleSequenceMapping}>
+            Sequence Mapping
+          </button>
+        </div>
+      </div>
 
       <form className="card ">
         <div className="form-grid-4">
@@ -348,6 +373,15 @@ const DischargeProcessMaster = () => {
           isOpen={openMappingPopup}
           onClose={closeMappingHandler}
           item={selectProcessItem}
+        />
+      )}
+
+      {/* sequence mapping */}
+      {renderSequenceMapping && (
+        <SequenceMappingPopup
+          isOpen={openSequenceMapping}
+          onClose={closeSequenceMappingHandler}
+          refetch={refetch}
         />
       )}
 

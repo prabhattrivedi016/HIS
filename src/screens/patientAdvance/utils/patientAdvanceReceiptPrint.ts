@@ -8,7 +8,7 @@ export const openPatientAdvanceReceiptInNewTab = (existingWindow: Window | null 
   newWindow.document.write(`
     <html>
       <head>
-        <title>Patient Advance Receipt</title>
+        <title> Receipt</title>
         <base href="${window.location.origin}" />
         <style>
           @page {

@@ -5,81 +5,90 @@ import ToggleButton from "../../../components/toggleButton";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { chunkArray } from "../../../utils/chunkApiData";
-import { BedMappingItem, ChildProps } from "../types";
+import { ChildProps, DischargeProcessItem } from "../types";
 
-const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
+const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
-  const [filteredData, setFilteredData] = useState<BedMappingItem[]>([]);
-  const [roomData, setRoomData] = useState<BedMappingItem[]>([]);
+
+  const [filteredData, setFilteredData] = useState<DischargeProcessItem[]>([]);
+  const [dischargeProcessData, setDischargeProcessData] = useState<DischargeProcessItem[]>([]);
   const [activeButton, setActiveButton] = useState<string>("");
 
-  // user bed mapping handler
-  const userBedMappingHandler = async () => {
+  // corporate mapping handler
+  const dischargeProcessMappingHandler = async () => {
+    if (!branchId || !typeId || !userId) return;
     setActiveButton("all");
+
     const response = await fetchApi(
       "GET",
-      ENDPOINTS.GET_USER_WISE_BED_MAPPING,
+      ENDPOINTS.GET_USER_WISE_DISCHARGE_PROCESS_MAPPING,
       {},
       { params: { branchId, typeId, userId } }
     );
+    console.log("response of discharge process", response?.data);
 
     setFilteredData(response?.data ?? []);
-    setRoomData(response?.data ?? []);
+    setDischargeProcessData(response?.data ?? []);
   };
 
   useEffect(() => {
-    userBedMappingHandler();
+    dischargeProcessMappingHandler();
   }, [branchId, typeId, userId]);
 
   //search handler
   const onSearchHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const filteredRole = roomData?.filter((u: BedMappingItem) =>
-      u?.name?.toLowerCase()?.includes(value?.toLowerCase())
+    const filteredRole = dischargeProcessData?.filter((u: DischargeProcessItem) =>
+      u?.ProcessName?.toLowerCase()?.includes(value?.toLowerCase())
     );
     setFilteredData(filteredRole);
   };
 
   //toggle single handler
   const toggleSingleHandler = (id: number) => {
-    setRoomData(prev =>
+    setDischargeProcessData(prev =>
       prev.map(item =>
-        item.serviceItemId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+        item?.DischargeProcessId === id
+          ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+          : item
       )
     );
 
     setFilteredData(prev =>
       prev.map(item =>
-        item.serviceItemId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+        item?.DischargeProcessId === id
+          ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 }
+          : item
       )
     );
   };
 
   //toggle all handler
   const toggleAllHandler = () => {
-    const allGranted = roomData.length > 0 && roomData.every(item => item.isGranted === 1);
+    const allGranted =
+      dischargeProcessData.length > 0 && dischargeProcessData.every(item => item.isGranted === 1);
 
-    const updated = roomData.map(item => ({
+    const updated = dischargeProcessData.map(item => ({
       ...item,
       isGranted: allGranted ? 0 : 1,
     }));
 
-    setRoomData(updated);
+    setDischargeProcessData(updated);
     setFilteredData(updated);
   };
 
   //All handler
   const filterAllHandler = () => {
     setActiveButton("all");
-
-    setFilteredData(roomData ?? []);
+    setFilteredData(dischargeProcessData ?? []);
   };
 
   // remaining handler
   const remainingHandler = () => {
     setActiveButton("remaining");
 
-    const remaining = roomData?.filter((r: BedMappingItem) => r?.isGranted === 0) ?? [];
+    const remaining =
+      dischargeProcessData?.filter((r: DischargeProcessItem) => r?.isGranted === 0) ?? [];
     setFilteredData(remaining);
   };
 
@@ -87,48 +96,49 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
   const grantedHandler = () => {
     setActiveButton("granted");
 
-    const granted = roomData.filter(item => item.isGranted === 1) ?? [];
+    const granted = dischargeProcessData.filter(item => item.isGranted === 1) ?? [];
     setFilteredData(granted);
   };
 
-  //submit handler
+  //submit handle
 
-  const saveRoomDataHandler = useCallback(async () => {
-    if (!roomData || roomData.length === 0) return;
+  const saveCorporateMappingHandler = useCallback(async () => {
+    if (!dischargeProcessData || dischargeProcessData?.length === 0) return;
 
-    const grantedBeds = roomData
-      .filter((u: BedMappingItem) => u.isGranted === 1)
-      .map((u: BedMappingItem) => ({
-        branchId,
-        typeId,
-        userId,
-        serviceItemId: u.serviceItemId,
+    const dischargeProcess = dischargeProcessData
+      ?.filter((u: DischargeProcessItem) => u.isGranted === 1)
+      .map((u: DischargeProcessItem) => ({
+        branchId: branchId,
+        typeId: typeId,
+        userId: userId,
+        DischargeProcessId: u?.DischargeProcessId,
       }));
 
-    if (grantedBeds.length === 0) return;
+    if (dischargeProcess.length === 0) return;
 
-    const chunks = chunkArray(grantedBeds, 50);
+    const chunks = chunkArray(dischargeProcess, 50);
 
     for (let i = 0; i < chunks.length; i++) {
-      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, {
-        branchId,
-        typeId,
-        userId,
+      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_DISCHARGE_PROCESS_MAPPING, {
+        branchId: branchId,
+        typeId: typeId,
+        userId: userId,
         isFirst: i === 0 ? 1 : 0,
-        userBeds: chunks[i],
+        userDischargeProcessMappings: chunks[i],
       });
       if (!resp?.result) {
-        showError(error?.message);
+        showError(error?.message ?? "Failed to update discharge process mapping");
         return;
       }
-      showSuccess(resp?.message);
+      showSuccess(resp?.message ?? "Data saved successfully");
+      await dischargeProcessMappingHandler?.();
     }
-  }, [roomData, branchId, typeId, userId]);
+  }, [dischargeProcessData, branchId, typeId, userId]);
 
   return (
     <div className="card">
       {/* Header buttons */}
-      <div className="flex justify-between flex-wrap -mt-3">
+      <div className="flex justify-between flex-wrap  -mt-3">
         <div className="flex gap-1">
           <button
             className={`table-header-button ${activeButton === "all" ? "save-btn" : "cursor-pointer"}`}
@@ -152,7 +162,7 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
           </button>
         </div>
 
-        <button className="table-header-button save-btn" onClick={saveRoomDataHandler}>
+        <button className="table-header-button save-btn" onClick={saveCorporateMappingHandler}>
           Save
         </button>
       </div>
@@ -167,11 +177,11 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
 
               <th className="table-name-header">
                 <div className="table-header-content">
-                  <span className="table-title">Room Name</span>
+                  <span className="table-title">Discharge Process Name</span>
 
                   <input
                     className="table-search-input input-field"
-                    placeholder="search room name"
+                    placeholder="search discharge process name"
                     onChange={onSearchHandler}
                   />
                 </div>
@@ -193,11 +203,11 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
           {/* TABLE BODY */}
           <tbody>
             {!!filteredData && filteredData.length > 0 ? (
-              filteredData.map((item: BedMappingItem, idx) => (
+              filteredData.map((item: DischargeProcessItem, idx) => (
                 <tr
-                  key={item?.serviceItemId}
+                  key={item?.DischargeProcessId}
                   className="table-row"
-                  onClick={() => toggleSingleHandler(item?.serviceItemId)}
+                  onClick={() => toggleSingleHandler(item?.DischargeProcessId)}
                 >
                   <td className="table-cell">{idx + 1}</td>
 
@@ -207,15 +217,15 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
                         item?.isGranted === 1 ? "status-success" : "status-inactive"
                       }`}
                     >
-                      {item?.name}
+                      {item?.ProcessName}
                     </span>
                   </td>
 
                   <td className="table-action-cell">
                     <div onClick={e => e.stopPropagation()}>
                       <ToggleButton
-                        checked={item?.isGranted === 1}
-                        onClick={() => toggleSingleHandler(item?.serviceItemId)}
+                        checked={item.isGranted === 1}
+                        onClick={() => toggleSingleHandler(item?.DischargeProcessId)}
                       />
                     </div>
                   </td>
@@ -236,4 +246,4 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
   );
 };
 
-export default React.memo(RoomMapping);
+export default React.memo(DischargeProcessMapping);

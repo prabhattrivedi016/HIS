@@ -701,3 +701,149 @@ select:-webkit-autofill {
 .input-checkbox:focus {
   @apply outline-none ring-2 ring-blue-400;
 }
+
+/* user authorization */
+
+.table-header-button {
+  @apply border border-gray-300 px-3 py-2 m-2 rounded-lg hover:bg-[#096ac0];
+}
+
+/* ==============================
+   Common Table
+================================= */
+
+.table-wrapper {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow-y: auto;
+  min-height: 300px;
+  max-height: 400px;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Header */
+
+.table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #eff6ff;
+}
+
+.table-header th {
+  color: #374151;
+  font-weight: 600;
+}
+
+.table-index-header {
+  width: 64px;
+  padding: 8px 16px;
+  text-align: left;
+}
+
+.table-name-header {
+  padding: 8px 20px;
+  text-align: left;
+}
+
+.table-action-header {
+  width: 128px;
+  padding: 12px 16px;
+  text-align: center;
+}
+
+/* Header Content */
+
+.table-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.table-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-search-input {
+  width: 250px;
+  height: 40px;
+  font-size: 14px;
+}
+
+/* Rows */
+
+.table-row {
+  border-top: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+.table-cell {
+  padding: 12px 16px;
+}
+
+/* Action */
+
+.table-action-cell {
+  padding: 12px 16px;
+  text-align: center;
+}
+
+/* Status / Badge */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 16px;
+  border-radius: 8px;
+}
+
+.status-success {
+  background-color: #b4fbaf;
+  color: #000;
+}
+
+.status-inactive {
+  background-color: #c1c1c4;
+  color: #000;
+}
+
+/* Empty State */
+
+.table-empty {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.table-name-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-text-truncate {
+  display: block;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-info-icon {
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
