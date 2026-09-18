@@ -12,7 +12,7 @@ import { IpdSummaryBillingTableList } from "../types";
 type DiscountPercentagePopupProps = {
   isOpen: boolean;
   onClose: () => void;
-  selectedItems?: IpdSummaryBillingTableList[]; // Replace 'any' with the actual type of your selected items
+  selectedItems?: IpdSummaryBillingTableList[];
   refetch?: () => void;
 };
 

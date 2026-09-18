@@ -13,7 +13,6 @@ import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
 import CorporateMaster from "../corporateMaster";
 import CorporateTransferApproval from "../corporateTransferApproval";
-import CorporateTransferConfirmation from "../corporateTransferConfirmation";
 import CreditNoteApproval from "../creditNoteApproval";
 import CreditNoteGeneration from "../creditNoteGeneration";
 import CreditNoteWriteOff from "../creditNoteWriteOff";
@@ -161,7 +160,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "opd-appointment-confirmation": <OpdAppointmentConfirmation />,
   "emr-templates": <EMRTemplates />,
   "corporate-transfer-approval": <CorporateTransferApproval />,
-  "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
+  // "corporate-transfer-confirmation": <CorporateTransferConfirmation />,
   "surgery-master": <SurgeryMaster />,
   "ipd-package-master": <IpdPackageMaster />,
   "discharge-process-master": <DischargeProcessMaster />,

@@ -175,16 +175,17 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
             <tr>
               <th className="table-index-header">#</th>
 
-              <th className="table-name-header">
-                <div className="table-header-content">
-                  <span className="table-title">Discharge Process Name</span>
+              <th className="table-name-header">Discharge Process Name</th>
 
-                  <input
-                    className="table-search-input input-field"
-                    placeholder="search discharge process name"
-                    onChange={onSearchHandler}
-                  />
-                </div>
+              <th className="table-name-header">Discharge Process Key</th>
+
+              {/* SEARCH */}
+              <th className="table-search-header">
+                <input
+                  className="table-search-input input-field"
+                  placeholder="Search discharge process"
+                  onChange={onSearchHandler}
+                />
               </th>
 
               {/* TOGGLE ALL */}
@@ -202,15 +203,17 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
 
           {/* TABLE BODY */}
           <tbody>
-            {!!filteredData && filteredData.length > 0 ? (
+            {filteredData?.length > 0 ? (
               filteredData.map((item: DischargeProcessItem, idx) => (
                 <tr
                   key={item?.DischargeProcessId}
                   className="table-row"
                   onClick={() => toggleSingleHandler(item?.DischargeProcessId)}
                 >
+                  {/* INDEX */}
                   <td className="table-cell">{idx + 1}</td>
 
+                  {/* PROCESS NAME */}
                   <td className="table-cell">
                     <span
                       className={`status-badge ${
@@ -221,10 +224,17 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
                     </span>
                   </td>
 
+                  {/* PROCESS KEY */}
+                  <td className="table-cell table-text-truncate">{item?.ProcessKey}</td>
+
+                  {/* SEARCH COLUMN / SPACER */}
+                  <td className="table-cell" />
+
+                  {/* TOGGLE */}
                   <td className="table-action-cell">
                     <div onClick={e => e.stopPropagation()}>
                       <ToggleButton
-                        checked={item.isGranted === 1}
+                        checked={item?.isGranted === 1}
                         onClick={() => toggleSingleHandler(item?.DischargeProcessId)}
                       />
                     </div>
@@ -233,7 +243,7 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="table-empty">
+                <td colSpan={5} className="table-empty">
                   No data found
                 </td>
               </tr>

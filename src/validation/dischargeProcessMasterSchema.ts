@@ -7,16 +7,18 @@ export const dischargeProcessMasterSchema = Yup.object().shape({
 
   processKey: Yup.string().required("Process key is required"),
 
-  sequenceNo: Yup.number()
-    .transform((value, originalValue) => (originalValue === "" ? null : value))
-    .required("Sequence Number is required")
-    .min(0, "Sequence Number cannot be less than 0"),
+  sequenceNo: Yup.number().nullable(),
 
-  isMandatory: Yup.number().required("Is Mandatory is required"),
+  isMandatory: Yup.number().nullable(),
+
+  faIconId: Yup.number()
+    .typeError("Please select an icon")
+    .required("Please select an icon")
+    .moreThan(0, "Please select an icon"),
 
   isActive: Yup.number().required("Active is required"),
 
-  isSystemProcess: Yup.number().required("Is System Process is required"),
+  isSystemProcess: Yup.number().nullable(),
 });
 
 export type dischargeProcessMasterFormData = Yup.InferType<typeof dischargeProcessMasterSchema>;

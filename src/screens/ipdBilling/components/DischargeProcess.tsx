@@ -1,8 +1,12 @@
+import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
+import { dischargeProcessType } from "@/constants/constants";
 import { BranchContext } from "@/context/BranchContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showSuccess } from "@/utils/alert";
+import { usePickMaster } from "@/hooks/usePickMaster";
+import { PickMasterItem } from "@/types";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import {
   Check,
   ChevronDown,
@@ -17,11 +21,18 @@ import {
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { DischargeProcessStepItem, IpdPatientItem } from "../types";
+import AbscondedDischargeDetails from "./AbscondedDischargeDetails";
 import AddRemark from "./AddRemark";
+import DeathDischargeDetails from "./DeathDischargeDetails";
+import LamaDamaDischargeDetails from "./LamaDamaDischargeDetails";
+import NormalDischargeDetails from "./NormalDischargeDetails";
+import ReferralDischargeDetails from "./ReferralDischargeDetails";
 
 const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
+
+  const dischargeProcessTypeList = usePickMaster("DischargeType")?.pickMasterValue ?? [];
 
   const [isDischargeInitiated, setIsDischargeInitiated] = useState(false);
 
@@ -38,8 +49,10 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [canDischarge, setCanDischarge] = useState<boolean>(false);
 
-  console.log("canDischarge", canDischarge);
-  console.log("allProcessCompleted", allProcessCompleted);
+  const [openFinalDischarge, setOpenFinalDischarge] = useState<boolean>(false);
+  const [renderFinalDischarge, setRenderFinalDischarge] = useState<boolean>(false);
+
+  const [dischargeType, setDischargeType] = useState<string>("");
 
   // get current process
 
@@ -180,9 +193,9 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   // current step
 
-  const currentStep = useMemo(() => {
-    return steps.find(step => Number(step?.IsCurrentProcess) === 1);
-  }, [steps]);
+  // const currentStep = useMemo(() => {
+  //   return steps.find(step => Number(step?.IsCurrentProcess) === 1);
+  // }, [steps]);
 
   //  progress
 
@@ -336,7 +349,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
           className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-[10px] font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md active:scale-95"
         >
           <Check size={12} />
-          Mark Complete
+          Complete
         </button>
       );
     }
@@ -381,10 +394,10 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     );
   };
 
-  // handle final discharge
-
-  const handleFinalDischarge = async () => {
-    console.log("final discharge button is clicked");
+  // discharge process type handler
+  const dischargeProcessSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    setDischargeType(selectedValue);
   };
 
   return (
@@ -428,7 +441,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
       ) : (
         <div className="w-full">
           {/* process flow */}
-          <div className="rounded-xl border border-gray-200 p-2">
+          <div className="rounded-xl border border-gray-200 p-4 sm:p-5">
             {/* Flow Header */}
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ">
               <div>
@@ -448,7 +461,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
             </div>
 
             {/* Progress Bar */}
-            <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+            <div className="mb-6 h-1.5  w-full overflow-hidden rounded-full bg-gray-200">
               <div
                 className="h-full rounded-full bg-green-500 transition-all duration-500"
                 style={{
@@ -459,7 +472,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
             {/* desktop flow process */}
 
-            <div className="hidden lg:flex lg:items-start lg:gap-0">
+            <div className="hidden lg:flex lg:items-start lg:gap-0 pb-3">
               {steps.map((step, index) => {
                 const status = getStepStatus(step);
 
@@ -480,35 +493,34 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                             : status === "current"
                               ? "border-blue-500 bg-blue-50 text-blue-600 shadow-blue-100"
                               : "border-gray-300 bg-white text-gray-400"
-                        }
-                          `}
+                        }`}
                       >
-                        {status === "completed" ? (
-                          <Check size={19} strokeWidth={2.5} />
-                        ) : status === "locked" ? (
-                          <LockKeyhole size={17} />
-                        ) : (
-                          getStepIcon(step)
-                        )}
+                        <i
+                          className={`${step?.IconClass || "fa-solid fa-circle"} text-lg`}
+                          aria-hidden="true"
+                        />
                       </div>
-
                       {/* Step Number */}
                       <span className="mt-1 text-[9px] font-medium text-gray-400">
-                        Step {step?.SequenceNo || index + 1}
+                        Step {step?.DischargeProcessStep || index + 1}
                       </span>
 
                       {/* Step Name */}
                       <p
-                        className={`mt-1 max-w-32 text-xs font-semibold ${
+                        className={`mt-1 max-w-32 text-xs font-semibold leading-tight ${
                           status === "locked" ? "text-gray-400" : "text-gray-700"
                         }`}
                       >
-                        {step?.ProcessName}
+                        {step?.ProcessName?.split(" ").map((word, index) => (
+                          <span key={index} className="block">
+                            {word}
+                          </span>
+                        ))}
                       </p>
 
                       {/* Status Badge */}
                       <span
-                        className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        className={`mt-1  rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           status === "completed"
                             ? "bg-green-50 text-green-600"
                             : status === "current"
@@ -569,7 +581,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                         `}
                     >
                       {status === "completed" ? (
-                        <Check size={16} />
+                        <Check size={14} />
                       ) : status === "locked" ? (
                         <LockKeyhole size={14} />
                       ) : (
@@ -625,52 +637,118 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
             </div>
           </div>
 
-          {/* final discharge */}
+          {/* final discharge or discharged */}
 
-          <div className="mt-1.5 flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            {/* Information */}
-            <div className="flex items-start gap-2">
-              {isAllCompleted ? (
-                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-green-600" />
-              ) : (
-                <Clock3 size={18} className="mt-0.5 shrink-0 text-gray-400" />
-              )}
+          {patient?.IsDischarged ? (
+            // patient discharged
+            <div className="mt-1.5 flex w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-2 py-2 text-center shadow-sm">
+              {/* Success Icon */}
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-100 shadow-sm">
+                <i className="fa-solid fa-circle-check text-4xl text-green-600"></i>
+              </div>
 
-              <div>
-                <p className="text-xs font-semibold text-gray-700 sm:text-sm">
-                  {isAllCompleted
-                    ? "All discharge steps are completed."
-                    : "Final discharge is locked."}
-                </p>
+              {/* Heading */}
+              <h2 className="mb-1 text-xl font-bold text-gray-800">Discharge Process Completed</h2>
 
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {isAllCompleted
-                    ? "Patient is ready for final discharge."
-                    : "Complete all required steps before final discharge."}
-                </p>
+              {/* Description */}
+              <p className="mb-0 text-sm text-gray-500">
+                The patient has been successfully discharged and all formalities are finalized.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
+              {/* discharge in process */}
+              <div className="flex flex-col gap-3">
+                {/* Top content */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Information */}
+                  <div className="flex min-w-0 items-start gap-2">
+                    {isAllCompleted ? (
+                      <ShieldCheck size={18} className="mt-0.5 shrink-0 text-green-600" />
+                    ) : (
+                      <Clock3 size={18} className="mt-0.5 shrink-0 text-gray-400" />
+                    )}
+
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 sm:text-sm">
+                        {isAllCompleted ? "Ready For Discharge." : "Final discharge is locked."}
+                      </p>
+
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {isAllCompleted
+                          ? "Select discharge type to view and complete the required details."
+                          : "Complete all required steps before final discharge."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Discharge Details */}
+                  {(isAllCompleted || Number(canDischarge) === 1) && (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <InputField>
+                        <select
+                          className="input-field lg:max-h-13"
+                          onChange={dischargeProcessSelectHandler}
+                        >
+                          <option value="">--Select Discharge Type--</option>
+
+                          {dischargeProcessTypeList.map((d: PickMasterItem) => (
+                            <option key={d?.key} value={d?.key}>
+                              {d?.value}
+                            </option>
+                          ))}
+                        </select>
+                      </InputField>
+
+                      {/* <p className="whitespace-nowrap text-xs text-gray-600 sm:text-sm">
+                        <span className="font-semibold">Discharge Date & Time:</span>{" "}
+                        {patient?.DischargeDate || "--"} & {patient?.DischargeTime || "--"}
+                      </p> */}
+                    </div>
+                  )}
+
+                  {/* Final Button */}
+                  <button
+                    type="button"
+                    disabled={
+                      (!isAllCompleted && Number(canDischarge) !== 1) ||
+                      Number(patient?.IsDischarged) === 1
+                    }
+                    className={`flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition sm:w-auto ${
+                      (isAllCompleted || Number(canDischarge) === 1) &&
+                      Number(patient?.IsDischarged) !== 1
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "cursor-not-allowed border border-gray-200 bg-white text-gray-400"
+                    }`}
+                  >
+                    <ShieldCheck size={16} />
+
+                    {Number(patient?.IsDischarged) === 1
+                      ? "Discharged"
+                      : isAllCompleted || Number(canDischarge) === 1
+                        ? "Ready For Discharge"
+                        : "Discharge Pending"}
+                  </button>
+                </div>
+
+                {/* discharge types */}
+                {(isAllCompleted || Number(canDischarge) === 1) &&
+                dischargeType === dischargeProcessType?.NORMAL ? (
+                  <NormalDischargeDetails patientDetails={patient} />
+                ) : dischargeType === dischargeProcessType?.LAMA_DAMA ? (
+                  <LamaDamaDischargeDetails patientDetails={patient} />
+                ) : dischargeType === dischargeProcessType?.REFERRAL ? (
+                  <ReferralDischargeDetails patientDetails={patient} />
+                ) : dischargeType === dischargeProcessType?.ABSCONDED ? (
+                  <AbscondedDischargeDetails patientDetails={patient} />
+                ) : dischargeType === dischargeProcessType?.DEATH ? (
+                  <DeathDischargeDetails patientDetails={patient} />
+                ) : null}
               </div>
             </div>
+          )}
 
-            {/* Final Button */}
-            <button
-              type="button"
-              disabled={!isAllCompleted && !canDischarge}
-              className={` flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition sm:w-auto ${
-                isAllCompleted && canDischarge
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "cursor-not-allowed border border-gray-200 bg-white text-gray-400"
-              }
-              `}
-              onClick={handleFinalDischarge}
-            >
-              <ShieldCheck size={16} />
-              Final Discharge
-              <ChevronRight size={15} />
-            </button>
-          </div>
-
-          {/* main content */}
-
+          {/*table */}
           <div className="mt-1.5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
             {/* action history */}
 
@@ -705,14 +783,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                       </th>
 
                       <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-500">
-                        Started By
-                      </th>
-
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-500">
-                        Started On
-                      </th>
-
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-500">
                         Completed By
                       </th>
 
@@ -742,7 +812,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                             {/* Step No */}
                             <td className="w-16 px-3 py-3 align-top">
                               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-600">
-                                {step?.SequenceNo || index + 1}
+                                {step?.DischargeProcessStep || index + 1}
                               </div>
                             </td>
 
@@ -801,18 +871,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                               </span>
                             </td>
 
-                            {/* startwed By */}
-                            <td className="px-3 py-3 align-top">
-                              <div className="text-xs font-medium text-gray-700">
-                                {step?.StartedBy ?? "--"}
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3 align-top">
-                              <div className="text-xs font-medium text-gray-700">
-                                {step?.StartedOn ?? "--"}
-                              </div>
-                            </td>
+                            {/* started By */}
 
                             <td className="px-3 py-3 align-top">
                               <div className="text-xs font-medium text-gray-700">
@@ -832,11 +891,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                                 <span className="line-clamp-2 text-md font-semibold text-gray-500">
                                   {step?.Remarks}
                                 </span>
-
-                                <ChevronDown
-                                  size={14}
-                                  className={` shrink-0 text-gray-400 transition ${isExpanded ? "rotate-180" : ""}`}
-                                />
                               </div>
                             </td>
                           </tr>
@@ -1061,7 +1115,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                               className="save-btn mt-4 flex w-full items-center justify-center gap-2"
                             >
                               <Check size={15} />
-                              Mark Complete
+                              Complete
                             </button>
                           )}
                         </div>
