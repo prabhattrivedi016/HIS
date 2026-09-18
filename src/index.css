@@ -285,6 +285,10 @@ input::placeholder {
   @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
 
+.send-otp-btn {
+  @apply bg-[#40bf04] hover:bg-[#3eac06] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
+}
+
 .delete-btn {
   @apply bg-[#c30010] hover:bg-[#ed0b26] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
@@ -486,6 +490,9 @@ input::placeholder {
   @apply bg-[#0B5394] hover:bg-[#09457A] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
 
+.upload-file-btn {
+  @apply bg-[#0F766E] hover:bg-[#0D5F59] text-white rounded-lg px-1.5 py-1.5  text-sm transition active:scale-90 cursor-pointer;
+}
 .delete-btn {
   @apply bg-[#c30010] hover:bg-[#ed0b26] text-white rounded-lg px-3 py-2  text-base font-medium transition active:scale-90 cursor-pointer;
 }
@@ -815,7 +822,7 @@ select:-webkit-autofill {
 }
 
 .status-inactive {
-  background-color: #c1c1c4;
+  background-color: #d1d5db;
   color: #000;
 }
 

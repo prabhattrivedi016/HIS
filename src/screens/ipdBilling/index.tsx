@@ -3,6 +3,7 @@ import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
+import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import { RoleContext } from "@/context/RoleContext";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import useGlobalApi from "@/hooks/useGlobalApi";
@@ -12,7 +13,7 @@ import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import RoutingUsingTabUrl from "./components/routingUsingTabUrl";
 import { IpdPatientItem, TabNameItem } from "./types";
 
@@ -26,9 +27,7 @@ type SearchQueryItem = {
 const IpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const location = useLocation();
-
-  const patientData = location?.state?.patient;
+  const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
 
   const branchId = useContext(AuthContext)?.user?.branchId;
 
@@ -44,12 +43,7 @@ const IpdBilling = () => {
 
   const [activeTab, setActiveTab] = useState<TabNameItem | null>(null);
 
-  /**
-   * ============================================================
-   * MORE ACTIONS
-   * ============================================================
-   */
-
+  // more actions
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
 
   const moreActionsRef = useRef<HTMLDivElement>(null);
@@ -58,7 +52,7 @@ const IpdBilling = () => {
     setIsMoreActionsOpen(false);
   });
 
-  /* SEARCH */
+  // search
 
   const [searchQuery, setSearchQuery] = useState<SearchQueryItem>({
     branchId: branchId ?? 0,
@@ -67,9 +61,7 @@ const IpdBilling = () => {
     statusId: 0,
   });
 
-  /*
-  PATIENT LIST API */
-
+  // patient list
   const getTableDataList = async (searchQuery: SearchQueryItem) => {
     const hasSearchValue = Boolean(searchQuery?.searchValue?.trim());
 
@@ -106,28 +98,11 @@ const IpdBilling = () => {
       searchQuery?.searchValue,
       searchQuery?.statusId,
     ],
-
     queryFn: () => getTableDataList(searchQuery),
-
     enabled: !!branchId,
   });
 
-  //  prefill patient
-
-  useEffect(() => {
-    if (!patientData) return;
-
-    const foundPatient = IpdPatientList.find(
-      (item: IpdPatientItem) => item.PatientId === patientData.PatientId
-    );
-
-    if (foundPatient) {
-      setSelectedPatient(foundPatient);
-    }
-  }, [patientData, IpdPatientList]);
-
-  //  sync selected patient
-
+  // sync selected patient
   useEffect(() => {
     if (!selectedPatient) return;
 
@@ -139,6 +114,12 @@ const IpdBilling = () => {
       setSelectedPatient(updatedPatient);
     }
   }, [IpdPatientList]);
+
+  useEffect(() => {
+    if (updatedIpdPatientDetails) {
+      setSelectedPatient(updatedIpdPatientDetails);
+    }
+  }, [updatedIpdPatientDetails]);
 
   /* SEARCH HANDLER*/
 
@@ -408,16 +389,7 @@ const IpdBilling = () => {
         : null,
       highlight: true,
     },
-    {
-      label: "MLC",
-      value: selectedPatient?.MLC,
-      highlight: true,
-    },
-    {
-      label: "PI",
-      value: selectedPatient?.PiNumber,
-      highlight: true,
-    },
+
     {
       label: "Address",
       value: selectedPatient?.FullAddress,
@@ -439,12 +411,6 @@ const IpdBilling = () => {
       highlight: true,
     },
   ];
-
-  /**
-   * ============================================================
-   * JSX
-   * ============================================================
-   */
 
   return (
     <div className="page-container w-full min-w-0">
@@ -746,51 +712,41 @@ const IpdBilling = () => {
                   </div>
                 </div>
 
-                {/* VISIT INFO */}
+                {/* visit info */}
 
-                <div className="hidden sm:flex bg-gradient-to-r from-slate-50 via-teal-50/30 to-slate-50 border-t border-b border-slate-200/70 px-2 sm:px-1.5 py-2.5 flex-wrap gap-x-2 gap-y-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+                <div className="hidden sm:flex bg-gradient-to-r from-slate-50 via-teal-50/30 to-slate-50 border-t border-b border-slate-200/70 px-2 sm:px-1.5 py-2.5 flex-wrap items-center divide-x divide-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] gap-2">
                   {visitFields
                     .filter(f => f?.value !== "" && f?.value !== null && f?.value !== 0)
                     .map(f => (
                       <div
                         key={f.label}
-                        className={`flex flex-col px-2 py-1 rounded-lg transition-all duration-150 ${
+                        className={`flex flex-col px-3 py-1 ${
                           f.highlight
-                            ? "bg-white/90 backdrop-blur-xs border border-emerald-100 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-sm hover:border-emerald-200"
-                            : "bg-white/50 border border-slate-100"
+                            ? "bg-white/90 backdrop-blur-xs rounded-lg border border-emerald-100 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : ""
                         }`}
                       >
-                        {f?.value && (
-                          <>
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                              {f.label}
-                            </span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                          {f.label}
+                        </span>
 
-                            <span
-                              className={`text-sm font-bold ${
-                                f.highlight
-                                  ? "bg-gradient-to-r from-slate-800 to-emerald-700 bg-clip-text text-transparent"
-                                  : "text-slate-800"
-                              }`}
-                            >
-                              {f.value}
-                            </span>
-                          </>
-                        )}
+                        <span
+                          className={`text-sm font-bold ${
+                            f.highlight
+                              ? "bg-gradient-to-r from-slate-800 to-emerald-700 bg-clip-text text-transparent"
+                              : "text-slate-800"
+                          }`}
+                        >
+                          {f.value}
+                        </span>
                       </div>
                     ))}
                 </div>
               </div>
 
-              {/* ==================================================
-                  TABS + MORE ACTIONS
-              ================================================== */}
-
+              {/* tab more actions */}
               <div className="relative w-full bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] -mt-2 p-1.5 flex items-center justify-between gap-3 flex-shrink-0">
-                {/* =================================================
-                    FAVORITE / VISIBLE TABS
-                ================================================= */}
-
+                {/* favourite tabs */}
                 <div className="flex-1 min-w-0 overflow-x-auto hide-scrollbar">
                   <div className="flex items-center gap-2 min-w-max p-0.5">
                     {visibleTabs.map((tab: TabNameItem) => {

@@ -17,24 +17,25 @@ type IpdPatientItem = {
   State: string;
   District: string;
   City: string;
-  Address: string;
+  Address: string | null;
   FullAddress: string;
   BedNo: string;
   Corporate: string;
   PrimaryDoctor: string;
   PrimaryDoctorId: number;
-  SecondaryDoctor: number | null;
+  SecondaryDoctor: string | null;
+  PrimaryDoctorDepartment: string;
+  PrimaryDoctorDepartmentId: number;
   BillingTypeId: number;
+  InsuranceCompanyId: number;
   CorporateId: number;
   BedId: number;
   ProName: string;
-  IsBillingClosed: number;
   IsDischarged: number;
+  DischargeType: string | null;
   IsFileClosed: number;
-  BillNo: number | null;
+  BillNo: string | null;
   StatusId: number;
-  PiNumber: string;
-  MLC: string;
   TotalBillAmount: number;
   TotalDiscountPerOnBill: number;
   TotalDiscountAmountOnBill: number;
@@ -42,21 +43,13 @@ type IpdPatientItem = {
   TotalPayableAmount: number;
   TotalBalanceAmount: number;
   TotalBalanceAmount1: number;
-  DSId: number | null;
+  DSId: string | null;
   PatientAdvanceAmt: number;
   Remarks: string | null;
   BillingType: string;
   DoctorNumber: string;
   UserNAme: string;
-  Department?: string;
-  Consultant?: string;
-  Ward?: string;
-  Room?: string;
-  BedType?: string;
-  TPA?: string;
-  Status?: string;
-  InsuranceCompanyId?: number;
-  IsCaseBillingApplicable?: number;
+  IsCaseBillingApplicable: number;
 };
 
 type TabNameItem = {
@@ -82,11 +75,34 @@ type TabNameItem = {
 
 type DoctorItem = {
   doctorId: number;
+  title: string;
   name: string;
+  dob: string;
+  gender: string;
+  completeName: string;
+  contactNo: string;
+  emailId: string;
+  address: string;
   specializationId: number;
+  specialization: string;
+  userName: string;
+  password: string;
   departmentId: number;
+  department: string;
+  profileSummery: string;
+  registrationNo: string;
+  isActive: number;
+  userId: number;
+  hospId: number;
+  createdBy: string;
+  createdOn: string;
+  ipAddress: string;
+  branchId: string;
   canApproveLabReport: number;
+  canApproveDischargeSummary: number;
+  doctorPhotoFilePath: string;
   isDoctorUnit: number;
+  roomNo: string;
 };
 
 type CategoryItem = {
@@ -405,6 +421,8 @@ type DischargeProcessStepItem = {
   SequenceNo: number;
   IsMandatory: boolean;
   Status: number;
+  IconName: string;
+  IconClass: string;
   StartedOn: string | null;
   CompletedOn: string | null;
   StartedBy: string | null;
@@ -416,8 +434,34 @@ type DischargeProcessStepItem = {
   CanExecute: number;
   IsFuture: number;
   IsUserAuthorized: number;
+  DischargeProcessStep: number;
 };
 
+/*
+{
+    "PatientVisitDischargeProcessId": 64,
+    "VisitId": 15,
+    "DischargeProcessId": 1,
+    "ProcessKey": "DISCHARGE_NOTICE",
+    "ProcessName": "Discharge Notice",
+    "SequenceNo": 1,
+    "DischargeProcessStep": 1,
+    "IsMandatory": true,
+    "Status": 2,
+    "IconName": "notes-medical",
+    "IconClass": "fa-solid fa-notes-medical",
+    "StartedBy": "Prabhat  Trivedi (Prabhat)",
+    "StartedOn": "16-09-2026 03:17 PM",
+    "CompletedBy": "Prabhat  Trivedi (Prabhat)",
+    "CompletedOn": "16-09-2026 03:17 PM",
+    "Remarks": "",
+    "IsCompleted": 1,
+    "IsPending": 0,
+    "IsCurrentProcess": 0,
+    "CanExecute": 0,
+    "IsFuture": 0,
+    "IsUserAuthorized": 1
+} */
 type CurrentProcessItem = {
   VisitId: number;
   PatientVisitDischargeProcessId?: number;
@@ -544,6 +588,36 @@ type MainBillWithPatientAdvanceItem = {
   CurrentBedNo: string;
 };
 
+type DepartmentItem = {
+  departmentId: number;
+  department: string;
+  departmentTypeId: number;
+  departmentType: string;
+  isActive: number;
+};
+
+type userMasterItem = {
+  id: number;
+  firstName: string;
+  midelName: string;
+  lastName: string;
+  dob: string;
+  gender: string;
+  userName: string;
+  password: string;
+  address: string;
+  contact: string;
+  email: string;
+  isActive: number;
+  employeeID: string;
+  createdBy: string;
+  createdOn: string;
+  lastModifiedBy: string;
+  lastModifiedOn: string;
+  reportToUserId: number;
+  userDepartmentId: number;
+};
+
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -552,6 +626,7 @@ export type {
   CategoryItem,
   CorporateItem,
   CurrentProcessItem,
+  DepartmentItem,
   DischargeProcessStepItem,
   DoctorItem,
   InsuranceItem,
@@ -573,4 +648,5 @@ export type {
   SubCategoryItem,
   SubSubCategoryItem,
   TabNameItem,
+  userMasterItem,
 };

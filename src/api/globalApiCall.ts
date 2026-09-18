@@ -1,5 +1,6 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { Status } from "@/constants/constants";
+import { showError } from "@/utils/alert";
 
 const getDoctorMaster = async (fetchApi: any, doctorId: number, component: string = "") => {
   const resolvedDoctorId = Number(doctorId) || 0;
@@ -100,6 +101,33 @@ const getCorporateMaster = async (fetchApi: any, component: string) => {
   );
   return resp?.data;
 };
+
+const getUpdatedIpdPatientDetails = async (fetchApi: any, branchId: number, uhid: string) => {
+  const resp = await fetchApi(
+    "GET",
+    ENDPOINTS.SEARCH_IPD_PATIENT,
+    {},
+    { params: { branchId, searchBy: "PM.UHID", searchValue: uhid } },
+    {}
+  );
+
+  return resp?.data?.[0] ?? null;
+};
+
+const uploadFile = async (fetchApi: any, file: File, component: string) => {
+  const formData = new FormData();
+
+  formData.append("file", file, file.name);
+
+  const resp = await fetchApi("POST", ENDPOINTS.UPLOAD_DOCUMENT, formData, {}, { component });
+  if (!resp?.result) {
+    showError(resp?.message ?? "Failed to uplaod file");
+    return;
+  }
+
+  return resp?.data;
+};
+
 export {
   getCorporateMaster,
   getDoctorMaster,
@@ -107,4 +135,6 @@ export {
   getPatientDataByContact,
   getPatientDataByPatientId,
   getPatientDataByUhid,
+  getUpdatedIpdPatientDetails,
+  uploadFile,
 };

@@ -27,8 +27,6 @@ const AddRemark = ({
   validateDischarge,
   currProcess,
 }: AddRemarkProps) => {
-  console.log("selectedPatient", selectedPatient);
-
   const { loading, fetchApi } = useGlobalApi();
   const [remark, setRemark] = useState("");
   const [currentProcess, setCurrentProcess] = useState<CurrentProcessItem | null>(null);
@@ -42,7 +40,6 @@ const AddRemark = ({
       { params: { visitId: selectedPatient?.VisitId } },
       { component: "AddRemark" }
     );
-    console.log("resp", resp?.data);
 
     SetAllProcessCompleted(resp?.data?.AllProcessesCompleted ?? false);
     setCurrentProcess(resp?.data ?? {});
@@ -59,8 +56,8 @@ const AddRemark = ({
   };
 
   const handleSubmit = async () => {
-    if (!selectedPatient || remark.trim() === "") {
-      showWarning("Remarks is required");
+    if (!selectedPatient) {
+      showWarning("Patient is required");
       return;
     }
     const resp = await fetchApi("PATCH", ENDPOINTS.START_PATIENT_DISCHARGE_PROCESS, {
@@ -118,7 +115,7 @@ const AddRemark = ({
         {/* remark field */}
 
         <div className="mt-2">
-          <InputField label="Remarks" required>
+          <InputField label="Remarks">
             <textarea
               id="dischargeRemark"
               value={remark}

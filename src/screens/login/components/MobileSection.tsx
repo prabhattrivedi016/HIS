@@ -32,9 +32,14 @@ const MobileSection = ({ userId, userName, contact, isContact, onVerified }: Mob
     }
   }, [isContact]);
 
-  const sendOtp = async () => {
+  const sendOtp = async (): Promise<boolean> => {
     const res = await fetchApi("POST", ENDPOINTS.SEND_SMS_OTP, { userName, contact });
-    if (res) setHint(res.message);
+    if (!res?.result) {
+      setHint("");
+      return false;
+    }
+    setHint(res.message);
+    return true;
   };
 
   const verifyOtp = async ({ otp }: { otp: string }) => {

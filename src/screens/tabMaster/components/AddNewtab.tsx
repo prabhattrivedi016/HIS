@@ -61,8 +61,6 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
     defaultValues: defaultFormValues,
   });
 
-
-
   const iconOptions = useMemo(() => {
     return faIcons.map(item => ({
       value: item.id,
@@ -108,8 +106,6 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
       setValue("faIconId", matched.id, { shouldValidate: true });
     }
   };
-
-  console.log("faIcons", faIcons);
 
   // icons
   const getIcons = async () => {
@@ -172,11 +168,13 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
     }
 
     const matchedTabType = tabTypeList.find(item => Number(item.key) === Number(data.TabTypeId));
-    const icon = faIcons.find(
-      i =>
-        (data.FaIconId && Number(i?.id) === Number(data.FaIconId)) ||
-        (data.IconClass && i?.iconClass?.trim().toLowerCase() === data.IconClass?.trim().toLowerCase())
-    ) ?? null;
+    const icon =
+      faIcons.find(
+        i =>
+          (data.FaIconId && Number(i?.id) === Number(data.FaIconId)) ||
+          (data.IconClass &&
+            i?.iconClass?.trim().toLowerCase() === data.IconClass?.trim().toLowerCase())
+      ) ?? null;
 
     console.log("matched icon on reset", icon);
     setSelectedIcon(icon);

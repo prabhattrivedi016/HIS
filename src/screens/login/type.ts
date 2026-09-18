@@ -74,7 +74,7 @@ interface ForgotPasswordProps {
 }
 
 type ResendButtonProps = {
-  onResend: () => void;
+  onResend: () => Promise<boolean>;
 };
 
 export type {

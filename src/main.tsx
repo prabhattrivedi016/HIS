@@ -8,6 +8,7 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { BillingAmountProvider } from "./context/BillingAmountContext";
 import { BranchProvider } from "./context/BranchContext";
+import { IpdPatientDetailsContextProvider } from "./context/IpdPatientDetailsContext";
 import { PatientProvider } from "./context/PatientContext";
 import { RoleProvider } from "./context/RoleContext";
 import "./index.css";
@@ -43,7 +44,9 @@ if (rootElement) {
             <BillingAmountProvider>
               <RoleProvider>
                 <PatientProvider>
-                  <App />
+                  <IpdPatientDetailsContextProvider>
+                    <App />
+                  </IpdPatientDetailsContextProvider>
                 </PatientProvider>
               </RoleProvider>
             </BillingAmountProvider>

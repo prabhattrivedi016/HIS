@@ -195,12 +195,14 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
     };
 
     const { data: insuranceList = [] } = useQuery({
-      queryKey: ["ipdAdmissionInsuranceList"],
+      queryKey: ["ipdAdmissionInsuranceList", branchId],
       queryFn: getInsuranceList,
     });
 
     // corporate list
     const getCorporateList = async (insuranceCompanyId: number) => {
+      console.log("insuranceCompanyId", insuranceCompanyId);
+
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,
@@ -211,10 +213,10 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
       return (resp?.data ?? []) as CorporateItem[];
     };
 
-    const { data: corporateList = EMPTY_CORPORATE_LIST } = useQuery({
+    const { data: corporateList = [] } = useQuery({
       queryKey: ["ipdAdmissionCorporateList", branchId, insuranceCompanyId],
       queryFn: () => getCorporateList(Number(insuranceCompanyId)),
-      enabled: Number(insuranceCompanyId) > 0,
+      enabled: insuranceCompanyId !== undefined && insuranceCompanyId !== null,
     });
 
     // specialization list
@@ -324,18 +326,13 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
     });
 
     const corporateOptions = useMemo(() => {
-      if (!insuranceCompanyId) {
-        const cashFromList = corporateList.find(
-          item =>
-            item.corporateId === DEFAULT_CASH_CORPORATE.corporateId ||
-            item.corporateName?.toUpperCase().includes("CASH")
-        );
-
-        return [cashFromList ?? DEFAULT_CASH_CORPORATE];
-      }
-
-      return corporateList;
-    }, [corporateList, insuranceCompanyId]);
+      return (
+        corporateList?.map((c: any) => ({
+          corporateId: c.corporateId ?? c.value,
+          corporateName: c.corporateName ?? c.name ?? "",
+        })) ?? []
+      );
+    }, [corporateList]);
 
     const filteredDoctors = useMemo(() => {
       if (!specializationId) {
@@ -560,15 +557,10 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
                 onChange={e => {
                   const value = Number(e.target.value);
                   setValue("insuranceCompanyId", value, { shouldValidate: true });
-                  if (!value) {
-                    setValue("corporateId", DEFAULT_CASH_CORPORATE.corporateId, {
-                      shouldValidate: true,
-                    });
-                  } else {
-                    setValue("corporateId", 0, { shouldValidate: true });
-                  }
+                  setValue("corporateId", 0, { shouldValidate: true });
                 }}
               >
+                <option value={""}>--Select Insurance--</option>
                 {insuranceList.map(item => (
                   <option key={item.insuranceCompanyId} value={item.insuranceCompanyId}>
                     {item.insuranceCompanyName}

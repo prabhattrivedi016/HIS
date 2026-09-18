@@ -3,12 +3,15 @@ type DischargeProcessItem = {
   ProcessKey: string;
   ProcessName: string;
   SequenceNo: number;
+  FaIconId: number;
+  IconName: string | null;
+  IconClass: string | null;
   IsMandatory: 1 | 0;
   IsActive: 1 | 0;
   IsSystemProcess: 1 | 0;
-  CreatedBy: number;
+  CreatedBy: string;
   CreatedOn: string;
-  ModifiedBy: number | null;
+  ModifiedBy: string | null;
   ModifiedOn: string | null;
 };
 
@@ -42,4 +45,16 @@ type CorpoarteItem = {
   isCaseBillingApplicable: number;
 };
 
-export type { CorpoarteItem, DischargeProcessItem, InsuranceListItem, MappedCorporateItem };
+type IconListItem = {
+  id: number;
+  iconClass: string;
+  iconName: string;
+};
+
+export type {
+  CorpoarteItem,
+  DischargeProcessItem,
+  IconListItem,
+  InsuranceListItem,
+  MappedCorporateItem,
+};

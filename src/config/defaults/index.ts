@@ -528,6 +528,7 @@ const ENDPOINTS = {
 
   GET_IPD_RECEIPT_DETAILS: "IPD/getIPDReceiptDetails",
   GET_RECEIPT_PAYMENT_DETAILS: "Home/getReceiptPaymentDetails",
+  SAVE_IPD_DISCHARGE: "IPD/saveIPDDischarge",
 
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
@@ -698,6 +699,9 @@ const ENDPOINTS = {
 
   // common
   GET_PREDEFINE_QUERY_RESULT: "Home/getPredefineQueryResult",
+  UPLOAD_DOCUMENT: "Home/uploadDocument",
+  SEND_MOBILE_VERIFICATION_OTP: "Home/sendMobileVerificationOtp",
+  VERIFY_MOBILE_VERIFICATION_OTP: "Home/verifyMobileVerificationOtp",
 
   // discharge process master
   GET_DISCHARGE_PROCESS_MASTER: "Admin/getDischargeProcessMaster",

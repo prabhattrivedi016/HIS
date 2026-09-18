@@ -83,7 +83,7 @@ export const buildSaveIpdAdmissionPayload = (
     .map(id => Number(id))
     .filter(id => id > 0),
   insuranceCompanyId: Number(admission.insuranceCompanyId ?? 0),
-  corporateId: Number(admission.corporateId ?? 0),
+  corporateId: Number(admission.corporateId ?? 1),
   referDoctorId: Number(admission.referDoctorId ?? 0),
   proId: Number(admission.proId ?? 0),
   proName: admission.proName ?? "",

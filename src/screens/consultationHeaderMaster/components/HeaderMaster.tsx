@@ -37,7 +37,6 @@ const resolveHeaderIdFromResponse = (data: unknown): number => {
 };
 
 const HeaderMaster = () => {
-  debugger;
   const { loading, fetchApi } = useGlobalApi();
   const queryClient = useQueryClient();
   const controlTypeList = usePickMaster("DoctorHeaderControlType")?.pickMasterValue ?? [];
@@ -441,7 +440,6 @@ const HeaderMaster = () => {
 
   // submit handler
   const onsubmit = (data: HeaderMasterFormData) => {
-    debugger;
     if (selectedControlId === 9) {
       const hasInvalidLov = lovItems.some(l => {
         if (l.dataTypeId === 0) return true;

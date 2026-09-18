@@ -19,6 +19,7 @@ export const TabnameTableHeader = [
   "Tab Type",
   "Group Type",
   "Room Type",
+  "Tab Icon",
   "Tab Name",
   "URL",
   "Sequence No",
@@ -487,3 +488,11 @@ export const AppointmentSlotDays = [
   { label: "FRI", value: "Friday" },
   { label: "SAT", value: "Saturday" },
 ];
+
+export enum dischargeProcessType {
+  NORMAL = "Normal",
+  LAMA_DAMA = "LAMA / DAMA",
+  REFERRAL = "Referral",
+  ABSCONDED = "Absconded",
+  DEATH = "Death",
+}

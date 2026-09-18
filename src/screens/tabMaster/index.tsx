@@ -234,6 +234,10 @@ const TabMaster = () => {
                     <td className="table-td">{item.TabType || "-"}</td>
                     <td className="table-td">{item.GroupTypeName || "-"}</td>
                     <td className="table-td">{item.RoomType || "-"}</td>
+                    <td className="table-td">
+                      {<i className={` text-lg ml-2 ${item?.IconClass}`}></i>}
+                    </td>
+
                     <td className="table-td">{item.TabName || "-"}</td>
                     <td className="table-td">{item.TabViewURL || "-"}</td>
                     <td className="table-td">{item.SequenceNo ?? "-"}</td>
