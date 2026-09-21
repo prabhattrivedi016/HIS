@@ -386,7 +386,7 @@ const DischargeProcessMaster = () => {
                   <th className="table-th">Icon</th>
                   <th className="table-th">Process Name</th>
                   <th className="table-th">Sequence No</th>
-                  <th className="table-th">Mandatory</th>
+                  {/* <th className="table-th">Mandatory</th> */}
 
                   <th className="table-th">System Process</th>
                   <th className="table-th">Active</th>
@@ -420,13 +420,13 @@ const DischargeProcessMaster = () => {
                     <td className="table-td">{item?.ProcessName || "-"}</td>
                     <td className="table-td">{item?.SequenceNo || "-"}</td>
 
-                    <td
+                    {/* <td
                       className={`table-td ${
                         Number(item?.IsMandatory) === 1 ? "active-text" : "inactive-text"
                       }`}
                     >
                       {Number(item?.IsMandatory) === 1 ? "Yes" : "No"}
-                    </td>
+                    </td> */}
                     <td
                       className={`table-td ${
                         Number(item?.IsSystemProcess) === 1 ? "active-text" : "inactive-text"

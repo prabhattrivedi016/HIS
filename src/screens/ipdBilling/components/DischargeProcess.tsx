@@ -1,8 +1,11 @@
+import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
+import CustomTimePicker from "@/components/timePicker";
 import { ENDPOINTS } from "@/config/defaults";
 import { dischargeProcessType } from "@/constants/constants";
 import { BranchContext } from "@/context/BranchContext";
+import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
@@ -32,6 +35,10 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
 
+  const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)! ?? {};
+
+  console.log("updatedIpdPatientDetails from discharge process", updatedIpdPatientDetails);
+
   const dischargeProcessTypeList = usePickMaster("DischargeType")?.pickMasterValue ?? [];
 
   const [isDischargeInitiated, setIsDischargeInitiated] = useState(false);
@@ -40,6 +47,85 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [steps, setSteps] = useState<DischargeProcessStepItem[]>([]);
 
+  // const extraDischargeProcess = [
+  //   {
+  //     PatientVisitDischargeProcessId: 0,
+  //     VisitId: 0,
+  //     DischargeProcessId: 0,
+  //     ProcessKey: "FINAL_DISCHARGE",
+  //     ProcessName: "Final Discharge",
+  //     SequenceNo: 0,
+  //     DischargeProcessStep: steps?.length + 1,
+  //     IsMandatory: true,
+  //     Status: 0,
+  //     IconName: "fa-hospital-user",
+  //     IconClass: "fa-solid fa-hospital-user",
+  //     StartedBy: "",
+  //     StartedOn: "",
+  //     CompletedBy: updatedIpdPatientDetails?.DischargedBy ?? patient?.DischargedBy,
+  //     CompletedOn:
+  //       `${updatedIpdPatientDetails?.DischargeDate} ${updatedIpdPatientDetails?.DischargeTime}` ||
+  //       `${patient?.DischargeDate} ${patient?.DischargeTime}` ||
+  //       "--",
+  //     Remarks: "",
+  //     IsCompleted: updatedIpdPatientDetails?.IsDischarged ?? patient?.IsDischarged,
+  //     IsPending: 1,
+  //     IsCurrentProcess: 0,
+  //     CanExecute: 0,
+  //     IsFuture: 0,
+  //     IsUserAuthorized: 1,
+  //   },
+
+  //   {
+  //     PatientVisitDischargeProcessId: 0,
+  //     VisitId: 0,
+  //     DischargeProcessId: 0,
+  //     ProcessKey: "BILL_GENERATE",
+  //     ProcessName: "Bill Generate",
+  //     SequenceNo: 0,
+  //     DischargeProcessStep: steps?.length + 1,
+  //     IsMandatory: true,
+  //     Status: 0,
+  //     IconName: "fa-file-invoice-dollar",
+  //     IconClass: "fa-solid fa-file-invoice-dollar",
+  //     StartedBy: "",
+  //     StartedOn: "",
+  //     CompletedBy: updatedIpdPatientDetails?.BillGeneratedBy ?? patient?.BillGeneratedBy,
+  //     CompletedOn: updatedIpdPatientDetails?.BillGeneratedOn ?? patient?.BillGeneratedOn,
+  //     Remarks: "",
+  //     IsCompleted: updatedIpdPatientDetails?.IsBillGenerated ?? patient?.IsBillGenerated,
+  //     IsPending: 1,
+  //     IsCurrentProcess: 0,
+  //     CanExecute: 0,
+  //     IsFuture: 0,
+  //     IsUserAuthorized: 1,
+  //   },
+
+  //   {
+  //     PatientVisitDischargeProcessId: 0,
+  //     VisitId: 0,
+  //     DischargeProcessId: 0,
+  //     ProcessKey: "FILE_CLOSE",
+  //     ProcessName: "File Close",
+  //     SequenceNo: 0,
+  //     DischargeProcessStep: steps?.length + 1,
+  //     IsMandatory: true,
+  //     Status: 0,
+  //     IconName: "fa-folder-closed",
+  //     IconClass: "fa-solid fa-folder-closed",
+  //     StartedBy: "",
+  //     StartedOn: "",
+  //     CompletedBy: updatedIpdPatientDetails?.FileClosedBy ?? patient?.FileClosedBy,
+  //     CompletedOn: updatedIpdPatientDetails?.FileClosedOn ?? patient?.FileClosedOn,
+  //     Remarks: "",
+  //     IsCompleted: updatedIpdPatientDetails?.IsFileClosed ?? patient?.IsFileClosed,
+  //     IsPending: 1,
+  //     IsCurrentProcess: 0,
+  //     CanExecute: 0,
+  //     IsFuture: 0,
+  //     IsUserAuthorized: 1,
+  //   },
+  // ];
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
   const [openAddRemark, setOpenAddRemark] = useState<boolean>(false);
@@ -49,10 +135,60 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [canDischarge, setCanDischarge] = useState<boolean>(false);
 
-  const [openFinalDischarge, setOpenFinalDischarge] = useState<boolean>(false);
-  const [renderFinalDischarge, setRenderFinalDischarge] = useState<boolean>(false);
+  // current date
+  const currentLocalYYYYMMDD = useMemo(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+      today.getDate()
+    ).padStart(2, "0")}`;
+  }, []);
+
+  // current time
+  const currentLocalTime = useMemo(() => {
+    const today = new Date();
+    let hours = today.getHours();
+    const minutes = today.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutesStr = minutes < 10 ? "0" + minutes : minutes.toString();
+    return `${hours}:${minutesStr} ${ampm}`;
+  }, []);
 
   const [dischargeType, setDischargeType] = useState<string>("");
+  const [dischargeDate, setDischargeDate] = useState<string>(currentLocalYYYYMMDD);
+  const [dischargeTime, setDischargeTime] = useState<string>(currentLocalTime);
+
+  // min date
+  const minDate = useMemo(() => {
+    if (!patient?.AdmissionDate) return undefined;
+    const clean = patient.AdmissionDate.replace(/\//g, "-");
+    const parts = clean.split("-");
+    if (parts.length >= 3) {
+      const [day, month, year] = parts;
+      const cleanYear = year.split(" ")[0];
+      const monthMap: Record<string, string> = {
+        jan: "01",
+        feb: "02",
+        mar: "03",
+        apr: "04",
+        may: "05",
+        jun: "06",
+        jul: "07",
+        aug: "08",
+        sep: "09",
+        oct: "10",
+        nov: "11",
+        dec: "12",
+      };
+      const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
+      return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
+    }
+    return undefined;
+  }, [patient?.AdmissionDate]);
+
+  // max date
+  const maxDate = currentLocalYYYYMMDD;
 
   // get current process
 
@@ -124,7 +260,87 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
       }
 
       setIsDischargeInitiated(true);
-      setSteps(resp?.data ?? []);
+      setSteps([
+        ...(resp?.data ?? []),
+
+        {
+          PatientVisitDischargeProcessId: 0,
+          VisitId: 0,
+          DischargeProcessId: 0,
+          ProcessKey: "FINAL_DISCHARGED",
+          ProcessName: "Final Discharged",
+          SequenceNo: 0,
+          DischargeProcessStep: resp?.data?.length + 1,
+          IsMandatory: true,
+          Status: 0,
+          IconName: "fa-hospital-user",
+          IconClass: "fa-solid fa-hospital-user",
+          StartedBy: "",
+          StartedOn: "",
+          CompletedBy: updatedIpdPatientDetails?.DischargedBy ?? patient?.DischargedBy,
+          CompletedOn:
+            `${updatedIpdPatientDetails?.DischargeDate} ${updatedIpdPatientDetails?.DischargeTime}` ||
+            `${patient?.DischargeDate} ${patient?.DischargeTime}` ||
+            "--",
+          Remarks: "",
+          IsCompleted: updatedIpdPatientDetails?.IsDischarged ?? patient?.IsDischarged,
+          IsPending: 1,
+          IsCurrentProcess: 0,
+          CanExecute: 0,
+          IsFuture: 0,
+          IsUserAuthorized: 1,
+        },
+
+        {
+          PatientVisitDischargeProcessId: 0,
+          VisitId: 0,
+          DischargeProcessId: 0,
+          ProcessKey: "BILL_GENERATED",
+          ProcessName: "Bill Generated",
+          SequenceNo: 0,
+          DischargeProcessStep: resp?.data?.length + 2,
+          IsMandatory: true,
+          Status: 0,
+          IconName: "fa-file-invoice-dollar",
+          IconClass: "fa-solid fa-file-invoice-dollar",
+          StartedBy: "",
+          StartedOn: "",
+          CompletedBy: updatedIpdPatientDetails?.BillGeneratedBy ?? patient?.BillGeneratedBy,
+          CompletedOn: updatedIpdPatientDetails?.BillGeneratedOn ?? patient?.BillGeneratedOn,
+          Remarks: "",
+          IsCompleted: updatedIpdPatientDetails?.IsBillGenerated ?? patient?.IsBillGenerated,
+          IsPending: 1,
+          IsCurrentProcess: 0,
+          CanExecute: 0,
+          IsFuture: 0,
+          IsUserAuthorized: 1,
+        },
+
+        {
+          PatientVisitDischargeProcessId: 0,
+          VisitId: 0,
+          DischargeProcessId: 0,
+          ProcessKey: "FILE_CLOSED",
+          ProcessName: "File Closed",
+          SequenceNo: 0,
+          DischargeProcessStep: resp?.data?.length + 3,
+          IsMandatory: true,
+          Status: 0,
+          IconName: "fa-folder-closed",
+          IconClass: "fa-solid fa-folder-closed",
+          StartedBy: "",
+          StartedOn: "",
+          CompletedBy: updatedIpdPatientDetails?.FileClosedBy ?? patient?.FileClosedBy,
+          CompletedOn: updatedIpdPatientDetails?.FileClosedOn ?? patient?.FileClosedOn,
+          Remarks: "",
+          IsCompleted: updatedIpdPatientDetails?.IsFileClosed ?? patient?.IsFileClosed,
+          IsPending: 1,
+          IsCurrentProcess: 0,
+          CanExecute: 0,
+          IsFuture: 0,
+          IsUserAuthorized: 1,
+        },
+      ]);
     } catch (error) {
       console.error("Get discharge process error:", error);
 
@@ -141,7 +357,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
       setIsDischargeInitiated(false);
       setSteps([]);
     }
-  }, [patient?.VisitId]);
+  }, [patient?.VisitId, updatedIpdPatientDetails]);
 
   //   initial discharge
 
@@ -190,6 +406,10 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const completedSteps = useMemo(() => {
     return steps.filter(step => Number(step?.IsCompleted) === 1).length;
   }, [steps]);
+
+  console.log("steps", steps);
+
+  console.log("completedSteps", completedSteps);
 
   // current step
 
@@ -315,6 +535,37 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     setExpandedStep(prev => (prev === stepId ? null : stepId));
   };
 
+  //step action icon
+  const renderStepStatusIcon = (
+    status: "completed" | "current" | "locked" | "future" | "unAuthorized"
+  ) => {
+    if (status === "completed") {
+      return (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-green-500 text-white shadow-sm">
+          <Check size={11} strokeWidth={3} />
+        </span>
+      );
+    }
+
+    if (status === "locked" || status === "future") {
+      return (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-gray-400 text-white shadow-sm">
+          <LockKeyhole size={10} />
+        </span>
+      );
+    }
+
+    if (status === "unAuthorized") {
+      return (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-sm">
+          <Lock size={10} />
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   //  step action button
   const renderStepActionButton = (
     step: DischargeProcessStepItem,
@@ -322,18 +573,18 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   ) => {
     //    completed
 
-    if (status === "completed") {
-      return (
-        <button
-          type="button"
-          disabled
-          className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-[10px] font-semibold text-green-700 cursor-default"
-        >
-          <Check size={12} />
-          Completed
-        </button>
-      );
-    }
+    // if (status === "completed") {
+    //   return (
+    //     <button
+    //       type="button"
+    //       disabled
+    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-[10px] font-semibold text-green-700 cursor-default"
+    //     >
+    //       <Check size={12} />
+    //       Completed
+    //     </button>
+    //   );
+    // }
 
     // current
 
@@ -354,44 +605,44 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
       );
     }
 
-    if (status === "future") {
-      return (
-        <button
-          type="button"
-          disabled
-          className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
-        >
-          <LockKeyhole size={11} />
-          Locked
-        </button>
-      );
-    }
+    // if (status === "future") {
+    //   return (
+    //     <button
+    //       type="button"
+    //       disabled
+    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
+    //     >
+    //       <LockKeyhole size={11} />
+    //       Locked
+    //     </button>
+    //   );
+    // }
 
-    if (status === "unAuthorized") {
-      return (
-        <button
-          type="button"
-          disabled
-          className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-medium text-red-600 cursor-not-allowed"
-        >
-          <Lock size={11} />
-          Unauthorized
-        </button>
-      );
-    }
+    // if (status === "unAuthorized") {
+    //   return (
+    //     <button
+    //       type="button"
+    //       disabled
+    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-medium text-red-600 cursor-not-allowed"
+    //     >
+    //       <Lock size={11} />
+    //       Unauthorized
+    //     </button>
+    //   );
+    // }
 
     //    locked
 
-    return (
-      <button
-        type="button"
-        disabled
-        className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
-      >
-        <LockKeyhole size={11} />
-        Locked
-      </button>
-    );
+    // return (
+    //   <button
+    //     type="button"
+    //     disabled
+    //     className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
+    //   >
+    //     <LockKeyhole size={11} />
+    //     Locked
+    //   </button>
+    // );
   };
 
   // discharge process type handler
@@ -443,8 +694,8 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
           {/* process flow */}
           <div className="rounded-xl border border-gray-200 p-4 sm:p-5">
             {/* Flow Header */}
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ">
-              <div>
+            {/*   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ">
+               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 sm:text-sm">
                   Discharge Process Flow
                 </h3>
@@ -452,13 +703,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                 <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">
                   {completedSteps} of {steps.length} steps completed
                 </p>
-              </div>
+              </div> */}
 
-              {/* Percentage */}
-              <div className="self-start rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm sm:self-auto">
+            {/* Percentage */}
+            {/* <div className="self-start rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm sm:self-auto">
                 {progressPercentage}%
-              </div>
-            </div>
+              </div> 
+            </div>*/}
 
             {/* Progress Bar */}
             <div className="mb-6 h-1.5  w-full overflow-hidden rounded-full bg-gray-200">
@@ -486,7 +737,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                     {/* step count */}
                     <div className="flex min-w-0 flex-1 flex-col items-center text-center">
                       {/* Icon */}
-                      <div
+                      {/* <div
                         className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-200 ${
                           status === "completed"
                             ? "border-green-500 bg-green-50 text-green-600"
@@ -499,7 +750,27 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                           className={`${step?.IconClass || "fa-solid fa-circle"} text-lg`}
                           aria-hidden="true"
                         />
+                      </div> */}
+                      <div
+                        className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-200 ${
+                          status === "completed"
+                            ? "border-green-500 bg-green-50 text-green-600"
+                            : status === "current"
+                              ? "border-blue-500 bg-blue-50 text-blue-600 shadow-blue-100"
+                              : status === "unAuthorized"
+                                ? "border-red-300 bg-red-50 text-red-500"
+                                : "border-gray-300 bg-white text-gray-400"
+                        }`}
+                      >
+                        <i
+                          className={`${step?.IconClass || "fa-solid fa-circle"} text-lg`}
+                          aria-hidden="true"
+                        />
+
+                        {/* Status indicator */}
+                        {renderStepStatusIcon(status)}
                       </div>
+
                       {/* Step Number */}
                       <span className="mt-1 text-[9px] font-medium text-gray-400">
                         Step {step?.DischargeProcessStep || index + 1}
@@ -518,7 +789,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                         ))}
                       </p>
 
-                      {/* Status Badge */}
+                      {/* Status Badge 
                       <span
                         className={`mt-1  rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           status === "completed"
@@ -535,6 +806,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                             ? "Current"
                             : "Locked"}
                       </span>
+                       */}
 
                       {/* mark button */}
                       {renderStepActionButton(step, status)}
@@ -641,20 +913,22 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
           {patient?.IsDischarged ? (
             // patient discharged
-            <div className="mt-1.5 flex w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-2 py-2 text-center shadow-sm">
-              {/* Success Icon */}
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-100 shadow-sm">
-                <i className="fa-solid fa-circle-check text-4xl text-green-600"></i>
-              </div>
+            // <div className="mt-1.5 flex w-full flex-col items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-2 py-2 text-center shadow-sm">
+            //   {/* Success Icon
+            //   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-100 shadow-sm">
+            //     <i className="fa-solid fa-circle-check text-4xl text-green-600"></i>
+            //   </div>
+            //   */}
 
-              {/* Heading */}
-              <h2 className="mb-1 text-xl font-bold text-gray-800">Discharge Process Completed</h2>
+            //   {/* Heading */}
+            //   <h2 className="mb-1 text-xl font-bold text-gray-800">Discharge Process Completed</h2>
 
-              {/* Description */}
-              <p className="mb-0 text-sm text-gray-500">
-                The patient has been successfully discharged and all formalities are finalized.
-              </p>
-            </div>
+            //   {/* Description */}
+            //   <p className="mb-0 text-sm text-gray-500">
+            //     The patient has been successfully discharged and all formalities are finalized.
+            //   </p>
+            // </div>
+            <></>
           ) : (
             <div className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
               {/* discharge in process */}
@@ -684,13 +958,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
                   {/* Discharge Details */}
                   {(isAllCompleted || Number(canDischarge) === 1) && (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="form-grid-3">
                       <InputField>
                         <select
-                          className="input-field lg:max-h-13"
+                          className="input-field lg:max-h-13 lg:max-w-35"
                           onChange={dischargeProcessSelectHandler}
                         >
-                          <option value="">--Select Discharge Type--</option>
+                          <option value="">--Select--</option>
 
                           {dischargeProcessTypeList.map((d: PickMasterItem) => (
                             <option key={d?.key} value={d?.key}>
@@ -698,6 +972,24 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                             </option>
                           ))}
                         </select>
+                      </InputField>
+
+                      <InputField>
+                        <CustomDateInput
+                          className="input-field lg:max-h-13 lg:max-w-35"
+                          value={dischargeDate}
+                          onChange={setDischargeDate}
+                          min={minDate}
+                          max={maxDate}
+                        />
+                      </InputField>
+
+                      <InputField>
+                        <CustomTimePicker
+                          className="lg:max-h-13 lg:max-w-35"
+                          value={dischargeTime}
+                          onChange={setDischargeTime}
+                        />
                       </InputField>
 
                       {/* <p className="whitespace-nowrap text-xs text-gray-600 sm:text-sm">
@@ -734,15 +1026,40 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                 {/* discharge types */}
                 {(isAllCompleted || Number(canDischarge) === 1) &&
                 dischargeType === dischargeProcessType?.NORMAL ? (
-                  <NormalDischargeDetails patientDetails={patient} />
+                  <NormalDischargeDetails
+                    patientDetails={patient}
+                    dischargeDate={dischargeDate}
+                    dischargeTime={dischargeTime}
+                    refreshDischargeProcess={getDischargeProcessLists}
+                  />
                 ) : dischargeType === dischargeProcessType?.LAMA_DAMA ? (
-                  <LamaDamaDischargeDetails patientDetails={patient} />
+                  <LamaDamaDischargeDetails
+                    patientDetails={patient}
+                    dischargeDate={dischargeDate}
+                    dischargeTime={dischargeTime}
+                    refreshDischargeProcess={getDischargeProcessLists}
+                  />
                 ) : dischargeType === dischargeProcessType?.REFERRAL ? (
-                  <ReferralDischargeDetails patientDetails={patient} />
+                  <ReferralDischargeDetails
+                    patientDetails={patient}
+                    dischargeDate={dischargeDate}
+                    dischargeTime={dischargeTime}
+                    refreshDischargeProcess={getDischargeProcessLists}
+                  />
                 ) : dischargeType === dischargeProcessType?.ABSCONDED ? (
-                  <AbscondedDischargeDetails patientDetails={patient} />
+                  <AbscondedDischargeDetails
+                    patientDetails={patient}
+                    dischargeDate={dischargeDate}
+                    dischargeTime={dischargeTime}
+                    refreshDischargeProcess={getDischargeProcessLists}
+                  />
                 ) : dischargeType === dischargeProcessType?.DEATH ? (
-                  <DeathDischargeDetails patientDetails={patient} />
+                  <DeathDischargeDetails
+                    patientDetails={patient}
+                    dischargeDate={dischargeDate}
+                    dischargeTime={dischargeTime}
+                    refreshDischargeProcess={getDischargeProcessLists}
+                  />
                 ) : null}
               </div>
             </div>
@@ -797,105 +1114,102 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                   </thead>
 
                   <tbody>
-                    {steps.map((step, index) => {
-                      const status = getStepStatus(step);
+                    {steps
+                      .slice()
+                      .reverse()
+                      .map((step, index) => {
+                        const status = getStepStatus(step);
 
-                      const isExpanded = expandedStep === step?.DischargeProcessId;
-
-                      return (
-                        <>
-                          <tr
-                            key={`${step?.DischargeProcessId}-row`}
-                            onClick={() => toggleStepDetails(step?.DischargeProcessId)}
-                            className={`cursor-pointer border-b border-gray-100 transition hover:bg-gray-50 ${status === "current" ? "bg-blue-50/30" : ""}`}
-                          >
-                            {/* Step No */}
-                            <td className="w-16 px-3 py-3 align-top">
-                              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-600">
-                                {step?.DischargeProcessStep || index + 1}
-                              </div>
-                            </td>
-
-                            {/* Process */}
-                            <td className="min-w-48 px-3 py-3 align-top">
-                              <div className="flex items-start gap-2">
-                                <div
-                                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                                    status === "completed"
-                                      ? "bg-green-50 text-green-600"
-                                      : status === "current"
-                                        ? "bg-blue-50 text-blue-600"
-                                        : "bg-gray-100 text-gray-400"
-                                  }`}
-                                >
-                                  {status === "completed" ? (
-                                    <Check size={15} />
-                                  ) : status === "locked" ? (
-                                    <LockKeyhole size={14} />
-                                  ) : (
-                                    getStepIcon(step)
-                                  )}
+                        return (
+                          <>
+                            <tr
+                              key={`${step?.DischargeProcessId}-row`}
+                              className={`cursor-pointer border-b border-gray-100 transition hover:bg-gray-50 ${status === "current" ? "bg-blue-50/30" : ""}`}
+                            >
+                              {/* Step No */}
+                              <td className="w-16 px-3 py-3 align-top">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-600">
+                                  {step?.DischargeProcessStep || index + 1}
                                 </div>
+                              </td>
 
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-gray-800">
-                                    {step?.ProcessName || "-"}
-                                  </p>
+                              {/* Process */}
+                              <td className="min-w-48 px-3 py-3 align-top">
+                                <div className="flex items-start gap-2">
+                                  <div
+                                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                                      status === "completed"
+                                        ? "bg-green-50 text-green-600"
+                                        : status === "current"
+                                          ? "bg-blue-50 text-blue-600"
+                                          : "bg-gray-100 text-gray-400"
+                                    }`}
+                                  >
+                                    <i
+                                      className={`${step?.IconClass || "fa-solid fa-circle"} text-sm`}
+                                      aria-hidden="true"
+                                    />
+                                  </div>
 
-                                  <p className="mt-0.5 text-[10px] text-gray-400">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-gray-800 mt-3">
+                                      {step?.ProcessName || "-"}
+                                    </p>
+
+                                    {/* <p className="mt-0.5 text-[10px] text-gray-400">
                                     {step?.ProcessKey || "-"}
-                                  </p>
+                                  </p> */}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Status */}
-                            <td className="px-3 py-3 align-top">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
-                                  status === "completed"
-                                    ? "bg-green-50 text-green-700"
-                                    : status === "current"
-                                      ? "bg-blue-50 text-blue-700"
-                                      : "bg-gray-100 text-gray-400"
-                                }
+                              {/* Status */}
+                              <td className="px-3 py-3 align-top">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                                    status === "completed"
+                                      ? "bg-green-50 text-green-700"
+                                      : status === "current"
+                                        ? "bg-blue-50 text-blue-700"
+                                        : "bg-gray-100 text-gray-400"
+                                  }
                                   `}
-                              >
-                                {status === "completed" ? <Check size={11} /> : null}
+                                >
+                                  {status === "completed" ? <Check size={11} /> : null}
 
-                                {status === "completed"
-                                  ? "Completed"
-                                  : status === "current"
-                                    ? "Current"
-                                    : "Locked"}
-                              </span>
-                            </td>
-
-                            {/* started By */}
-
-                            <td className="px-3 py-3 align-top">
-                              <div className="text-xs font-medium text-gray-700">
-                                {step?.CompletedBy ?? "--"}
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3 align-top">
-                              <div className="text-xs font-medium text-gray-700">
-                                {step?.CompletedOn ?? "--"}
-                              </div>
-                            </td>
-
-                            {/* Remarks */}
-                            <td className="max-w-52 px-3 py-3 align-top">
-                              <div className="flex items-start justify-between gap-2">
-                                <span className="line-clamp-2 text-md font-semibold text-gray-500">
-                                  {step?.Remarks}
+                                  {status === "completed"
+                                    ? "Completed"
+                                    : status === "current"
+                                      ? "Current"
+                                      : "Locked"}
                                 </span>
-                              </div>
-                            </td>
-                          </tr>
+                              </td>
 
-                          {/* Expanded Details 
+                              {/* started By */}
+
+                              <td className="px-3 py-3 align-top">
+                                <div className="text-xs font-medium text-gray-700">
+                                  {step?.CompletedBy}
+                                </div>
+                              </td>
+
+                              <td className="px-3 py-3 align-top">
+                                <div className="text-xs font-medium text-gray-700">
+                                  {step?.CompletedOn}
+                                </div>
+                              </td>
+
+                              {/* Remarks */}
+                              <td className="max-w-52 px-3 py-3 align-top">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="line-clamp-2 text-md font-semibold text-gray-500">
+                                    {step?.Remarks}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Expanded Details 
                           {isExpanded && (
                             <tr key={`${step?.DischargeProcessId}-details`}>
                               <td colSpan={6} className="border-b border-gray-100 px-3 pb-3">
@@ -978,9 +1292,9 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                             </tr>
                           )}
                             */}
-                        </>
-                      );
-                    })}
+                          </>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

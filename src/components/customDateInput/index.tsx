@@ -24,7 +24,7 @@ const CustomDateInput: React.FC<Props> = ({
   min,
   max,
   placeholder = "DD/MM/YYYY",
-  className = "input-field",
+  className,
   disabled,
 }) => {
   const hiddenRef = useRef<HTMLInputElement>(null);
@@ -69,7 +69,7 @@ const CustomDateInput: React.FC<Props> = ({
       <input
         type="text"
         placeholder={placeholder}
-        className={className}
+        className={`input-field ${className} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={disabled ? undefined : handleOpen}
         value={formattedValue}
         disabled={disabled}

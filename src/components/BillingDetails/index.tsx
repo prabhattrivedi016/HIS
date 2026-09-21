@@ -58,6 +58,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
       patientAdvanceEnabled = false,
       patientAdvanceAmount = 0,
       disableDiscountEditing = false,
+      disableApprovalFields = false,
       approvalFieldLabels,
       approvalValidationMessages,
       requireApprovalFields = false,
@@ -1117,9 +1118,10 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
               <InputField label={resolvedApprovalLabels.approvedBy}>
                 <select
-                  className="input-field"
+                  className={disableApprovalFields ? "disabled-input-field" : "input-field"}
                   onChange={discountApprovedHandler}
                   value={billingValues?.discApprovedById || ""}
+                  disabled={disableApprovalFields}
                 >
                   <option value="">Select</option>
                   {discountApproveList?.map(b => (
@@ -1135,11 +1137,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
               <InputField label={resolvedApprovalLabels.approvedReason}>
                 <input
-                  className="input-field"
+                  className={disableApprovalFields ? "disabled-input-field w-full" : "input-field"}
                   type="text"
                   placeholder={`Enter ${resolvedApprovalLabels.approvedReason.toLowerCase()}`}
                   value={billingValues?.discountReason ?? ""}
                   onChange={discountChangeHandler}
+                  disabled={disableApprovalFields}
                 />
                 {!!billingFieldErrors.discountReason && (
                   <p className="input-field-error">{billingFieldErrors.discountReason}</p>
@@ -1148,11 +1151,12 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
 
               <InputField label={resolvedApprovalLabels.remark}>
                 <input
-                  className="input-field"
+                  className={disableApprovalFields ? "disabled-input-field w-full" : "input-field"}
                   type="text"
                   placeholder="Enter remarks"
                   value={billingValues?.remarks ?? ""}
                   onChange={remarkChangeHandler}
+                  disabled={disableApprovalFields}
                 />
                 {!!billingFieldErrors.remarks && (
                   <p className="input-field-error">{billingFieldErrors.remarks}</p>

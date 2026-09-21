@@ -15,7 +15,7 @@ import CorporateMaster from "../corporateMaster";
 import CorporateTransferApproval from "../corporateTransferApproval";
 import CreditNoteApproval from "../creditNoteApproval";
 import CreditNoteGeneration from "../creditNoteGeneration";
-import CreditNoteWriteOff from "../creditNoteWriteOff";
+import CreditNote from "../creditNoteWriteOff";
 import Dashboard from "../dashboard";
 import DiagnosisMaster from "../diagnosisMaster";
 import DischargeProcessMaster from "../dischargeProcessMaster";
@@ -23,7 +23,7 @@ import DiscountApprovalMaster from "../discountApprovalMaster";
 import DoctorConsultationNew from "../doctorConsultationNew";
 import DoctorMaster from "../doctorMaster";
 import PatientDocumentMaster from "../documentMaster";
-import EmrControls from "../emrControls";
+import EmrControlsPage from "../emrControls";
 import EMRTemplates from "../emrTemplates";
 import FormulaMaster from "../formulaMaster";
 import GravityMaster from "../gravityMaster";
@@ -34,6 +34,7 @@ import InvestigationInterpretationTemplate from "../investigationInterpretationT
 import InvestigationObservationMapping from "../investigationObservationMapping";
 import IPDAdmission from "../ipdAdmission";
 import IpdBilling from "../ipdBilling";
+import IpdBillingDashboard from "../ipdBillingDashboard";
 import IpdPackageMaster from "../ipdPackageMaster";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
@@ -141,7 +142,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "op-payment-collection": <OPPaymentCollection />,
   "diagnosis-master": <DiagnosisMaster />,
   "procedure-master": <ProcedureMaster />,
-  "emr-controls": <EmrControls />,
+  "emr-controls": <EmrControlsPage />,
   "control-test": <ControlTest />,
   "patient-advance": <PatientAdvance />,
   "opd-refund": <OpdRefund />,
@@ -149,7 +150,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "gravity-master": <GravityMaster />,
   "op-refund-payment": <OPRefundPayment />,
   "bill-receipt-reprint": <BillReceiptReprint />,
-  "credit-note": <CreditNoteWriteOff />,
+  "credit-note": <CreditNote />,
   "write-off": <WriteOff />,
   "credit-note-approval": <CreditNoteApproval />,
   "write-off-approval": <WriteOffApproval />,
@@ -164,4 +165,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "surgery-master": <SurgeryMaster />,
   "ipd-package-master": <IpdPackageMaster />,
   "discharge-process-master": <DischargeProcessMaster />,
+  "ipd-billing-dashboard": <IpdBillingDashboard />,
 };

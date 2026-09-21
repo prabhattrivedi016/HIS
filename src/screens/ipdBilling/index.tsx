@@ -27,7 +27,8 @@ type SearchQueryItem = {
 const IpdBilling = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
+  const { updatedIpdPatientDetails, setUpdatedIpdPatientDetails } =
+    useContext(IpdPatientDetailsContext)!;
 
   const branchId = useContext(AuthContext)?.user?.branchId;
 
@@ -112,6 +113,7 @@ const IpdBilling = () => {
 
     if (updatedPatient) {
       setSelectedPatient(updatedPatient);
+      setUpdatedIpdPatientDetails(updatedPatient);
     }
   }, [IpdPatientList]);
 
@@ -547,7 +549,7 @@ const IpdBilling = () => {
                         key={item?.PatientId}
                         onClick={() => {
                           setSelectedPatient(item);
-
+                          setUpdatedIpdPatientDetails(item);
                           setLeftPanelVisible(false);
                         }}
                         className={`w-full rounded-xl border shadow-sm p-3 cursor-pointer active:scale-[0.98] transition-all duration-150 ${

@@ -529,6 +529,7 @@ const ENDPOINTS = {
   GET_IPD_RECEIPT_DETAILS: "IPD/getIPDReceiptDetails",
   GET_RECEIPT_PAYMENT_DETAILS: "Home/getReceiptPaymentDetails",
   SAVE_IPD_DISCHARGE: "IPD/saveIPDDischarge",
+  CREATE_SUPPLEMENTARY_BILL_FROM_MAIN_BILL: "IPD/createSupplementaryBillFromMainBill",
 
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
@@ -684,6 +685,8 @@ const ENDPOINTS = {
 
   // package master
   CREATE_UPDATE_PACKAGE_MASTER: "Admin/createUpdatePackageMaster",
+  CREATE_UPDATE_IPD_PACKAGE_MASTER: "Admin/createUpdateIPDPackageMaster",
+  GET_IPD_PACKAGE_SETUP_MAPPING: "Admin/getIPDPackageSetupMapping",
 
   // opd appointment
   SAVE_OPD_APPOINTMENT: "Patient/saveOPDAppointment",

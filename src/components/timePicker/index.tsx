@@ -4,11 +4,12 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  className?: string;
 }
 
 const TIME_REGEX = /^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM)$/i;
 
-const CustomTimePicker = ({ value, onChange, disabled }: Props) => {
+const CustomTimePicker = ({ value, onChange, disabled, className }: Props) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -80,14 +81,14 @@ const CustomTimePicker = ({ value, onChange, disabled }: Props) => {
           onFocus={() => !disabled && setOpen(true)}
           onBlur={handleBlur}
           placeholder="hh:mm AM"
-          className={`input-field pr-10 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`input-field pr-10 ${className} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         />
-        <span
+        {/* <span
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
           onClick={() => !disabled && setOpen(o => !o)}
         >
           ⏱
-        </span>
+        </span> */}
       </div>
 
       {/* DROPDOWN */}
