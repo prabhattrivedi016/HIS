@@ -8,7 +8,8 @@ import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import {
   ReferralDischargeDetailsFormData,
   referralDischargeDetailsSchema,
@@ -19,7 +20,17 @@ import { ChangeEvent, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { IpdPatientItem, userMasterItem } from "../types";
 
-const ReferralDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientItem }) => {
+const ReferralDischargeDetails = ({
+  patientDetails,
+  dischargeDate,
+  dischargeTime,
+  refreshDischargeProcess,
+}: {
+  patientDetails: IpdPatientItem;
+  dischargeDate: string;
+  dischargeTime: string;
+  refreshDischargeProcess?: () => Promise<void>;
+}) => {
   const { loading, fetchApi } = useGlobalApi();
   const { branchId } = useContext(BranchContext) ?? { branchId: 1 };
   const { setUpdatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
@@ -117,12 +128,8 @@ const ReferralDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
 
   const createPaylaod = (formData: ReferralDischargeDetailsFormData) => {
     return {
-      dischargeDate: new Date().toISOString().split("T")[0],
-      dischargeTime: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      dischargeDate: formatToDDMMYYYY(dischargeDate),
+      dischargeTime: dischargeTime,
       dischargeType: dischargeProcessType?.REFERRAL,
       bedId: patientDetails?.BedId,
       visitId: patientDetails?.VisitId,
@@ -178,6 +185,10 @@ const ReferralDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
   // Submit handler
   const onSubmit = async (data: ReferralDischargeDetailsFormData) => {
     const payload = createPaylaod(data);
+    if (!payload?.dischargeDate || !payload?.dischargeTime) {
+      showWarning("Please select discharge date and time");
+      return;
+    }
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.SAVE_IPD_DISCHARGE,
@@ -194,6 +205,7 @@ const ReferralDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
     if (details) {
       setUpdatedIpdPatientDetails(details);
     }
+    refreshDischargeProcess?.();
     showSuccess(resp?.message ?? "Referral discharge details saved successfully");
   };
 
@@ -333,8 +345,8 @@ const ReferralDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
 
         {/* Save */}
         <div className="flex w-full flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center lg:col-start-4">
-          <button type="submit" className="save-btn lg:w-30">
-            Save
+          <button type="submit" className="save-btn ">
+            Submit Final Discharge
           </button>
         </div>
       </form>

@@ -50,6 +50,15 @@ type IpdPatientItem = {
   DoctorNumber: string;
   UserNAme: string;
   IsCaseBillingApplicable: number;
+  Relation: string | null;
+  RelativeName: string | null;
+  DischargedOn: string | null;
+  IsBillGenerated: number;
+  BillGeneratedBy: string | null;
+  BillGeneratedOn: string | null;
+  FileClosedBy: string | null;
+  FileClosedOn: string | null;
+  DischargedBy: null | string;
 };
 
 type IpdPatientDetailsContextProviderProps = {

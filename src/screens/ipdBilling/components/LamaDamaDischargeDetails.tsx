@@ -8,7 +8,8 @@ import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import {
   LamaDamaDischargeDetailsFormData,
   lamaDamaDischargeDetailsSchema,
@@ -20,7 +21,17 @@ import { useForm } from "react-hook-form";
 import { DoctorItem, IpdPatientItem } from "../types";
 import VerifyOtpPopup from "./VerifyOtpPopup";
 
-const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientItem }) => {
+const LamaDamaDischargeDetails = ({
+  patientDetails,
+  dischargeDate,
+  dischargeTime,
+  refreshDischargeProcess,
+}: {
+  patientDetails: IpdPatientItem;
+  dischargeDate: string;
+  dischargeTime: string;
+  refreshDischargeProcess?: () => Promise<void>;
+}) => {
   const { loading, fetchApi } = useGlobalApi();
 
   const [openVerifyOtpPopup, setOpenVerifyOtpPopup] = useState<boolean>(false);
@@ -169,12 +180,8 @@ const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
   // create payload
   const createPaylaod = (data: LamaDamaDischargeDetailsFormData) => {
     return {
-      dischargeDate: new Date().toISOString().split("T")[0],
-      dischargeTime: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      dischargeDate: formatToDDMMYYYY(dischargeDate),
+      dischargeTime: dischargeTime,
       dischargeType: dischargeProcessType?.LAMA_DAMA,
       bedId: patientDetails?.BedId,
       visitId: patientDetails?.VisitId,
@@ -231,6 +238,10 @@ const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
 
   const onSubmit = async (data: LamaDamaDischargeDetailsFormData) => {
     const payload = createPaylaod(data);
+    if (!payload?.dischargeDate || !payload?.dischargeTime) {
+      showWarning("Please select discharge date and time");
+      return;
+    }
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.SAVE_IPD_DISCHARGE,
@@ -247,6 +258,7 @@ const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
     if (details) {
       setUpdatedIpdPatientDetails(details);
     }
+    refreshDischargeProcess?.();
     showSuccess(resp?.message ?? "Lama/dama discharge details saved successfully");
   };
 
@@ -387,20 +399,28 @@ const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
 
         {/* Signature */}
 
-        <InputField label="Signature" required>
+        <InputField label="Signature">
           <div className="flex items-center gap-2">
-            <input type="file" className="file-upload" onChange={signatureFileChangeHandler} />
+            <input
+              type="file"
+              className={`file-upload ${filePath ? "opacity-50" : ""}`}
+              onChange={signatureFileChangeHandler}
+              disabled={!!filePath}
+            />
 
-            <button type="button" className="upload-file-btn !w-[100px]" onClick={handleFileUpload}>
+            <button
+              type="button"
+              className={`upload-file-btn !w-[100px] ${
+                filePath ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={!!filePath}
+              onClick={handleFileUpload}
+            >
               Upload
             </button>
           </div>
 
           {showValidationError && <p className="input-field-error">{showValidationError}</p>}
-
-          {errors.signatureFilePath?.message && (
-            <p className="input-field-error">{errors.signatureFilePath.message}</p>
-          )}
 
           {filePath && <p className="mt-1 text-sm text-gray-500">{filePath}</p>}
         </InputField>
@@ -424,7 +444,7 @@ const LamaDamaDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatie
 
         <div className="flex w-full flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center lg:col-start-4">
           <button type="submit" className="save-btn">
-            Save
+            Submit Final Discharge
           </button>
         </div>
       </form>

@@ -143,7 +143,7 @@
 //           color: "#1E3A8A",
 //           fontWeight: 600,
 //           fontSize: "13px",
-//           py: "10px",
+//           py: "12px",
 //           px: "4px",
 //           whiteSpace: "normal",
 //           userSelect: "none",
@@ -171,7 +171,7 @@
 //       elevation: 0,
 //       sx: {
 //         border: "1px solid #E5E7EB",
-//         borderRadius: "10px",
+//         borderRadius: "12px",
 //         overflow: "hidden",
 //         boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
 //         backgroundColor: "#fff",
@@ -438,7 +438,7 @@ const BaseTable = <T extends object>({
           color: "#1E3A8A",
           fontWeight: 600,
           fontSize: "13px",
-          py: "10px",
+          py: "12px",
           px: "4px",
           whiteSpace: "normal",
           userSelect: "none",
@@ -446,7 +446,7 @@ const BaseTable = <T extends object>({
 
           "& .MuiTableSortLabel-icon, & .MuiSvgIcon-root": {
             color: "#2563EB !important",
-            fontSize: "16px",
+            fontSize: "12px",
           },
 
           "& .MuiIconButton-root": {
@@ -466,7 +466,7 @@ const BaseTable = <T extends object>({
       elevation: 0,
       sx: {
         border: "1px solid #E5E7EB",
-        borderRadius: "10px",
+        borderRadius: "12px",
         overflow: "hidden",
         boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
         backgroundColor: "#fff",
@@ -534,7 +534,7 @@ const BaseTable = <T extends object>({
 
     muiTableBodyCellProps: {
       sx: {
-        fontSize: "13px",
+        fontSize: "12px",
         color: "#374151",
         borderBottom: "1px solid #F3F4F6",
         py: "2px",
@@ -561,7 +561,7 @@ const BaseTable = <T extends object>({
           padding: "24px 0",
           textAlign: "center",
           color: "#6B7280",
-          fontSize: 13,
+          fontSize: 10,
         }}
       >
         No records found not

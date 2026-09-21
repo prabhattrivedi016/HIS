@@ -36,18 +36,18 @@ type ServiceTableItem = {
   subSubCategoryName: string;
   name: string;
   code: string;
-  reportTypeId: null;
+  reportTypeId: number | null;
   labTypeId: number;
   reportType: string;
-  isSampleRequired: null;
-  sampleTypeId: null;
+  isSampleRequired: number | null;
+  sampleTypeId: number | null;
   sampleTypeIdList: string;
-  labMethodId: null;
-  forGenderId: null;
+  labMethodId: number | null;
+  forGenderId: number | null;
   forGender: string;
   isOutSource: number;
-  isPrintAlone: null;
-  isDepartmentReceivingRequired: null;
+  isPrintAlone: number | null;
+  isDepartmentReceivingRequired: number | null;
   shortName: string;
   sampleVolume: string;
   investigationComment: string;
@@ -66,31 +66,28 @@ type ServiceTableItem = {
   isTeleConsultationService: number;
   isRegistrationCharge: number;
   registrationChargeValidityDays: number;
+  packageDurationDays: number | null;
+  isPackageExpired: number;
+  saltName: string;
+  startsFrom: string;
+  expiresOn: string;
 };
 
 type PackageDetailsItem = {
-  packageId: number;
-  packageName: string;
-  packageCode: string;
-  isActive: number;
-  subSubCategoryId: number;
-  subCategoryId: number;
-  categoryId: number;
-  startsFrom: string;
-  expiresOn: string;
-  packageServiceNameCode: string;
-  packageServiceName: string;
-  packageServiceId: number;
-  qty: number;
-  packageServiceCategory: string;
-  packageServiceSubCategoryId: number;
-  packageServiceSubSubCategoryId: number;
-  packageServiceCode: string;
-  packageServiceCategoryId: number;
-  isMultipleVisitAllow: number;
-  visitDuration: number;
-  visitDurationType: string;
-  rate?: number;
+  Id: number;
+  PackageId: number;
+  CategoryId: number;
+  CategoryName: string;
+  SubCategoryId: number;
+  SubCategoryName: string;
+  SubSubCategoryId: number | null;
+  SubSubCategoryName: string | null;
+  ServiceItemId: number | null;
+  ServiceItemName: string | null;
+  LimitTypeId: number;
+  LimitType: string;
+  Limit: number;
+  ServiceQty: number;
 };
 
 type RateListItem = {
@@ -101,9 +98,27 @@ type RateListItem = {
   isActive: number;
 };
 
+type PackageSetupItem = {
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number;
+  serviceItemId: number;
+  limitTypeId: number;
+  limitType: string;
+  limit: number;
+  serviceQty: number;
+  serviceName?: string;
+  categoryName?: string;
+  subCategoryName?: string;
+  subSubCategoryName?: string;
+  rate?: string;
+  qty?: string;
+};
+
 export type {
   CategoryItem,
   PackageDetailsItem,
+  PackageSetupItem,
   RateListItem,
   ServiceTableItem,
   SubcategoryItem,

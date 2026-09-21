@@ -197,7 +197,7 @@ const IpdPackageMaster = () => {
           subCategoryId,
           subSubCategoryId,
           serviceName,
-          categoryTypeId: "11,12",
+          categoryTypeId: "12",
           isActive: 1,
         },
       },

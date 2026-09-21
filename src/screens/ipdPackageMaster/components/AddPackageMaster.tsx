@@ -1,6 +1,5 @@
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
-import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import RemoveIconButton from "@/components/globalButtons/RemoveIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
@@ -9,19 +8,18 @@ import RightSideDrawer from "@/components/rightSideDrawer";
 import { ENDPOINTS } from "@/config/defaults";
 import { ServiceMasterPopupName } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { usePickMaster } from "@/hooks/usePickMaster";
 import { SubCategoryItem } from "@/screens/opdBilling/types";
 import { SelectItem, SubSubCategoryItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
-import { addPackageMasterSchema } from "@/validation/packageMasterSchema";
+import { ipdAddPackageMasterSchema } from "@/validation/packageMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
-import { CategoryItem, PackageDetailsItem } from "../types";
+import { CategoryItem, PackageDetailsItem, PackageSetupItem, ServiceTableItem } from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
 
 const AddPackageMaster = ({
@@ -36,8 +34,6 @@ const AddPackageMaster = ({
   onSuccess?: () => void;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
-
-  const durationTypeList = usePickMaster("DurationUnit")?.pickMasterValue ?? [];
 
   const [renderPopup, setRenderPopup] = useState<boolean>(false);
   const [openPopup, setOpenPopup] = useState<boolean>(false);
@@ -56,10 +52,25 @@ const AddPackageMaster = ({
   );
 
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number>(0);
+
+  // package category
+
   const [selectedSearchCategoryId, setSelectedSearchCategoryId] = useState<number>(0);
-  const [localPackageServices, setLocalPackageServices] = useState<PackageDetailsItem[]>([]);
-  const [selectedRateListId, setSelectedRateListId] = useState<number>(0);
-  const initializedRef = useRef<boolean>(false);
+  const [selectedSearchCategoryValue, setSelectedSearchCategoryValue] = useState<string>("");
+
+  const [packageSelectSubCategoryId, setPackageSelectSubCategoryId] = useState<number>(0);
+  const [packageSelectSubCategoryValue, setPackageSelectSubCategoryValue] =
+    useState<SelectItem | null>(null);
+
+  const [packageSelectSubSubCategoryId, setPackageSelectSubSubCategoryId] = useState<number>(0);
+  const [packageSelectSubSubCategoryValue, setPackageSelectSubSubCategoryValue] =
+    useState<SelectItem | null>(null);
+
+  const [localPackageServices, setLocalPackageServices] = useState<PackageSetupItem[]>([]);
+
+  const [limitTypeId, setLimitTypeId] = useState<number>(0);
+  const [limitTypeValue, setLimitTypeValue] = useState<string>("");
+  const [limitInputValue, setLimitInputValue] = useState<string>("");
 
   // Service search states
   const serviceInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +82,8 @@ const AddPackageMaster = ({
   const [selectedServiceName, setSelectedServiceName] = useState<string>("");
   const [selectedQty, setSelectedQty] = useState<number>(1);
 
+  const [packageDetailsList, setPackageDetailsList] = useState<PackageDetailsItem[]>([]);
+
   // useForm Hook setup with Yup Schema validation
   const {
     register,
@@ -81,7 +94,7 @@ const AddPackageMaster = ({
     reset,
     control,
   } = useForm({
-    resolver: yupResolver(addPackageMasterSchema),
+    resolver: yupResolver(ipdAddPackageMasterSchema),
     defaultValues: {
       packageId: 0,
       categoryId: 12,
@@ -89,14 +102,15 @@ const AddPackageMaster = ({
       subSubCategoryId: 0,
       name: "",
       code: "",
-      isMultipleVisitAllow: 0,
-      visitDuration: 0,
-      visitDurationType: "",
+      packageDurationDays: "",
       validityStartsFrom: "",
       validityEndsOn: "",
       isActive: 1,
     },
   });
+
+  const isEdit = Boolean(watch("packageId"));
+  const buttonTitle = isEdit ? "Update" : "Create";
 
   // category list
   const getCategoryList = async () => {
@@ -298,6 +312,8 @@ const AddPackageMaster = ({
             params: {
               serviceName: searchTerm,
               categoryId: selectedSearchCategoryId,
+              subCategoryId: packageSelectSubCategoryId,
+              subSubCategoryId: packageSelectSubSubCategoryId,
               isActive: 1,
             },
           },
@@ -314,7 +330,12 @@ const AddPackageMaster = ({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, selectedSearchCategoryId]);
+  }, [
+    searchTerm,
+    selectedSearchCategoryId,
+    packageSelectSubCategoryId,
+    packageSelectSubSubCategoryId,
+  ]);
 
   // Keydown handler for autocomplete popups
   const serviceInputKeyDownHandler = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -359,70 +380,6 @@ const AddPackageMaster = ({
     setActiveServiceIndex(0);
   };
 
-  // Add Item to package services list handler
-  const addItemHandler = () => {
-    if (!selectedService) {
-      showWarning("Please search and select a service first");
-      return;
-    }
-    if (selectedQty <= 0) {
-      showWarning("Quantity must be greater than 0");
-      return;
-    }
-
-    const exists = localPackageServices.some(
-      p => p.packageServiceId === selectedService.serviceItemId
-    );
-    if (exists) {
-      showWarning("Service is already added to the package");
-      return;
-    }
-
-    const newItem: PackageDetailsItem = {
-      packageId: 0,
-      packageName: "",
-      packageCode: "",
-      isActive: 1,
-      subSubCategoryId: 0,
-      subCategoryId: 0,
-      categoryId: 12,
-      startsFrom: "",
-      expiresOn: "",
-      packageServiceNameCode: `${selectedService.name} (${selectedService.code})`,
-      packageServiceName: selectedService.name,
-      packageServiceId: selectedService.serviceItemId,
-      qty: selectedQty,
-      packageServiceCategory: selectedService.categoryName || "",
-      packageServiceSubCategoryId: selectedService.subCategoryId || 0,
-      packageServiceSubSubCategoryId: selectedService.subSubCategoryId || 0,
-      packageServiceCode: selectedService.code || "",
-      packageServiceCategoryId: selectedService.categoryId || 0,
-      isMultipleVisitAllow: 0,
-      visitDuration: 0,
-      visitDurationType: "",
-    };
-
-    if (selectedRateListId) {
-      void (async () => {
-        try {
-          const tariffs = await getRatesByRateList(newItem, selectedRateListId);
-          const rate = tariffs.length > 0 ? Number(tariffs[0]?.Rate ?? 0) : 0;
-          setLocalPackageServices(prev =>
-            prev.map(p => (p.packageServiceId === newItem.packageServiceId ? { ...p, rate } : p))
-          );
-        } catch (error) {
-          console.error("Error fetching rate for new item:", error);
-        }
-      })();
-    }
-
-    setLocalPackageServices(prev => [...prev, newItem]);
-    setSelectedService(null);
-    setSelectedServiceName("");
-    setSelectedQty(1);
-    serviceInputRef.current?.focus();
-  };
-
   // Automatically select first category if searchCategoryList is populated
   useEffect(() => {
     if (searchCategoryList && searchCategoryList.length > 0) {
@@ -436,19 +393,48 @@ const AddPackageMaster = ({
   const getPackageDetails = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_PACKAGE_ALL_DETAILS,
+      ENDPOINTS.GET_IPD_PACKAGE_SETUP_MAPPING,
       {},
       { params: { packageId: itemValue?.serviceItemId } },
       { component: "AddPackageMaster" }
     );
-    return resp?.data ?? [];
+
+    setPackageDetailsList(resp?.data ?? []);
   };
 
-  const { data: packageDetailsList } = useQuery({
-    queryKey: ["getPackageDetails", itemValue?.serviceItemId],
-    queryFn: getPackageDetails,
-    enabled: !!itemValue?.serviceItemId,
-  });
+  useEffect(() => {
+    if (itemValue?.serviceItemId && itemValue?.serviceItemId > 0) {
+      getPackageDetails();
+    }
+  }, [itemValue?.serviceItemId]);
+
+  useEffect(() => {
+    if (!packageDetailsList) {
+      setLocalPackageServices([]);
+      return;
+    }
+
+    setLocalPackageServices(
+      packageDetailsList.map((p: PackageDetailsItem) => ({
+        categoryId: Number(p?.CategoryId ?? 0),
+        subCategoryId: Number(p?.SubCategoryId ?? 0),
+        subSubCategoryId: Number(p?.SubSubCategoryId ?? 0),
+        serviceItemId: Number(p?.ServiceItemId ?? 0),
+
+        limitTypeId: Number(p?.LimitTypeId ?? 0),
+        limitType: p?.LimitType ?? "",
+        limit: Number(p?.Limit ?? 0),
+        serviceQty: Number(p?.ServiceQty ?? 0),
+
+        serviceName: p?.ServiceItemName ?? "",
+        categoryName: p?.CategoryName ?? "",
+        subCategoryName: p?.SubCategoryName ?? "",
+        subSubCategoryName: p?.SubCategoryName ?? "",
+
+        qty: String(p?.ServiceQty ?? ""),
+      }))
+    );
+  }, [packageDetailsList]);
 
   // open popup handler
   const openPopupHandler = (popupName: string) => {
@@ -509,9 +495,7 @@ const AddPackageMaster = ({
         subSubCategoryId: 0,
         name: "",
         code: "",
-        isMultipleVisitAllow: 0,
-        visitDuration: 0,
-        visitDurationType: "",
+        packageDurationDays: "",
         validityStartsFrom: "",
         validityEndsOn: "",
         isActive: 1,
@@ -531,97 +515,59 @@ const AddPackageMaster = ({
       subSubCategoryId: itemValue.subSubCategoryId ?? 0,
       name: itemValue.name ?? "",
       code: itemValue.code ?? "",
+      packageDurationDays: itemValue?.packageDurationDays
+        ? String(itemValue.packageDurationDays)
+        : "",
+      validityStartsFrom: itemValue?.startsFrom
+        ? formatToDDMMYYYY(itemValue.startsFrom.split("T")[0])
+        : "",
+      validityEndsOn: itemValue?.expiresOn
+        ? formatToDDMMYYYY(itemValue.expiresOn.split("T")[0])
+        : "",
       isActive: itemValue?.isActive ?? 1,
     });
 
     setCategoryId(itemValue.categoryId ?? 0);
+    if (itemValue.subCategoryId && itemValue.subCategoryName) {
+      setSelectSubCategoryValue({
+        label: itemValue.subCategoryName,
+        value: Number(itemValue.subCategoryId),
+      });
+      setSelectedSubCategoryId(itemValue.subCategoryId);
+    } else {
+      setSelectSubCategoryValue(null);
+      setSelectedSubCategoryId(0);
+    }
+
+    if (itemValue.subSubCategoryId && itemValue.subSubCategoryName) {
+      setSubSelectSubCategoryValue({
+        label: itemValue.subSubCategoryName,
+        value: Number(itemValue.subSubCategoryId),
+      });
+    } else {
+      setSubSelectSubCategoryValue(null);
+    }
   }, [itemValue, reset]);
-
-  useEffect(() => {
-    if (!packageDetailsList || packageDetailsList.length <= 0) return;
-    const pkg = packageDetailsList[0];
-    setValue("isMultipleVisitAllow", pkg.isMultipleVisitAllow ?? 0);
-    setValue("visitDuration", pkg.visitDuration ?? 0);
-    setValue("visitDurationType", pkg.visitDurationType ?? "");
-    setValue(
-      "validityStartsFrom",
-      pkg.startsFrom ? formatToDDMMYYYY(pkg.startsFrom.split("T")[0]) : ""
-    );
-    setValue("validityEndsOn", pkg.expiresOn ? formatToDDMMYYYY(pkg.expiresOn.split("T")[0]) : "");
-    setValue("isActive", pkg.isActive ?? 1);
-  }, [packageDetailsList, setValue]);
-
-  // Reset initialization status when drawer closes/opens
-  useEffect(() => {
-    if (!isOpen) {
-      initializedRef.current = false;
-      setLocalPackageServices([]);
-      setSelectedRateListId(0);
-    }
-  }, [isOpen]);
-
-  // Sync packageDetailsList into local state once on load
-  useEffect(() => {
-    if (packageDetailsList && !initializedRef.current) {
-      setLocalPackageServices(packageDetailsList);
-      initializedRef.current = true;
-    }
-  }, [packageDetailsList]);
-
-  // Synchronize subCategory dropdown value when list finishes loading in edit mode
-  useEffect(() => {
-    if (itemValue && itemValue.subCategoryId && subCategoryList.length > 0) {
-      const found = subCategoryList.find(
-        (s: SubCategoryItem) => s.subCategoryId === itemValue.subCategoryId
-      );
-      if (found) {
-        setSelectSubCategory(found);
-        setSelectSubCategoryValue({
-          label: found.subCategoryName,
-          value: found.subCategoryId,
-        });
-        setSelectedSubCategoryId(found.subCategoryId);
-      }
-    }
-  }, [subCategoryList, itemValue]);
-
-  // Synchronize subSubCategory dropdown value when list finishes loading in edit mode
-  useEffect(() => {
-    if (itemValue && itemValue.subSubCategoryId && subSubCategoryList.length > 0) {
-      const found = subSubCategoryList.find(
-        (s: SubSubCategoryItem) => s.subSubCategoryId === itemValue.subSubCategoryId
-      );
-      if (found) {
-        setSelectSubSubCategory(found);
-        setSubSelectSubCategoryValue({
-          label: found.subSubCategoryName,
-          value: found.subSubCategoryId,
-        });
-      }
-    }
-  }, [subSubCategoryList, itemValue]);
 
   // Form submit handler
   const onSubmitHandler = async (formData: any) => {
     const payload = {
       ...formData,
-      categoryId: Number(formData.categoryId),
-      subCategoryId: Number(formData.subCategoryId),
-      subSubCategoryId: Number(formData.subSubCategoryId),
-      isMultipleVisitAllow: Number(formData.isMultipleVisitAllow ?? 0),
-      visitDuration: Number(formData.visitDuration ?? 0),
-      isActive: Number(formData.isActive ?? 1),
-      validityStartsFrom: formatToDDMMYYYY(formData.validityStartsFrom),
-      validityEndsOn: formatToDDMMYYYY(formData.validityEndsOn),
-      packageServices: localPackageServices.map(l => ({
-        qty: Number(l?.qty ?? 0),
-        serviceItemId: Number(l?.packageServiceId ?? 0),
+      packageSetups: localPackageServices?.map((p: PackageSetupItem) => ({
+        categoryId: p.categoryId,
+        subCategoryId: p.subCategoryId,
+        subSubCategoryId: p.subSubCategoryId,
+        serviceItemId: p.serviceItemId,
+        limitTypeId: p.limitTypeId,
+        limitType: p.limitType,
+        limit: p.limit,
+        serviceQty: p.serviceQty,
       })),
     };
 
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.CREATE_UPDATE_PACKAGE_MASTER,
+      ENDPOINTS.CREATE_UPDATE_IPD_PACKAGE_MASTER,
       payload,
       {},
       { component: "AddPackageMaster" }
@@ -636,78 +582,192 @@ const AddPackageMaster = ({
     onClose();
   };
 
-  const isMultipleVisitAllow = Number(watch("isMultipleVisitAllow") ?? 0);
-
   // remove button handler
-  const removeButtonHandler = (item: PackageDetailsItem) => {
-    setLocalPackageServices(prev =>
-      prev.filter(p => {
-        if (item.packageServiceId && p.packageServiceId) {
-          return p.packageServiceId !== item.packageServiceId;
-        }
-        return p.packageServiceCode !== item.packageServiceCode;
-      })
-    );
+  const removeButtonHandler = (indexToRemove: number) => {
+    setLocalPackageServices(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // rate list
-  const getRateList = async () => {
+  // package
+  const searchCategorySelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSearchCategoryId(Number(e.target.value));
+    setPackageSelectSubCategoryId(0);
+    setPackageSelectSubCategoryValue(null);
+    setPackageSelectSubSubCategoryId(0);
+    setPackageSelectSubSubCategoryValue(null);
+    const selected = searchCategoryList.find(
+      (c: CategoryItem) => Number(c.categoryId) === Number(e.target.value)
+    );
+    setSelectedSearchCategoryValue(selected?.categoryName);
+  };
+
+  // search sub category list
+  const getSearchSubCategory = async (id: number) => {
+    if (id <= 0) return [];
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_RATE_LIST_MASTER,
+      ENDPOINTS.GET_SUB_CATEGORY_LIST,
       {},
-      { params: { isActive: 1 } },
+      { params: { categoryIds: id } },
       { component: "AddPackageMaster" }
     );
     return resp?.data ?? [];
   };
-  const { data: rateList } = useQuery({
-    queryKey: ["getRateList"],
-    queryFn: getRateList,
+
+  const { data: searchSubCategoryList = [] } = useQuery({
+    queryKey: ["fetchSearchSubCategory", selectedSearchCategoryId],
+    queryFn: () => getSearchSubCategory(selectedSearchCategoryId),
+    enabled: selectedSearchCategoryId > 0,
   });
 
-  // rates of services according to rate list
-  const getRatesByRateList = async (item: PackageDetailsItem, rateListId: number) => {
+  const searchSubCategorySelectOption = useMemo(() => {
+    return (
+      searchSubCategoryList?.map((d: SubCategoryItem) => ({
+        label: d?.subCategoryName,
+        value: d?.subCategoryId,
+      })) || []
+    );
+  }, [searchSubCategoryList]);
+
+  // sub sub category list
+  const getSearchSubSubCategory = async (subCategoryIds: number) => {
+    if (!subCategoryIds) return [];
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_TARIFF_MASTER,
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
       {},
-      {
-        params: {
-          rateListId,
-          patientType: "OPD",
-          categoryId: item?.packageServiceCategoryId,
-          serviceItemId: item?.packageServiceId,
-        },
-      },
+      { params: { subCategoryIds } },
       { component: "AddPackageMaster" }
     );
     return resp?.data ?? [];
   };
 
-  // rate list select handler
-  const rateListSelectHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
-    setSelectedRateListId(value);
-    if (!value) {
-      setLocalPackageServices(prev => prev.map(item => ({ ...item, rate: undefined })));
+  const { data: searchSubSubCategoryList = [] } = useQuery({
+    queryKey: ["fetchSearchSubSubCategory", packageSelectSubCategoryId],
+    queryFn: () => getSearchSubSubCategory(packageSelectSubCategoryId),
+    enabled: packageSelectSubCategoryId > 0,
+  });
+
+  console.log("searchSubSubCategoryList", searchSubSubCategoryList);
+
+  const searchSubSubCategorySelectOption = useMemo(() => {
+    return (
+      searchSubSubCategoryList?.map((d: SubSubCategoryItem) => ({
+        label: d?.subSubCategoryName,
+        value: d?.subSubCategoryId,
+      })) || []
+    );
+  }, [searchSubSubCategoryList]);
+
+  // package sub category
+  const packageSubCategorySelectHandler = (option: SelectItem | null) => {
+    if (!option) {
+      setPackageSelectSubCategoryValue(null);
+      setPackageSelectSubSubCategoryId(0);
+      setPackageSelectSubCategoryId(0);
+      return;
+    }
+    setPackageSelectSubCategoryValue(option);
+
+    const selected = searchSubCategoryList?.find(
+      (s: SubCategoryItem) => s?.subCategoryId === Number(option?.value)
+    );
+    setSelectSubCategory(selected ?? null);
+    setSelectSubSubCategory(null);
+    setSubSelectSubCategoryValue(null);
+    setSelectedSubCategoryId(Number(option.value));
+    setPackageSelectSubCategoryId(Number(option.value));
+  };
+
+  //package sub sub category select handler
+  const packageSubSubCategorySelectHandler = (option: SelectItem | null) => {
+    if (!option) {
+      setPackageSelectSubSubCategoryValue(null);
+      setPackageSelectSubSubCategoryId(0);
+
+      return;
+    }
+    setPackageSelectSubSubCategoryValue(option);
+    setPackageSelectSubSubCategoryId(Number(option.value));
+  };
+
+  // Add Item to package services list handler
+  const addItemHandler = () => {
+    if (!selectedSearchCategoryId) {
+      showWarning("Please select a search category first");
+      return;
+    }
+    if (!limitTypeId || !limitTypeValue) {
+      showWarning("Please select a limit type");
+      return;
+    }
+    if (Number(limitInputValue) <= 0) {
+      showWarning("Please enter a valid limit value");
       return;
     }
 
-    try {
-      const updatedServices = await Promise.all(
-        localPackageServices.map(async service => {
-          const tariffs = await getRatesByRateList(service, value);
-          const rate = tariffs.length > 0 ? Number(tariffs[0]?.Rate ?? 0) : 0;
-          return {
-            ...service,
-            rate,
-          };
-        })
+    const isServiceSelected = selectedService && selectedService.serviceItemId > 0;
+
+    let exists = false;
+    if (isServiceSelected) {
+      exists = localPackageServices.some(p => p?.serviceItemId === selectedService?.serviceItemId);
+    } else {
+      exists = localPackageServices.some(
+        p =>
+          p.categoryId === Number(selectedSearchCategoryId) &&
+          p.subCategoryId === Number(packageSelectSubCategoryId) &&
+          p.subSubCategoryId === Number(packageSelectSubSubCategoryId) &&
+          (!p.serviceItemId || p.serviceItemId === 0)
       );
-      setLocalPackageServices(updatedServices);
-    } catch (error) {
-      console.error("Error fetching rates for services:", error);
+    }
+
+    if (exists) {
+      showWarning("This setup is already added to the package");
+      return;
+    }
+
+    const newItem: PackageSetupItem = {
+      categoryId: Number(selectedSearchCategoryId),
+      subCategoryId: Number(selectedSubCategoryId),
+      subSubCategoryId: Number(packageSelectSubSubCategoryId),
+      serviceItemId: Number(selectedService?.serviceItemId),
+      limitTypeId: Number(limitTypeId),
+      limitType: String(limitTypeValue),
+      limit: Number(limitInputValue),
+      serviceQty: selectedQty,
+      serviceName: String(selectedServiceName),
+      categoryName: String(selectedSearchCategoryValue),
+      subCategoryName: String(packageSelectSubCategoryValue?.label ?? "-"),
+      subSubCategoryName: packageSelectSubSubCategoryValue?.label ?? "-",
+      rate: selectedService?.rate ?? 0,
+      qty: selectedQty?.toString(),
+    };
+    setLocalPackageServices(prev => [...prev, newItem]);
+  };
+
+  // limit type select handler
+  const limitTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    if (value === 1) {
+      setLimitTypeId(1);
+      setLimitTypeValue("Amount Wise");
+    } else if (value === 2) {
+      setLimitTypeId(2);
+      setLimitTypeValue("Percentage Wise");
+    }
+  };
+
+  // limit value handler
+  const limitInputValueHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    if (limitTypeId === 2) {
+      if (value > 100) {
+        showWarning("Limit value should be less than 100");
+        setLimitInputValue("100");
+        return;
+      }
+    }
+    if (value > 0) {
+      setLimitInputValue(String(value));
     }
   };
 
@@ -716,7 +776,8 @@ const AddPackageMaster = ({
       isOpen={isOpen}
       onClose={onClose}
       buttonTitle={itemValue ? "Update Package" : "Add New Package"}
-      className=" lg:min-w-280 p-0.5"
+      className=" lg:min-w-300 "
+      isLoading={loading}
     >
       <form onSubmit={handleSubmit(onSubmitHandler)}>
         <div className="card form-grid-4 m-1">
@@ -840,44 +901,15 @@ const AddPackageMaster = ({
             />
           </InputField>
 
-          <InputField label="Multiple Visit Allow">
-            <select
+          <InputField label="Package Duration Days">
+            <input
+              type="text"
               className="input-field"
-              {...register("isMultipleVisitAllow")}
-              value={watch("isMultipleVisitAllow")}
-            >
-              <option value={1}>Yes</option>
-              <option value={0}>No</option>
-            </select>
+              {...register("packageDurationDays")}
+              placeholder="Enter package duration days"
+              onInput={allowOnlyNumbers}
+            />
           </InputField>
-
-          <div className={isMultipleVisitAllow === 1 ? "" : "hidden"}>
-            <InputField label="Visit duration">
-              <input
-                type="number"
-                className="input-field"
-                placeholder="Enter visit duration"
-                {...register("visitDuration")}
-              />
-            </InputField>
-          </div>
-
-          <div className={isMultipleVisitAllow === 1 ? "" : "hidden"}>
-            <InputField label="Visit Duration Type">
-              <select
-                className="input-field"
-                {...register("visitDurationType")}
-                value={watch("visitDurationType")}
-              >
-                <option value="">Select Duration Type</option>
-                {durationTypeList.map(d => (
-                  <option key={d?.value} value={d?.value}>
-                    {d?.key}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-          </div>
         </div>
         <div className=" card m-1 -mt-3">
           <div className=" form-grid-4 ">
@@ -885,7 +917,7 @@ const AddPackageMaster = ({
               <select
                 className="input-field"
                 value={selectedSearchCategoryId}
-                onChange={e => setSelectedSearchCategoryId(Number(e.target.value))}
+                onChange={searchCategorySelectHandler}
               >
                 <option value={0}>--Select--</option>
                 {searchCategoryList?.map((item: CategoryItem) => (
@@ -894,6 +926,34 @@ const AddPackageMaster = ({
                   </option>
                 ))}
               </select>
+            </InputField>
+
+            <InputField label="Search Sub Category">
+              <Select
+                value={packageSelectSubCategoryValue}
+                options={searchSubCategorySelectOption}
+                placeholder="Select sub category"
+                isSearchable
+                isClearable
+                onChange={packageSubCategorySelectHandler}
+                styles={SelectStyles}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+            </InputField>
+
+            <InputField label="Search Sub Sub Category">
+              <Select
+                value={packageSelectSubSubCategoryValue}
+                options={searchSubSubCategorySelectOption}
+                placeholder="Select sub sub category"
+                isSearchable
+                isClearable
+                onChange={packageSubSubCategorySelectHandler}
+                styles={SelectStyles}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
             </InputField>
 
             <InputField label="Search Service">
@@ -930,6 +990,23 @@ const AddPackageMaster = ({
                 disabled
               />
             </InputField>
+
+            <InputField label="Limit Type" required>
+              <select className="input-field" onChange={limitTypeSelectHandler}>
+                <option>--Select--</option>
+                <option value={1}>Amount Wise</option>
+                <option value={2}>Percentage Wise</option>
+              </select>
+            </InputField>
+
+            <InputField label="Limit" required>
+              <input
+                className="input-field"
+                placeholder="Enter limit value"
+                onInput={allowOnlyNumbers}
+                onChange={limitInputValueHandler}
+              />
+            </InputField>
             <InputField label="Qty">
               <input
                 type="text"
@@ -948,82 +1025,64 @@ const AddPackageMaster = ({
         </div>
 
         {/* package table */}
-        {!!localPackageServices && localPackageServices.length > 0 ? (
-          <div className="card m-1">
-            <InputField label="Rate List">
-              <select
-                className="input-field max-w-60"
-                value={selectedRateListId}
-                onChange={rateListSelectHandler}
-              >
-                <option value={0}>--Select--</option>
-                {rateList?.map((r: RateListItem) => (
-                  <option key={r.rateListId} value={r.rateListId}>
-                    {r.rateListName}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-            <div className="table-container m-1 ">
-              <div className="table-scroll-wrapper ">
-                <div className="table-size lg:min-h-60 lg:max-h-60">
-                  <table className="base-table ">
-                    <thead className="table-head">
-                      <tr>
-                        {[
-                          "#",
-                          "Service Category",
-                          "Service Name",
-                          "Quantity",
-                          `Rate (Total: ${localPackageServices.reduce(
-                            (sum, item) => sum + Number(item?.rate ?? 0) * Number(item?.qty ?? 1),
-                            0
-                          )})`,
-                          "Remove",
-                        ].map((header, index) => (
-                          <th key={index} className="table-th ">
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
 
-                    <tbody>
-                      {localPackageServices.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="table-empty">
-                            No records found
-                          </td>
-                        </tr>
-                      ) : (
-                        localPackageServices.map((item: PackageDetailsItem, idx: number) => (
-                          <tr key={item?.packageServiceId} className="table-row">
-                            <td className="table-td">{idx + 1}</td>
-                            <td className="table-td">{item?.packageServiceCategory ?? "-"}</td>
-                            <td className="table-td">{item?.packageServiceName ?? "-"}</td>
-                            <td className="table-td">{item?.qty ?? 1}</td>
-                            <td className="table-td">{item?.rate ?? 0}</td>
-                            <td>
-                              <RemoveIconButton onClick={() => removeButtonHandler(item)} />
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="form-actions-responsive mt-2">
-                <SubmitButton label="Update" type="submit" />
-              </div>
+        <div className="table-container m-1 ">
+          <div className="table-scroll-wrapper ">
+            <div className="table-size lg:min-h-60 lg:max-h-60">
+              <table className="base-table ">
+                <thead className="table-head">
+                  <tr>
+                    <th className="table-th">#</th>
+                    <th className="table-th">Search Category</th>
+                    <th className="table-th">Search Sub Category</th>
+                    <th className="table-th">Search Sub Sub Category</th>
+                    <th className="table-th">Service Category</th>
+                    <th className="table-th">Service Name</th>
+                    <th className="table-th">Quantity</th>
+
+                    <th className="table-th">Limit Type</th>
+                    <th className="table-th">Limit</th>
+                    <th className="table-th">Remove</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {localPackageServices.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="table-empty">
+                        No records found
+                      </td>
+                    </tr>
+                  ) : (
+                    localPackageServices.map((item: PackageSetupItem, idx: number) => (
+                      <tr key={item?.serviceItemId + idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">{item?.categoryName ?? "-"}</td>
+                        <td className="table-td">{item?.subCategoryName ?? "-"}</td>
+                        <td className="table-td">{item?.subSubCategoryName ?? "-"}</td>
+                        <td className="table-td">{item?.categoryName ?? "-"}</td>
+                        <td className="table-td">{item?.serviceName ?? "-"}</td>
+                        <td className="table-td">{item?.serviceQty ?? "-"}</td>
+                        <td className="table-td">{item?.limitType ?? "-"}</td>
+                        <td className="table-td">{item?.limit ?? 0}</td>
+                        <td>
+                          <RemoveIconButton onClick={() => removeButtonHandler(idx)} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        ) : (
-          <></>
-        )}
+          <div className="form-actions-responsive mt-2">
+            <button type="submit" className="save-btn mr-3 lg:min-w-30">
+              {buttonTitle}
+            </button>
+          </div>
+        </div>
       </form>
 
-      {/* render popup */}
       {!!renderPopup && (
         <CreateUpdatePopup
           isOpen={openPopup}
@@ -1043,8 +1102,6 @@ const AddPackageMaster = ({
           onSubSubCategoryUpdate={refetchSubSubCategory}
         />
       )}
-
-      {!!loading && <CustomLoader isLoading={loading} />}
     </RightSideDrawer>
   );
 };

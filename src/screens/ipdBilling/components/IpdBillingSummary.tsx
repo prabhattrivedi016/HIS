@@ -18,6 +18,7 @@ import {
 import DiscountAmountPopup from "./DiscountAmountPopup";
 import DiscountPercentagePopup from "./DiscountPercentagePopup";
 import FilterPopup from "./FilterPopup";
+import GenerateSupplementaryBillPopup from "./GenerateSupplementaryBillPopup";
 import PackagePopup from "./PackagePopup";
 import QuantityUpdatePopup from "./QuantityUpdatePopup";
 import RatePopup from "./RatePopup";
@@ -62,6 +63,11 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
   const [renderPackagePopup, setRenderPackagePopup] = useState(false);
   const [openRemovePopup, setOpenRemovePopup] = useState(false);
   const [renderRemovePopup, setRenderRemovePopup] = useState(false);
+
+  const [openSeparateSupplementaryBillPopup, setOpenSeparateSupplementaryBillPopup] =
+    useState(false);
+  const [renderSeparateSupplementaryBillPopup, setRenderSeparateSupplementaryBillPopup] =
+    useState(false);
 
   // Payment History
 
@@ -126,7 +132,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
     queryKey: ["ipdBillingSummaryLists", branchId, patient?.VisitId],
     queryFn: getIpdBillingSummaryDetails,
   });
-  console.log("getIpdBillingSummaryLists:", getIpdBillingSummaryLists);
 
   // Bill Filter Values
 
@@ -166,10 +171,14 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
     () => [
       {
         accessorKey: "BillingDate",
-        header: "Billing Date",
+        header: "Billing Date / Bill No",
         minSize: 100,
         enableGrouping: true,
         GroupedCell: renderGroupedCellWithTotal,
+        Cell: ({ cell, row }) => {
+          const billingDate = cell.getValue() as string;
+          return <span>{billingDate || row.original.BillNo || "-"}</span>;
+        },
       },
 
       {
@@ -349,10 +358,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
     });
   }, [tableData, rowSelection]);
 
-  console.log("rowSelection:", rowSelection);
-
-  console.log("Selected complete rows:", selectedItems);
-
   // Filter Popup
 
   const handleFilterClick = () => {
@@ -485,31 +490,40 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
     setRenderRemovePopup(true);
   };
 
-  return (
-    <div className="w-full flex flex-col gap-2 p-1">
-      {/* MAIN GRID */}
+  const separateSupplementaryBillHandler = () => {
+    if (!selectedItems.length) {
+      showWarning("Please select at least one item to generate supplementary bill.");
+      return;
+    }
 
+    setOpenSeparateSupplementaryBillPopup(true);
+    setRenderSeparateSupplementaryBillPopup(true);
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-2 ">
+      {/* MAIN GRID */}
       <div className="grid grid-cols-12 gap-2 items-start">
         {/* LEFT COLUMN */}
 
-        <div className="col-span-12 lg:col-span-9 flex flex-col gap-2">
+        <div className="col-span-6 lg:col-span-9 flex flex-col gap-2">
           {/* Billing Items Card */}
 
           <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-4">
             {/* Header */}
 
             <div className="flex items-center justify-between gap-6 px-1">
-              <label className="flex items-center gap-2 cursor-pointer">
+              {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="tableView"
                   value="billing"
                   checked={selectedTable === "billing"}
                   onChange={() => setSelectedTable("billing")}
-                />
+                /> */}
 
-                <span className="text-md font-bold ">Billing Items</span>
-              </label>
+              <span className="text-md font-bold ">Billing Items</span>
+              {/* </label> */}
 
               {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -525,7 +539,23 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
 
               {/* Bill Filter */}
 
-              {selectedTable === "billing" ? (
+              {/* {selectedTable === "billing" ? ( */}
+              <InputField>
+                <select
+                  className="input-field"
+                  value={selectedBillId}
+                  onChange={e => setSelectedBillId(Number(e.target.value))}
+                >
+                  <option value={0}>All Items</option>
+
+                  {getFilterValue.map((f: BillFilterItem) => (
+                    <option key={f?.BillId} value={f?.BillId}>
+                      {f?.BillNo}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+              {/* ) : (
                 <InputField>
                   <select
                     className="input-field"
@@ -541,29 +571,14 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                     ))}
                   </select>
                 </InputField>
-              ) : (
-                <InputField>
-                  <select
-                    className="input-field"
-                    value={selectedBillId}
-                    onChange={e => setSelectedBillId(Number(e.target.value))}
-                  >
-                    <option value={0}>All Items</option>
-
-                    {getFilterValue.map((f: BillFilterItem) => (
-                      <option key={f?.BillId} value={f?.BillId}>
-                        {f?.BillNo}
-                      </option>
-                    ))}
-                  </select>
-                </InputField>
-              )}
+              )} */}
             </div>
 
             {/* BILLING TABLE */}
 
-            {selectedTable === "billing" && (
-              <>
+            {/* {selectedTable === "billing" && ( */}
+            <>
+              <div className="-mt-3">
                 <BaseTable
                   columns={columns}
                   data={tableData}
@@ -577,58 +592,96 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                   onGroupingChange={setGroupBy}
                   enableGroupingOnHeaderDoubleClick
                 />
+              </div>
 
-                <div className="flex items-center justify-end gap-2 flex-wrap overflow-auto">
-                  <button className="save-btn" onClick={handleFilterClick}>
+              {/* buttons */}
+              <div className="w-full overflow-x-auto overflow-y-hidden">
+                <div className="flex w-max min-w-full flex-nowrap items-center justify-end gap-1.5 px-1 py-1">
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={handleFilterClick}
+                  >
                     Filter
                   </button>
 
-                  <button className="save-btn" onClick={rateUpdateHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={rateUpdateHandler}
+                  >
                     Rate
                   </button>
 
-                  <button className="save-btn" onClick={quantityUpdateHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={quantityUpdateHandler}
+                  >
                     Quantity
                   </button>
 
-                  <button className="save-btn" onClick={discountPercentageUpdateHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={discountPercentageUpdateHandler}
+                  >
                     Disc(%)
                   </button>
 
-                  <button className="save-btn" onClick={discountAmountUpdateHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={discountAmountUpdateHandler}
+                  >
                     Disc(Amt)
                   </button>
 
-                  <button className="save-btn" onClick={nonPayableHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={nonPayableHandler}
+                  >
                     Non Payable
                   </button>
 
-                  <button className="save-btn" onClick={payableHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={payableHandler}
+                  >
                     Payable
                   </button>
 
-                  <button className="save-btn" onClick={packageHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={packageHandler}
+                  >
                     Package
                   </button>
 
-                  <button className="save-btn" onClick={removeHandler}>
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={removeHandler}
+                  >
                     Remove
                   </button>
+
+                  <button
+                    className="save-btn shrink-0 !px-2 !py-1 !text-[15px]"
+                    onClick={separateSupplementaryBillHandler}
+                  >
+                    Supplementary Bill
+                  </button>
                 </div>
-              </>
-            )}
-            {selectedTable === "department" && (
+              </div>
+            </>
+            {/* )} */}
+            {/* {selectedTable === "department" && (
               <div className="bg-slate-50 rounded-xl p-4 min-h-[400px] flex flex-col items-center justify-center">
                 <p className="text-slate-500 text-lg">Department View</p>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* PAYMENT HISTORY */}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="lg:col-span-4 bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3">
-              <h4 className="text-slate-800 font-bold text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+              <h4 className="text-slate-800 font-bold text-xs uppercase tracking-wider border-slate-100 ">
                 Payment History
               </h4>
 
@@ -691,7 +744,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           {/* Bill Summary */}
 
           <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3.5">
-            <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+            <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-100 ">
               Bill Summary
             </h4>
 
@@ -757,7 +810,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           {/* Deposit Details */}
 
           <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3">
-            <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+            <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-slate-100 ">
               Deposit Details
             </h4>
 
@@ -783,9 +836,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           </div>
         </div>
       </div>
-
       {/* FILTER POPUP */}
-
       {renderFilterPopup && (
         <FilterPopup
           isOpen={openFilterPopup}
@@ -795,9 +846,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           setSelectedFilteredData={setSelectedFilteredData}
         />
       )}
-
       {/* quantity update */}
-
       {renderQuantityUpdatePopup && (
         <QuantityUpdatePopup
           isOpen={openQuantityUpdatePopup}
@@ -806,9 +855,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           refetch={refetchIpdBillingSummaryLists}
         />
       )}
-
       {/* rate update */}
-
       {renderRateUpdatePopup && (
         <RatePopup
           isOpen={openRateUpdatePopup}
@@ -817,9 +864,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           refetch={refetchIpdBillingSummaryLists}
         />
       )}
-
       {/* discount percentage update */}
-
       {renderDiscountPercentagePopup && (
         <DiscountPercentagePopup
           isOpen={openDiscountPercentagePopup}
@@ -828,9 +873,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           refetch={refetchIpdBillingSummaryLists}
         />
       )}
-
       {/* discount amount update */}
-
       {renderDiscountAmountPopup && (
         <DiscountAmountPopup
           isOpen={openDiscountAmountPopup}
@@ -839,9 +882,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           refetch={refetchIpdBillingSummaryLists}
         />
       )}
-
       {/* package update */}
-
       {renderPackagePopup && (
         <PackagePopup
           isOpen={openPackagePopup}
@@ -850,9 +891,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           refetch={refetchIpdBillingSummaryLists}
         />
       )}
-
       {/* remove items */}
-
       {renderRemovePopup && (
         <RemovePopup
           isOpen={openRemovePopup}
@@ -862,9 +901,18 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           onSuccess={() => setRowSelection({})}
         />
       )}
-
+      {/* generate supplementary bill */}
+      {renderSeparateSupplementaryBillPopup && (
+        <GenerateSupplementaryBillPopup
+          isOpen={openSeparateSupplementaryBillPopup}
+          onClose={() => {
+            setOpenSeparateSupplementaryBillPopup(false);
+          }}
+          dataList={selectedItems}
+          patient={patient}
+        />
+      )}
       {/* Loader */}
-
       {(loading || isLoading) && <CustomLoader isLoading={loading || isLoading} />}
     </div>
   );

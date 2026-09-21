@@ -9,7 +9,8 @@ import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import {
   NormalDischargeDetailsFormData,
   normalDischargeDetailsSchema,
@@ -20,7 +21,17 @@ import { ChangeEvent, useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DepartmentItem, DoctorItem, IpdPatientItem } from "../types";
 
-const NormalDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientItem }) => {
+const NormalDischargeDetails = ({
+  patientDetails,
+  dischargeDate,
+  dischargeTime,
+  refreshDischargeProcess,
+}: {
+  patientDetails: IpdPatientItem;
+  dischargeDate: string;
+  dischargeTime: string;
+  refreshDischargeProcess?: () => Promise<void>;
+}) => {
   const { loading, fetchApi } = useGlobalApi();
   const [doctorDepartmentId, setDoctorDepartmentId] = useState<number>(
     patientDetails?.PrimaryDoctorDepartmentId ?? 0
@@ -109,8 +120,8 @@ const NormalDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatient
   // create paylaod
   const createPaylaod = (formData: NormalDischargeDetailsFormData) => {
     return {
-      dischargeDate: new Date().toISOString().split("T")[0],
-      dischargeTime: new Date().toTimeString().slice(0, 5),
+      dischargeDate: formatToDDMMYYYY(dischargeDate),
+      dischargeTime: dischargeTime,
       dischargeType: dischargeProcessType?.NORMAL,
       bedId: patientDetails?.BedId,
       visitId: patientDetails?.VisitId,
@@ -165,6 +176,10 @@ const NormalDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatient
 
   const onSubmit = async (data: NormalDischargeDetailsFormData) => {
     const paylaod = createPaylaod(data);
+    if (!paylaod?.dischargeDate || !paylaod?.dischargeTime) {
+      showWarning("Please select discharge date and time");
+      return;
+    }
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.SAVE_IPD_DISCHARGE,
@@ -181,6 +196,7 @@ const NormalDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatient
     if (details) {
       setUpdatedIpdPatientDetails(details);
     }
+    refreshDischargeProcess?.();
     showSuccess(resp?.message ?? "Normal discharge details saved successfully");
   };
 
@@ -270,8 +286,8 @@ const NormalDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatient
 
         {/* Save Button - same row as Discharge Advice */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4">
-          <button type="submit" className="save-btn lg:w-30">
-            Save
+          <button type="submit" className="save-btn ">
+            Submit Final Discharge
           </button>
         </div>
       </form>

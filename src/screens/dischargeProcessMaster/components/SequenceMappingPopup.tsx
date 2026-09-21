@@ -49,13 +49,7 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  console.log("sequenceList", sequenceList);
-
-  /*
-   * ============================================================
-   * GET DISCHARGE PROCESS MASTER
-   * ============================================================
-   */
+  // discharge bar
 
   const getDischargeProcessMaster = async (): Promise<SequenceItem[]> => {
     const resp = (await fetchApi(

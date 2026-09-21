@@ -170,10 +170,10 @@ const CorporateMapping = ({
   // save corporate mapping handler
   const saveCorporateMappingHandler = async () => {
     const payload = createPayload();
-    if (payload?.corporateIds?.length === 0) {
-      showWarning("Please select at least one corporate");
-      return;
-    }
+    // if (payload?.corporateIds?.length === 0) {
+    //   showWarning("Please select at least one corporate");
+    //   return;
+    // }
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.SAVE_DISCHARGE_PROCESS_CORPORATE_MAPPING,

@@ -111,6 +111,7 @@ type BillingDetailsProps = {
   patientAdvanceEnabled?: boolean;
   patientAdvanceAmount?: number;
   disableDiscountEditing?: boolean;
+  disableApprovalFields?: boolean;
   approvalFieldLabels?: {
     approvedBy?: string;
     approvedReason?: string;

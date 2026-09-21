@@ -10,7 +10,8 @@ import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError, showSuccess } from "@/utils/alert";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { allowOnlyNumbers } from "@/utils/inputValidationHandler";
 import {
   DeathDischargeDetailsFormData,
@@ -21,7 +22,17 @@ import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { IpdPatientItem } from "../types";
 
-const DeathDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientItem }) => {
+const DeathDischargeDetails = ({
+  patientDetails,
+  dischargeDate,
+  dischargeTime,
+  refreshDischargeProcess,
+}: {
+  patientDetails: IpdPatientItem;
+  dischargeDate: string;
+  dischargeTime: string;
+  refreshDischargeProcess?: () => Promise<void>;
+}) => {
   const { loading, fetchApi } = useGlobalApi();
   const { branchId } = useContext(BranchContext) ?? { branchId: 1 };
   const deathCertificateStatusList = usePickMaster("DeathCertificateStatus")?.pickMasterValue ?? [];
@@ -60,8 +71,8 @@ const DeathDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientI
   // create payload
   const createPaylaod = (formData: DeathDischargeDetailsFormData) => {
     return {
-      dischargeDate: formData?.dateOfDeath,
-      dischargeTime: formData?.timeOfDeath,
+      dischargeDate: formatToDDMMYYYY(dischargeDate),
+      dischargeTime: dischargeTime,
       dischargeType: dischargeProcessType?.DEATH,
       bedId: patientDetails?.BedId,
       visitId: patientDetails?.VisitId,
@@ -116,6 +127,10 @@ const DeathDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientI
 
   const onSubmit = async (data: DeathDischargeDetailsFormData) => {
     const paylaod = createPaylaod(data);
+    if (!paylaod?.dischargeDate || !paylaod?.dischargeTime) {
+      showWarning("Please select discharge date and time");
+      return;
+    }
     const resp = await fetchApi(
       "PATCH",
       ENDPOINTS.SAVE_IPD_DISCHARGE,
@@ -132,6 +147,7 @@ const DeathDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientI
     if (details) {
       setUpdatedIpdPatientDetails(details);
     }
+    refreshDischargeProcess?.();
     showSuccess(resp?.message ?? "Death discharge details saved successfully");
   };
 
@@ -296,8 +312,8 @@ const DeathDischargeDetails = ({ patientDetails }: { patientDetails: IpdPatientI
 
         {/* Save Button */}
         <div className="flex w-full flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center lg:col-start-4">
-          <button type="submit" className="save-btn lg:w-30">
-            Save
+          <button type="submit" className="save-btn ">
+            Submit Final Discharge
           </button>
         </div>
       </form>
