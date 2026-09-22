@@ -48,8 +48,6 @@ const ServiceViewPopup = ({
     queryFn: getInvestigationDetails,
   });
 
-  console.log("ServiceObservationMappingLists", ServiceObservationMappingLists);
-
   const formatTatTime = (minutes?: number) => {
     if (minutes === undefined || minutes === null || isNaN(minutes)) return "-";
     const hrs = Math.floor(minutes / 60);

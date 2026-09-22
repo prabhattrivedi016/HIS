@@ -279,6 +279,8 @@ type ServiceTableItem = {
   Billing: string;
   labTypeId?: number;
   tatTimeInMin?: number;
+  IsAutoAddToPackage?: number;
+  IsAutoAddExistingServices?: number;
 };
 
 type ApprovalLists = {

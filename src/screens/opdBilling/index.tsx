@@ -2375,6 +2375,11 @@ const OpdBilling = () => {
           { component: "OpdBilling" }
         );
 
+        if (!resp?.result) {
+          showWarning(resp?.message ?? "Data not found!");
+          return;
+        }
+
         SetServiceItemList(resp?.data ?? []);
         setShowPopup(true);
         setActiveServiceIndex(0);

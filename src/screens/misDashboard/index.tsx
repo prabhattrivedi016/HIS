@@ -13,16 +13,16 @@ import QuickLinks from "./components/QuickLinks";
 import ReceivablesAging from "./components/ReceivablesAging";
 import RevenueTrendChart from "./components/RevenueTrendChart";
 
-const IpdBillingDashboard = () => {
+const MisDashboard = () => {
   return (
     <div className="page-container">
-      <h1 className="page-heading">IPD Billing Dashboard</h1>
+      <h1 className="page-heading">MIS Dashboard</h1>
       <nav className="helper-text">
         <NavLink to="/dashboard" className="hover:underline">
           Home
         </NavLink>
         <span>››</span>
-        <span>IPD Billing Dashboard</span>
+        <span>MIS Dashboard</span>
       </nav>
 
       {/* main component
@@ -53,4 +53,4 @@ const IpdBillingDashboard = () => {
   );
 };
 
-export default IpdBillingDashboard;
+export default MisDashboard;
