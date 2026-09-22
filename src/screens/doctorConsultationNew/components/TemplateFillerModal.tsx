@@ -1,12 +1,14 @@
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { SectionHeaderMappingRecord } from "@/screens/emrControls/types";
 import { TemplateItem, TemplateSectionMappingRecord } from "@/screens/emrTemplates/types";
 import { Check, LayoutTemplate, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useVisitSavedHeaderValues } from "../hooks/useVisitSavedHeaderValues";
-import { EmrSectionAnswerEntry } from "../types";
+import { EmrSectionAnswerEntry, EmrSectionVisitSnapshotEntry } from "../types";
+import { applySnapshotToSectionData } from "../utils/sectionSnapshot";
 import EmrSectionRenderer from "./EmrSectionRenderer";
 
 interface TemplateFillerModalProps {
@@ -56,6 +58,17 @@ const TemplateFillerModal = ({
   const [sectionProgress, setSectionProgress] = useState<
     Record<number, { filled: number; total: number }>
   >({});
+  const [headersBySection, setHeadersBySection] = useState<
+    Record<number, SectionHeaderMappingRecord[]>
+  >({});
+  const handleHeadersLoaded = useCallback((sectionId: number, headers: SectionHeaderMappingRecord[]) => {
+    setHeadersBySection(prev => ({ ...prev, [sectionId]: headers }));
+  }, []);
+
+  // "Current" vs a past timed filling — same concept as TemplateInlineSections' identical feature,
+  // only meaningful for an isMultipleEntryAllow template (see timeSlots/handleSelectTimeSlot below)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<"current" | string>("current");
+  const currentDraftDataRef = useRef<Record<string, unknown>>({});
 
   const sectionElRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const setSectionElRef = (sectionId: number) => (el: HTMLDivElement | null) => {
@@ -69,6 +82,8 @@ const TemplateFillerModal = ({
     setData({});
     setEntriesBySectionId({});
     setSectionProgress({});
+    setSelectedTimeSlot("current");
+    currentDraftDataRef.current = {};
   }, [isOpen, template?.templateId]);
 
   useEffect(() => {
@@ -109,14 +124,82 @@ const TemplateFillerModal = ({
     };
   }, [isOpen, template]);
 
-  // this visit's previously-saved header values, so reopening/refilling a template shows prior
-  // answers and upserts (dataId) instead of duplicating rows — same hook TemplateInlineSections
-  // uses, so both entry points into a Template stay consistent. Skipped entirely for an
-  // isMultipleEntryAllow template: every filling of one of those must persist as its own new row,
-  // so it must never hydrate from (or resolve a dataId against) a previous save.
-  const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } = useVisitSavedHeaderValues(
-    visitId,
-    isOpen && template?.isMultipleEntryAllow !== 1
+  // every Template — not just ones with IsMultipleEntryAllow=1 — always inserts a new row and
+  // starts blank on load, per explicit instruction ("in case of template... insert every time,
+  // dataId 0 every time"). Fetched whenever the modal's open (needed to build the time-slot list
+  // below); savedHeaderValuesBySectionId/savedDataIdsByHeaderId are never passed to
+  // EmrSectionRenderer for a Template (below) — every filling keeps persisting as its own new row
+  // regardless of which time slot is currently being viewed. This is Template-only — the doctor's
+  // regular EMR Sections panel is untouched and keeps its normal upsert/hydration behavior.
+  const { savedHeaderRows } = useVisitSavedHeaderValues(visitId, isOpen);
+
+  const timeSlots = useMemo(() => {
+    if (!template) return [];
+    const bySlot = new Map<string, typeof savedHeaderRows>();
+    savedHeaderRows
+      .filter(row => row.TemplateId === template.templateId)
+      .forEach(row => {
+        const d = new Date(row.CreatedOn);
+        if (Number.isNaN(d.getTime())) return;
+        const label = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        const bucket = bySlot.get(label) ?? [];
+        bucket.push(row);
+        bySlot.set(label, bucket);
+      });
+    return Array.from(bySlot.entries())
+      .map(([label, rows]) => ({ label, rows }))
+      .sort((a, b) => b.label.localeCompare(a.label));
+  }, [savedHeaderRows, template]);
+
+  const handleSelectTimeSlot = (choice: "current" | string) => {
+    if (choice === selectedTimeSlot) return;
+    if (choice === "current") {
+      setData(currentDraftDataRef.current);
+      setSelectedTimeSlot("current");
+      return;
+    }
+    const slot = timeSlots.find(s => s.label === choice);
+    if (!slot) return;
+
+    const rowsBySectionId = new Map<number, EmrSectionVisitSnapshotEntry["values"]>();
+    slot.rows.forEach(row => {
+      let value: unknown;
+      try {
+        value = JSON.parse(row.HeaderValue);
+      } catch {
+        value = row.HeaderValue;
+      }
+      const bucket = rowsBySectionId.get(row.SectionId) ?? [];
+      bucket.push({
+        headerId: row.HeaderId,
+        headerName: "",
+        controlType: "",
+        value,
+        dataId: row.DataId,
+        createdOn: row.CreatedOn,
+      });
+      rowsBySectionId.set(row.SectionId, bucket);
+    });
+
+    let next: Record<string, unknown> = {};
+    rowsBySectionId.forEach((values, sectionId) => {
+      next = applySnapshotToSectionData(next, sectionId, headersBySection[sectionId] ?? [], values);
+    });
+    setData(next);
+    setSelectedTimeSlot(choice);
+  };
+
+  const handleDataChange = useCallback(
+    (
+      updater: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>)
+    ) => {
+      setData(prev => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (selectedTimeSlot === "current") currentDraftDataRef.current = next;
+        return next;
+      });
+    },
+    [selectedTimeSlot]
   );
 
   const handleSectionEntries = useCallback(
@@ -169,9 +252,32 @@ const TemplateFillerModal = ({
                 {template.displayName || template.templateName}
               </h3>
             </div>
-            <button onClick={onClose} className="close-drawer-btn">
-              ×
-            </button>
+            <div className="flex items-center gap-3">
+              {/* only for a multi-entry template already saved more than once today — an ordinary
+                  template never has more than one row per header, so never shows this */}
+              {timeSlots.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    Time slot
+                  </span>
+                  <select
+                    className="input-field !mb-0 !py-1.5 text-xs w-36"
+                    value={selectedTimeSlot}
+                    onChange={e => handleSelectTimeSlot(e.target.value)}
+                  >
+                    <option value="current">Current (new entry)</option>
+                    {timeSlots.map(slot => (
+                      <option key={slot.label} value={slot.label}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button onClick={onClose} className="close-drawer-btn">
+                ×
+              </button>
+            </div>
           </div>
 
           <div className="emr-shell flex flex-1 min-h-0">
@@ -240,14 +346,17 @@ const TemplateFillerModal = ({
                       sectionName={section.sectionName}
                       displayName={section.displayName}
                       data={data}
-                      onDataChange={setData}
+                      onDataChange={handleDataChange}
+                      onHeadersLoaded={headers => handleHeadersLoaded(section.sectionId, headers)}
                       doctorId={doctorId}
                       patientId={patientId}
                       visitId={visitId}
                       onProgressChange={handleSectionProgress}
                       onEntriesChange={handleSectionEntries}
-                      savedHeaderValues={savedHeaderValuesBySectionId.get(section.sectionId)}
-                      savedDataIdsByHeaderId={savedDataIdsByHeaderId}
+                      // never hydrate a Template section from a previous save — see the
+                      // useVisitSavedHeaderValues comment above for why
+                      savedHeaderValues={undefined}
+                      savedDataIdsByHeaderId={undefined}
                     />
                   </div>
                 ))

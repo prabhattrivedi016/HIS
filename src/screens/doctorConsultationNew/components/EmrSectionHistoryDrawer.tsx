@@ -136,7 +136,14 @@ const EmrSectionHistoryDrawer = ({
         value = row.HeaderValue;
       }
       const bucket = rowsBySectionId.get(row.SectionId) ?? [];
-      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      bucket.push({
+        headerId: row.HeaderId,
+        headerName: "",
+        controlType: "",
+        value,
+        dataId: row.DataId,
+        createdOn: row.CreatedOn,
+      });
       rowsBySectionId.set(row.SectionId, bucket);
     });
 

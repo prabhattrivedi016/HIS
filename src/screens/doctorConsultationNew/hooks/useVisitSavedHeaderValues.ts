@@ -49,7 +49,14 @@ export const useVisitSavedHeaderValues = (visitId?: number, enabled = true) => {
         value = row.HeaderValue;
       }
       const bucket = map.get(row.SectionId) ?? [];
-      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      bucket.push({
+        headerId: row.HeaderId,
+        headerName: "",
+        controlType: "",
+        value,
+        dataId: row.DataId,
+        createdOn: row.CreatedOn,
+      });
       map.set(row.SectionId, bucket);
     });
     return map;
@@ -61,5 +68,11 @@ export const useVisitSavedHeaderValues = (visitId?: number, enabled = true) => {
     return map;
   }, [savedHeaderRows]);
 
-  return { savedHeaderValuesBySectionId, savedDataIdsByHeaderId };
+  return {
+    savedHeaderValuesBySectionId,
+    savedDataIdsByHeaderId,
+    // exposed for callers that need to group/inspect rows themselves (e.g. a multi-entry
+    // template's own time-slot picker) rather than only the two flattened maps above
+    savedHeaderRows,
+  };
 };

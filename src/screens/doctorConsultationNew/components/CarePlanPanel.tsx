@@ -147,7 +147,17 @@ const CarePlanPanel = ({
         value = row.HeaderValue;
       }
       const bucket = rowsBySectionId.get(row.SectionId) ?? [];
-      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      // dataId/createdOn: a Care Plan is a reusable preset, not tied to any one visit's saved rows
+      // — these two fields are irrelevant to applying it (applySnapshotToSectionData only reads
+      // headerId/value) and this response may not even carry them, hence the safe fallbacks
+      bucket.push({
+        headerId: row.HeaderId,
+        headerName: "",
+        controlType: "",
+        value,
+        dataId: row.DataId ?? 0,
+        createdOn: row.CreatedOn ?? "",
+      });
       rowsBySectionId.set(row.SectionId, bucket);
     });
 

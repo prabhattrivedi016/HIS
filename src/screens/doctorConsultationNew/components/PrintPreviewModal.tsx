@@ -21,8 +21,17 @@ import {
   User,
 } from "lucide-react";
 import { ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useDoseMasterList } from "@/hooks/useDoseMasterList";
 import { usePatientVisitHistory } from "../hooks/usePatientVisitHistory";
 import { AllergySection, EmrSectionAnswerEntry, PatientItem } from "../types";
+import {
+  DOSE_TIME_LABEL_HINDI,
+  DOSE_UNIT_HINDI,
+  DURATION_UNIT_HINDI,
+  FREQUENCY_HINDI,
+  ROUTE_HINDI,
+  translateMedicineTerm,
+} from "../utils/medicineHindiTranslations";
 
 interface VitalMasterLike {
   vitalId: number;
@@ -113,7 +122,16 @@ const formatVisitDateTime = (isoDate: string): string => {
   return `${datePart} ${timePart}`;
 };
 
-const formatEntryValue = (value: unknown): ReactNode => {
+const formatEntryValue = (
+  value: unknown,
+  // "1-1-0"-style Dose Master pattern -> its DoseTimeLabels translated to Hindi (e.g.
+  // "सुबह-दोपहर-रात") — only meaningful for the Medicine List branch below; undefined/empty
+  // elsewhere is fine, it just means "no translation available, show the raw pattern".
+  doseTimeLabelsByPattern?: Map<string, string>,
+  // "Medicine in Hindi" print toggle — off by default, so a doctor who doesn't want it sees
+  // exactly the same English Medicine List as before this feature existed.
+  translateMedicine = false
+): ReactNode => {
   if (value === null || value === undefined || value === "") return "-";
 
   if (Array.isArray(value)) {
@@ -137,6 +155,7 @@ const formatEntryValue = (value: unknown): ReactNode => {
         };
         const meds = rows as Array<{
           medicineName?: string;
+          saltName?: string;
           isTapering?: boolean;
           schedule?: ScheduleRow[];
         }>;
@@ -153,19 +172,50 @@ const formatEntryValue = (value: unknown): ReactNode => {
                   >
                     {med.medicineName || "-"}
                     {med.isTapering ? " (Tapering)" : ""}
+                    {med.saltName && (
+                      <div className="font-normal text-slate-500 text-[8.5px] mt-0.5">
+                        {med.saltName}
+                      </div>
+                    )}
                   </td>
                 )}
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
-                  {row ? [row.doseQty, row.doseUnit].filter(Boolean).join(" ") || "-" : "-"}
+                  {row
+                    ? [
+                        // doseQty holds a Dose Master pattern like "1-1-0", not a plain quantity —
+                        // show its DoseTimeLabels translated to Hindi ("सुबह-दोपहर-रात") when this
+                        // pattern is a known Dose Master record, otherwise fall back to the raw
+                        // pattern rather than hiding it
+                        (translateMedicine && row.doseQty && doseTimeLabelsByPattern?.get(row.doseQty)) ||
+                          row.doseQty,
+                        translateMedicine
+                          ? translateMedicineTerm(DOSE_UNIT_HINDI, row.doseUnit)
+                          : row.doseUnit,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || "-"
+                    : "-"}
                 </td>
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
-                  {row?.frequency || "-"}
+                  {(translateMedicine
+                    ? translateMedicineTerm(FREQUENCY_HINDI, row?.frequency)
+                    : row?.frequency) || "-"}
                 </td>
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
-                  {row ? [row.durationValue, row.durationUnit].filter(Boolean).join(" ") || "-" : "-"}
+                  {row
+                    ? [
+                        row.durationValue,
+                        translateMedicine
+                          ? translateMedicineTerm(DURATION_UNIT_HINDI, row.durationUnit)
+                          : row.durationUnit,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || "-"
+                    : "-"}
                 </td>
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
-                  {row?.route || "-"}
+                  {(translateMedicine ? translateMedicineTerm(ROUTE_HINDI, row?.route) : row?.route) ||
+                    "-"}
                 </td>
               </tr>
             );
@@ -267,6 +317,23 @@ const PrintPreviewModal = ({
   const branchId = Number(authUser?.branchId ?? 1);
   const { fetchApi } = useGlobalApi();
   const fetchApiRef = useRef(fetchApi);
+
+  // Dose Master pattern (e.g. "1-1-0") -> its DoseTimeLabels translated to Hindi — same
+  // react-query-cached list MedicineListControl's own Dose Unit dropdown already reads, so this
+  // adds no extra network cost when the doctor has that section open
+  const { doseMasterList } = useDoseMasterList();
+  const doseTimeLabelsByPattern = useMemo(() => {
+    const map = new Map<string, string>();
+    doseMasterList.forEach(d => {
+      const hindiLabels = (d.DoseTimeLabels || "")
+        .split(",")
+        .map(label => translateMedicineTerm(DOSE_TIME_LABEL_HINDI, label.trim()))
+        .filter(Boolean)
+        .join("-");
+      if (hindiLabels) map.set(d.Dose, hindiLabels);
+    });
+    return map;
+  }, [doseMasterList]);
   fetchApiRef.current = fetchApi;
 
   const getSettings = usePrintSettingsStore(state => state.getSettings);
@@ -489,7 +556,12 @@ const PrintPreviewModal = ({
   const toggleSetting = (
     key: keyof Pick<
       PrintSettings,
-      "showLetterhead" | "showPatientDetails" | "showHospitalDetails" | "showVitals" | "showAllergy"
+      | "showLetterhead"
+      | "showPatientDetails"
+      | "showHospitalDetails"
+      | "showVitals"
+      | "showAllergy"
+      | "translateMedicineToHindi"
     >
   ) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -694,6 +766,39 @@ const PrintPreviewModal = ({
     });
   };
 
+  // one convenience "print exactly this filling" selector — bulk-applies the same choice to
+  // every duplicate-header group's individual Timespan at once instead of making the doctor set
+  // each header's dropdown separately. Every header saved in one filling shares the identical
+  // createdOn stamp (index.tsx stamps one shared "savedAt" across the whole save), so grouping by
+  // formatted time reliably reconstructs "one specific filling" as a whole.
+  const fillDateTimeLabels = Array.from(
+    new Set(
+      duplicateGroups.flatMap(g => g.entries.map(e => formatEntryTime(e.createdOn)).filter(Boolean))
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
+  const currentFillDateTime: "all" | string = (() => {
+    if (duplicateGroups.length === 0) return "all";
+    const perGroup = duplicateGroups.map(g => {
+      const chosen = selectedTimespanFor(g);
+      if (chosen === "all") return "all";
+      const entry = g.entries.find(e => e.dataId === chosen);
+      return entry ? formatEntryTime(entry.createdOn) : "all";
+    });
+    return perGroup.every(v => v === perGroup[0]) ? perGroup[0] : "all";
+  })();
+
+  const chooseFillDateTime = (label: "all" | string) => {
+    duplicateGroups.forEach(g => {
+      if (label === "all") {
+        chooseTimespan(g, "all");
+        return;
+      }
+      const match = g.entries.find(e => formatEntryTime(e.createdOn) === label);
+      chooseTimespan(g, match?.dataId ?? "all");
+    });
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -758,6 +863,31 @@ const PrintPreviewModal = ({
               )}
             </div>
 
+            {isTemplateVariant && fillDateTimeLabels.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <History size={12} />
+                  Fill Date/Time
+                </p>
+                <select
+                  className="input-field !mb-0 w-full"
+                  value={currentFillDateTime}
+                  onChange={e => chooseFillDateTime(e.target.value)}
+                >
+                  <option value="all">All fillings</option>
+                  {fillDateTimeLabels.map(label => (
+                    <option key={label} value={label}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  This template was filled more than once this visit — pick one time to print
+                  just that filling, or "All fillings" to print every one.
+                </p>
+              </div>
+            )}
+
             <div>
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Include
@@ -792,6 +922,26 @@ const PrintPreviewModal = ({
                     </button>
                   ))}
               </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Medicine list
+              </p>
+              {/* off unless the doctor turns it on — every other section, and the live EMR editing
+                  page, is unaffected by this either way */}
+              <button
+                type="button"
+                onClick={() => toggleSetting("translateMedicineToHindi")}
+                className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12.5px] font-medium text-slate-700 hover:bg-white transition-colors"
+              >
+                {settings.translateMedicineToHindi ? (
+                  <SquareCheck size={16} className="text-[#0B5394] shrink-0" />
+                ) : (
+                  <Square size={16} className="text-slate-300 shrink-0" />
+                )}
+                Print Dose/Frequency/Duration/Route in Hindi
+              </button>
             </div>
 
             {settings.showLetterhead && (
@@ -1231,7 +1381,11 @@ const PrintPreviewModal = ({
                                 wide table's columns), which pushes the whole row past the page
                                 edge in print instead of wrapping within it */}
                               <span className="text-slate-700 min-w-0 overflow-hidden">
-                                {formatEntryValue(entry.value)}
+                                {formatEntryValue(
+                                  entry.value,
+                                  doseTimeLabelsByPattern,
+                                  settings.translateMedicineToHindi
+                                )}
                               </span>
                             </div>
                           );

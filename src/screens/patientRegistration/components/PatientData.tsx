@@ -1185,6 +1185,8 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
             CardHolder: details.CardHolder ?? details.cardHolder ?? "",
             ReferalNo: details.ReferalNo ?? details.referalNo ?? "",
             ReferalDate: details.ReferalDate ?? details.referalDate ?? "",
+            HealthId: details.HealthId ?? details.healthId ?? "",
+            HealthIdNumber: details.HealthIdNumber ?? details.healthIdNumber ?? "",
           });
 
           setInsuranceId(Number(details.InsuranceCompanyId ?? details.insuranceCompanyId ?? 0));
@@ -1509,6 +1511,24 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         placeholder="Enter Email"
                       />
                       {errors.Email && <p className="input-field-error">{errors.Email.message}</p>}
+                    </InputField>
+                    <InputField label="ABHA Number">
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Verify/Create ABHA to populate"
+                        {...register("HealthIdNumber")}
+                        readOnly
+                      />
+                    </InputField>
+                    <InputField label="ABHA Address">
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Verify/Create ABHA to populate"
+                        {...register("HealthId")}
+                        readOnly
+                      />
                     </InputField>
                     {/* address */}
                     <Address resetSignal={addressResetSignal} prefillData={prefillPatientData} />

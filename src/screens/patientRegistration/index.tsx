@@ -1,9 +1,11 @@
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
 import { showWarning } from "@/utils/alert";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+import AbhaCreationVerificationView from "./components/abha/AbhaCreationVerificationView";
 import PatientData from "./components/PatientData";
 import SearchPatientPopup from "./components/SearchPatientPopup";
+import { PatientDataHandle } from "./types";
 
 const PatientRegistration = () => {
   const [openSearchPatientPopup, setOpenSearchPatientPopup] = useState<boolean>(false);
@@ -12,6 +14,14 @@ const PatientRegistration = () => {
   const [uhidSearchResetKey, setUhidSearchResetKey] = useState(0);
 
   const [showTable, setShowTable] = useState<boolean>(false);
+
+  const [showVerifyAbha, setShowVerifyAbha] = useState(false);
+  const [showCreateAbha, setShowCreateAbha] = useState(false);
+  const patientDataRef = useRef<PatientDataHandle>(null);
+
+  const handleBindAbhaPatient = useCallback((mapped: Record<string, unknown>) => {
+    patientDataRef.current?.prefillPatientDetails(mapped);
+  }, []);
 
   const handleOpenSearchPatientPopup = () => {
     setSelectedPatientId(null);
@@ -62,7 +72,13 @@ const PatientRegistration = () => {
           />
         </div>
 
-        <div className="flex justify-end flex-1">
+        <div className="flex justify-end flex-1 gap-2">
+          <button type="button" className="save-btn" onClick={() => setShowVerifyAbha(true)}>
+            Verify ABHA
+          </button>
+          <button type="button" className="save-btn" onClick={() => setShowCreateAbha(true)}>
+            Create ABHA
+          </button>
           <button type="button" className="save-btn" onClick={handleOpenSearchPatientPopup}>
             Search Old Patient
           </button>
@@ -71,6 +87,7 @@ const PatientRegistration = () => {
 
       {/* form */}
       <PatientData
+        ref={patientDataRef}
         selectedPatientId={selectedPatientId}
         onRegistrationSuccess={handleRegistrationSuccess}
       />
@@ -85,6 +102,15 @@ const PatientRegistration = () => {
           onSelectPatientId={setSelectedPatientId}
         />
       )}
+
+      {/* ABHA verify / create */}
+      <AbhaCreationVerificationView
+        showVerify={showVerifyAbha}
+        showCreate={showCreateAbha}
+        onCloseVerify={() => setShowVerifyAbha(false)}
+        onCloseCreate={() => setShowCreateAbha(false)}
+        onBindPatient={handleBindAbhaPatient}
+      />
     </div>
   );
 };

@@ -18,9 +18,15 @@ export interface PrintSettings {
   /** px of top padding reserved above the content when the letterhead renders as a full-page
    * background — every hospital's letterhead image has a differently-sized header (logo/seal/
    * tagline), so this can't be inferred from code; it's a doctor/branch-tunable knob instead of a
-   * hardcoded guess. 65 is a reasonable starting point, adjust in the print preview and Save as
-   * default once it clears your actual letterhead's header art. */
+   * hardcoded guess. 150 clears the BIO PATH LAB letterhead's header art at actual print size
+   * (confirmed against a real overlapping printout — 65, tried earlier, wasn't enough once
+   * measured against the real page instead of the on-screen preview). Adjust via the print
+   * preview's slider and "Save as default" for a different letterhead. */
   letterheadTopOffset: number;
+  /** off by default — only PrintPreviewModal's Medicine List table (Dose pattern, Dose Unit,
+   * Frequency, Duration Unit, Route) switches to Hindi when this is on; every other section and
+   * the live EMR editing page are unaffected either way. */
+  translateMedicineToHindi: boolean;
   updatedOn: string;
 }
 
@@ -34,7 +40,8 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   fontSize: "md",
   excludedSectionIds: [],
   excludedDataIds: [],
-  letterheadTopOffset: 65,
+  letterheadTopOffset: 150,
+  translateMedicineToHindi: false,
   updatedOn: "",
 };
 

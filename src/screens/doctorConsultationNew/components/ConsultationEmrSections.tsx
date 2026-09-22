@@ -357,16 +357,35 @@ const ConsultationEmrSections = ({
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
 
+  // typeId 2 = "Doctor Wise" — same convention DoctorDepartmentEmrTemplateMapping (the admin
+  // screen that grants templates per doctor/department) already uses. GET_ALL_TEMPLATES alone
+  // isn't enough here: it has the rich metadata (category, isMultipleEntryAllow, applicableTo)
+  // this screen's TemplateItem needs, but no per-doctor granted/sequence info; the mapping
+  // endpoint has the reverse (IsGranted/SequenceNo, but not that metadata) — so both are fetched
+  // and intersected: only templates this doctor is actually granted show up, in the admin's
+  // configured order.
   const getTemplatesForDropdown = async (): Promise<TemplateItem[]> => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
-      {},
-      { params: { isActive: 1 } },
-      { component: "ConsultationEmrSections", silent: true }
-    );
-    const raw: any[] = resp?.data ?? [];
-    return raw.map(t => ({
+    const [allResp, mappingResp] = await Promise.all([
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_ALL_TEMPLATES,
+        {},
+        { params: { isActive: 1 } },
+        { component: "ConsultationEmrSections", silent: true }
+      ),
+      doctorId != null
+        ? fetchApi(
+            "GET",
+            ENDPOINTS.GET_TEMPLATE_DEPARTMENT_MAPPING,
+            {},
+            { params: { typeId: 2, relatedToId: doctorId } },
+            { component: "ConsultationEmrSections", silent: true }
+          )
+        : Promise.resolve(null),
+    ]);
+
+    const allRaw: any[] = allResp?.data ?? [];
+    const allTemplates: TemplateItem[] = allRaw.map(t => ({
       templateId: t.TemplateId,
       templateName: t.TemplateName,
       displayName: t.DisplayName,
@@ -376,10 +395,32 @@ const ConsultationEmrSections = ({
       isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
       applicableTo: t.ApplicableTo ?? 0,
     }));
+
+    // no doctor context — shouldn't normally happen on this screen, but fall back to every active
+    // template rather than silently showing none
+    if (doctorId == null) return allTemplates;
+
+    const mappingRaw: any[] = mappingResp?.data ?? [];
+    const sequenceByGrantedTemplateId = new Map<number, number>();
+    mappingRaw.forEach(m => {
+      if (Number(m.IsGranted) !== 0) {
+        sequenceByGrantedTemplateId.set(Number(m.TemplateId), Number(m.SequenceNo) || 0);
+      }
+    });
+
+    // a doctor with zero grants correctly sees zero templates here — that's the admin screen's
+    // whole point, not a fallback-to-"show everything" case
+    return allTemplates
+      .filter(t => sequenceByGrantedTemplateId.has(t.templateId))
+      .sort(
+        (a, b) =>
+          (sequenceByGrantedTemplateId.get(a.templateId) ?? 0) -
+          (sequenceByGrantedTemplateId.get(b.templateId) ?? 0)
+      );
   };
 
   const { data: templatesForDropdown = [] } = useQuery<TemplateItem[]>({
-    queryKey: ["consultationEmrSectionsTemplates"],
+    queryKey: ["consultationEmrSectionsTemplates", doctorId],
     queryFn: getTemplatesForDropdown,
     enabled: isTemplateMenuOpen,
   });
@@ -529,7 +570,14 @@ const ConsultationEmrSections = ({
         value = row.HeaderValue;
       }
       const bucket = map.get(row.SectionId) ?? [];
-      bucket.push({ headerId: row.HeaderId, headerName: "", controlType: "", value });
+      bucket.push({
+        headerId: row.HeaderId,
+        headerName: "",
+        controlType: "",
+        value,
+        dataId: row.DataId,
+        createdOn: row.CreatedOn,
+      });
       map.set(row.SectionId, bucket);
     });
     return map;

@@ -118,6 +118,11 @@ type ConsultationHeaderDataEntry = {
   /** always JSON.stringify(value), regardless of whether the underlying value is a plain string,
    * a number, or a structured object/array — the backend JSON.parses it back uniformly */
   headerValue: string;
+  /** ISO datetime stamped by the frontend at the moment of Save — one single value shared by every
+   * row in the same save call, so a template saved multiple times in one visit can be grouped/
+   * filtered by exact save time on GET without depending on the backend's own per-row insert clock
+   * (which may not be precise/consistent enough across rows written in the same batch) */
+  createdOn: string;
 };
 
 /** one filled-in vital from the consultation screen's vitals strip — see VitalMasterItem

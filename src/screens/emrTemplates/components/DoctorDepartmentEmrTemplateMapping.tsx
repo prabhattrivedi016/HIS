@@ -25,12 +25,12 @@ interface TemplateMappingPayload {
   }>;
 }
 
-/** mirrors DoctorDepartmentEmrSectionMapping.tsx (emrControls) exactly, swapping EMR Sections for
- * Templates. GET_TEMPLATE_DEPARTMENT_MAPPING is confirmed live (same typeId/relatedToId query
- * params as the EMR Section pair), though its exact response field names weren't shown, so the
- * mapping-row id is read defensively (see searchHandler). SAVE_TEMPLATE_DEPARTMENT_MAPPING is
- * confirmed live too, and confirmed to reuse the Section mapping DTO's "sectionMappingData" key
- * (see TemplateMappingPayload above). */
+/** mirrors DoctorDepartmentEmrSectionMapping.tsx (emrControls), swapping EMR Sections for
+ * Templates — one real difference: the Section endpoint signals "already mapped" via a mapping-row
+ * id (MappingId), but GET_TEMPLATE_DEPARTMENT_MAPPING's confirmed real response instead returns an
+ * explicit IsGranted (0/1) flag per template row, no mapping id at all (see searchHandler).
+ * SAVE_TEMPLATE_DEPARTMENT_MAPPING is confirmed to reuse the Section mapping DTO's
+ * "sectionMappingData" key (see TemplateMappingPayload above). */
 const DoctorDepartmentEmrTemplateMapping = () => {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -59,7 +59,7 @@ const DoctorDepartmentEmrTemplateMapping = () => {
       templateName: t.TemplateName,
       displayName: t.DisplayName,
       isActive: t.IsActive,
-      mappingId: 0,
+      isGranted: 0,
       sequenceNo: 0,
     }));
   };
@@ -168,10 +168,10 @@ const DoctorDepartmentEmrTemplateMapping = () => {
         templateName: m.TemplateName,
         displayName: m.DisplayName,
         isActive: 1,
-        // response schema for this endpoint isn't visible in Swagger yet — mapping-row id name
-        // guessed as Id first since that's the confirmed convention on the sibling
-        // getEMRTemplateSectionMapping endpoint, falling back to MappingId
-        mappingId: m.Id ?? m.MappingId,
+        // CONFIRMED real response shape: IsGranted (0/1), not a mapping-row id — the earlier
+        // guessed Id/MappingId fields don't exist on this endpoint's response at all, which meant
+        // every row silently came back unchecked regardless of its actual granted state
+        isGranted: Number(m.IsGranted),
         sequenceNo: m.SequenceNo,
       }))
       .sort((a, b) => a.sequenceNo - b.sequenceNo);
@@ -181,7 +181,7 @@ const DoctorDepartmentEmrTemplateMapping = () => {
     const preChecked = new Set<number>();
 
     data.forEach((item, idx) => {
-      if (Number(item.mappingId) > 0) {
+      if (item.isGranted !== 0) {
         preChecked.add(idx);
       }
     });

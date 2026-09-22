@@ -11,6 +11,10 @@ interface TemplatePickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTemplate: (template: TemplateItem) => void;
+  /** which templates show up is scoped to this doctor's grants (see getTemplates) — same
+   * typeId=2/"Doctor Wise" convention DoctorDepartmentEmrTemplateMapping (the admin screen that
+   * grants templates per doctor) already uses */
+  doctorId?: number;
 }
 
 const ALL_CATEGORY_ID = 0;
@@ -20,7 +24,7 @@ const ALL_CATEGORY_ID = 0;
  * Templates panel. Both queries stay silent (see config/defaults/index.ts) so a network hiccup
  * degrades to an empty list ("No templates found") rather than a toast or crash.
  */
-const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerProps) => {
+const TemplatePicker = ({ isOpen, onClose, onSelectTemplate, doctorId }: TemplatePickerProps) => {
   const { fetchApi } = useGlobalApi();
   const [activeCategoryId, setActiveCategoryId] = useState<number>(ALL_CATEGORY_ID);
 
@@ -47,16 +51,32 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
     enabled: isOpen,
   });
 
+  // same doctor-granted intersect as ConsultationEmrSections' inline Templates dropdown — see that
+  // file's getTemplatesForDropdown for the full reasoning (GET_ALL_TEMPLATES has the metadata this
+  // screen's TemplateItem needs, GET_TEMPLATE_DEPARTMENT_MAPPING has the per-doctor granted/
+  // sequence info; neither alone is enough)
   const getTemplates = async (): Promise<TemplateItem[]> => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
-      {},
-      { params: { isActive: 1 } },
-      { component: "TemplatePicker", silent: true }
-    );
-    const raw: any[] = resp?.data ?? [];
-    return raw.map(t => ({
+    const [allResp, mappingResp] = await Promise.all([
+      fetchApi(
+        "GET",
+        ENDPOINTS.GET_ALL_TEMPLATES,
+        {},
+        { params: { isActive: 1 } },
+        { component: "TemplatePicker", silent: true }
+      ),
+      doctorId != null
+        ? fetchApi(
+            "GET",
+            ENDPOINTS.GET_TEMPLATE_DEPARTMENT_MAPPING,
+            {},
+            { params: { typeId: 2, relatedToId: doctorId } },
+            { component: "TemplatePicker", silent: true }
+          )
+        : Promise.resolve(null),
+    ]);
+
+    const allRaw: any[] = allResp?.data ?? [];
+    const allTemplates: TemplateItem[] = allRaw.map(t => ({
       templateId: t.TemplateId,
       templateName: t.TemplateName,
       displayName: t.DisplayName,
@@ -66,10 +86,28 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
       isMultipleEntryAllow: t.IsMultipleEntryAllow ?? 0,
       applicableTo: t.ApplicableTo ?? 0,
     }));
+
+    if (doctorId == null) return allTemplates;
+
+    const mappingRaw: any[] = mappingResp?.data ?? [];
+    const sequenceByGrantedTemplateId = new Map<number, number>();
+    mappingRaw.forEach(m => {
+      if (Number(m.IsGranted) !== 0) {
+        sequenceByGrantedTemplateId.set(Number(m.TemplateId), Number(m.SequenceNo) || 0);
+      }
+    });
+
+    return allTemplates
+      .filter(t => sequenceByGrantedTemplateId.has(t.templateId))
+      .sort(
+        (a, b) =>
+          (sequenceByGrantedTemplateId.get(a.templateId) ?? 0) -
+          (sequenceByGrantedTemplateId.get(b.templateId) ?? 0)
+      );
   };
 
   const { data: templates = [] } = useQuery<TemplateItem[]>({
-    queryKey: ["templatePickerTemplates"],
+    queryKey: ["templatePickerTemplates", doctorId],
     queryFn: getTemplates,
     enabled: isOpen,
   });

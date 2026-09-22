@@ -9,7 +9,6 @@ import {
   FileCheck,
   Gauge,
   HeartPulse,
-  LayoutTemplate,
   LogOut,
   LucideIcon,
   Printer,
@@ -203,7 +202,6 @@ const DoctorConsultationNew = () => {
 
   const loadAllergySectionForPatient = async (patientId: number) => {
     if (!patientId) return;
-
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_ALLERGY_DETAIL_LIST,
@@ -449,6 +447,10 @@ const DoctorConsultationNew = () => {
       ...Object.values(templateEntriesByTemplateId).flat(),
     ];
 
+    // one shared timestamp for every row in this save — lets a template saved more than once in
+    // the same visit be grouped/filtered by exact save time on GET, per explicit request
+    const savedAt = new Date().toISOString();
+
     const consultationHeadersData: ConsultationHeaderDataEntry[] = allEntries
       // headerId 0 is a synthetic frontend-only row (e.g. a radioScoreGroup section's aggregate
       // "Total Score", card-group's masterless-group fallback) — no such header exists in Header
@@ -464,6 +466,7 @@ const DoctorConsultationNew = () => {
         // templateId — see TemplateFillerModal.handleApply, which stamps this onto every entry
         templateId: e.templateId ?? 0,
         headerValue: JSON.stringify(e.value),
+        createdOn: savedAt,
       }));
 
     // only vitals the doctor actually typed a value into — an empty chip means "not recorded",
@@ -1040,7 +1043,7 @@ const DoctorConsultationNew = () => {
                           <Upload size={14} />
                           Upload Document
                         </button>
-                        <button
+                        {/* <button
                           type="button"
                           onClick={() => setShowTemplatePicker(true)}
                           disabled={effectiveFileClosed}
@@ -1048,7 +1051,7 @@ const DoctorConsultationNew = () => {
                         >
                           <LayoutTemplate size={14} />
                           Templates
-                        </button>
+                        </button> */}
                         <button
                           type="button"
                           onClick={() => {
@@ -1365,6 +1368,7 @@ const DoctorConsultationNew = () => {
           setShowTemplatePicker(false);
           setSelectedTemplateForFill(template);
         }}
+        doctorId={selectedPatient?.DoctorId}
       />
       <TemplateFillerModal
         isOpen={selectedTemplateForFill != null}

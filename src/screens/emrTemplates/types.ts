@@ -63,7 +63,11 @@ type TemplateMappingTableItem = {
   templateName: string;
   displayName: string;
   isActive: number;
-  mappingId: number;
+  /** CONFIRMED via real getEMRTemplateDepartmentMapping response — 1 when this template is
+   * already granted for the searched type/relatedTo, 0 otherwise. Replaces an earlier guessed
+   * "mappingId" field (Id/MappingId) that endpoint's response never actually returns, which meant
+   * every row silently came back unchecked regardless of its real granted state. */
+  isGranted: number;
   sequenceNo: number;
 };
 

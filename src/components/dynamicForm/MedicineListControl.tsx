@@ -59,6 +59,10 @@ export interface MedicineListEntry {
   id: string;
   medicineName: string;
   serviceItemId?: string | number;
+  /** the medicine's generic/salt composition (e.g. "LIPOSOMAL AMPHOTERCIN B 50mg"), captured from
+   * the search result at add-time purely so PrintPreviewModal's Medicine List table can show it —
+   * this control's own add-medicine UI never displays it */
+  saltName?: string;
   isTapering: boolean;
   isVariableDose: boolean;
   favourite: boolean;
@@ -267,6 +271,10 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
   const [searchResults, setSearchResults] = useState<OptionSchema[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // option.key (serviceItemId/saltNameId) -> that result's saltName, captured alongside the
+  // search results so addMedicine can stamp it onto the new entry — kept out of OptionSchema
+  // itself since it's specific to this control, not a generic dropdown-option concept
+  const searchResultSaltNameByKeyRef = useRef<Map<string, string>>(new Map());
 
   // Dose master (from the "Dose Master" popup, e.g. "1-1-1") — DB-backed only, deliberately no
   // local/dummy fallback like the option lists below, since a fake pattern here wouldn't map to
@@ -338,11 +346,12 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
             { component: "MedicineListControl", silent: true }
           );
           const raw: Record<string, unknown>[] = Array.isArray(resp?.data) ? resp.data : [];
-          const mapped = raw.map(item => ({
-            label: String(item.SaltName ?? item.saltName ?? ""),
-            value: String(item.SaltName ?? item.saltName ?? ""),
-            key: String(item.SaltNameId ?? item.saltNameId ?? ""),
-          }));
+          const mapped = raw.map(item => {
+            const saltName = String(item.SaltName ?? item.saltName ?? "");
+            const key = String(item.SaltNameId ?? item.saltNameId ?? "");
+            if (key) searchResultSaltNameByKeyRef.current.set(key, saltName);
+            return { label: saltName, value: saltName, key };
+          });
           setSearchResults(mapped.length > 0 ? mapped : searchDummyMedicines(q));
         } else {
           const resp = await fetchApi(
@@ -353,11 +362,22 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
             { component: "MedicineListControl", silent: true }
           );
           const raw: Record<string, unknown>[] = Array.isArray(resp?.data) ? resp.data : [];
-          const mapped = raw.map(item => ({
-            label: String(item.name ?? ""),
-            value: String(item.name ?? ""),
-            key: String(item.serviceItemId ?? ""),
-          }));
+          const mapped = raw.map(item => {
+            const key = String(item.serviceItemId ?? "");
+            // saltName: confirmed present on GET_SERVICE_ITEM_LIST rows (a medicine's generic/
+            // salt composition, e.g. "LIPOSOMAL AMPHOTERCIN B 50mg") — captured here purely for
+            // print (PrintPreviewModal's Medicine List table); the live add-medicine UI never
+            // displays it, matching how this was asked for.
+            // trim stray leading/trailing quote characters — seen in real data (e.g.
+            // "\"CIPROFLOXACIN (500MG)" for ZERODOL SP), presumably a backend data-entry glitch;
+            // printing that literal orphaned quote mark would look broken on a prescription
+            const saltName = String(item.saltName ?? item.SaltName ?? "")
+              .trim()
+              .replace(/^"+|"+$/g, "")
+              .trim();
+            if (key && saltName) searchResultSaltNameByKeyRef.current.set(key, saltName);
+            return { label: String(item.name ?? ""), value: String(item.name ?? ""), key };
+          });
           // no real "medicine" catalog rows yet for this query — fall back to dummy data so the
           // add/search flow stays testable, never used once the backend actually returns matches
           setSearchResults(mapped.length > 0 ? mapped : searchDummyMedicines(q));
@@ -386,6 +406,7 @@ const MedicineListControl = ({ schema, value, onChange }: MedicineListControlPro
       id: safeRandomUUID(),
       medicineName: name,
       serviceItemId: option.key,
+      saltName: option.key ? searchResultSaltNameByKeyRef.current.get(String(option.key)) : undefined,
       isTapering: isTaperingMode,
       isVariableDose: false,
       favourite: false,
