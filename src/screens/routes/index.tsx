@@ -34,7 +34,6 @@ import InvestigationInterpretationTemplate from "../investigationInterpretationT
 import InvestigationObservationMapping from "../investigationObservationMapping";
 import IPDAdmission from "../ipdAdmission";
 import IpdBilling from "../ipdBilling";
-import IpdBillingDashboard from "../ipdBillingDashboard";
 import IpdPackageMaster from "../ipdPackageMaster";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
@@ -44,6 +43,7 @@ import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
 import MicroReportMaster from "../microReportMaster";
 import MicroResultEntry from "../microResultEntry";
+import MisDashboard from "../misDashboard";
 import MrdLocationMaster from "../mrdLocation";
 import NavigationPanel from "../navigationPanel";
 import OpdAppointment from "../opdAppointment";
@@ -81,7 +81,6 @@ import VitalMaster from "../vitalmaster";
 import WriteOff from "../writeOff";
 import WriteOffApproval from "../writeOffApproval";
 import WriteOffGeneration from "../writeOffGeneration";
-
 export const authorizedRouteMap: Record<string, React.ReactNode> = {
   dashboard: <Dashboard />,
   "role-master": <RoleMaster />,
@@ -165,5 +164,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "surgery-master": <SurgeryMaster />,
   "ipd-package-master": <IpdPackageMaster />,
   "discharge-process-master": <DischargeProcessMaster />,
-  "ipd-billing-dashboard": <IpdBillingDashboard />,
+  "mis-dashboard": <MisDashboard />,
 };
