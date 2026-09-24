@@ -2,8 +2,6 @@ import CustomDatePicker from "../../../components/customDateTimeInput/index";
 import InputField from "../../../components/CustomInputField";
 
 const SurgeryOrder = ({ patient }) => {
-  console.log("patient", patient);
-
   // Replace these with your API data later
   const surgeryList = [];
   const surgeryChargesList = [];

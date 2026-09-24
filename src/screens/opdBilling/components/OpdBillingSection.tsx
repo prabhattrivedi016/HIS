@@ -582,6 +582,7 @@ const OpdBillingSection = ({
                                     ? "disabled-input-field cursor-not-allowed"
                                     : "input-field"
                                 }`}
+                                maxLength={2}
                                 value={getQtyDisplayValue(idx, item, isQtyFixed)}
                                 onChange={e => applyQtyDraft(idx, e.target.value, isQtyFixed)}
                                 onFocus={e => {
@@ -606,6 +607,7 @@ const OpdBillingSection = ({
                               <input
                                 value={item?.rate ?? 0}
                                 onChange={e => rateChangeHandler(e, idx)}
+                                maxLength={8}
                                 className={`max-w-20 max-h-10 ${
                                   item?.isRateEditable === 1
                                     ? "input-field "
@@ -622,6 +624,7 @@ const OpdBillingSection = ({
                                     : "input-field max-w-20 max-h-10"
                                 }`}
                                 value={item?.discountPer ?? 0}
+                                maxLength={3}
                                 onChange={e => discountPercentageChangeHandler(e, idx)}
                                 disabled={
                                   isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1
@@ -636,6 +639,7 @@ const OpdBillingSection = ({
                                     : "input-field max-w-20 max-h-10"
                                 }`}
                                 value={item?.dis ?? 0}
+                                maxLength={8}
                                 onChange={e => discountChangeHandler(e, idx)}
                                 disabled={
                                   isDiscountLocked || Number(item?.isDisabledItem ?? 0) === 1

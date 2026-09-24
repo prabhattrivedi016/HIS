@@ -31,10 +31,7 @@ const Navbar = () => {
     <Router basename="/GWSNHIS">
       <Routes>
         {/* Public Route */}
-        <Route
-          path="/"
-          element={canAccessApp ? <Navigate to="/dashboard" replace /> : <Login />}
-        />
+        <Route path="/" element={canAccessApp ? <Navigate to="/dashboard" replace /> : <Login />} />
 
         {/* Print Routes (Protected but no Sidebar layout) */}
         <Route

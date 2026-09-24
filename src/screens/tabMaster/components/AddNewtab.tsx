@@ -176,7 +176,6 @@ const AddNewtab = ({ isOpen, onClose, data, onSuccess }: AddNewTabProps) => {
             i?.iconClass?.trim().toLowerCase() === data.IconClass?.trim().toLowerCase())
       ) ?? null;
 
-    console.log("matched icon on reset", icon);
     setSelectedIcon(icon);
 
     reset({

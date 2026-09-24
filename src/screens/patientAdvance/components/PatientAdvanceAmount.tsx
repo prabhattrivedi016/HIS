@@ -116,6 +116,7 @@ const PatientAdvanceAmount = ({
                 value={patientAdvanceAmount > 0 ? String(patientAdvanceAmount) : ""}
                 onChange={advanceAmountChangeHandler}
                 onInput={allowOnlyNumbers}
+                maxLength={8}
               />
             </InputField>
           </div>

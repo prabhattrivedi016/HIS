@@ -1,4 +1,4 @@
-import { BillingDetailsHandle, BillingValuesItem } from "@/components/BillingDetails/types";
+import { BillingDetailsHandle } from "@/components/BillingDetails/types";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
@@ -7,14 +7,10 @@ import CommentIconButton from "@/components/globalButtons/CommentIconButton";
 import ViewIconButton from "@/components/globalButtons/ViewIconButton";
 import InputFieldModal from "@/components/inputFieldModal";
 import IpdMainBillReceipt from "@/components/reportTemplates/IpdMainBillReceipt";
-import IpdMainBillWithAdvanceReceipt from "@/components/reportTemplates/IpdMainBillWithAdvanceReceipt";
-import IpdSupplementaryBill from "@/components/reportTemplates/IpdSupplementaryBill";
 import { ENDPOINTS } from "@/config/defaults";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { PaymentModeItem } from "@/screens/opdBilling/types";
 import { openPatientAdvanceReceiptInNewTab } from "@/screens/patientAdvance/utils/patientAdvanceReceiptPrint";
-import { useAppSelector } from "@/store/hooks";
 import { useAssignBranchRight } from "@/store/useAssignBranchRight";
 import { OptionItem, SelectItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
@@ -25,9 +21,7 @@ import Select from "react-select";
 import {
   CategoryItem,
   DoctorItem,
-  IpdPatientAdvancePaymentModeItem,
   IpdPatientItem,
-  MainBillWithPatientAdvanceItem,
   PatientDetailsMainBillItem,
   ServiceItemList,
   ServiceTableItem,
@@ -40,15 +34,11 @@ import ServiceViewPopup from "./ServiceViewDetails";
 const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const accessRights = useAppSelector(state => state.accessRights.accessRights);
-
-  const canPerformCaseBilling = Number(accessRights?.CanPerformCaseBillingForIPDPatient);
-
   const roleId = useContext(RoleContext)?.roleId ?? 0;
 
   const { rights: branchRights } = useAssignBranchRight();
-  const isIPDCaseBilling = Number(branchRights?.IsIPDCaseBillingRequired);
   const isPerformingDoctor = Number(branchRights?.IsPerformingDoctorEnabled);
+  const isQtyFixed = true;
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(12);
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number>(0);
@@ -67,70 +57,18 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [selectedDoctor, setSelectedDoctor] = useState<SelectItem | null>(null);
 
-  const [openPopup, setOpenPopup] = useState<boolean>(false);
-  const [renderPopup, setRenderPopup] = useState<boolean>(false);
-
   const [openShowRemarkPopup, setOpenShowRemarkPopup] = useState<boolean>(false);
   const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
   const [selectedServiceRemark, setSelectedServiceRemark] = useState<ServiceTableItem | null>(null);
   const [selectedRemarkIndex, setSelectedRemarkIndex] = useState<number | null>(null);
 
-  const [showBillingDetailsForm, setShowBillingDetailsForm] = useState<boolean>(false);
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
-  const [billingValues, setBillingValues] = useState<BillingValuesItem>({
-    grossBillAmount: 0,
-    totalDiscPerOnBill: 0,
-    totalDiscAmtOnBill: 0,
-    roundOff: 0,
-    netAmount: 0,
-    balanceAmount: 0,
-    discApprovedById: 0,
-    discApprovedName: "",
-    discountReason: "",
-    remarks: "",
-  });
-
-  const billingPaymentDetails = useMemo(() => {
-    const grossBillAmount = serviceDataTableItem.reduce(
-      (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
-      0
-    );
-    const totalDiscAmtOnBill = serviceDataTableItem.reduce((sum, item) => sum + (item.dis ?? 0), 0);
-    const totalDiscPerOnBill =
-      grossBillAmount > 0 ? (totalDiscAmtOnBill / grossBillAmount) * 100 : 0;
-    const netAmount = Math.round(grossBillAmount - totalDiscAmtOnBill);
-
-    return {
-      grossBillAmount,
-      totalDiscPerOnBill,
-      totalDiscAmtOnBill,
-      netAmount,
-    };
-  }, [serviceDataTableItem]);
 
   const [renderServiceViewPopup, setRenderServiceViewPopup] = useState<boolean>(false);
   const [openServiceViewPopup, setServiceViewPopup] = useState<boolean>(false);
 
-  const [patientReceiptDetails, setPatientReceiptDetails] = useState<any[]>([]);
-  const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
-  const [totalPaidAmount, setTotalPaidAmount] = useState<number>(0);
-  const [receiptFtid, setReceiptFtid] = useState<number | undefined>(undefined);
-  const [receiptIdState, setReceiptIdState] = useState<number | undefined>(undefined);
-
-  const billingTypeRef = useRef<"separateBill" | "mainBillWithAdvance" | "addInMainBill" | null>(
-    null
-  );
-
   // main bill details
   const [mainBillDetails, setMainBillDetails] = useState<PatientDetailsMainBillItem[]>([]);
-
-  // main bill with advance receipt details
-  const [mainBillWithAdvanceReceiptData, setMainBillWithAdvanceReceiptData] = useState<
-    MainBillWithPatientAdvanceItem[]
-  >([]);
-  const [mainBillWithAdvancePaymentModes, setMainBillWithAdvancePaymentModes] = useState<
-    IpdPatientAdvancePaymentModeItem[]
-  >([]);
 
   //   doctor
   const getDoctorByBranchId = async () => {
@@ -848,10 +786,6 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
   // fetch and print main bill receipt
   const fetchAndPrintMainBillReceipt = async (ftid: number) => {
     try {
-      setPatientReceiptDetails([]);
-      setMainBillWithAdvanceReceiptData([]);
-      setMainBillWithAdvancePaymentModes([]);
-
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_IPD_PATIENT_ORDER_DETAILS,
@@ -1054,8 +988,18 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                           <th className="table-th ">Disc</th>
                           <th className="table-th ">Net Amt</th>
                           <th className="table-th ">Remarks</th>
-                          <th className="table-th ">Auto Add</th>
-                          <th className="table-th ">Auto Existing Services</th>
+                          <th
+                            className="table-th "
+                            title="Automatically include future services in the package during billing, based on the package configuration."
+                          >
+                            Auto Add
+                          </th>
+                          <th
+                            className="table-th"
+                            title="Automatically include existing services in the package during billing, based on the package configuration"
+                          >
+                            Auto Existing Items
+                          </th>
                         </tr>
                       </thead>
 
@@ -1069,8 +1013,6 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                         )}
 
                         {serviceDataTableItem.map((item, idx: number) => {
-                          const isQtyFixed = [1, 3, 11].includes(Number(item?.categoryTypeId));
-
                           const rowBgClass =
                             Number(item?.rate ?? 0) === 0
                               ? "opd-zero-rate"
@@ -1149,6 +1091,7 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                                       e.currentTarget.blur();
                                     }
                                   }}
+                                  maxLength={2}
                                   disabled={isQtyFixed}
                                   readOnly={isQtyFixed}
                                 />
@@ -1163,6 +1106,7 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                                       : "disabled-input-field cursor-not-allowed"
                                   }`}
                                   disabled={item?.isRateEditable !== 1}
+                                  maxLength={8}
                                 />
                               </td>
                               <td className="table-td">
@@ -1172,6 +1116,7 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                                   onChange={e =>
                                     discountPercentageChangeHandler(idx, e.target.value)
                                   }
+                                  maxLength={3}
                                 />
                               </td>
                               <td className="table-td">
@@ -1179,6 +1124,7 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                                   className={`input-field max-w-20 max-h-10`}
                                   value={item?.dis ?? 0}
                                   onChange={e => discountChangeHandler(idx, e.target.value)}
+                                  maxLength={6}
                                 />
                               </td>
                               <td className="table-td input-field-error">
@@ -1267,32 +1213,11 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
 
       {/* hidden printable templates */}
       <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
-        {/* supplementary bill receipt */}
-        {patientReceiptDetails && patientReceiptDetails.length > 0 && (
-          <IpdSupplementaryBill
-            data={patientReceiptDetails}
-            printOnMount={false}
-            paymentModeList={paymentModeList}
-            paidAmt={totalPaidAmount}
-            ftid={receiptFtid}
-            receiptId={receiptIdState}
-          />
-        )}
-
         {/* main bill */}
         {mainBillDetails && mainBillDetails.length > 0 && (
           <div style={{ visibility: "hidden", position: "absolute", top: 0 }}>
             <IpdMainBillReceipt printOnMount={false} patientDetail={mainBillDetails} />
           </div>
-        )}
-
-        {/* main bill with advance receipt */}
-        {mainBillWithAdvanceReceiptData && mainBillWithAdvanceReceiptData.length > 0 && (
-          <IpdMainBillWithAdvanceReceipt
-            printOnMount={false}
-            patientDetails={mainBillWithAdvanceReceiptData}
-            paymentModeList={mainBillWithAdvancePaymentModes}
-          />
         )}
       </div>
       {loading && <CustomLoader isLoading={loading} />}

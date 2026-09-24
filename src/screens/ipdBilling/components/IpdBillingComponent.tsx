@@ -1483,6 +1483,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                       e.currentTarget.blur();
                                     }
                                   }}
+                                  maxLength={2}
                                   disabled={isQtyFixed}
                                   readOnly={isQtyFixed}
                                 />
@@ -1496,6 +1497,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                       ? "input-field "
                                       : "disabled-input-field cursor-not-allowed"
                                   }`}
+                                  maxLength={8}
                                   disabled={item?.isRateEditable !== 1}
                                 />
                               </td>
@@ -1506,6 +1508,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                   onChange={e =>
                                     discountPercentageChangeHandler(idx, e.target.value)
                                   }
+                                  maxLength={3}
                                 />
                               </td>
                               <td className="table-td">
@@ -1513,6 +1516,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                                   className={`${"input-field max-w-20 max-h-10"}`}
                                   value={item?.dis ?? 0}
                                   onChange={e => discountChangeHandler(idx, e.target.value)}
+                                  maxLength={6}
                                 />
                               </td>
                               <td className="table-td input-field-error">

@@ -496,3 +496,32 @@ export enum dischargeProcessType {
   ABSCONDED = "Absconded",
   DEATH = "Death",
 }
+
+export enum misDashbaordTabNames {
+  OVERVIEW = "Overview",
+  LABORATORY = "Laboratory",
+  PHARMACY = "Pharmacy",
+  RADIOLOGY = "Radiology",
+  TPA_MANAGEMENT = "TPA Management",
+  QUALITY_CONTROL = "Quality Control",
+  REVENUE = "Revenue",
+  TAT_ANALYSIS = "TAT Analysis",
+  DOCTOR_WISE = "Doctor Wise",
+  PATIENT_WISE = "Patient Wise",
+  DETAILED_REPORTS = "Detailed Reports",
+}
+
+export const misDashboardTabs = [
+  "Overview",
+  "Laboratory",
+  "Pharmacy",
+  "Radiology",
+  "TPA Management",
+  "Quality Control",
+  "Revenue",
+  "TAT Analysis",
+  "Doctor Wise",
+  "Patient Wise",
+  "Inventory",
+  "Detailed Reports",
+];

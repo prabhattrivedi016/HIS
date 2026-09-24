@@ -25,7 +25,6 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
       {},
       { params: { branchId, typeId, userId } }
     );
-    console.log("response of discharge process", response?.data);
 
     setFilteredData(response?.data ?? []);
     setDischargeProcessData(response?.data ?? []);
@@ -182,7 +181,7 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
               {/* SEARCH */}
               <th className="table-search-header">
                 <input
-                  className="table-search-input input-field"
+                  className="table-search-input input-field mt-2"
                   placeholder="Search discharge process"
                   onChange={onSearchHandler}
                 />

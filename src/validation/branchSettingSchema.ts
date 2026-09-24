@@ -6,10 +6,9 @@ export const branchSettingSchema = yup.object().shape({
   defaultStateId: yup.number().required("State is required").min(1, "State is required"),
   defaultDistrictId: yup.number().required("District is required").min(1, "District is required"),
   defaultCityId: yup.number().required("City is required").min(1, "City is required"),
-  defaultInsuranceCompanyId: yup
-    .number()
-    .required("Insurance company is required")
-    .min(1, "Insurance company is required"),
+  defaultInsuranceCompanyId: yup.number().nullable(),
+  // .required("Insurance company is required")
+  // .min(1, "Insurance company is required"),
   defaultCorporateId: yup
     .number()
     .required("Corporate is required")

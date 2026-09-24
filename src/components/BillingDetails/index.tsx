@@ -1064,6 +1064,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                   onInput={allowOnlyNumbers}
                   onChange={discountAmountChangeHandler}
                   disabled={isServiceDiscountApplied || disableDiscountEditing}
+                  maxLength={8}
                 />
               </InputField>
 
@@ -1083,6 +1084,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                   value={billingValues?.netAmount ?? 0}
                   disabled={true}
                   readOnly
+                  maxLength={10}
                 />
               </InputField>
 
@@ -1092,6 +1094,7 @@ const BillingDetails = forwardRef<BillingDetailsHandle, BillingDetailsProps>(
                   value={billingValues?.balanceAmount ?? 0}
                   readOnly
                   disabled={true}
+                  maxLength={10}
                 />
               </InputField>
 

@@ -37,8 +37,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)! ?? {};
 
-  console.log("updatedIpdPatientDetails from discharge process", updatedIpdPatientDetails);
-
   const dischargeProcessTypeList = usePickMaster("DischargeType")?.pickMasterValue ?? [];
 
   const [isDischargeInitiated, setIsDischargeInitiated] = useState(false);
@@ -406,10 +404,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const completedSteps = useMemo(() => {
     return steps.filter(step => Number(step?.IsCompleted) === 1).length;
   }, [steps]);
-
-  console.log("steps", steps);
-
-  console.log("completedSteps", completedSteps);
 
   // current step
 

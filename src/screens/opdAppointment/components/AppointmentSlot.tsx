@@ -98,7 +98,6 @@ const AppointmentSlot = ({
 
     appointmentLists.filter((slot: SlotListItem) => {
       const key = slot.AppointmentDate;
-      console.log("key", key);
 
       if (!groups[key]) {
         groups[key] = [];

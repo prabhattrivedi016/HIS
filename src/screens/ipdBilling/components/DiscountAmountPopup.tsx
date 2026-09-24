@@ -110,6 +110,7 @@ const DiscountAmountPopup = ({
             onInput={allowOnlyNumbers}
             onChange={inputChangeHandler}
             value={discAmtValue}
+            maxLength={8}
           />
         </InputField>
 

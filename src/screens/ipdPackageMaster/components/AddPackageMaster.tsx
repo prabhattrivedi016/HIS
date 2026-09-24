@@ -68,7 +68,7 @@ const AddPackageMaster = ({
 
   const [localPackageServices, setLocalPackageServices] = useState<PackageSetupItem[]>([]);
 
-  const [limitTypeId, setLimitTypeId] = useState<number>(0);
+  const [limitTypeId, setLimitTypeId] = useState<number>(1);
   const [limitTypeValue, setLimitTypeValue] = useState<string>("");
   const [limitInputValue, setLimitInputValue] = useState<string>("");
 
@@ -83,6 +83,8 @@ const AddPackageMaster = ({
   const [selectedQty, setSelectedQty] = useState<number>(1);
 
   const [packageDetailsList, setPackageDetailsList] = useState<PackageDetailsItem[]>([]);
+
+  const [copyServiceNameList, setCopyServiceNameList] = useState<ServiceTableItem[]>([]);
 
   // useForm Hook setup with Yup Schema validation
   const {
@@ -257,8 +259,7 @@ const AddPackageMaster = ({
       {},
       {
         params: {
-          categoryTypeIds:
-            categoryType === 11 ? "1,3,4,5,8" : categoryType === 12 ? "1,2,3,4,5,8,9,10" : 0,
+          categoryTypeIds: "2,3,4,5,8,10",
         },
       },
       { component: "AddPackageMaster" }
@@ -390,12 +391,12 @@ const AddPackageMaster = ({
   }, [searchCategoryList]);
 
   // package details
-  const getPackageDetails = async () => {
+  const getPackageDetails = async (packageId: number = 0) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_IPD_PACKAGE_SETUP_MAPPING,
       {},
-      { params: { packageId: itemValue?.serviceItemId } },
+      { params: { packageId: packageId > 0 ? packageId : itemValue?.serviceItemId } },
       { component: "AddPackageMaster" }
     );
 
@@ -647,8 +648,6 @@ const AddPackageMaster = ({
     enabled: packageSelectSubCategoryId > 0,
   });
 
-  console.log("searchSubSubCategoryList", searchSubSubCategoryList);
-
   const searchSubSubCategorySelectOption = useMemo(() => {
     return (
       searchSubSubCategoryList?.map((d: SubSubCategoryItem) => ({
@@ -747,28 +746,80 @@ const AddPackageMaster = ({
   // limit type select handler
   const limitTypeSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
+
+    // Reset limit whenever limit type changes
+    setLimitInputValue("");
+
     if (value === 1) {
       setLimitTypeId(1);
       setLimitTypeValue("Amount Wise");
     } else if (value === 2) {
       setLimitTypeId(2);
       setLimitTypeValue("Percentage Wise");
+    } else {
+      setLimitTypeId(0);
+      setLimitTypeValue("");
     }
   };
 
-  // limit value handler
   const limitInputValueHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // Allow only numbers
+    value = value.replace(/\D/g, "");
+
+    // Empty value
+    if (value === "") {
+      setLimitInputValue("");
+      return;
+    }
+
+    const numericValue = Number(value);
+
+    // Percentage Wise
+    if (Number(limitTypeId) === 2 && numericValue > 100) {
+      setLimitInputValue("");
+      showWarning("Percentage limit cannot be greater than 100");
+      return;
+    }
+
+    setLimitInputValue(value);
+  };
+  // service item list
+  const getServiceItemList = async (
+    categoryId: number,
+    subCategoryId: number,
+    subSubCategoryId: number,
+    serviceName: string
+  ) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      {
+        params: {
+          categoryId,
+          subCategoryId,
+          subSubCategoryId,
+          serviceName,
+          categoryTypeId: "12",
+          isActive: 1,
+        },
+      },
+      { component: "IpdPackageMaster" }
+    );
+    setCopyServiceNameList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getServiceItemList(0, 0, 0, "");
+  }, []);
+
+  // copy package select handler
+  const copyPackageSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value);
-    if (limitTypeId === 2) {
-      if (value > 100) {
-        showWarning("Limit value should be less than 100");
-        setLimitInputValue("100");
-        return;
-      }
-    }
-    if (value > 0) {
-      setLimitInputValue(String(value));
-    }
+    if (!value) return;
+    getPackageDetails(value);
   };
 
   return (
@@ -886,6 +937,9 @@ const AddPackageMaster = ({
                 />
               )}
             />
+            {errors.validityStartsFrom && (
+              <p className="input-field-error">{errors.validityStartsFrom.message}</p>
+            )}
           </InputField>
 
           <InputField label="Expires On">
@@ -899,6 +953,9 @@ const AddPackageMaster = ({
                 />
               )}
             />
+            {errors.validityEndsOn && (
+              <p className="input-field-error">{errors.validityEndsOn.message}</p>
+            )}
           </InputField>
 
           <InputField label="Package Duration Days">
@@ -909,11 +966,36 @@ const AddPackageMaster = ({
               placeholder="Enter package duration days"
               onInput={allowOnlyNumbers}
             />
+            {errors.packageDurationDays && (
+              <p className="input-field-error">{errors.packageDurationDays.message}</p>
+            )}
           </InputField>
         </div>
+        {/* search package */}
         <div className=" card m-1 -mt-3">
+          {!isEdit ? (
+            <div className="flex items-start justify-between gap-4 ">
+              {/* New Package */}
+              <h4 className="text-lg font-medium"> Package Services</h4>
+
+              {/* Copy Package */}
+              <div className="w-70">
+                <InputField>
+                  <select className="input-field" onChange={copyPackageSelectHandler}>
+                    <option value={0}>-- Select package to Copy --</option>
+                    {copyServiceNameList.map(item => (
+                      <option value={item.serviceItemId}>{item?.name}</option>
+                    ))}
+                  </select>
+                </InputField>
+              </div>
+            </div>
+          ) : (
+            <></>
+          )}
+
           <div className=" form-grid-4 ">
-            <InputField label="Search Category">
+            <InputField label="Category" required>
               <select
                 className="input-field"
                 value={selectedSearchCategoryId}
@@ -928,7 +1010,7 @@ const AddPackageMaster = ({
               </select>
             </InputField>
 
-            <InputField label="Search Sub Category">
+            <InputField label="Sub Category">
               <Select
                 value={packageSelectSubCategoryValue}
                 options={searchSubCategorySelectOption}
@@ -942,7 +1024,7 @@ const AddPackageMaster = ({
               />
             </InputField>
 
-            <InputField label="Search Sub Sub Category">
+            <InputField label="Sub Sub Category">
               <Select
                 value={packageSelectSubSubCategoryValue}
                 options={searchSubSubCategorySelectOption}
@@ -992,7 +1074,7 @@ const AddPackageMaster = ({
             </InputField>
 
             <InputField label="Limit Type" required>
-              <select className="input-field" onChange={limitTypeSelectHandler}>
+              <select className="input-field" value={limitTypeId} onChange={limitTypeSelectHandler}>
                 <option>--Select--</option>
                 <option value={1}>Amount Wise</option>
                 <option value={2}>Percentage Wise</option>
@@ -1004,16 +1086,17 @@ const AddPackageMaster = ({
                 className="input-field"
                 placeholder="Enter limit value"
                 onInput={allowOnlyNumbers}
+                value={limitInputValue}
                 onChange={limitInputValueHandler}
+                maxLength={limitTypeId === 2 ? 3 : 10}
               />
             </InputField>
-            <InputField label="Qty">
+            <InputField label="Service Quantity">
               <input
                 type="text"
                 className="input-field"
                 value={selectedQty}
                 onChange={e => setSelectedQty(Number(e.target.value))}
-                min={1}
                 onInput={allowOnlyNumbers}
               />
             </InputField>
@@ -1033,11 +1116,11 @@ const AddPackageMaster = ({
                 <thead className="table-head">
                   <tr>
                     <th className="table-th">#</th>
-                    <th className="table-th">Search Category</th>
-                    <th className="table-th">Search Sub Category</th>
-                    <th className="table-th">Search Sub Sub Category</th>
-                    <th className="table-th">Service Category</th>
+                    <th className="table-th">Category</th>
+                    <th className="table-th">Sub Category</th>
+                    <th className="table-th">Sub Sub Category</th>
                     <th className="table-th">Service Name</th>
+
                     <th className="table-th">Quantity</th>
 
                     <th className="table-th">Limit Type</th>
@@ -1060,9 +1143,9 @@ const AddPackageMaster = ({
                         <td className="table-td">{item?.categoryName ?? "-"}</td>
                         <td className="table-td">{item?.subCategoryName ?? "-"}</td>
                         <td className="table-td">{item?.subSubCategoryName ?? "-"}</td>
-                        <td className="table-td">{item?.categoryName ?? "-"}</td>
-                        <td className="table-td">{item?.serviceName ?? "-"}</td>
-                        <td className="table-td">{item?.serviceQty ?? "-"}</td>
+                        <td className="table-td mt-5">{item?.serviceName ?? "-"}</td>
+
+                        <td className="table-td ml-5">{item?.serviceQty ?? "-"}</td>
                         <td className="table-td">{item?.limitType ?? "-"}</td>
                         <td className="table-td">{item?.limit ?? 0}</td>
                         <td>

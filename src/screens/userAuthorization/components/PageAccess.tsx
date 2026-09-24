@@ -192,7 +192,7 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
                 <input
                   onChange={onSearchHandler}
                   placeholder="Search page name"
-                  className="table-search-input input-field"
+                  className="table-search-input input-field mt-2"
                 />
               </th>
 

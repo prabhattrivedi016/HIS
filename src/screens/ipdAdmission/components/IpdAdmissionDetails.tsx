@@ -201,8 +201,6 @@ const IpdAdmissionDetails = forwardRef<IpdAdmissionDetailsHandle, IpdAdmissionDe
 
     // corporate list
     const getCorporateList = async (insuranceCompanyId: number) => {
-      console.log("insuranceCompanyId", insuranceCompanyId);
-
       const resp = await fetchApi(
         "GET",
         ENDPOINTS.GET_CORPORATE_LIST_BY_BRANCH_ID_AND_INSURANCE_COMPANY_ID,

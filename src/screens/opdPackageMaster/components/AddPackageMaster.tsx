@@ -1,6 +1,5 @@
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
-import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import RemoveIconButton from "@/components/globalButtons/RemoveIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
@@ -77,6 +76,8 @@ const AddPackageMaster = ({
   const [selectedServiceName, setSelectedServiceName] = useState<string>("");
   const [selectedQty, setSelectedQty] = useState<number>(1);
 
+  const [copyServiceNameList, setCopyServiceNameList] = useState<ServiceTableItem[]>([]);
+
   // useForm Hook setup with Yup Schema validation
   const {
     register,
@@ -103,6 +104,9 @@ const AddPackageMaster = ({
       isActive: 1,
     },
   });
+
+  const isEdit = Boolean(watch("packageId"));
+  const buttonTitle = isEdit ? "Update" : "Create";
 
   // category list
   const getCategoryList = async () => {
@@ -439,20 +443,24 @@ const AddPackageMaster = ({
   }, [searchCategoryList]);
 
   // package details
-  const getPackageDetails = async () => {
+  const getPackageDetails = async (packageId: number = 0) => {
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PACKAGE_ALL_DETAILS,
       {},
-      { params: { packageId: itemValue?.serviceItemId } },
+      { params: { packageId: packageId > 0 ? packageId : itemValue?.serviceItemId } },
       { component: "AddPackageMaster" }
     );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No data found");
+      return;
+    }
     return resp?.data ?? [];
   };
 
   const { data: packageDetailsList } = useQuery({
     queryKey: ["getPackageDetails", itemValue?.serviceItemId],
-    queryFn: getPackageDetails,
+    queryFn: () => getPackageDetails(0),
     enabled: !!itemValue?.serviceItemId,
   });
 
@@ -665,7 +673,6 @@ const AddPackageMaster = ({
       { params: { isActive: 1 } },
       { component: "AddPackageMaster" }
     );
-    console.log("resp", resp?.data);
     return resp?.data ?? [];
   };
   const { data: rateList } = useQuery({
@@ -718,12 +725,54 @@ const AddPackageMaster = ({
     }
   };
 
+  // copy package dropdown
+
+  const getServiceItemList = async (
+    categoryId: number,
+    subCategoryId: number,
+    subSubCategoryId: number,
+    serviceName: string
+  ) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      {
+        params: {
+          categoryId,
+          subCategoryId,
+          subSubCategoryId,
+          serviceName,
+          categoryTypeId: "11",
+          isActive: 1,
+        },
+      },
+      { component: "IpdPackageMaster" }
+    );
+    setCopyServiceNameList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getServiceItemList(0, 0, 0, "");
+  }, []);
+
+  // copy package select handler
+  const copyPackageSelectHandler = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    if (!value) return;
+    const details = await getPackageDetails(value);
+    if (details && details.length > 0) {
+      setLocalPackageServices(details);
+    }
+  };
+
   return (
     <RightSideDrawer
       isOpen={isOpen}
       onClose={onClose}
       buttonTitle={itemValue ? "Update Package" : "Add New Package"}
-      className=" lg:min-w-280 p-0.5"
+      className=" lg:min-w-300 "
+      isLoading={loading}
     >
       <form onSubmit={handleSubmit(onSubmitHandler)}>
         <div className="card form-grid-4 m-1">
@@ -836,6 +885,9 @@ const AddPackageMaster = ({
                 />
               )}
             />
+            {errors.validityStartsFrom && (
+              <p className="input-field-error">{errors.validityStartsFrom.message}</p>
+            )}
           </InputField>
 
           <InputField label="Expires On">
@@ -849,6 +901,9 @@ const AddPackageMaster = ({
                 />
               )}
             />
+            {errors.validityEndsOn && (
+              <p className="input-field-error">{errors.validityEndsOn.message}</p>
+            )}
           </InputField>
 
           <InputField label="Multiple Visit Allow">
@@ -891,6 +946,26 @@ const AddPackageMaster = ({
           </div>
         </div>
         <div className=" card m-1 -mt-3">
+          {!isEdit ? (
+            <div className="flex items-start justify-between gap-4 ">
+              {/* New Package */}
+              <h4 className="text-lg font-medium"> Package Services</h4>
+
+              {/* Copy Package */}
+              <div className="w-70">
+                <InputField>
+                  <select className="input-field" onChange={copyPackageSelectHandler}>
+                    <option value={0}>-- Select package to Copy --</option>
+                    {copyServiceNameList.map(item => (
+                      <option value={item.serviceItemId}>{item?.name}</option>
+                    ))}
+                  </select>
+                </InputField>
+              </div>
+            </div>
+          ) : (
+            <></>
+          )}
           <div className=" form-grid-4 ">
             <InputField label="Search Category">
               <select
@@ -1025,7 +1100,7 @@ const AddPackageMaster = ({
                 </div>
               </div>
               <div className="form-actions-responsive mt-2">
-                <SubmitButton label="Update" type="submit" />
+                <SubmitButton label={buttonTitle} type="submit" />
               </div>
             </div>
           </div>
@@ -1054,8 +1129,6 @@ const AddPackageMaster = ({
           onSubSubCategoryUpdate={refetchSubSubCategory}
         />
       )}
-
-      {!!loading && <CustomLoader isLoading={loading} />}
     </RightSideDrawer>
   );
 };

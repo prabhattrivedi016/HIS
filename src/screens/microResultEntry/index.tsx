@@ -199,7 +199,7 @@ const MicroResultEntry = () => {
               type="date"
               className="input-field"
               placeholder="Enter contact number "
-              value={currentDate}
+              defaultValue={currentDate}
               max={currentDate}
             />
           </InputField>
@@ -210,7 +210,7 @@ const MicroResultEntry = () => {
               className="input-field"
               placeholder="Enter contact number "
               max={currentDate}
-              value={currentDate}
+              defaultValue={currentDate}
             />
           </InputField>
 
@@ -296,7 +296,7 @@ const MicroResultEntry = () => {
               }`}
             >
               <BriefcaseMedical size={20} />
-              <span>{b} : 10</span>
+              <span> : 10</span>
             </button>
           );
         })}
@@ -367,24 +367,24 @@ const MicroResultEntry = () => {
       </div>
 
       {/*------------------------ report------------------------------ */}
-      {!!renderReport && <RadiologyReport isOpen={openReport} onClose={closeHandler} />}
+      {/* {!!renderReport && <RadiologyReport isOpen={openReport} onClose={closeHandler} />} */}
       {/* ------------------------info------------------------- */}
-      {!!renderInfo && (
+      {/* {!!renderInfo && (
         <PatientInvestigationDetails
           isOpen={openInfo}
           onClose={closeInfoHandler}
           data={selectedInfoData}
         />
-      )}
+      )} */}
 
       {/* --------------------remark----------------------------- */}
-      {!!renderRemark && (
+      {/* {!!renderRemark && (
         <RadiologyRemark
           isOpen={openRemark}
           onClose={closeRemarkHandler}
           data={selectedRemarkData}
         />
-      )}
+      )} */}
     </div>
   );
 };

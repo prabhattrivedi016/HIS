@@ -35,6 +35,11 @@ const DiscountPercentagePopup = ({
   //   input change handler
   const inputChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
+    if (value > 100) {
+      showWarning("Discount percentage cannot be more than 100%");
+      setDiscPerValue(0);
+      return;
+    }
     setDiscPerValue(value);
   };
 
@@ -82,7 +87,6 @@ const DiscountPercentagePopup = ({
       return;
     }
     const payload = createPayload();
-    console.log("payload in updateDiscPerHandler:", payload);
     setDiscPerValue(Number(discPerValue));
     const resp = await fetchApi(
       "PATCH",
@@ -110,6 +114,7 @@ const DiscountPercentagePopup = ({
             onInput={allowOnlyNumbers}
             onChange={inputChangeHandler}
             value={discPerValue}
+            maxLength={3}
           />
         </InputField>
 

@@ -47,7 +47,6 @@ const HeaderMaster = () => {
 
   const isDropdownLov = (dataTypeId: number) => {
     const selected = lovsList?.find((l: PickMasterItem) => Number(l?.key) === Number(dataTypeId));
-    console.log("LOV label:", selected?.value);
     return selected?.value?.toLowerCase() === "dropdown";
   };
 

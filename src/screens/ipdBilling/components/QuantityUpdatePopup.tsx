@@ -98,6 +98,7 @@ const QuantityUpdatePopup = ({
             onInput={allowOnlyNumbers}
             onChange={inputChangeHandler}
             value={qtyValue}
+            maxLength={2}
           />
         </InputField>
         <div className="flex justify-end gap-2 ">
