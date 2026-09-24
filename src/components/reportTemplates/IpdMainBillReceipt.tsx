@@ -72,7 +72,6 @@ export default function IpdMainBillReceipt({
   patientDetail: PatientDetailsMainBillItem[];
 }) {
   const patientDetails = patientDetail?.[0];
-  console.log("patientDetails data", patientDetail);
 
   const { loading, fetchApi } = useGlobalApi();
 

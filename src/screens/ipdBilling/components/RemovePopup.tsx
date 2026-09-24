@@ -19,8 +19,6 @@ const RemovePopup = ({ isOpen, onClose, selectedItems, refetch, onSuccess }: Rem
   const { loading, fetchApi } = useGlobalApi();
   const [cancelReason, setCancelReason] = useState("");
 
-  console.log("selectedItems", selectedItems);
-
   useEffect(() => {
     if (!isOpen) setCancelReason("");
   }, [isOpen]);

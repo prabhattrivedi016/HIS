@@ -91,6 +91,7 @@ const RatePopup = ({ isOpen, onClose, selectedItems, refetch }: RatePopupProps) 
             onInput={allowOnlyNumbers}
             onChange={inputChangeHandler}
             value={rateValue}
+            maxLength={8}
           />
         </InputField>
         <div className="flex justify-end gap-2 ">

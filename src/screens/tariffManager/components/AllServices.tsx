@@ -145,7 +145,6 @@ const AllServices = () => {
 
   //   category select handler
   const categorySelectHandler = async (option: SingleValue<SelectItem>) => {
-    console.log("option", option);
     if (!option) return;
     setSelectedCategory(option);
 
@@ -356,8 +355,9 @@ const AllServices = () => {
           <EditableCell
             value={row?.Rate ?? 0}
             field="Rate"
-            type="number"
+            type="text"
             onSave={(f, v) => updateRow(virtualRow.index, f, v)}
+            isRate={true}
           />
         </div>
 
@@ -367,6 +367,7 @@ const AllServices = () => {
             field="EmergencyCharges"
             type="number"
             onSave={(f, v) => updateRow(virtualRow.index, f, v)}
+            isRate={true}
           />
         </div>
 

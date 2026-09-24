@@ -35,6 +35,10 @@ const OpdPackageMaster = () => {
 
   const [selectedItem, setSelectedItem] = useState<ServiceTableItem | null>(null);
 
+  const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
+
+  const [serviceTableList, setServiceTableList] = useState<ServiceTableItem[]>([]);
+
   // category list
   const getCategoryList = async () => {
     const resp = await fetchApi(
@@ -44,13 +48,12 @@ const OpdPackageMaster = () => {
       // { params: { categoryTypeIds: "11,12" } }
       { params: { categoryTypeIds: "11" } }
     );
-    return resp?.data ?? [];
+    setCategoryList(resp?.data ?? []);
   };
 
-  const { data: categoryList = [] } = useQuery({
-    queryKey: ["getCategoryList"],
-    queryFn: getCategoryList,
-  });
+  useEffect(() => {
+    getCategoryList();
+  }, []);
 
   useEffect(() => {
     if (!categoryList?.length) {
@@ -197,7 +200,7 @@ const OpdPackageMaster = () => {
           subCategoryId,
           subSubCategoryId,
           serviceName,
-          categoryTypeId: "11,12",
+          categoryTypeId: "11",
           isActive: 1,
         },
       },
@@ -208,27 +211,21 @@ const OpdPackageMaster = () => {
       showWarning(resp?.message ?? "No data found");
       return;
     }
+    setServiceTableList(resp?.data ?? []);
     setShowTable(true);
-    return resp?.data ?? [];
   };
 
-  const { data: serviceTableList = [], refetch: refetchPackageList } = useQuery({
-    queryKey: [
-      "getServiceItemListForPackage",
-      selectedCategoryId,
-      selectedSubCategory,
-      selectedSubSubCategory,
-      debouncedServiceName,
-    ],
-    queryFn: () =>
-      getServiceItemList(
+  useEffect(() => {
+    const fetchServiceItemList = async () => {
+      await getServiceItemList(
         selectedCategoryId,
         Number(selectedSubCategory?.value ?? 0),
         Number(selectedSubSubCategory?.value ?? 0),
         debouncedServiceName
-      ),
-    enabled: selectedCategoryId > 0 || serviceName.trim().length > 2,
-  });
+      );
+    };
+    fetchServiceItemList();
+  }, [selectedCategoryId, selectedSubCategory, selectedSubSubCategory, debouncedServiceName]);
 
   // status update handler
   const statusUpdateHandler = async (item: ServiceTableItem) => {
@@ -413,7 +410,14 @@ const OpdPackageMaster = () => {
           isOpen={openAddPackageDrawer}
           onClose={closeAddPackageHandler}
           itemValue={selectedItem}
-          onSuccess={refetchPackageList}
+          onSuccess={() =>
+            getServiceItemList(
+              selectedCategoryId,
+              Number(selectedSubCategory?.value ?? 0),
+              Number(selectedSubSubCategory?.value ?? 0),
+              debouncedServiceName
+            )
+          }
         />
       ) : (
         <></>

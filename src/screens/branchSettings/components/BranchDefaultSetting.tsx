@@ -20,7 +20,6 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import Select, { SingleValue } from "react-select";
 import { InferType } from "yup";
-import { BranchDefaultSettingItem } from "../types";
 
 const defaultFormValues = {
   branchId: 0,
@@ -36,8 +35,12 @@ const toSelectOption = (
   label: string | undefined,
   value: number | null | undefined
 ): OptionItem | null => {
-  const numericValue = Number(value ?? 0);
-  if (!numericValue) return null;
+  if (value === null || value === undefined) return null;
+  const numericValue = Number(value);
+
+  // If numericValue is 0 and we don't have a label (e.g. not found in list), return null
+  // But if we have a label (e.g. "Cash" with ID 0), we should return it.
+  if (numericValue === 0 && !label) return null;
 
   return {
     label: label?.trim() || String(numericValue),
@@ -274,7 +277,7 @@ const BranchDefaultSetting = () => {
     setSelectedInsuranceCompany(option);
     setValue("defaultInsuranceCompanyId", Number(v));
     clearCorporateSelection();
-    if (v) {
+    if (v !== null && v !== undefined) {
       getCorporateName(Number(v), branchId);
     }
   };
@@ -282,7 +285,7 @@ const BranchDefaultSetting = () => {
   //   corporate list
   const getCorporateName = async (insuranceCompanyId: number, selectedBranchId?: number) => {
     const resolvedBranchId = Number(selectedBranchId ?? branchId ?? 0);
-    if (!insuranceCompanyId || !resolvedBranchId) {
+    if (!resolvedBranchId) {
       setCorporateList([]);
       return [] as DefaultCorporate[];
     }
@@ -339,19 +342,27 @@ const BranchDefaultSetting = () => {
 
     if (requestId !== loadRequestRef.current) return;
 
-    const branchValue = resp?.data?.[0] as BranchDefaultSettingItem | undefined;
-    if (!branchValue) {
+    const rawBranchValue = resp?.data?.[0] as Record<string, any> | undefined;
+    if (!rawBranchValue) {
       clearAllSelections();
       reset({ ...defaultFormValues, branchId: selectedBranchId });
       return;
     }
 
-    const countryId = Number(branchValue.defaultCountryId ?? 0);
-    const stateId = Number(branchValue.defaultStateId ?? 0);
-    const districtId = Number(branchValue.defaultDistrictId ?? 0);
-    const cityId = Number(branchValue.defaultCityId ?? 0);
-    const insuranceCompanyId = Number(branchValue.defaultInsuranceCompanyId ?? 0);
-    const corporateId = Number(branchValue.defaultCorporateId ?? 0);
+    const countryId = Number(
+      rawBranchValue.defaultCountryId ?? rawBranchValue.DefaultCountryId ?? 0
+    );
+    const stateId = Number(rawBranchValue.defaultStateId ?? rawBranchValue.DefaultStateId ?? 0);
+    const districtId = Number(
+      rawBranchValue.defaultDistrictId ?? rawBranchValue.DefaultDistrictId ?? 0
+    );
+    const cityId = Number(rawBranchValue.defaultCityId ?? rawBranchValue.DefaultCityId ?? 0);
+    const insuranceCompanyId = Number(
+      rawBranchValue.defaultInsuranceCompanyId ?? rawBranchValue.DefaultInsuranceCompanyId ?? 0
+    );
+    const corporateId = Number(
+      rawBranchValue.defaultCorporateId ?? rawBranchValue.DefaultCorporateId ?? 0
+    );
 
     reset({
       branchId: selectedBranchId,
@@ -404,9 +415,10 @@ const BranchDefaultSetting = () => {
     );
     setValue("defaultInsuranceCompanyId", insuranceCompanyId);
 
-    const loadedCorporateList = insuranceCompanyId
-      ? await getCorporateName(insuranceCompanyId, selectedBranchId)
-      : [];
+    const loadedCorporateList =
+      insuranceCompanyId !== null && insuranceCompanyId !== undefined
+        ? await getCorporateName(insuranceCompanyId, selectedBranchId)
+        : [];
     if (requestId !== loadRequestRef.current) return;
 
     const selectedCorporateItem = loadedCorporateList.find(

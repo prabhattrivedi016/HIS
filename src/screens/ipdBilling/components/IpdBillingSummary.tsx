@@ -809,7 +809,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
 
           {/* Deposit Details */}
 
-          <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3">
+          {/* <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3">
             <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-slate-100 ">
               Deposit Details
             </h4>
@@ -833,7 +833,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                 <span className="text-emerald-600 font-extrabold">9,000.00</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
       {/* FILTER POPUP */}

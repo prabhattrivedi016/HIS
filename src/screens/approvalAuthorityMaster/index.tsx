@@ -705,6 +705,7 @@ const ApprovalAuthorityMaster = () => {
                   onChange={amountUpToChangeHandler}
                   onBlur={() => void trigger("amountUpTo")}
                   onInput={allowOnlyNumbers}
+                  maxLength={8}
                 />
                 {errors.amountUpTo && (
                   <p className="input-field-error">{errors.amountUpTo.message}</p>

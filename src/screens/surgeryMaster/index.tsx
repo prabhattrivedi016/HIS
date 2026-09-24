@@ -46,7 +46,6 @@ const SurgeryMaster = () => {
 
   //   submit handler
   const onSubmit = async (formData: surgeryComponentFormData) => {
-    console.log("formData", formData);
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_SURGERY_COMPONENT_MASTER,
@@ -54,7 +53,6 @@ const SurgeryMaster = () => {
       {},
       { component: "SurgeryMaster" }
     );
-    console.log("resp", resp);
     if (!resp?.result) {
       showError(resp?.message ?? "Error while saving    data");
       return;
@@ -80,7 +78,6 @@ const SurgeryMaster = () => {
       { params: { isActive: 1 } },
       { component: "SurgeryMaster" }
     );
-    console.log("resp", resp?.data);
     return resp?.data ?? [];
   };
 
@@ -92,7 +89,6 @@ const SurgeryMaster = () => {
 
   // edit handler
   const editHandler = (item: SurgeryItem) => {
-    console.log("item", item);
     reset({
       componentId: Number(item?.ComponentId),
       componentName: String(item?.ComponentName),

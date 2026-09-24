@@ -15,8 +15,8 @@ export const addPackageMasterSchema = Yup.object().shape({
   isMultipleVisitAllow: Yup.number().nullable(),
   visitDuration: Yup.number().nullable(),
   visitDurationType: Yup.string().nullable(),
-  validityStartsFrom: Yup.string().nullable(),
-  validityEndsOn: Yup.string().nullable(),
+  validityStartsFrom: Yup.string().required("Start date is required"),
+  validityEndsOn: Yup.string().required("End date is required"),
   isActive: Yup.number().nullable(),
 });
 
@@ -37,11 +37,12 @@ export const ipdAddPackageMasterSchema = Yup.object().shape({
 
   code: Yup.string().min(1, "Package Code is required").required("Package Code is required"),
 
-  packageDurationDays: Yup.string().nullable(),
+  packageDurationDays: Yup.string()
+    .min(1, "Package duration is required")
+    .required("Package duration is required"),
 
-  validityStartsFrom: Yup.string().nullable(),
-
-  validityEndsOn: Yup.string().nullable(),
+  validityStartsFrom: Yup.string().required("Start date is required"),
+  validityEndsOn: Yup.string().required("End date is required"),
 
   isActive: Yup.number().nullable(),
 });

@@ -13,7 +13,6 @@ import { DoctorItem, IpdPatientItem, PreviousDoctorListItem } from "../types";
 
 const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
-  console.log("patient", patient);
 
   const [selectedPrimaryDoctor, setSelectedPrimaryDoctor] = useState<SelectItem | null>(null);
   const [selectedSecondaryDoctors, setSelectedSecondaryDoctors] = useState<readonly SelectItem[]>(

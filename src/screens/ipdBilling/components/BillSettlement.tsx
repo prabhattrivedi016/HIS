@@ -1,5 +1,6 @@
 import BillingDetails, { BillingDetailsHandle } from "@/components/BillingDetails";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
 import BillSettlementReceipt from "@/components/reportTemplates/BillSettlementReceipt";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
@@ -304,6 +305,7 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
                     onInput={allowOnlyNumbers}
                     value={billingDetailsPayload.amountValue ?? 0}
                     onChange={inputChangeHandler}
+                    maxLength={8}
                   />
                 </InputField>
 
@@ -361,6 +363,7 @@ const BillSettlement = ({ patient }: BillSettlementProps) => {
           />
         )}
       </div>
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

@@ -384,7 +384,7 @@ const UserAuthorization = () => {
                         <span className="table-title">Role Name</span>
 
                         <input
-                          className="table-search-input"
+                          className="table-search-input input-field"
                           placeholder="search role name"
                           onChange={onSearchHandler}
                         />

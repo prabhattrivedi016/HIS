@@ -9,6 +9,7 @@ import { useClickOutside } from "@/hooks/useClickOutside";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
+import { showError } from "@/utils/alert";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
@@ -43,6 +44,7 @@ const IpdBilling = () => {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
 
   const [activeTab, setActiveTab] = useState<TabNameItem | null>(null);
+  const [ipdPatientList, setIpdPatientList] = useState<IpdPatientItem[]>([]);
 
   // more actions
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
@@ -87,27 +89,22 @@ const IpdBilling = () => {
         component: "IpdBilling",
       }
     );
-
-    return resp?.data ?? [];
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while fetching ipd patient list");
+      return [];
+    }
+    setIpdPatientList(resp?.data ?? []);
   };
 
-  const { data: IpdPatientList = [] } = useQuery({
-    queryKey: [
-      "getTableDataList",
-      branchId,
-      searchQuery?.searchBy,
-      searchQuery?.searchValue,
-      searchQuery?.statusId,
-    ],
-    queryFn: () => getTableDataList(searchQuery),
-    enabled: !!branchId,
-  });
+  useEffect(() => {
+    getTableDataList(searchQuery);
+  }, [branchId, searchQuery]);
 
   // sync selected patient
   useEffect(() => {
     if (!selectedPatient) return;
 
-    const updatedPatient = IpdPatientList.find(
+    const updatedPatient = ipdPatientList.find(
       (item: IpdPatientItem) => item.PatientId === selectedPatient.PatientId
     );
 
@@ -115,7 +112,7 @@ const IpdBilling = () => {
       setSelectedPatient(updatedPatient);
       setUpdatedIpdPatientDetails(updatedPatient);
     }
-  }, [IpdPatientList]);
+  }, [ipdPatientList]);
 
   useEffect(() => {
     if (updatedIpdPatientDetails) {
@@ -535,12 +532,12 @@ const IpdBilling = () => {
               <div className="h-px bg-slate-100 my-1" />
 
               <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
-                {IpdPatientList.length === 0 ? (
+                {ipdPatientList.length === 0 ? (
                   <div className="text-center text-slate-400 py-10 text-xs font-medium">
                     No records found
                   </div>
                 ) : (
-                  IpdPatientList.map((item: IpdPatientItem) => {
+                  ipdPatientList.map((item: IpdPatientItem) => {
                     const isSelected =
                       selectedPatient !== null && selectedPatient.PatientId === item.PatientId;
 

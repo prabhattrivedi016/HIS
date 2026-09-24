@@ -70,7 +70,6 @@ const PatientDocumentMaster = () => {
 
   //  submit handler
   const submitHandler = async (payload: PatientDocumentFormItem) => {
-    console.log("payload", payload);
     if (!payload?.documentName) return;
 
     const resp = await fetchApi(

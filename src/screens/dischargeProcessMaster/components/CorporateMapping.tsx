@@ -148,7 +148,6 @@ const CorporateMapping = ({
 
   // remove corporate handler
   const removeCorporateHandler = (selectedItem: MappedCorporateItem) => {
-    console.log("selectedItem", selectedItem);
     setMappedCorporateLists(prev =>
       prev.filter(
         (corporate: MappedCorporateItem) =>

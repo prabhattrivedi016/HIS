@@ -42,30 +42,9 @@ export default defineConfig(({ mode }) => ({
 
     rollupOptions: {
       output: {
-        assetFileNames: "assets/RoleIcon/[name]-[hash][extname]",
-        chunkFileNames: "assets/RoleIcon/[name]-[hash].js",
-        entryFileNames: "assets/RoleIcon/[name]-[hash].js",
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("pdfmake")) {
-              return "vendor-pdfmake";
-            }
-            if (id.includes("html2canvas")) {
-              return "vendor-html2canvas";
-            }
-            if (id.includes("xlsx")) {
-              return "vendor-xlsx";
-            }
-            if (
-              id.includes("react/") ||
-              id.includes("react-dom/") ||
-              id.includes("react-router") ||
-              id.includes("@remix-run")
-            ) {
-              return "vendor-react";
-            }
-          }
-        },
+        assetFileNames: "assets/RoleIcon/[name][extname]",
+        chunkFileNames: "assets/RoleIcon/[name].js",
+        entryFileNames: "assets/RoleIcon/[name].js",
       },
     },
   },

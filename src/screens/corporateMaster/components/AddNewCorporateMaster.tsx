@@ -525,7 +525,6 @@ const AddNewCorporateMaster = ({
       isRegistrationChargeApplicable: Number(formData.isRegistrationChargeApplicable ?? 0),
       isCaseBillingApplicable: Number(formData.isCaseBillingApplicable ?? 0),
     };
-    console.log(payload, "payload");
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_CORPORATE_MASTER,

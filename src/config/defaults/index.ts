@@ -712,6 +712,9 @@ const ENDPOINTS = {
   GET_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/getDischargeProcessCorporateMapping",
   SAVE_DISCHARGE_PROCESS_CORPORATE_MAPPING: "Admin/saveDischargeProcessCorporateMapping",
   UPDATE_DISCHARGE_PROCESS_SEQUENCE: "Admin/updateDischargeProcessSequence",
+
+  // dashboard
+  GET_DASHBOARD_STATES: "Home/getDashBoardStates",
 };
 
 export { ENDPOINTS };
