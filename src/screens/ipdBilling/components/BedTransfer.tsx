@@ -1,17 +1,26 @@
+import { getUpdatedIpdPatientDetails } from "@/api/globalApiCall";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
+import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useContext, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useState } from "react";
 import { BillingTypeItem, IpdPatientItem, PreviousBedListItem, RoomItem } from "../types";
 
 const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
-  const { branchId } = useContext(BranchContext);
+  const branchId = useContext(BranchContext)?.branchId ?? 1;
+
+  const { setUpdatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
+
+  const [billingTypeList, setBillingTypeList] = useState<BillingTypeItem[]>([]);
+  const [availableBedStatus, setAvailableBedStatus] = useState({
+    status: "",
+    isResult: "",
+  });
 
   const [queryValues, setQueryValues] = useState<{
     billingTypeId: number;
@@ -36,12 +45,12 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       { params: { branchId, roomTypeId: 1 } },
       { component: "BedTransfer" }
     );
-    return resp?.data?.bedTypes ?? [];
+    setBillingTypeList(resp?.data?.bedTypes ?? []);
   };
-  const { data: billingTypeList } = useQuery({
-    queryKey: ["bed-lists"],
-    queryFn: getBillingType,
-  });
+
+  useEffect(() => {
+    getBillingType();
+  }, []);
 
   //   available beds
   const getAvailableBedsList = async () => {
@@ -74,10 +83,13 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       { component: "IpdAdmission" }
     );
     if (!resp?.result) {
-      showWarning(resp?.message ?? "Bed is already occupied");
+      setAvailableBedStatus({
+        status: resp?.data?.statusHint ?? "Bed is not available",
+        isResult: "N",
+      });
       return;
     }
-    showSuccess(resp?.data?.statusHint ?? "Bed is available");
+    setAvailableBedStatus({ status: resp?.data?.statusHint ?? "Bed is available", isResult: "Y" });
   };
 
   //   input change handler
@@ -106,6 +118,14 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       showWarning(resp?.message ?? "Error while transferring bed");
       return;
     }
+    const details = await getUpdatedIpdPatientDetails(fetchApi, branchId, patient?.UHID);
+    if (details) {
+      setUpdatedIpdPatientDetails(details);
+    }
+    setAvailableBedStatus({
+      status: "",
+      isResult: "",
+    });
     showSuccess(resp?.data ?? "Data saved successfully");
     setQueryValues({
       billingTypeId: patient?.BillingTypeId,
@@ -137,7 +157,7 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
 
   return (
     <div>
-      <h3 className="ipd-billing-text">Bed Transfer</h3>
+      {/* <h3 className="ipd-billing-text">Bed Transfer</h3> */}
       <div className="form-grid-4">
         <InputField label="Billing Type" required>
           <select
@@ -184,10 +204,27 @@ const BedTransfer = ({ patient }: { patient: IpdPatientItem }) => {
               </option>
             ))}
           </select>
+
+          {availableBedStatus?.status && (
+            <p
+              className={`mt-2 text-xs ${availableBedStatus?.isResult === "N" ? "input-field-error" : "input-field-success"}`}
+            >
+              {availableBedStatus?.status}
+            </p>
+          )}
         </InputField>
 
         <div className="col-span-1 md:col-span-3 lg:col-span-1 flex items-end justify-end mb-2">
-          <SubmitButton label="Transfer" onClick={transferButtonHandler} />
+          {/* <SubmitButton label="Transfer" onClick={transferButtonHandler} />
+          
+           */}
+          <button
+            className={`${availableBedStatus?.isResult === "N" ? " save-btn cursor-not-allowed opacity-50" : "save-btn"}`}
+            disabled={availableBedStatus?.isResult === "N"}
+            onClick={transferButtonHandler}
+          >
+            Transfer
+          </button>
         </div>
       </div>
 

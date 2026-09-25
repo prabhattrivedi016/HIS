@@ -1,9 +1,11 @@
+import { getUpdatedIpdPatientDetails } from "@/api/globalApiCall";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
+import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
@@ -21,6 +23,8 @@ import { ApprovalLists, CorporateItem, InsuranceItem, IpdPatientItem, ServiceIte
 
 const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
+  const { setUpdatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
+
   const queryClient = useQueryClient();
   const roleId = useContext(RoleContext)?.roleId;
   const location = useLocation();
@@ -32,6 +36,8 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const formRef = useRef<HTMLDivElement | null>(null);
   const [cancelPopupOpen, setCancelPopupOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<ApprovalLists | null>(null);
+
+  const [approvalLists, setApprovalLists] = useState<ApprovalLists[]>([]);
 
   useEffect(() => {
     setIsInputsDisabled(isConfirmationMode);
@@ -438,9 +444,19 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       }
     }
 
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Error while transferring doctor");
+      return;
+    }
+    const details = await getUpdatedIpdPatientDetails(fetchApi, patient?.BranchId, patient?.UHID);
+    if (details) {
+      setUpdatedIpdPatientDetails(details);
+    }
+
     showSuccess(resp?.message ?? "Data saved successfully");
     corporateHistoryRefetch?.();
-    refetchApprovalLists?.();
+    getApprovalLists?.();
+
     queryClient.invalidateQueries({ queryKey: ["getTableDataList"] });
     resetForm();
   };
@@ -474,7 +490,7 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
     }
     showSuccess(resp?.message ?? "Data saved successfully");
     corporateHistoryRefetch?.();
-    refetchApprovalLists?.();
+    getApprovalLists?.();
     resetForm();
   };
 
@@ -507,14 +523,18 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       { component: "CorporateTransfer" }
     );
 
-    return resp?.data ?? [];
+    setApprovalLists(resp?.data ?? []);
   };
 
-  const { data: approvalLists = [], refetch: refetchApprovalLists } = useQuery({
-    queryKey: ["getApprovalLists", patient?.VisitId],
-    queryFn: getApprovalLists,
-    enabled: !!patient?.VisitId,
-  });
+  useEffect(() => {
+    getApprovalLists();
+  }, [patient?.VisitId]);
+
+  // const { data: approvalLists = [], refetch: refetchApprovalLists } = useQuery({
+  //   queryKey: ["getApprovalLists", patient?.VisitId],
+  //   queryFn: getApprovalLists,
+  //   enabled: !!patient?.VisitId,
+  // });
 
   const handleView = (item: ApprovalLists) => {
     setSelectedApprovalItem(item);
@@ -529,12 +549,12 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   };
 
   const handleCancelSuccess = () => {
-    refetchApprovalLists?.();
+    getApprovalLists();
   };
 
   return (
     <div ref={formRef}>
-      <h3 className="ipd-billing-text">Corporate Transfer</h3>
+      {/* <h3 className="ipd-billing-text">Corporate Transfer</h3> */}
       <div className="form-grid-4">
         <InputField label="Insurance" required>
           <select
@@ -695,78 +715,76 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       {isPatientCorporateTransferApprovalRequired === 1 && (
         <>
           <h3 className="ipd-billing-text mt-8 mb-3">Corporate Transfer Approved Lists</h3>
-          <div className="overflow-x-auto">
-            <div className="table-container">
-              <div className="table-scroll-wrapper">
-                <div className="table-size w-full lg:max-h-100">
-                  <table className="base-table">
-                    <thead className="table-head">
-                      <tr>
-                        <th className="table-th">#</th>
-                        <th className="table-th">Insurance</th>
-                        <th className="table-th">Corporate</th>
-                        <th className="table-th">Transfer Date</th>
-                        <th className="table-th">Reason For Transfer</th>
-                        <th className="table-th">Authorization No.</th>
-                        <th className="table-th">Remark</th>
-                        <th className="table-th">Status</th>
-                        <th className="table-th">Transfer</th>
-                        <th className="table-th">Cancel</th>
+          <div className="table-container ">
+            <div className="table-scroll-wrapper">
+              <div className="table-size lg:min-h-60 lg:max-h-80 ">
+                <table className="base-table ">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="table-th">#</th>
+                      <th className="table-th">Insurance</th>
+                      <th className="table-th">Corporate</th>
+                      <th className="table-th">Transfer Date</th>
+                      <th className="table-th">Reason For Transfer</th>
+                      <th className="table-th">Authorization No.</th>
+                      <th className="table-th">Remark</th>
+                      <th className="table-th">Status</th>
+                      <th className="table-th">Transfer</th>
+                      <th className="table-th">Cancel</th>
 
-                        {/* <th className="table-th">Authorization No.</th>
+                      {/* <th className="table-th">Authorization No.</th>
                     <th className="table-th">Reason For Transfer</th>
                     <th className="table-th">Remark</th>
                     <th className="table-th">Status</th>
                     <th className="table-th">Action</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approvalLists.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="table-empty">
+                          No records found
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {approvalLists.length === 0 ? (
-                        <tr>
-                          <td colSpan={10} className="table-empty text-center py-4 text-slate-400">
-                            No records found
+                    ) : (
+                      approvalLists.map((item: ApprovalLists, index: number) => (
+                        <tr key={item?.CorporateTransferId} className="table-row">
+                          <td className="table-td">{index + 1}</td>
+                          <td className="table-td">{item?.InsuranceCompanyName}</td>
+                          <td className="table-td">{item?.CorporateName}</td>
+                          <td className="table-td">{item?.TransferDate}</td>
+                          <td className="table-td">{item?.ReasonForTransfer}</td>
+                          <td className="table-td">{item?.AuthorizationNumber || "--"}</td>
+                          <td className="table-td">{item?.Remarks || "--"}</td>
+                          <td className="table-td">{item?.Status}</td>
+
+                          <td className="table-td">
+                            <button
+                              className={`${!item?.IsCorporateTransferApproved || item?.IsCorporateTransferCreated ? "disable-btn" : "save-btn"}`}
+                              onClick={() => handleView(item)}
+                              disabled={
+                                !item?.IsCorporateTransferApproved ||
+                                !!item?.IsCorporateTransferCreated
+                              }
+                            >
+                              Transfer
+                            </button>
+                          </td>
+
+                          <td className="table-td">
+                            <button
+                              className={`${item?.IsCancel || item?.IsCorporateTransferCreated ? "disable-btn" : "cancel-button"}`}
+                              onClick={() => handleCancel(item)}
+                              disabled={!!item?.IsCancel || !!item?.IsCorporateTransferCreated}
+                            >
+                              Cancel
+                            </button>
                           </td>
                         </tr>
-                      ) : (
-                        approvalLists.map((item: ApprovalLists, index: number) => (
-                          <tr key={item?.CorporateTransferId} className="table-tr">
-                            <td className="table-td">{index + 1}</td>
-                            <td className="table-td">{item?.InsuranceCompanyName}</td>
-                            <td className="table-td">{item?.CorporateName}</td>
-                            <td className="table-td">{item?.TransferDate}</td>
-                            <td className="table-td">{item?.ReasonForTransfer}</td>
-                            <td className="table-td">{item?.AuthorizationNumber || "--"}</td>
-                            <td className="table-td">{item?.Remarks || "--"}</td>
-                            <td className="table-td">{item?.Status}</td>
-
-                            <td className="table-td">
-                              <button
-                                className={`${!item?.IsCorporateTransferApproved || item?.IsCorporateTransferCreated ? "disable-btn" : "save-btn"}`}
-                                onClick={() => handleView(item)}
-                                disabled={
-                                  !item?.IsCorporateTransferApproved ||
-                                  !!item?.IsCorporateTransferCreated
-                                }
-                              >
-                                Transfer
-                              </button>
-                            </td>
-
-                            <td className="table-td">
-                              <button
-                                className={`${item?.IsCancel || item?.IsCorporateTransferCreated ? "disable-btn" : "cancel-button"}`}
-                                onClick={() => handleCancel(item)}
-                                disabled={!!item?.IsCancel || !!item?.IsCorporateTransferCreated}
-                              >
-                                Cancel
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -788,68 +806,66 @@ const CorporateTransfer = ({ patient }: { patient: IpdPatientItem }) => {
 
       {/* corporate transfer history   */}
       <h3 className="ipd-billing-text mt-8 mb-3">Corporate Transfer History</h3>
-      <div className="overflow-x-auto">
-        <div className="table-container">
-          <div className="table-scroll-wrapper">
-            <div className="table-size w-full lg:max-h-100">
-              <table className="base-table">
-                <thead className="table-head">
+      <div className="table-container ">
+        <div className="table-scroll-wrapper">
+          <div className="table-size lg:min-h-60 lg:max-h-80 ">
+            <table className="base-table ">
+              <thead className="table-head">
+                <tr>
+                  <th className="table-th">#</th>
+                  <th className="table-th">Insurance</th>
+                  <th className="table-th">Corporate</th>
+                  <th className="table-th">Billing Category</th>
+                  <th className="table-th">Created By</th>
+                  <th className="table-th">Created On</th>
+                  <th className="table-th">Transferred By</th>
+                  <th className="table-th">Transferred On</th>
+                  <th className="table-th">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previousCorporateList.length === 0 && (
                   <tr>
-                    <th className="table-th">#</th>
-                    <th className="table-th">Insurance</th>
-                    <th className="table-th">Corporate</th>
-                    <th className="table-th">Billing Category</th>
-                    <th className="table-th">Created By</th>
-                    <th className="table-th">Created On</th>
-                    <th className="table-th">Transferred By</th>
-                    <th className="table-th">Transferred On</th>
-                    <th className="table-th">Status</th>
+                    <td colSpan={9} className="table-empty">
+                      No transfer history found
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {previousCorporateList.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="table-empty text-center py-4">
-                        No transfer history found
+                )}
+                {previousCorporateList.map((item, index: number) => {
+                  const billingCategory = proposedBillingCategoryList.find(
+                    (category: ServiceItem) => category.serviceItemId === item.BillingTypeId
+                  );
+                  return (
+                    <tr
+                      key={index}
+                      className={`table-row ${item.IsCurrent === 1 ? "bg-green-300 text-green-800" : ""}`}
+                    >
+                      <td className="table-td">{index + 1}</td>
+                      <td className="table-td">{item.InsuranceCompanyName || "-"}</td>
+                      <td className="table-td">{item.CorporateName || "-"}</td>
+                      <td className="table-td">
+                        {billingCategory?.name || item.BillingTypeId || "-"}
+                      </td>
+                      <td className="table-td">{item.CreatedBy || "-"}</td>
+                      <td className="table-td">{item.CreatedOn || "-"}</td>
+                      <td className="table-td">{item.TransferedBy || "-"}</td>
+                      <td className="table-td">{item.TransferedOn || "-"}</td>
+                      <td className="table-td">
+                        {item.IsCurrent === 1 ? (
+                          <span className="badge badge-success text-green-600 font-semibold bg-green-100 px-2 py-1 rounded">
+                            Current
+                          </span>
+                        ) : (
+                          <span className="badge badge-secondary text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded">
+                            Transferred
+                          </span>
+                        )}
                       </td>
                     </tr>
-                  )}
-                  {previousCorporateList.map((item, index: number) => {
-                    const billingCategory = proposedBillingCategoryList.find(
-                      (category: ServiceItem) => category.serviceItemId === item.BillingTypeId
-                    );
-                    return (
-                      <tr
-                        key={index}
-                        className={`table-row ${item.IsCurrent === 1 ? "bg-green-300 text-green-800" : ""}`}
-                      >
-                        <td className="table-td">{index + 1}</td>
-                        <td className="table-td">{item.InsuranceCompanyName || "-"}</td>
-                        <td className="table-td">{item.CorporateName || "-"}</td>
-                        <td className="table-td">
-                          {billingCategory?.name || item.BillingTypeId || "-"}
-                        </td>
-                        <td className="table-td">{item.CreatedBy || "-"}</td>
-                        <td className="table-td">{item.CreatedOn || "-"}</td>
-                        <td className="table-td">{item.TransferedBy || "-"}</td>
-                        <td className="table-td">{item.TransferedOn || "-"}</td>
-                        <td className="table-td">
-                          {item.IsCurrent === 1 ? (
-                            <span className="badge badge-success text-green-600 font-semibold bg-green-100 px-2 py-1 rounded">
-                              Current
-                            </span>
-                          ) : (
-                            <span className="badge badge-secondary text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded">
-                              Transferred
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
