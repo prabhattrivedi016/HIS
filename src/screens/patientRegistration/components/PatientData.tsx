@@ -70,10 +70,10 @@ const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png"];
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 
 const getCorporateIdFromItem = (item: CorporateItem | Record<string, unknown>) =>
-  Number(item.corporateId ?? item.CorporateId ?? 0);
+  Number(item.corporateId ?? 0);
 
 const getCorporateNameFromItem = (item: CorporateItem | Record<string, unknown>) =>
-  String(item.corporateName ?? item.CorporateName ?? "");
+  String(item.corporateName ?? "");
 
 const normalizeCorporateList = (data: unknown): CorporateItem[] => {
   if (!Array.isArray(data)) return [];
@@ -278,8 +278,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       };
     }, []);
 
-    const defaultCorporate = { value: 0, label: "CASH" };
-
     // insurance handler
 
     const insuranceSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -287,25 +285,20 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setInsuranceId(insuranceCompanyId);
       setValue("InsuranceCompanyId", insuranceCompanyId);
 
-      if (!insuranceCompanyId) {
-        setCorporateList([]);
-        setSelectedCorporate(defaultCorporate);
-        setValue("CorporateId", 0);
-        return;
-      }
       setSelectedCorporate(null);
-      getCorporateList(Number(insuranceCompanyId));
+      setValue("CorporateId", null as any, { shouldValidate: true });
+      getCorporateList(insuranceCompanyId);
     };
 
     // corporate handler
     const corporateSelectHandler = (option: OptionItem | null) => {
       if (!option) {
         setSelectedCorporate(null);
-        setValue("CorporateId", 0);
+        setValue("CorporateId", null as any, { shouldValidate: true });
         return;
       }
       setSelectedCorporate(option);
-      setValue("CorporateId", Number(option.value ?? 0));
+      setValue("CorporateId", Number(option.value ?? 0), { shouldValidate: true });
     };
 
     // corporate list
@@ -359,35 +352,25 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       const defaultInsuranceId = Number(branchDetails.defaultInsuranceCompanyId ?? 0);
       const defaultCorporateId = Number(branchDetails.defaultCorporateId ?? 0);
 
-      if (!defaultInsuranceId) {
-        setInsuranceId(0);
-        setValue("InsuranceCompanyId", 0, { shouldDirty: false });
-        setCorporateList([]);
-        setSelectedCorporate(defaultCorporate);
-        setValue("CorporateId", 0, { shouldDirty: false });
-        return;
-      }
-
       setInsuranceId(defaultInsuranceId);
       setValue("InsuranceCompanyId", defaultInsuranceId, { shouldDirty: false });
 
       const list = await getCorporateList(defaultInsuranceId);
 
-      if (!defaultCorporateId) {
-        setSelectedCorporate(defaultCorporate);
-        setValue("CorporateId", 0, { shouldDirty: false });
-        return;
+      if (defaultCorporateId > 0) {
+        const matchedCorporate = findCorporateInList(list, defaultCorporateId);
+
+        if (matchedCorporate) {
+          applyCorporateSelection(matchedCorporate);
+          return;
+        }
+
+        setSelectedCorporate({ value: defaultCorporateId, label: "Selected Corporate" });
+        setValue("CorporateId", defaultCorporateId, { shouldDirty: false });
+      } else {
+        setSelectedCorporate(null);
+        setValue("CorporateId", null as any, { shouldDirty: false });
       }
-
-      const matchedCorporate = findCorporateInList(list, defaultCorporateId);
-
-      if (matchedCorporate) {
-        applyCorporateSelection(matchedCorporate);
-        return;
-      }
-
-      setSelectedCorporate({ value: defaultCorporateId, label: "Selected Corporate" });
-      setValue("CorporateId", defaultCorporateId, { shouldDirty: false });
     }, [
       branchDetails,
       prefillPatientData,
@@ -430,10 +413,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     };
 
     const corporateSelectOption = useMemo(() => {
-      if (!insuranceId) {
-        return [defaultCorporate];
-      }
-
       const options = corporateList.map(item => ({
         value: item.corporateId,
         label: item.corporateName,
@@ -672,7 +651,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setPrefillPatientData(null);
       setInsuranceId(0);
       setCorporateList([]);
-      setSelectedCorporate(defaultCorporate);
+      setSelectedCorporate();
       setValue("InsuranceCompanyId", 0);
       setValue("CorporateId", 0);
       lastAppliedBranchInsuranceKeyRef.current = "";
@@ -876,7 +855,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         );
       } else {
         setCorporateList([]);
-        setSelectedCorporate(defaultCorporate);
+        setSelectedCorporate(null);
       }
 
       const resolvedDoctorId =
@@ -1205,7 +1184,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
             );
           } else {
             setCorporateList([]);
-            setSelectedCorporate(defaultCorporate);
+            setSelectedCorporate(null);
           }
 
           emitPatientPayload(methods.getValues() as Record<string, unknown>);
@@ -1218,7 +1197,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         patientGenderList,
         getCorporateList,
         findCorporateInList,
-        defaultCorporate,
       ]
     );
 
@@ -1401,7 +1379,6 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                     <InputField label="Gender" required>
                       <select
                         className={lockedGenderByTitle ? "disabled-input-field" : "input-field"}
-                        placeholder="Select Gender"
                         {...register("Gender")}
                         disabled={Boolean(lockedGenderByTitle)}
                       >
@@ -1527,7 +1504,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         ))}
                       </select>
                     </InputField>
-                    <InputField label="Corporate">
+                    <InputField label="Corporate" required>
                       <input type="hidden" {...register("CorporateId")} />
                       <Select<OptionItem, false>
                         value={selectedCorporate}
@@ -1540,6 +1517,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
                         menuPortalTarget={document.body}
                         menuPosition="fixed"
                       />
+                      {errors?.CorporateId && (
+                        <p className="input-field-error">{errors.CorporateId.message}</p>
+                      )}
                     </InputField>
                     {!!insuranceId ? (
                       <>

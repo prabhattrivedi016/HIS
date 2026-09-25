@@ -1,4 +1,4 @@
-import { Clock, ChevronDown } from "lucide-react";
+import { ChevronDown, Clock } from "lucide-react";
 
 export default function ApprovalTAT() {
   const tatData = [
@@ -46,8 +46,8 @@ export default function ApprovalTAT() {
       <div className="flex items-stretch h-30 mt-2">
         {/* Left Y-Axis Labels with Proper Gap */}
         <div className="flex flex-col justify-between text-[11px] font-semibold text-gray-500 pr-3 pb-6 text-right select-none w-8 shrink-0">
+          <span>72</span>
           <span>28</span>
-          <span>14</span>
           <span>0</span>
         </div>
 
@@ -63,7 +63,7 @@ export default function ApprovalTAT() {
           </div>
 
           {/* Blue Bars */}
-          {tatData.map((item) => {
+          {tatData.map(item => {
             const heightPct = `${Math.min((item.numericVal / maxValue) * 100, 100)}%`;
             return (
               <div

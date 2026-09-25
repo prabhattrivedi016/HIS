@@ -513,7 +513,12 @@ const OpdBilling = () => {
       { component: "OpdBilling" }
     );
 
-    if (!resp?.data) return;
+    console.log("resp of service", resp);
+
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Failed to fetch services");
+      return;
+    }
 
     const row = finalizeServiceRow(resp.data, {
       doctorId: appointment.DoctorId,
@@ -1834,6 +1839,7 @@ const OpdBilling = () => {
     setSelectedCorporateError("");
     if (!option) {
       setSelectedCorporate(null);
+      setSelectedDoctor(null);
       setCreditCopayment(false);
       return;
     }
@@ -2000,7 +2006,8 @@ const OpdBilling = () => {
   };
 
   const doctorSelectHandler = async (option: OptionItem | null) => {
-    if (!option) {
+    if (!option || !selectedCorporate) {
+      showWarning("Please select corporate first!");
       setSelectedDoctor(null);
       return;
     }
@@ -2578,9 +2585,15 @@ const OpdBilling = () => {
     let doctorName = "";
     if (overrideDoctorId !== undefined) {
       const doc = doctorList.find(d => Number(d.doctorId) === overrideDoctorId);
-      doctorName = doc?.completeName || "";
+
+      doctorName = doc?.name ?? "";
     } else {
-      doctorName = selectedDoctor?.label || "";
+      doctorName = selectedDoctor?.label ?? "";
+    }
+
+    if (Number(selectedCorporate?.value) <= 0 || !selectedCorporate) {
+      showWarning("Please Select Corporate");
+      return;
     }
 
     const resp = await fetchApi(
@@ -2601,6 +2614,11 @@ const OpdBilling = () => {
       }
     );
 
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Failed to fetch services");
+      return;
+    }
+
     const requiresPerformingDoctor = Number(resp?.data?.isRequiredSeparatePerformingDoctor) === 1;
 
     if (
@@ -2616,7 +2634,7 @@ const OpdBilling = () => {
 
     const serviceRow: ServiceBindingItem = {
       ...normalizeServiceRowForPaymentCollection(
-        finalizeServiceRow(resp?.data, { doctorId, doctorName })
+        finalizeServiceRow(resp?.data, { doctorId: Number(doctorId), doctorName })
       ),
       isRegistrationCharge: item?.isRegistrationCharge,
     };
@@ -2646,6 +2664,11 @@ const OpdBilling = () => {
 
     setShowPopup(false);
     setSelectDoctorError("");
+
+    if (Number(selectedCorporate?.value) <= 0 || !selectedCorporate) {
+      showWarning("Please Select Corporate first!");
+      return;
+    }
 
     const dupResp = await fetchApi(
       "GET",
@@ -2686,6 +2709,11 @@ const OpdBilling = () => {
       },
       { component: "OpdBilling" }
     );
+
+    if (!resp || !resp?.result) {
+      showWarning(resp?.message ?? "Failed to fetch services");
+      return;
+    }
 
     const requiresPerformingDoctor = Number(resp?.data?.isRequiredSeparatePerformingDoctor) === 1;
 
@@ -3607,6 +3635,11 @@ const OpdBilling = () => {
         isBillDiscount: isBillingDiscount,
       };
 
+      if (!completePayload?.visitDetails?.corporateId) {
+        showWarning("Corporate is required");
+        return;
+      }
+
       const saveBillingResp = await fetchApi(
         "POST",
         ENDPOINTS.SAVE_OPD_BILLING,
@@ -3635,7 +3668,7 @@ const OpdBilling = () => {
       }
 
       // success
-      await showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
+      showSuccess(saveBillingResp?.message ?? "OPD Billing saved successfully");
 
       const savedPatientId = Number(registrationResp?.data?.patientId ?? 0);
       const visitId = resolveVisitIdFromResponse(responseData);

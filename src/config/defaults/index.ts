@@ -715,6 +715,10 @@ const ENDPOINTS = {
 
   // dashboard
   GET_DASHBOARD_STATES: "Home/getDashBoardStates",
+
+  // ot master
+  GET_OT_MASTER_LIST: "Admin/getOTMasterList",
+  CREATE_UPDATE_OT_MASTER: "Admin/createUpdateOTMaster",
 };
 
 export { ENDPOINTS };

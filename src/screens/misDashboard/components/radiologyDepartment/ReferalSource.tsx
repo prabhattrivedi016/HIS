@@ -1,4 +1,4 @@
-import { Share2, ChevronDown } from "lucide-react";
+import { ChevronDown, Share2 } from "lucide-react";
 
 export default function ReferralSource() {
   const referralSources = [
@@ -23,7 +23,7 @@ export default function ReferralSource() {
   // Dynamically calculating angles based on 'pct' values
   let currentDeg = 0;
   const gradientStops = referralSources
-    .map((item) => {
+    .map(item => {
       const percentage = parseFloat(item.pct);
       const deg = (percentage / 100) * 360;
       const start = currentDeg;
@@ -52,33 +52,24 @@ export default function ReferralSource() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between my-auto gap-4 sm:gap-0">
+      <div className="flex flex-col sm:flex mb-2 items-center justify-between my-auto gap-4 sm:gap-0">
         {/* Large Donut Chart Representation with Dynamic Conic Gradient */}
         <div
-          className="relative w-26 h-26 rounded-full p-6 flex flex-col items-center justify-center text-center shadow-xs shrink-0"
+          className="relative w-30 h-30 rounded-full p-6 flex flex-col items-center justify-center text-center shadow-xs shrink-0"
           style={dynamicConicStyle}
         >
           <div className="w-full h-full bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
-            <span className="text-[12px] font-black text-gray-900 leading-tight">
-              2,846
-            </span>
-            <span className="text-[9px] text-gray-400 font-medium mt-0.5">
-              Investigations
-            </span>
+            <span className="text-[12px] font-black text-gray-900 leading-tight">2,846</span>
+            <span className="text-[9px] text-gray-400 font-medium mt-0.5">Investigations</span>
           </div>
         </div>
 
         {/* Referral Source List with Percentages & Counts */}
         <div className="space-y-1.5 text-xs flex-1 w-full sm:w-auto ml-0 sm:ml-6">
-          {referralSources.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between text-[11px]"
-            >
+          {referralSources.map(item => (
+            <div key={item.label} className="flex items-center justify-between text-[11px]">
               <span className="flex items-center text-gray-600 font-semibold truncate max-w-[120px]">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${item.color} mr-2 shrink-0`}
-                />
+                <span className={`w-2.5 h-2.5 rounded-full ${item.color} mr-2 shrink-0`} />
                 {item.label}
               </span>
 

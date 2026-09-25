@@ -1,6 +1,6 @@
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
-export default function RecentApprovalsTable() {
+export default function RecentApproval() {
   const approvalsData = [
     {
       id: 1,
@@ -56,41 +56,26 @@ export default function RecentApprovalsTable() {
           <CheckCircle2 size={17} className="text-blue-600 mr-2" />
           Recent Approvals / Settlements
         </h3>
-        <span className="text-xs font-semibold text-blue-600 cursor-pointer hover:underline flex items-center">
-          View All <ChevronRight size={14} className="ml-0.5" />
-        </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[550px] table-fixed border-collapse text-left text-[10px] sm:text-[11px]">
           <thead>
             <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
-              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">
-                Date
-              </th>
-              <th className="w-[20%] border border-gray-300 py-[1.2%] px-2">
-                Corporate
-              </th>
-              <th className="w-[12%] border border-gray-300 py-[1.2%] px-1 text-center">
-                Type
-              </th>
-              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">
-                Bill No.
-              </th>
+              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">Date</th>
+              <th className="w-[20%] border border-gray-300 py-[1.2%] px-2">Corporate</th>
+              <th className="w-[12%] border border-gray-300 py-[1.2%] px-1 text-center">Type</th>
+              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">Bill No.</th>
               <th className="w-[18%] border border-gray-300 py-[1.2%] px-2 text-center">
                 Amount (₹)
               </th>
-              <th className="w-[14%] border border-gray-300 py-[1.2%] px-2 text-center">
-                Status
-              </th>
+              <th className="w-[14%] border border-gray-300 py-[1.2%] px-2 text-center">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-            {approvalsData.map((row) => (
+            {approvalsData.map(row => (
               <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                <td className="border border-gray-300 py-[1%] px-2 text-gray-600">
-                  {row.date}
-                </td>
+                <td className="border border-gray-300 py-[1%] px-2 text-gray-600">{row.date}</td>
                 <td className="border border-gray-300 py-[1%] px-2 text-gray-900 font-bold">
                   {row.corporate}
                 </td>

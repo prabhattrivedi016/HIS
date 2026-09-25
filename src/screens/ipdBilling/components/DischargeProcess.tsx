@@ -45,85 +45,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [steps, setSteps] = useState<DischargeProcessStepItem[]>([]);
 
-  // const extraDischargeProcess = [
-  //   {
-  //     PatientVisitDischargeProcessId: 0,
-  //     VisitId: 0,
-  //     DischargeProcessId: 0,
-  //     ProcessKey: "FINAL_DISCHARGE",
-  //     ProcessName: "Final Discharge",
-  //     SequenceNo: 0,
-  //     DischargeProcessStep: steps?.length + 1,
-  //     IsMandatory: true,
-  //     Status: 0,
-  //     IconName: "fa-hospital-user",
-  //     IconClass: "fa-solid fa-hospital-user",
-  //     StartedBy: "",
-  //     StartedOn: "",
-  //     CompletedBy: updatedIpdPatientDetails?.DischargedBy ?? patient?.DischargedBy,
-  //     CompletedOn:
-  //       `${updatedIpdPatientDetails?.DischargeDate} ${updatedIpdPatientDetails?.DischargeTime}` ||
-  //       `${patient?.DischargeDate} ${patient?.DischargeTime}` ||
-  //       "--",
-  //     Remarks: "",
-  //     IsCompleted: updatedIpdPatientDetails?.IsDischarged ?? patient?.IsDischarged,
-  //     IsPending: 1,
-  //     IsCurrentProcess: 0,
-  //     CanExecute: 0,
-  //     IsFuture: 0,
-  //     IsUserAuthorized: 1,
-  //   },
-
-  //   {
-  //     PatientVisitDischargeProcessId: 0,
-  //     VisitId: 0,
-  //     DischargeProcessId: 0,
-  //     ProcessKey: "BILL_GENERATE",
-  //     ProcessName: "Bill Generate",
-  //     SequenceNo: 0,
-  //     DischargeProcessStep: steps?.length + 1,
-  //     IsMandatory: true,
-  //     Status: 0,
-  //     IconName: "fa-file-invoice-dollar",
-  //     IconClass: "fa-solid fa-file-invoice-dollar",
-  //     StartedBy: "",
-  //     StartedOn: "",
-  //     CompletedBy: updatedIpdPatientDetails?.BillGeneratedBy ?? patient?.BillGeneratedBy,
-  //     CompletedOn: updatedIpdPatientDetails?.BillGeneratedOn ?? patient?.BillGeneratedOn,
-  //     Remarks: "",
-  //     IsCompleted: updatedIpdPatientDetails?.IsBillGenerated ?? patient?.IsBillGenerated,
-  //     IsPending: 1,
-  //     IsCurrentProcess: 0,
-  //     CanExecute: 0,
-  //     IsFuture: 0,
-  //     IsUserAuthorized: 1,
-  //   },
-
-  //   {
-  //     PatientVisitDischargeProcessId: 0,
-  //     VisitId: 0,
-  //     DischargeProcessId: 0,
-  //     ProcessKey: "FILE_CLOSE",
-  //     ProcessName: "File Close",
-  //     SequenceNo: 0,
-  //     DischargeProcessStep: steps?.length + 1,
-  //     IsMandatory: true,
-  //     Status: 0,
-  //     IconName: "fa-folder-closed",
-  //     IconClass: "fa-solid fa-folder-closed",
-  //     StartedBy: "",
-  //     StartedOn: "",
-  //     CompletedBy: updatedIpdPatientDetails?.FileClosedBy ?? patient?.FileClosedBy,
-  //     CompletedOn: updatedIpdPatientDetails?.FileClosedOn ?? patient?.FileClosedOn,
-  //     Remarks: "",
-  //     IsCompleted: updatedIpdPatientDetails?.IsFileClosed ?? patient?.IsFileClosed,
-  //     IsPending: 1,
-  //     IsCurrentProcess: 0,
-  //     CanExecute: 0,
-  //     IsFuture: 0,
-  //     IsUserAuthorized: 1,
-  //   },
-  // ];
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
   const [openAddRemark, setOpenAddRemark] = useState<boolean>(false);
@@ -598,45 +519,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
         </button>
       );
     }
-
-    // if (status === "future") {
-    //   return (
-    //     <button
-    //       type="button"
-    //       disabled
-    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
-    //     >
-    //       <LockKeyhole size={11} />
-    //       Locked
-    //     </button>
-    //   );
-    // }
-
-    // if (status === "unAuthorized") {
-    //   return (
-    //     <button
-    //       type="button"
-    //       disabled
-    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-medium text-red-600 cursor-not-allowed"
-    //     >
-    //       <Lock size={11} />
-    //       Unauthorized
-    //     </button>
-    //   );
-    // }
-
-    //    locked
-
-    // return (
-    //   <button
-    //     type="button"
-    //     disabled
-    //     className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-400 cursor-not-allowed"
-    //   >
-    //     <LockKeyhole size={11} />
-    //     Locked
-    //   </button>
-    // );
   };
 
   // discharge process type handler

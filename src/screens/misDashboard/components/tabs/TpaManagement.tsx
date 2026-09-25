@@ -6,7 +6,7 @@ import CorporateWiseBilling from "../corporateManagement/CorporateWiseBilling";
 import DepartmentWiseCorporateRevenue from "../corporateManagement/DepartmentWiseCorporateRevenue";
 import MetricsOverviewRow from "../corporateManagement/MetricsOverviewRow";
 import MonthlyBillingVsCollectionTrend from "../corporateManagement/MonthlyBillingVsCollectionTrend";
-import RecentAooroval from "../corporateManagement/RecentAooroval";
+import RecentApproval from "../corporateManagement/RecentApproval";
 import SettlementStatus from "../corporateManagement/SettlementStatus";
 import TopPendingReport from "../corporateManagement/TopPendingReport";
 
@@ -34,7 +34,7 @@ const TpaManagement = () => {
         <div className="px-1 mt-2 grid grid-cols-1 lg:grid-cols-3 gap-2 pb-1">
           <CaseStatus />
           <TopPendingReport />
-          <RecentAooroval />
+          <RecentApproval />
         </div>
       </div>
     </div>

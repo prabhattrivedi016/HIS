@@ -116,7 +116,7 @@ export const patientRegistrationSchema = yup.object({
 
   InsuranceCompanyId: yup.number().transform(parseNullableNumber).nullable(),
 
-  CorporateId: yup.number().transform(parseNullableNumber).nullable(),
+  CorporateId: yup.number().transform(parseNullableNumber).required("Corporate is required"),
 
   CardNo: yup.string().nullable(),
 

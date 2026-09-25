@@ -46,7 +46,7 @@ const BankMaster = () => {
         <button
           type="button"
           onClick={() => setActiveTab(BankMasterTabName?.BANK_DETAILS)}
-          className={`px-4 py-2 text-md font-semibold transition
+          className={`px-4 py-2 text-md  font-semibold transition
                         ${
                           activeTab === BankMasterTabName?.BANK_DETAILS
                             ? "tab-btn-active"

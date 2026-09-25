@@ -60,6 +60,7 @@ const OpdBillingSection = ({
   activeServiceIndex,
   setActiveServiceIndex,
   selectedServiceHandler,
+
   serviceDataTableItem,
   showDuplicateError,
   serviceValidationError,
@@ -93,6 +94,8 @@ const OpdBillingSection = ({
   const { loading, fetchApi } = useGlobalApi();
   const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
   const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
+
+  console.log("serviceDataTableItem", serviceDataTableItem);
 
   useEffect(() => {
     setQtyDrafts({});
@@ -216,7 +219,7 @@ const OpdBillingSection = ({
           </select>
         </InputField>
 
-        <InputField label="Corporate">
+        <InputField label="Corporate" required>
           <Select<OptionItem, false>
             value={selectedCorporate}
             options={corporateSelectOption}
@@ -243,6 +246,7 @@ const OpdBillingSection = ({
             placeholder="Select doctor"
             isSearchable
             isClearable
+            // isDisabled={!selectedCorporate?.value}
             onChange={doctorSelectHandler}
             styles={SelectStyles as StylesConfig<OptionItem, false>}
             menuPortalTarget={document.body}
@@ -535,7 +539,7 @@ const OpdBillingSection = ({
                                       rowDoctorChangeHandler?.(
                                         idx,
                                         option ? Number(option.value) : 0,
-                                        option ? option.label : ""
+                                        option ? option.label! : ""
                                       );
                                     }}
                                     styles={SelectStyles as StylesConfig<OptionItem, false>}

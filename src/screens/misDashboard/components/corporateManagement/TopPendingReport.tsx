@@ -1,4 +1,4 @@
-import { Clock, ChevronRight } from "lucide-react";
+import { Clock } from "lucide-react";
 
 export default function TopPendingCasesTable() {
   const pendingData = [
@@ -49,39 +49,26 @@ export default function TopPendingCasesTable() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-800 flex items-center">
           <Clock size={17} className="text-blue-600 mr-2" />
-          Top 10 Pending Cases (&gt; 7 Days)
+          Top 5 Pending Cases (&gt; 7 Days)
         </h3>
-        <span className="text-xs font-semibold text-blue-600 cursor-pointer hover:underline flex items-center">
-          View All <ChevronRight size={14} className="ml-0.5" />
-        </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[450px] table-fixed border-collapse text-left text-[10px] sm:text-[11px]">
           <thead>
             <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
-              <th className="w-[8%] border border-gray-300 py-[1.2%] px-1 text-center">
-                #
-              </th>
-              <th className="w-[24%] border border-gray-300 py-[1.2%] px-2">
-                Patient Name
-              </th>
-              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">
-                Corporate
-              </th>
-              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">
-                Bill No.
-              </th>
+              <th className="w-[8%] border border-gray-300 py-[1.2%] px-1 text-center">#</th>
+              <th className="w-[24%] border border-gray-300 py-[1.2%] px-2">Patient Name</th>
+              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">Corporate</th>
+              <th className="w-[18%] border border-gray-300 py-[1.2%] px-2">Bill No.</th>
               <th className="w-[18%] border border-gray-300 py-[1.2%] px-2 text-center">
                 Amount (₹)
               </th>
-              <th className="w-[14%] border border-gray-300 py-[1.2%] px-1 text-center">
-                Days
-              </th>
+              <th className="w-[14%] border border-gray-300 py-[1.2%] px-1 text-center">Days</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-            {pendingData.map((row) => (
+            {pendingData.map(row => (
               <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                 <td className="border border-gray-300 py-[1%] px-1 font-bold text-gray-900 text-center">
                   {row.id}

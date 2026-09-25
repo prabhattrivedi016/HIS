@@ -55,6 +55,7 @@ import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
+import OtMaster from "../otMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import PrintSettings from "../printSettings";
@@ -165,4 +166,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ipd-package-master": <IpdPackageMaster />,
   "discharge-process-master": <DischargeProcessMaster />,
   "mis-dashboard": <MisDashboard />,
+  "ot-master": <OtMaster />,
 };

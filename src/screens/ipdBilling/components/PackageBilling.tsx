@@ -998,7 +998,7 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                             className="table-th"
                             title="Automatically include existing services in the package during billing, based on the package configuration"
                           >
-                            Auto Existing Items
+                            Add Existing Items
                           </th>
                         </tr>
                       </thead>
