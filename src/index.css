@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+body {
+  margin: 0;
+  padding: 0;
+  color: #0f172a;
+  background-color: #f8fafc;
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+}
+.page-container {
+  background-color: #f9fafb;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  margin-top: -24px;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
 /* button & icons colors */
 .save-btn-color {
   @apply bg-[#0B5394] hover:bg-[#09457A];
@@ -662,9 +692,6 @@ select:-webkit-autofill {
 }
 
 /* normal pages */
-.page-container {
-  @apply w-full min-w-0 max-w-full bg-gray-50 flex-1 px-2 sm:px-3 py-3 sm:py-4 -mt-6;
-}
 
 .active-text {
   @apply text-green-600 font-semibold;

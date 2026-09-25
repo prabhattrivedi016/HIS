@@ -1,12 +1,10 @@
+import DepartmentWisePharmacyConsumption from "../pharmacyAnalytics/DepartmentWisePharmacyConsumption";
 import DepartmentWisePharmacyFinancialSummary from "../pharmacyAnalytics/DepartmentWisePharmacyFinancialSummary";
 import ExpiryAging from "../pharmacyAnalytics/ExpiryAging";
 import MetricsOverviewRow from "../pharmacyAnalytics/MetricsOverviewRow";
 import MonthlyPharmacySalesTrend from "../pharmacyAnalytics/MonthlyPharmacySalesTrend";
 import OPDVsIPDSalesTrend from "../pharmacyAnalytics/OPDVsIPDSalesTrend";
-import {
-  default as DepartmentWisePhamacyConsumption,
-  default as PaymentMode,
-} from "../pharmacyAnalytics/PaymentMode";
+import { default as PaymentMode } from "../pharmacyAnalytics/PaymentMode";
 import PharmacyReturnAnalysis from "../pharmacyAnalytics/PharmacyReturnAnalysis";
 import PurchaseVsSalesVsGross from "../pharmacyAnalytics/PurchaseVsSalesVsGross";
 import QuickLinks from "../pharmacyAnalytics/QuickLinks";
@@ -23,7 +21,7 @@ export default function pharmacyAnalytics() {
         <div className="px-1 grid grid-cols-1 lg:grid-cols-4 gap-2">
           <MonthlyPharmacySalesTrend />
           <OPDVsIPDSalesTrend />
-          <DepartmentWisePhamacyConsumption />
+          <DepartmentWisePharmacyConsumption />
           <PaymentMode />
         </div>
 

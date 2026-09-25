@@ -294,11 +294,15 @@ const IPDAdmission = () => {
 
       if (!admissionValues) {
         showError("Failed to read admission details");
-
         return;
       }
 
       const payload = buildSaveIpdAdmissionPayload(patientData, admissionValues);
+
+      if (!Number(payload?.corporateId)) {
+        showWarning("Please select corporate first!");
+        return;
+      }
 
       const saveResp = await fetchApi(
         "POST",

@@ -1,82 +1,75 @@
-import {Clock} from 'lucide-react'
-export default function TestStatus() {
-  const testStatuses = [
-    { label: "Completed", pct: "68%", val: "296", color: "bg-emerald-500" },
-    { label: "In Process", pct: "18%", val: "78", color: "bg-blue-600" },
-    { label: "Pending", pct: "10%", val: "44", color: "bg-rose-500" },
-    { label: "Critical", pct: "2%", val: "9", color: "bg-purple-600" },
-    { label: "Cancelled", pct: "2%", val: "9", color: "bg-gray-400" },
+import { Layers } from "lucide-react";
+
+export default function DepartmentWisePharmacyConsumption() {
+  const departments = [
+    {
+      name: "IPD",
+      amt: "₹ 18,45,600",
+      width: "90%",
+      color: "bg-blue-600",
+    },
+    {
+      name: "OPD",
+      amt: "₹ 14,72,300",
+      width: "75%",
+      color: "bg-emerald-500",
+    },
+    {
+      name: "ICU",
+      amt: "₹ 8,92,400",
+      width: "55%",
+      color: "bg-amber-400",
+    },
+    {
+      name: "Emergency",
+      amt: "₹ 6,48,200",
+      width: "42%",
+      color: "bg-purple-600",
+    },
+    {
+      name: "OT",
+      amt: "₹ 6,12,800",
+      width: "38%",
+      color: "bg-pink-500",
+    },
+    {
+      name: "Pediatrics",
+      amt: "₹ 5,84,600",
+      width: "35%",
+      color: "bg-sky-400",
+    },
+    {
+      name: "Gynecology",
+      amt: "₹ 5,21,300",
+      width: "30%",
+      color: "bg-teal-500",
+    },
+    {
+      name: "Surgery",
+      amt: "₹ 4,86,400",
+      width: "25%",
+      color: "bg-indigo-500",
+    },
   ];
 
-  // Mapping Tailwind color classes to hex values for dynamic conic-gradient calculation
-  const colorMap = {
-    "bg-emerald-500": "#10b981",
-    "bg-blue-600": "#2563eb",
-    "bg-rose-500": "#f43f5e",
-    "bg-purple-600": "#9333ea",
-    "bg-gray-400": "#94a3b8",
-  };
-
-  // Dynamically calculating angles based on 'pct' values
-  let currentDeg = 0;
-  const gradientStops = testStatuses
-    .map((item) => {
-      const percentage = parseFloat(item.pct);
-      const deg = (percentage / 100) * 360;
-      const start = currentDeg;
-      currentDeg += deg;
-      const hexColor = colorMap[item.color] || "#94a3b8";
-      return `${hexColor} ${start}deg ${currentDeg}deg`;
-    })
-    .join(", ");
-
-  const dynamicConicStyle = {
-    background: `conic-gradient(${gradientStops})`,
-  };
-
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-2xs flex flex-col justify-between w-full">
-      <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
-        <Clock size={17} className="text-blue-600 mr-2 shrink-0" />
-        Test Status
-      </h3>
-
-      <div className="flex flex-col sm:flex-row items-center justify-between my-auto gap-4 sm:gap-0">
-        {/* Large Donut Chart Representation with Dynamic Conic Gradient */}
-        <div
-          className="relative w-26 h-26 rounded-full p-6 flex flex-col items-center justify-center text-center shadow-xs shrink-0"
-          style={dynamicConicStyle}
-        >
-          <div className="w-full h-full bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
-            <span className="text-[10px] font-black text-gray-900 leading-tight">
-              436
-            </span>
-            <span className="text-[8px] text-gray-400 font-medium mt-0.5">
-              Today's Tests
-            </span>
-          </div>
+    <div className="w-full md:max-w-full bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-2xs flex flex-col justify-between ">
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-800 flex items-center">
+            <Layers size={17} className="text-blue-600 mr-2 " /> Department-wise Pharmacy
+            Consumption (MTD)
+          </h3>
         </div>
 
-        {/* Test Status List with Percentages & Counts */}
-        <div className="space-y-1.5 text-xs flex-1 w-full sm:w-auto ml-0 sm:ml-6">
-          {testStatuses.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between text-[10px]"
-            >
-              <span className="flex items-center text-gray-600 font-semibold truncate max-w-[120px]">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${item.color} mr-2 shrink-0`}
-                />
-                {item.label}
-              </span>
-
-              <div className="flex items-center space-x-4 sm:space-x-6">
-                <span className="text-gray-400 font-medium text-[10px] w-8 text-right">
-                  {item.pct}
-                </span>
-                <span className="font-extrabold text-gray-900 w-8 text-right whitespace-nowrap">
-                  {item.val}
+        <div className="space-y-4 pt-1">
+          {departments.map(dept => (
+            <div key={dept.name} className="flex items-center text-xs">
+              <span className="w-28 font-bold text-gray-600 truncate">{dept.name}</span>
+              <div className="flex-1 mx-2 flex items-center">
+                <div style={{ width: dept.width }} className={`h-4 ${dept.color}`} />
+                <span className="font-bold text-gray-800 whitespace-nowrap ml-2 text-[11px]">
+                  {dept.amt}
                 </span>
               </div>
             </div>

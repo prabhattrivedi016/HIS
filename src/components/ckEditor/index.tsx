@@ -1,6 +1,46 @@
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import { useEffect, useRef } from "react";
+
+import {
+  Alignment,
+  BlockQuote,
+  Bold,
+  ClassicEditor,
+  CodeBlock,
+  Essentials,
+  FindAndReplace,
+  Font,
+  Heading,
+  HorizontalLine,
+  Image,
+  ImageCaption,
+  ImageResize,
+  ImageStyle,
+  ImageToolbar,
+  ImageUpload,
+  Indent,
+  Italic,
+  Link,
+  List,
+  MediaEmbed,
+  Paragraph,
+  PasteFromOffice,
+  RemoveFormat,
+  SelectAll,
+  SimpleUploadAdapter,
+  SpecialCharacters,
+  SpecialCharactersEssentials,
+  Strikethrough,
+  Subscript,
+  Superscript,
+  Table,
+  TableCellProperties,
+  TableProperties,
+  TableToolbar,
+  Underline,
+  Undo,
+} from "ckeditor5";
+
+import "ckeditor5/ckeditor5.css";
 
 type TextEditorProps = {
   value: string;
@@ -8,49 +48,115 @@ type TextEditorProps = {
 };
 
 const TextEditor = ({ value, onChange }: TextEditorProps) => {
-  const editorRef = useRef<any>(null);
-
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const currentValue = editor.getData?.() ?? "";
-    const nextValue = value ?? "";
-
-    if (currentValue !== nextValue) {
-      editor.setData(nextValue);
-    }
-  }, [value]);
-
   return (
     <div className="custom-ckeditor">
       <CKEditor
         editor={ClassicEditor}
         data={value}
-        onReady={editor => {
-          editorRef.current = editor;
+        onChange={(_, editor) => {
+          const data = editor.getData();
+
+          console.log("CKEditor Data:", data);
+
+          onChange(data);
         }}
-        onChange={(_, editor) => onChange(editor.getData())}
         config={{
+          licenseKey: "GPL",
+
+          plugins: [
+            Essentials,
+            Paragraph,
+            Heading,
+
+            // Text formatting
+            Bold,
+            Italic,
+            Underline,
+            Strikethrough,
+            Subscript,
+            Superscript,
+            RemoveFormat,
+
+            // Font
+            Font,
+
+            // Alignment
+            Alignment,
+
+            // Lists
+            List,
+
+            // Indentation
+            Indent,
+
+            // Links
+            Link,
+
+            // Block
+            BlockQuote,
+            HorizontalLine,
+            CodeBlock,
+
+            // Tables
+            Table,
+            TableToolbar,
+            TableProperties,
+            TableCellProperties,
+
+            // Images
+            Image,
+            ImageToolbar,
+            ImageCaption,
+            ImageStyle,
+            ImageResize,
+            ImageUpload,
+
+            // IMPORTANT: Image upload adapter
+            SimpleUploadAdapter,
+
+            // Media
+            MediaEmbed,
+
+            // Utilities
+            FindAndReplace,
+            SelectAll,
+            SpecialCharacters,
+            SpecialCharactersEssentials,
+
+            // Undo / Redo
+            Undo,
+
+            // Paste from Word / Office
+            PasteFromOffice,
+          ],
+
+          // =====================================================
+          // IMAGE UPLOAD CONFIGURATION
+          // =====================================================
+          simpleUpload: {
+            uploadUrl: "YOUR_IMAGE_UPLOAD_API",
+
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          },
+
+          //  toolbar
           toolbar: {
             items: [
-              // Document
               "undo",
               "redo",
               "|",
 
-              // Headings & Styles
               "heading",
               "|",
 
-              // Fonts
               "fontFamily",
               "fontSize",
               "fontColor",
               "fontBackgroundColor",
               "|",
 
-              // Text styles
               "bold",
               "italic",
               "underline",
@@ -60,53 +166,78 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
               "removeFormat",
               "|",
 
-              // Lists
               "bulletedList",
               "numberedList",
               "todoList",
               "|",
 
-              // Alignment & indent
-              "alignment",
               "outdent",
               "indent",
+              "alignment",
               "|",
 
-              // Links & media
               "link",
-              "imageUpload",
+              "uploadImage",
               "mediaEmbed",
               "|",
 
-              // Insert
               "insertTable",
               "blockQuote",
               "horizontalLine",
               "codeBlock",
               "|",
 
-              // Utilities
               "findAndReplace",
               "selectAll",
               "specialCharacters",
             ],
+
             shouldNotGroupWhenFull: true,
           },
 
+          // heading
           heading: {
             options: [
-              { model: "paragraph", title: "Paragraph" },
-              { model: "heading1", view: "h1", title: "Heading 1" },
-              { model: "heading2", view: "h2", title: "Heading 2" },
-              { model: "heading3", view: "h3", title: "Heading 3" },
-              { model: "heading4", view: "h4", title: "Heading 4" },
+              {
+                model: "paragraph",
+                title: "Paragraph",
+                class: "ck-heading_paragraph",
+              },
+              {
+                model: "heading1",
+                view: "h1",
+                title: "Heading 1",
+                class: "ck-heading_heading1",
+              },
+              {
+                model: "heading2",
+                view: "h2",
+                title: "Heading 2",
+                class: "ck-heading_heading2",
+              },
+              {
+                model: "heading3",
+                view: "h3",
+                title: "Heading 3",
+                class: "ck-heading_heading3",
+              },
+              {
+                model: "heading4",
+                view: "h4",
+                title: "Heading 4",
+                class: "ck-heading_heading4",
+              },
             ],
           },
 
+          // =====================================================
+          // FONT SIZE
+          // font size
           fontSize: {
             options: [9, 11, 13, "default", 17, 19, 21, 27, 35],
           },
 
+          // font family
           fontFamily: {
             options: [
               "default",
@@ -118,10 +249,12 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
             ],
           },
 
+          // alignment
           alignment: {
             options: ["left", "center", "right", "justify"],
           },
 
+          // table
           table: {
             contentToolbar: [
               "tableColumn",
@@ -132,6 +265,7 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
             ],
           },
 
+          // images
           image: {
             toolbar: [
               "imageTextAlternative",
@@ -142,6 +276,7 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
             ],
           },
 
+          //  links
           link: {
             decorators: {
               openInNewTab: {
@@ -153,17 +288,6 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
                 },
               },
             },
-          },
-
-          htmlSupport: {
-            allow: [
-              {
-                name: /.*/,
-                attributes: true,
-                classes: true,
-                styles: true,
-              },
-            ],
           },
         }}
       />
