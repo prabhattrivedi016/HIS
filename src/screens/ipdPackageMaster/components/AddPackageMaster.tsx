@@ -1,6 +1,8 @@
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { SelectStyles } from "@/components/customSelect";
+import CancelButton from "@/components/globalButtons/CancelButton";
+import EditIconButton from "@/components/globalButtons/EditIconButton";
 import RemoveIconButton from "@/components/globalButtons/RemoveIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import InputFieldModal from "@/components/inputFieldModal";
@@ -19,7 +21,14 @@ import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
-import { CategoryItem, PackageDetailsItem, PackageSetupItem, ServiceTableItem } from "../types";
+import {
+  CategoryItem,
+  PackageDetailsItem,
+  PackageSetupItem,
+  packageSetupStateValue,
+  SearchServiceItem,
+  ServiceTableItem,
+} from "../types";
 import CreateUpdatePopup from "./CreateUpdatePopup";
 
 const AddPackageMaster = ({
@@ -69,7 +78,7 @@ const AddPackageMaster = ({
   const [localPackageServices, setLocalPackageServices] = useState<PackageSetupItem[]>([]);
 
   const [limitTypeId, setLimitTypeId] = useState<number>(1);
-  const [limitTypeValue, setLimitTypeValue] = useState<string>("");
+  const [limitTypeValue, setLimitTypeValue] = useState<string>("Amount Wise");
   const [limitInputValue, setLimitInputValue] = useState<string>("");
 
   // Service search states
@@ -80,11 +89,25 @@ const AddPackageMaster = ({
   const [activeServiceIndex, setActiveServiceIndex] = useState<number>(0);
   const [selectedService, setSelectedService] = useState<any | null>(null);
   const [selectedServiceName, setSelectedServiceName] = useState<string>("");
-  const [selectedQty, setSelectedQty] = useState<number>(1);
+  const [selectedQty, setSelectedQty] = useState<string>("");
 
   const [packageDetailsList, setPackageDetailsList] = useState<PackageDetailsItem[]>([]);
 
   const [copyServiceNameList, setCopyServiceNameList] = useState<ServiceTableItem[]>([]);
+
+  const [packageSetupDetails, setPackageSetupDetails] = useState<packageSetupStateValue>({
+    category: { label: "", value: 0 },
+    subCategory: { label: "", value: 0 },
+    subSubCategory: { label: "", value: 0 },
+    limitTypeId: 1,
+    limitType: "Amount Wise",
+    limit: "",
+    serviceItemId: 0,
+    serviceQty: "",
+    serviceName: "",
+  });
+
+  console.log("packageSetupDetails", packageSetupDetails);
 
   // useForm Hook setup with Yup Schema validation
   const {
@@ -285,9 +308,10 @@ const AddPackageMaster = ({
     enabled: !!selectedCategory?.categoryTypeId,
   });
 
-  // Service search input handler
+  // Service search input handler in package
   const serviceItemHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+
     setSearchTerm(value);
     if (!value.trim()) {
       setServiceNameList([]);
@@ -371,10 +395,50 @@ const AddPackageMaster = ({
   };
 
   // Selected service option click handler
-  const selectedServiceHandler = (item: any) => {
+  const selectedServiceHandler = (item: SearchServiceItem) => {
+    // Update the package setup details object
+    setPackageSetupDetails((prev: packageSetupStateValue) => ({
+      ...prev,
+      category: { label: item?.categoryName ?? "", value: item?.categoryId ?? 0 },
+      subCategory: { label: item?.subCategoryName ?? "", value: item?.subCategoryId ?? 0 },
+      subSubCategory: {
+        label: item?.subSubCategoryName ?? "",
+        value: item?.subSubCategoryId ?? 0,
+      },
+      serviceItemId: Number(item?.serviceItemId ?? 0),
+      serviceName: item?.name ?? "",
+      serviceQty: "",
+      limit: "",
+      limitType: "Amount Wise",
+      limitTypeId: 1,
+    }));
+
+    // Auto-bind to the UI select inputs
+    if (item.categoryId) {
+      setSelectedSearchCategoryId(Number(item.categoryId));
+      setSelectedSearchCategoryValue(item.categoryName);
+    }
+
+    if (item.subCategoryId) {
+      setPackageSelectSubCategoryId(Number(item.subCategoryId));
+      setPackageSelectSubCategoryValue({
+        label: item.subCategoryName,
+        value: Number(item.subCategoryId),
+      });
+      setSelectedSubCategoryId(Number(item.subCategoryId));
+    }
+
+    if (item.subSubCategoryId) {
+      setPackageSelectSubSubCategoryId(Number(item.subSubCategoryId));
+      setPackageSelectSubSubCategoryValue({
+        label: item.subSubCategoryName,
+        value: Number(item.subSubCategoryId),
+      });
+    }
+
     setSelectedService(item);
     setSelectedServiceName(item.name);
-    setSelectedQty(1);
+    setSelectedQty("");
     setSearchTerm("");
     setServiceNameList([]);
     setShowPopup(false);
@@ -385,8 +449,22 @@ const AddPackageMaster = ({
   useEffect(() => {
     if (searchCategoryList && searchCategoryList.length > 0) {
       setSelectedSearchCategoryId(Number(searchCategoryList[0].categoryId));
+      setPackageSetupDetails({
+        ...packageSetupDetails,
+        category: {
+          label: searchCategoryList[0].categoryName,
+          value: searchCategoryList[0].categoryId,
+        },
+      });
     } else {
       setSelectedSearchCategoryId(0);
+      setPackageSetupDetails({
+        ...packageSetupDetails,
+        category: {
+          label: "",
+          value: 0,
+        },
+      });
     }
   }, [searchCategoryList]);
 
@@ -427,10 +505,10 @@ const AddPackageMaster = ({
         limit: Number(p?.Limit ?? 0),
         serviceQty: Number(p?.ServiceQty ?? 0),
 
-        serviceName: p?.ServiceItemName ?? "",
-        categoryName: p?.CategoryName ?? "",
-        subCategoryName: p?.SubCategoryName ?? "",
-        subSubCategoryName: p?.SubCategoryName ?? "",
+        serviceName: String(p?.ServiceItemName ?? ""),
+        categoryName: String(p?.CategoryName ?? ""),
+        subCategoryName: String(p?.SubCategoryName ?? ""),
+        subSubCategoryName: String(p?.SubSubCategoryName ?? "-"),
 
         qty: String(p?.ServiceQty ?? ""),
       }))
@@ -566,6 +644,11 @@ const AddPackageMaster = ({
       })),
     };
 
+    if (localPackageServices.length <= 0) {
+      showWarning("Please Add atleast one Package Setup!");
+      return;
+    }
+
     const resp = await fetchApi(
       "POST",
       ENDPOINTS.CREATE_UPDATE_IPD_PACKAGE_MASTER,
@@ -588,6 +671,75 @@ const AddPackageMaster = ({
     setLocalPackageServices(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
+  // edit button handler
+  const editItemHandler = (indexToEdit: number) => {
+    const item = localPackageServices[indexToEdit];
+
+    // Bind to UI states
+    setSelectedSearchCategoryId(item.categoryId);
+    setSelectedSearchCategoryValue(String(item.categoryName));
+
+    setPackageSelectSubCategoryId(item.subCategoryId);
+    if (item.subCategoryId) {
+      setPackageSelectSubCategoryValue({
+        label: String(item.subCategoryName),
+        value: item.subCategoryId,
+      });
+      setSelectedSubCategoryId(item.subCategoryId);
+    } else {
+      setPackageSelectSubCategoryValue(null);
+      setSelectedSubCategoryId(0);
+    }
+
+    setPackageSelectSubSubCategoryId(item.subSubCategoryId);
+    if (item.subSubCategoryId) {
+      setPackageSelectSubSubCategoryValue({
+        label: String(item.subSubCategoryName),
+        value: item.subSubCategoryId,
+      });
+    } else {
+      setPackageSelectSubSubCategoryValue(null);
+    }
+
+    if (item.serviceItemId) {
+      setSelectedService({
+        serviceItemId: item.serviceItemId,
+        name: item.serviceName,
+        rate: item.rate,
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        subCategoryId: item.subCategoryId,
+        subCategoryName: item.subCategoryName,
+        subSubCategoryId: item.subSubCategoryId,
+        subSubCategoryName: item.subSubCategoryName,
+      });
+    } else {
+      setSelectedService(null);
+    }
+
+    setSelectedServiceName(String(item.serviceName));
+    setSelectedQty(String(item.qty || item.serviceQty || ""));
+    setLimitTypeId(item.limitTypeId);
+    setLimitTypeValue(item.limitType);
+    setLimitInputValue(String(item.limit));
+
+    // Bind to packageSetupDetails
+    setPackageSetupDetails({
+      category: { label: String(item.categoryName), value: item.categoryId },
+      subCategory: { label: String(item.subCategoryName), value: item.subCategoryId },
+      subSubCategory: { label: String(item.subSubCategoryName), value: item.subSubCategoryId },
+      limitTypeId: item.limitTypeId,
+      limitType: item.limitType,
+      limit: String(item.limit),
+      serviceItemId: item.serviceItemId,
+      serviceQty: String(item.qty || item.serviceQty || ""),
+      serviceName: String(item.serviceName),
+    });
+
+    // Remove item from table
+    removeButtonHandler(indexToEdit);
+  };
+
   // package
   const searchCategorySelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedSearchCategoryId(Number(e.target.value));
@@ -598,6 +750,16 @@ const AddPackageMaster = ({
     const selected = searchCategoryList.find(
       (c: CategoryItem) => Number(c.categoryId) === Number(e.target.value)
     );
+    setPackageSetupDetails(prev => ({
+      ...prev,
+      category: {
+        label: selected?.categoryName ?? "",
+        value: selected?.categoryId ?? 0,
+      },
+      subCategory: { label: "", value: 0 },
+      subSubCategory: { label: "", value: 0 },
+    }));
+
     setSelectedSearchCategoryValue(selected?.categoryName);
   };
 
@@ -663,6 +825,11 @@ const AddPackageMaster = ({
       setPackageSelectSubCategoryValue(null);
       setPackageSelectSubSubCategoryId(0);
       setPackageSelectSubCategoryId(0);
+      setPackageSetupDetails(prev => ({
+        ...prev,
+        subCategory: { label: "", value: 0 },
+        subSubCategory: { label: "", value: 0 },
+      }));
       return;
     }
     setPackageSelectSubCategoryValue(option);
@@ -675,6 +842,12 @@ const AddPackageMaster = ({
     setSubSelectSubCategoryValue(null);
     setSelectedSubCategoryId(Number(option.value));
     setPackageSelectSubCategoryId(Number(option.value));
+
+    setPackageSetupDetails(prev => ({
+      ...prev,
+      subCategory: { label: selected?.subCategoryName ?? "", value: Number(option.value) },
+      subSubCategory: { label: "", value: 0 },
+    }));
   };
 
   //package sub sub category select handler
@@ -682,42 +855,55 @@ const AddPackageMaster = ({
     if (!option) {
       setPackageSelectSubSubCategoryValue(null);
       setPackageSelectSubSubCategoryId(0);
-
+      setPackageSetupDetails(prev => ({
+        ...prev,
+        subSubCategory: { label: "", value: 0 },
+      }));
       return;
     }
     setPackageSelectSubSubCategoryValue(option);
     setPackageSelectSubSubCategoryId(Number(option.value));
+
+    setPackageSetupDetails(prev => ({
+      ...prev,
+      subSubCategory: { label: option.label ?? "", value: Number(option.value) },
+    }));
   };
 
   // Add Item to package services list handler
   const addItemHandler = () => {
-    if (!selectedSearchCategoryId) {
+    const {
+      category,
+      subCategory,
+      subSubCategory,
+      serviceItemId,
+      limitTypeId,
+      limitType,
+      limit,
+      serviceQty,
+      serviceName,
+    } = packageSetupDetails;
+
+    if (!category.value) {
       showWarning("Please select a search category first");
       return;
     }
-    if (!limitTypeId || !limitTypeValue) {
+    if (!limitTypeId || !limitType) {
       showWarning("Please select a limit type");
       return;
     }
-    if (Number(limitInputValue) <= 0) {
+    if (Number(limit) <= 0) {
       showWarning("Please enter a valid limit value");
       return;
     }
 
-    const isServiceSelected = selectedService && selectedService.serviceItemId > 0;
-
-    let exists = false;
-    if (isServiceSelected) {
-      exists = localPackageServices.some(p => p?.serviceItemId === selectedService?.serviceItemId);
-    } else {
-      exists = localPackageServices.some(
-        p =>
-          p.categoryId === Number(selectedSearchCategoryId) &&
-          p.subCategoryId === Number(packageSelectSubCategoryId) &&
-          p.subSubCategoryId === Number(packageSelectSubSubCategoryId) &&
-          (!p.serviceItemId || p.serviceItemId === 0)
-      );
-    }
+    const exists = localPackageServices.some(
+      p =>
+        p?.categoryId === Number(category.value) &&
+        p?.subCategoryId === Number(subCategory.value) &&
+        p?.subSubCategoryId === Number(subSubCategory.value) &&
+        p?.serviceItemId === Number(serviceItemId)
+    );
 
     if (exists) {
       showWarning("This setup is already added to the package");
@@ -725,22 +911,53 @@ const AddPackageMaster = ({
     }
 
     const newItem: PackageSetupItem = {
-      categoryId: Number(selectedSearchCategoryId),
-      subCategoryId: Number(selectedSubCategoryId),
-      subSubCategoryId: Number(packageSelectSubSubCategoryId),
-      serviceItemId: Number(selectedService?.serviceItemId),
+      categoryId: Number(category.value),
+      subCategoryId: Number(subCategory.value),
+      subSubCategoryId: Number(subSubCategory.value),
+      serviceItemId: Number(serviceItemId),
       limitTypeId: Number(limitTypeId),
-      limitType: String(limitTypeValue),
-      limit: Number(limitInputValue),
-      serviceQty: selectedQty,
-      serviceName: String(selectedServiceName),
-      categoryName: String(selectedSearchCategoryValue),
-      subCategoryName: String(packageSelectSubCategoryValue?.label ?? "-"),
-      subSubCategoryName: packageSelectSubSubCategoryValue?.label ?? "-",
+      limitType: String(limitType),
+      limit: Number(limit),
+      serviceQty: Number(serviceQty) || Number(selectedQty),
+      serviceName: String(serviceName),
+      categoryName: String(category.label),
+      subCategoryName: String(subCategory.label || "-"),
+      subSubCategoryName: subSubCategory.label || "-",
       rate: selectedService?.rate ?? 0,
-      qty: selectedQty?.toString(),
+      qty: String(serviceQty || selectedQty),
     };
+
     setLocalPackageServices(prev => [...prev, newItem]);
+    resetPackageSetup();
+  };
+
+  const resetPackageSetup = () => {
+    setSelectedSearchCategoryId(selectedSearchCategoryId);
+    setSelectedSearchCategoryValue(selectedSearchCategoryValue);
+    setPackageSelectSubCategoryId(0);
+    setPackageSelectSubCategoryValue(null);
+    setSelectedSubCategoryId(0);
+    setPackageSelectSubSubCategoryId(0);
+    setPackageSelectSubSubCategoryValue(null);
+    setSelectedService(null);
+    setSelectedServiceName("");
+    setSearchTerm("");
+    setSelectedQty("");
+    setLimitTypeId(1);
+    setLimitTypeValue("Amount Wise");
+    setLimitInputValue("");
+
+    setPackageSetupDetails({
+      category: { label: "", value: 0 },
+      subCategory: { label: "", value: 0 },
+      subSubCategory: { label: "", value: 0 },
+      limitTypeId: 1,
+      limitType: "Amount Wise",
+      limit: "",
+      serviceItemId: 0,
+      serviceQty: "",
+      serviceName: "",
+    });
   };
 
   // limit type select handler
@@ -749,16 +966,20 @@ const AddPackageMaster = ({
 
     // Reset limit whenever limit type changes
     setLimitInputValue("");
+    setPackageSetupDetails(prev => ({ ...prev, limit: "" }));
 
     if (value === 1) {
       setLimitTypeId(1);
       setLimitTypeValue("Amount Wise");
+      setPackageSetupDetails(prev => ({ ...prev, limitType: "Amount Wise", limitTypeId: 1 }));
     } else if (value === 2) {
       setLimitTypeId(2);
       setLimitTypeValue("Percentage Wise");
+      setPackageSetupDetails(prev => ({ ...prev, limitType: "Percentage Wise", limitTypeId: 2 }));
     } else {
       setLimitTypeId(0);
       setLimitTypeValue("");
+      setPackageSetupDetails(prev => ({ ...prev, limitType: "", limitTypeId: 0 }));
     }
   };
 
@@ -771,6 +992,7 @@ const AddPackageMaster = ({
     // Empty value
     if (value === "") {
       setLimitInputValue("");
+      setPackageSetupDetails(prev => ({ ...prev, limit: "" }));
       return;
     }
 
@@ -779,11 +1001,13 @@ const AddPackageMaster = ({
     // Percentage Wise
     if (Number(limitTypeId) === 2 && numericValue > 100) {
       setLimitInputValue("");
+      setPackageSetupDetails(prev => ({ ...prev, limit: "" }));
       showWarning("Percentage limit cannot be greater than 100");
       return;
     }
 
     setLimitInputValue(value);
+    setPackageSetupDetails(prev => ({ ...prev, limit: value }));
   };
   // service item list
   const getServiceItemList = async (
@@ -919,13 +1143,6 @@ const AddPackageMaster = ({
             {errors.code && <p className="input-field-error">{errors.code.message}</p>}
           </InputField>
 
-          <InputField label="Status">
-            <select className="input-field" {...register("isActive")} value={watch("isActive")}>
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
-            </select>
-          </InputField>
-
           <InputField label="Start From">
             <Controller
               control={control}
@@ -970,13 +1187,18 @@ const AddPackageMaster = ({
               <p className="input-field-error">{errors.packageDurationDays.message}</p>
             )}
           </InputField>
+          <InputField label="Status">
+            <select className="input-field" {...register("isActive")}>
+              <option value={1}>Active</option>
+              <option value={0}>Inactive</option>
+            </select>
+          </InputField>
         </div>
         {/* search package */}
         <div className=" card m-1 -mt-3">
           {!isEdit ? (
             <div className="flex items-start justify-between gap-4 ">
-              {/* New Package */}
-              <h4 className="text-lg font-medium"> Package Services</h4>
+              <h4 className="text-lg font-medium"> Package Setup</h4>
 
               {/* Copy Package */}
               <div className="w-70">
@@ -1096,14 +1318,19 @@ const AddPackageMaster = ({
                 type="text"
                 className="input-field"
                 value={selectedQty}
-                onChange={e => setSelectedQty(Number(e.target.value))}
+                onChange={e => {
+                  setSelectedQty(e.target.value);
+                  setPackageSetupDetails(prev => ({ ...prev, serviceQty: e.target.value }));
+                }}
                 onInput={allowOnlyNumbers}
+                maxLength={2}
               />
             </InputField>
           </div>
 
           <div className="form-actions-responsive ">
             <SubmitButton type="button" label="Add Item" onClick={addItemHandler} />
+            <CancelButton type="button" label="Cancel" onClick={resetPackageSetup} />
           </div>
         </div>
 
@@ -1125,6 +1352,8 @@ const AddPackageMaster = ({
 
                     <th className="table-th">Limit Type</th>
                     <th className="table-th">Limit</th>
+                    <th className="table-th">Edit</th>
+
                     <th className="table-th">Remove</th>
                   </tr>
                 </thead>
@@ -1148,6 +1377,9 @@ const AddPackageMaster = ({
                         <td className="table-td ml-5">{item?.serviceQty ?? "-"}</td>
                         <td className="table-td">{item?.limitType ?? "-"}</td>
                         <td className="table-td">{item?.limit ?? 0}</td>
+                        <td>
+                          <EditIconButton onClick={() => editItemHandler(idx)} />
+                        </td>
                         <td>
                           <RemoveIconButton onClick={() => removeButtonHandler(idx)} />
                         </td>

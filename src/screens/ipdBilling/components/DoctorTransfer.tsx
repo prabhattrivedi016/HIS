@@ -1,18 +1,21 @@
+import { getUpdatedIpdPatientDetails } from "@/api/globalApiCall";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
+import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { OptionItem, SelectItem } from "@/types";
 import { showSuccess, showWarning } from "@/utils/alert";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { DoctorItem, IpdPatientItem, PreviousDoctorListItem } from "../types";
 
 const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
+  const { setUpdatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)!;
 
   const [selectedPrimaryDoctor, setSelectedPrimaryDoctor] = useState<SelectItem | null>(null);
   const [selectedSecondaryDoctors, setSelectedSecondaryDoctors] = useState<readonly SelectItem[]>(
@@ -51,7 +54,7 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
   }, [doctorSelectOption, selectedPrimaryDoctor]);
 
   useEffect(() => {
-    const docId = Number(patient?.DoctorNumber);
+    const docId = Number(patient?.PrimaryDoctorId);
 
     if (docId && doctorSelectOption) {
       const match = doctorSelectOption.find((opt: any) => Number(opt.value) === Number(docId));
@@ -99,6 +102,10 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
       showWarning(resp?.message ?? "Error while transferring doctor");
       return;
     }
+    const details = await getUpdatedIpdPatientDetails(fetchApi, patient?.BranchId, patient?.UHID);
+    if (details) {
+      setUpdatedIpdPatientDetails(details);
+    }
 
     showSuccess(resp?.message ?? "Doctor transferred successfully");
     setSelectedSecondaryDoctors([]);
@@ -125,9 +132,9 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
 
   return (
     <div>
-      <h3 className="ipd-billing-text">Doctor Transfer</h3>
+      {/* <h3 className="ipd-billing-text">Doctor Transfer</h3> */}
       <div className="form-grid-4">
-        <InputField label=" Primary Doctor">
+        <InputField label="Primary Doctor">
           <Select
             options={doctorSelectOption}
             name="primaryDoctor"
@@ -141,6 +148,7 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             menuPosition="fixed"
           />
         </InputField>
+
         <InputField label="Secondary Doctor">
           <Select
             options={secondarySelectOption}
@@ -156,10 +164,17 @@ const DoctorTransfer = ({ patient }: { patient: IpdPatientItem }) => {
             menuPosition="fixed"
           />
         </InputField>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4 mt-4">
+          <SubmitButton
+            label="Transfer"
+            className="save-btn-color"
+            type="button"
+            onClick={transferDoctorHandler}
+          />
+        </div>
       </div>
-      <div className="form-actions-responsive mt-5">
-        <SubmitButton label="Transfer" onClick={transferDoctorHandler} />
-      </div>
+
       {!!loading && <CustomLoader isLoading={loading} />}
 
       <h3 className="ipd-billing-text mt-8 mb-3">Doctor Transfer History</h3>

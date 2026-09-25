@@ -6,11 +6,11 @@ import { BranchContext } from "@/context/BranchContext";
 import useGetPreDefinedQueryResult from "@/hooks/useGetPreDefinedQueryResult";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
-import { useQuery } from "@tanstack/react-query";
 import { MRT_ColumnDef, MRT_RowSelectionState } from "material-react-table";
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   BillFilterItem,
+  BillSettlementItem,
   IpdPatientItem,
   IpdSummaryBillingTableList,
   PaymentListItem,
@@ -32,8 +32,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
   const branchId = useContext(BranchContext)?.branchId ?? 1;
 
   const [selectedBillId, setSelectedBillId] = useState<number>(0);
-
-  const [selectedTable, setSelectedTable] = useState<TableView>("billing");
 
   const [selectedFilteredData, setSelectedFilteredData] = useState<IpdSummaryBillingTableList[]>(
     []
@@ -69,6 +67,13 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
   const [renderSeparateSupplementaryBillPopup, setRenderSeparateSupplementaryBillPopup] =
     useState(false);
 
+  const [getIpdBillingSummaryLists, setIpdBillingSummaryLists] = useState<
+    IpdSummaryBillingTableList[]
+  >([]);
+  const [ipdBillingSummaryData, setIpdBillingSummaryData] = useState<BillSettlementItem | null>(
+    null
+  );
+
   // Payment History
 
   const paymentSummaryHistory =
@@ -94,14 +99,8 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         component: "IpdBillingSummary",
       }
     );
-
-    return resp?.data?.[0] ?? {};
+    setIpdBillingSummaryData(resp?.data?.[0] ?? null);
   };
-
-  const { data: ipdBillingSummaryData = {}, refetch } = useQuery({
-    queryKey: ["getBillSummaryDetails", patient],
-    queryFn: getBillSummaryDetails,
-  });
 
   // IPD Billing Summary
 
@@ -120,18 +119,13 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         component: "IpdBillingSummary",
       }
     );
-
-    return resp?.data ?? [];
+    setIpdBillingSummaryLists(resp?.data ?? []);
   };
 
-  const {
-    data: getIpdBillingSummaryLists = [],
-    isLoading,
-    refetch: refetchIpdBillingSummaryLists,
-  } = useQuery({
-    queryKey: ["ipdBillingSummaryLists", branchId, patient?.VisitId],
-    queryFn: getIpdBillingSummaryDetails,
-  });
+  useEffect(() => {
+    getIpdBillingSummaryDetails();
+    getBillSummaryDetails();
+  }, [branchId, patient]);
 
   // Bill Filter Values
 
@@ -247,19 +241,27 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
       },
 
       {
-        accessorKey: "IsUnderPackage",
-        header: "Is Under Package",
+        accessorKey: "Package",
+        header: "Package",
+        minSize: 150,
+        enableGrouping: true,
+        GroupedCell: renderGroupedCellWithTotal,
+      },
+
+      {
+        accessorKey: "IsCorporateNonPayable",
+        header: "Is Non Payable",
         minSize: 150,
         enableGrouping: true,
         GroupedCell: renderGroupedCellWithTotal,
         Cell: ({ cell }) => {
           const value = cell.getValue<number>();
 
-          const isUnderPackage = value === 1;
+          const isNonPayable = value === 1;
 
           return (
             <span className="flex items-center">
-              <span className="ml-2 text-sm text-gray-700">{isUnderPackage ? "Yes" : "No"}</span>
+              <span className="ml-2 text-sm text-gray-700">{isNonPayable ? "Yes" : "No"}</span>
             </span>
           );
         },
@@ -435,7 +437,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
       return;
     }
     showSuccess(resp?.message || "Non payable updated successfully.");
-    refetch?.();
   };
 
   //create payable payload
@@ -467,7 +468,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
       return;
     }
     showSuccess(resp?.message || "Payable updated successfully.");
-    refetch?.();
   };
 
   // package handler
@@ -513,40 +513,15 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
             {/* Header */}
 
             <div className="flex items-center justify-between gap-6 px-1">
-              {/* <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tableView"
-                  value="billing"
-                  checked={selectedTable === "billing"}
-                  onChange={() => setSelectedTable("billing")}
-                /> */}
-
               <span className="text-md font-bold ">Billing Items</span>
-              {/* </label> */}
 
-              {/* <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tableView"
-                  value="department"
-                  checked={selectedTable === "department"}
-                  onChange={() => setSelectedTable("department")}
-                />
-
-                <span className="text-md font-bold">Department Details</span>
-              </label> */}
-
-              {/* Bill Filter */}
-
-              {/* {selectedTable === "billing" ? ( */}
               <InputField>
                 <select
                   className="input-field"
                   value={selectedBillId}
                   onChange={e => setSelectedBillId(Number(e.target.value))}
                 >
-                  <option value={0}>All Items</option>
+                  <option value={0}>All Bills</option>
 
                   {getFilterValue.map((f: BillFilterItem) => (
                     <option key={f?.BillId} value={f?.BillId}>
@@ -555,28 +530,10 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
                   ))}
                 </select>
               </InputField>
-              {/* ) : (
-                <InputField>
-                  <select
-                    className="input-field"
-                    value={selectedBillId}
-                    onChange={e => setSelectedBillId(Number(e.target.value))}
-                  >
-                    <option value={0}>All Items</option>
-
-                    {getFilterValue.map((f: BillFilterItem) => (
-                      <option key={f?.BillId} value={f?.BillId}>
-                        {f?.BillNo}
-                      </option>
-                    ))}
-                  </select>
-                </InputField>
-              )} */}
             </div>
 
             {/* BILLING TABLE */}
 
-            {/* {selectedTable === "billing" && ( */}
             <>
               <div className="-mt-3">
                 <BaseTable
@@ -806,34 +763,6 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
               </div>
             </div>
           </div>
-
-          {/* Deposit Details */}
-
-          {/* <div className="bg-white border border-slate-200/70 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col gap-3">
-            <h4 className="text-slate-800 font-extrabold text-xs uppercase tracking-wider border-slate-100 ">
-              Deposit Details
-            </h4>
-
-            <div className="flex flex-col gap-2 text-xs font-semibold text-slate-600">
-              <div className="flex items-center justify-between">
-                <span>Total Deposit</span>
-
-                <span className="text-slate-900 font-bold">1,50,000.00</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span>Adjusted</span>
-
-                <span className="text-slate-900 font-bold">1,41,000.00</span>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-2 font-bold text-emerald-600">
-                <span>Balance Deposit</span>
-
-                <span className="text-emerald-600 font-extrabold">9,000.00</span>
-              </div>
-            </div>
-          </div> */}
         </div>
       </div>
       {/* FILTER POPUP */}
@@ -852,7 +781,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openQuantityUpdatePopup}
           onClose={() => setOpenQuantityUpdatePopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
         />
       )}
       {/* rate update */}
@@ -861,7 +790,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openRateUpdatePopup}
           onClose={() => setOpenRateUpdatePopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
         />
       )}
       {/* discount percentage update */}
@@ -870,7 +799,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openDiscountPercentagePopup}
           onClose={() => setOpenDiscountPercentagePopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
         />
       )}
       {/* discount amount update */}
@@ -879,7 +808,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openDiscountAmountPopup}
           onClose={() => setOpenDiscountAmountPopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
         />
       )}
       {/* package update */}
@@ -888,7 +817,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openPackagePopup}
           onClose={() => setOpenPackagePopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
         />
       )}
       {/* remove items */}
@@ -897,7 +826,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openRemovePopup}
           onClose={() => setOpenRemovePopup(false)}
           selectedItems={selectedItems}
-          refetch={refetchIpdBillingSummaryLists}
+          refetch={getIpdBillingSummaryDetails}
           onSuccess={() => setRowSelection({})}
         />
       )}
@@ -913,7 +842,7 @@ const IpdBillingSummary = ({ patient }: { patient: IpdPatientItem }) => {
         />
       )}
       {/* Loader */}
-      {(loading || isLoading) && <CustomLoader isLoading={loading || isLoading} />}
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

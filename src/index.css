@@ -8,6 +8,8 @@ body {
   font-family: "Inter", sans-serif;
   font-size: 15px;
 }
+
+/* normal pages */
 .page-container {
   background-color: #f9fafb;
   width: 100%;
@@ -28,6 +30,20 @@ body {
     padding-top: 1rem;
     padding-bottom: 1rem;
   }
+}
+
+.input-field-error {
+  text-align: start;
+  font-size: small;
+  color: #ef4444;
+  margin-top: -2px;
+}
+
+.input-field-success {
+  text-align: start;
+  font-size: small;
+  color: #16a34a;
+  margin-top: -2px;
 }
 
 /* button & icons colors */
@@ -540,9 +556,6 @@ input::placeholder {
 }
 
 /* texts */
-.input-field-error {
-  @apply text-sm text-red-500;
-}
 
 .billing-payment-cell {
   @apply flex flex-col gap-0;
