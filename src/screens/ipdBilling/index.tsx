@@ -2,7 +2,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { AuthContext } from "@/context/AuthContext";
+import { BranchContext } from "@/context/BranchContext";
 import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import { RoleContext } from "@/context/RoleContext";
 import { useClickOutside } from "@/hooks/useClickOutside";
@@ -31,7 +31,7 @@ const IpdBilling = () => {
   const { updatedIpdPatientDetails, setUpdatedIpdPatientDetails } =
     useContext(IpdPatientDetailsContext)!;
 
-  const branchId = useContext(AuthContext)?.user?.branchId;
+  const branchId = useContext(BranchContext)?.branchId;
 
   const roleId = useContext(RoleContext)?.roleId ?? 0;
 

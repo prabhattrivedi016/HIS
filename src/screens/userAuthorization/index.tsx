@@ -7,12 +7,13 @@ import CustomLoader from "../../components/customLoader";
 import { SelectStyles } from "../../components/customSelect";
 import ToggleButton from "../../components/toggleButton";
 import { ENDPOINTS } from "../../config/defaults";
-import { Active, DefaultBranch } from "../../constants/constants";
+import { Active, DefaultBranch, userAuthorizationTabNames } from "../../constants/constants";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import useGlobalApi from "../../hooks/useGlobalApi";
 import { usePickMaster } from "../../hooks/usePickMaster";
 import CorporateMapping from "./components/CorporateMapping";
 import DischargeProcessMapping from "./components/DischargeProcessMapping";
+import OtProcessMapping from "./components/otProcessMapping";
 import PageAccess from "./components/PageAccess";
 import RoomMapping from "./components/RoomMapping";
 import TabAccess from "./components/TabAccess";
@@ -252,6 +253,16 @@ const UserAuthorization = () => {
     setSelectedButton("dischargeProcessMapping");
   };
 
+  const otProcessMappingHandler = () => {
+    setShowRoleSelect(false);
+    setSelectedRole(null);
+    setRoleId(null);
+
+    setSelectedButton("otProcessMapping");
+  };
+
+  //
+
   /*--------------------------role handlers---------------------------- */
 
   //toggle single handler
@@ -340,27 +351,27 @@ const UserAuthorization = () => {
   /* render components */
   const renderTableData = (buttonType: string) => {
     switch (buttonType) {
-      case "roles": {
+      case userAuthorizationTabNames?.ROLE: {
         return (
           <div className=" card">
             {/* HEADER */}
             <div className="flex justify-between flex-wrap -mt-3">
               <div className="flex">
                 <button
-                  className={`table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
+                  className={`text-sm table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
                   onClick={filterAllHandler}
                 >
                   All
                 </button>
                 <button
-                  className={`table-header-button ${activeButton === "remaining" ? "save-btn " : "cursor-pointer"}`}
+                  className={` text-sm table-header-button ${activeButton === "remaining" ? "save-btn " : "cursor-pointer"}`}
                   onClick={remainingHandler}
                 >
                   Remaining
                 </button>
 
                 <button
-                  className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
+                  className={`text-sm table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
                   onClick={grantedHandler}
                 >
                   Granted
@@ -449,33 +460,36 @@ const UserAuthorization = () => {
           </div>
         );
       }
-      case "userRights": {
+      case userAuthorizationTabNames?.USER_RIGHTS: {
         return (
           <UserRightData branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />
         );
       }
-      case "userDashboard": {
+      case userAuthorizationTabNames?.USER_DASHBOARD: {
         return (
           <UserDashboard branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />
         );
       }
-      case "pageAccess": {
+      case userAuthorizationTabNames?.PAGE_ACCESS: {
         return <PageAccess branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />;
       }
-      case "tabsAccess": {
+      case userAuthorizationTabNames?.TAB_ACCESS: {
         return <TabAccess branchId={branchId} typeId={typeId} userId={userId} roleId={roleId} />;
       }
-      case "corporateMapping": {
+      case userAuthorizationTabNames?.CORPORATE_MAPPING: {
         return <CorporateMapping branchId={branchId} typeId={typeId} userId={userId} />;
       }
-      case "roomMapping": {
+      case userAuthorizationTabNames?.ROOM_MAPPING: {
         return <RoomMapping branchId={branchId} typeId={typeId} userId={userId} />;
       }
-      case "dischargeProcessMapping": {
+      case userAuthorizationTabNames?.DISCHARGE_PROCESS_MAPPING: {
         return <DischargeProcessMapping branchId={branchId} typeId={typeId} userId={userId} />;
       }
+      case userAuthorizationTabNames?.OT_PROCESS_MAPPING: {
+        return <OtProcessMapping branchId={branchId} typeId={typeId} userId={userId} />;
+      }
       default:
-        return;
+        return <></>;
     }
   };
 
@@ -557,71 +571,114 @@ const UserAuthorization = () => {
       </div>
       {pageView && (
         <>
-          <div className="flex  ">
-            <button
-              className={`table-header-button ${selectedButton === "roles" ? "save-btn" : "cursor-pointer"}`}
-              onClick={roleButtonHandler}
-            >
-              Roles
-            </button>
+          <div className="w-full overflow-x-auto overflow-y-hidden hide-scrollbar ">
+            <div className="flex flex-nowrap items-center gap-0.5 min-w-max">
+              <button
+                type="button"
+                className={`text-sm table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.ROLE ? "save-btn" : "cursor-pointer"
+                }`}
+                onClick={roleButtonHandler}
+              >
+                Roles
+              </button>
 
-            <button
-              className={`table-header-button ${selectedButton === "userRights" ? "save-btn" : "cursor-pointer"}`}
-              onClick={userRightsButtonHandler}
-            >
-              User Rights
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.USER_RIGHTS
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={userRightsButtonHandler}
+              >
+                User Rights
+              </button>
 
-            <button
-              className={`table-header-button ${
-                selectedButton === "userDashboard" ? "save-btn" : "cursor-pointer"
-              }`}
-              onClick={userDashboardHandler}
-            >
-              User Dashboard
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.USER_DASHBOARD
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={userDashboardHandler}
+              >
+                User Dashboard
+              </button>
 
-            <button
-              className={`table-header-button ${selectedButton === "pageAccess" ? "save-btn" : "cursor-pointer"}`}
-              onClick={pageAccessHandler}
-            >
-              Page Access
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.PAGE_ACCESS
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={pageAccessHandler}
+              >
+                Page Access
+              </button>
 
-            <button
-              className={`table-header-button ${selectedButton === "tabsAccess" ? "save-btn" : "cursor-pointer"}`}
-              onClick={tabsAccessHandler}
-            >
-              All Tabs
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.TAB_ACCESS
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={tabsAccessHandler}
+              >
+                All Tabs
+              </button>
 
-            <button
-              className={`table-header-button ${
-                selectedButton === "corporateMapping" ? "save-btn" : "cursor-pointer"
-              }`}
-              onClick={corporateMappingHandler}
-            >
-              Corporate Mapping
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.CORPORATE_MAPPING
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={corporateMappingHandler}
+              >
+                Corporate Mapping
+              </button>
 
-            <button
-              className={`table-header-button ${
-                selectedButton === "roomMapping" ? "save-btn" : "cursor-pointer"
-              }`}
-              onClick={roomMappingHandler}
-            >
-              Room Mapping
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.ROOM_MAPPING
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={roomMappingHandler}
+              >
+                Room Mapping
+              </button>
 
-            {/* dischargeProcessMapping */}
-            <button
-              className={`table-header-button ${
-                selectedButton === "dischargeProcessMapping" ? "save-btn" : "cursor-pointer"
-              }`}
-              onClick={dischargeProcessMappingHandler}
-            >
-              Discharge Process Mapping
-            </button>
+              <button
+                type="button"
+                className={` text-sm  table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.DISCHARGE_PROCESS_MAPPING
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={dischargeProcessMappingHandler}
+              >
+                Discharge Process Mapping
+              </button>
+
+              <button
+                type="button"
+                className={`text-sm table-header-button whitespace-nowrap shrink-0 ${
+                  selectedButton === userAuthorizationTabNames?.OT_PROCESS_MAPPING
+                    ? "save-btn"
+                    : "cursor-pointer"
+                }`}
+                onClick={otProcessMappingHandler}
+              >
+                OT Process Mapping
+              </button>
+            </div>
           </div>
           {/* render components */}
           {renderTableData(selectedButton)}

@@ -3,8 +3,8 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { OtProcessMasterItem } from "../types";
 
 interface SequenceMappingPopupProps {
   isOpen: boolean;
@@ -12,72 +12,31 @@ interface SequenceMappingPopupProps {
   refetch?: () => Promise<void>;
 }
 
-interface SequenceItem {
-  DischargeProcessId: number;
-  ProcessKey: string;
-  ProcessName: string;
-  SequenceNo: number;
-  IsMandatory: boolean;
-  IsActive: boolean;
-  IsSystemProcess: boolean;
-  CreatedBy: string;
-  CreatedOn: string;
-  ModifiedBy: string;
-  ModifiedOn: string;
-}
-
-interface SequenceApiResponse {
-  result: boolean;
-  messageType: string;
-  message: string;
-  data: SequenceItem[];
-}
-
-interface SequencePayloadItem {
-  dischargeProcessId: number;
-  sequenceNo: number;
-}
-
-interface SequencePayload {
-  sequences: SequencePayloadItem[];
-}
-
 const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const [sequenceList, setSequenceList] = useState<SequenceItem[]>([]);
+  const [sequenceList, setSequenceList] = useState<OtProcessMasterItem[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // discharge bar
+  //
 
-  const getDischargeProcessMaster = async (): Promise<SequenceItem[]> => {
-    const resp = (await fetchApi(
+  const getOtProcessMaster = async (): Promise<OtProcessMasterItem[]> => {
+    const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_DISCHARGE_PROCESS_MASTER,
+      ENDPOINTS.GET_OT_PROCESS_MASTER,
       {},
       {},
       {
         component: "SequenceMappingPopup",
       }
-    )) as SequenceApiResponse;
-
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while getting OT process list");
+      return [];
+    }
     return resp?.data ?? [];
   };
-
-  const {
-    data: apiSequenceList = [],
-    isLoading,
-    isFetching,
-  } = useQuery({
-    queryKey: ["dischargeProcessMaster"],
-    queryFn: getDischargeProcessMaster,
-    enabled: isOpen,
-  });
-
-  const sortedApiList = useMemo(() => {
-    return [...apiSequenceList].sort((a, b) => Number(a.SequenceNo) - Number(b.SequenceNo));
-  }, [apiSequenceList]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -87,10 +46,14 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
       return;
     }
 
-    setSequenceList(sortedApiList);
-  }, [isOpen, sortedApiList]);
+    void (async () => {
+      const list = await getOtProcessMaster();
+      const sorted = [...list].sort((a, b) => Number(a.SequenceNo) - Number(b.SequenceNo));
+      setSequenceList(sorted);
+    })();
+  }, [isOpen]);
 
-  const normalizeSequence = (list: SequenceItem[]): SequenceItem[] => {
+  const normalizeSequence = (list: OtProcessMasterItem[]): OtProcessMasterItem[] => {
     return list.map((item, index) => ({
       ...item,
       SequenceNo: index + 1,
@@ -164,10 +127,10 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
   };
 
   // Create payload
-  const createPayload = (): SequencePayload => {
+  const createPayload = () => {
     return {
       sequences: sequenceList.map(item => ({
-        dischargeProcessId: Number(item?.DischargeProcessId),
+        otProcessId: Number(item?.OTProcessId),
         sequenceNo: Number(item?.SequenceNo),
       })),
     };
@@ -185,7 +148,7 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
 
       const resp = await fetchApi(
         "PATCH",
-        ENDPOINTS.UPDATE_DISCHARGE_PROCESS_SEQUENCE,
+        ENDPOINTS.UPDATE_OT_PROCESS_SEQUENCE,
         payload,
         {},
         { component: "SequenceMappingPopup" }
@@ -213,7 +176,7 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
     <CentralPopup
       isOpen={isOpen}
       onClose={handleClose}
-      title="Process Sequence Mapping"
+      title="OT Process Sequence Mapping"
       className="w-full max-w-5xl"
     >
       <div className="flex flex-col">
@@ -235,7 +198,7 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
                   {sequenceList.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="table-empty">
-                        No discharge processes found
+                        No OT processes found
                       </td>
                     </tr>
                   ) : (
@@ -246,7 +209,7 @@ const SequenceMappingPopup = ({ isOpen, onClose, refetch }: SequenceMappingPopup
 
                       return (
                         <tr
-                          key={item.DischargeProcessId}
+                          key={item.OTProcessId}
                           draggable
                           onDragStart={event => handleDragStart(event, index)}
                           onDragOver={event => handleDragOver(event, index)}

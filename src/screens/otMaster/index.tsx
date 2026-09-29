@@ -228,7 +228,7 @@ const OtMaster = () => {
             {errors.otEndTime && <p className="input-field-error">{errors.otEndTime.message}</p>}
           </InputField>
 
-          <InputField label="OT Slot In Mins" required>
+          <InputField label="OT Slot(Mins)" required>
             <input
               type="text"
               className="input-field"
@@ -273,7 +273,7 @@ const OtMaster = () => {
                   <th className="table-th">OT Name</th>
                   <th className="table-th">OT Start Time</th>
                   <th className="table-th">OT End Time</th>
-                  <th className="table-th">OT Slot In Mins</th>
+                  <th className="table-th">OT Slot(Mins)</th>
                   <th className="table-th">Status</th>
                   <th className="table-th">Created By</th>
                   <th className="table-th">Created On</th>
@@ -300,7 +300,7 @@ const OtMaster = () => {
                     <td className="table-td">{item?.OTName || "-"}</td>
                     <td className="table-td">{item?.OTStartTime || "-"}</td>
                     <td className="table-td">{item?.OTEndTime || "-"}</td>
-                    <td className="table-td">{item?.OTSlotMins || "-"}</td>
+                    <td className="table-td text-center">{item?.OTSlotMins || "-"}</td>
                     <td
                       className={`table-td ${
                         Number(item?.IsActive) === 1 ? "active-text" : "inactive-text"

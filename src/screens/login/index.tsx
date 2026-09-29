@@ -323,9 +323,9 @@ const Login = () => {
         transition={{ duration: 1, ease: "easeOut" }}
         className="relative w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto"
       >
-        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-5">
           <div className="text-center mb-6">
-            <div className="mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white w-full max-[300px] h-[150px] sm:max-w-[400px] sm:h-[200px] md:max-w-[400px] md:h-[200px] ">
+            <div className="mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white w-full max-[280px] h-[120px] sm:max-w-[400px] sm:h-[200px] md:max-w-[400px] md:h-[200px] ">
               <img src={Logo} alt="Hospital Logo" className="w-full h-full object-contain" />
             </div>
 
