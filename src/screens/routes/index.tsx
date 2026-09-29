@@ -8,6 +8,7 @@ import BedMaster from "../bedMaster";
 import BillReceiptReprint from "../billReceiptReprint";
 import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
+import BulkReceive from "../bulkReceive";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
@@ -35,10 +36,12 @@ import InvestigationObservationMapping from "../investigationObservationMapping"
 import IPDAdmission from "../ipdAdmission";
 import IpdBilling from "../ipdBilling";
 import IpdPackageMaster from "../ipdPackageMaster";
+import Ivf from "../ivf";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
 import LaboratoryHelpDesk from "../laboratoryHelpDesk";
 import PathologyResultEntry from "../labResultEntry";
+import LabSampleManagement from "../labSampleManagement";
 import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
 import MicroReportMaster from "../microReportMaster";
@@ -55,7 +58,9 @@ import OpdRefund from "../opdRefund";
 import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
+import OtBooking from "../otBooking";
 import OtMaster from "../otMaster";
+import OtProcessMaster from "../otProcessMaster";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import PrintSettings from "../printSettings";
@@ -65,6 +70,7 @@ import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
+import SampleJourney from "../sampleJourney";
 import SampleManagement from "../sampleManagement";
 import ServiceMaster from "../serviceMaster";
 import SurgeryMaster from "../surgeryMaster";
@@ -167,4 +173,10 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "discharge-process-master": <DischargeProcessMaster />,
   "mis-dashboard": <MisDashboard />,
   "ot-master": <OtMaster />,
+  "ivf-admission": <Ivf />,
+  "ot-booking": <OtBooking />,
+  "ot-process-master": <OtProcessMaster />,
+  "lab-sample-management": <LabSampleManagement />,
+  "bulk-receive": <BulkReceive />,
+  "sample-journey": <SampleJourney />,
 };

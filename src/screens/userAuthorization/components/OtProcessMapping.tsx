@@ -5,55 +5,55 @@ import ToggleButton from "../../../components/toggleButton";
 import { ENDPOINTS } from "../../../config/defaults";
 import useGlobalApi from "../../../hooks/useGlobalApi";
 import { chunkArray } from "../../../utils/chunkApiData";
-import { ChildProps, CorporateMappingItem } from "../types";
+import { ChildProps, OtPrcoessMappingTableItem } from "../types";
 
-const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
+const OtProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
-  const [filteredData, setFilteredData] = useState<CorporateMappingItem[]>([]);
-  const [corporateData, setCorporateData] = useState<CorporateMappingItem[]>([]);
+  const [filteredData, setFilteredData] = useState<OtPrcoessMappingTableItem[]>([]);
+  const [otProcessData, setOtProcessData] = useState<OtPrcoessMappingTableItem[]>([]);
   const [activeButton, setActiveButton] = useState<string>("");
 
   // corporate mapping handler
-  const corporateMappingHandler = async () => {
+  const otProcessMappingHandler = async () => {
     if (!branchId || !typeId || !userId) return;
     setActiveButton("all");
 
     const response = await fetchApi(
       "GET",
-      ENDPOINTS.GET_USER_WISE_CORPORATE_MAPPING,
+      ENDPOINTS.GET_USER_WISE_OTP_PROCESS_MAPPING,
       {},
       { params: { branchId, typeId, userId } }
     );
 
     setFilteredData(response?.data ?? []);
-    setCorporateData(response?.data ?? []);
+    setOtProcessData(response?.data ?? []);
   };
 
   useEffect(() => {
-    corporateMappingHandler();
+    otProcessMappingHandler();
   }, [branchId, typeId, userId]);
 
   //search handler
   const onSearchHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const filteredRole = corporateData?.filter((u: CorporateMappingItem) =>
-      u?.corporateName?.toLowerCase()?.includes(value?.toLowerCase())
+    const filteredRole = otProcessData?.filter((u: OtPrcoessMappingTableItem) =>
+      u?.ProcessName?.toLowerCase()?.includes(value?.toLowerCase())
     );
     setFilteredData(filteredRole);
   };
 
   //toggle single handler
   const toggleSingleHandler = (id: number) => {
-    setCorporateData(prev =>
+    setOtProcessData(prev =>
       prev.map(item =>
-        item?.corporateId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+        item?.OTProcessId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
       )
     );
 
     setFilteredData(prev =>
       prev.map(item =>
-        item?.corporateId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
+        item?.OTProcessId === id ? { ...item, isGranted: item.isGranted === 1 ? 0 : 1 } : item
       )
     );
   };
@@ -61,28 +61,29 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
   //toggle all handler
   const toggleAllHandler = () => {
     const allGranted =
-      corporateData.length > 0 && corporateData.every(item => item.isGranted === 1);
+      otProcessData.length > 0 && otProcessData.every(item => item.isGranted === 1);
 
-    const updated = corporateData.map(item => ({
+    const updated = otProcessData.map(item => ({
       ...item,
       isGranted: allGranted ? 0 : 1,
     }));
 
-    setCorporateData(updated);
+    setOtProcessData(updated);
     setFilteredData(updated);
   };
 
   //All handler
   const filterAllHandler = () => {
     setActiveButton("all");
-    setFilteredData(corporateData ?? []);
+    setFilteredData(otProcessData ?? []);
   };
 
   // remaining handler
   const remainingHandler = () => {
     setActiveButton("remaining");
 
-    const remaining = corporateData?.filter((r: CorporateMappingItem) => r?.isGranted === 0) ?? [];
+    const remaining =
+      otProcessData?.filter((r: OtPrcoessMappingTableItem) => r?.isGranted === 0) ?? [];
     setFilteredData(remaining);
   };
 
@@ -90,43 +91,44 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
   const grantedHandler = () => {
     setActiveButton("granted");
 
-    const granted = corporateData.filter(item => item.isGranted === 1) ?? [];
+    const granted = otProcessData.filter(item => item.isGranted === 1) ?? [];
     setFilteredData(granted);
   };
 
   //submit handle
 
   const saveCorporateMappingHandler = useCallback(async () => {
-    if (!corporateData || corporateData?.length === 0) return;
+    if (!otProcessData || otProcessData?.length === 0) return;
 
-    const corporates = corporateData
-      ?.filter((u: CorporateMappingItem) => u.isGranted === 1)
-      .map((u: CorporateMappingItem) => ({
+    const dischargeProcess = otProcessData
+      ?.filter((u: OtPrcoessMappingTableItem) => u.isGranted === 1)
+      .map((u: OtPrcoessMappingTableItem) => ({
         branchId: branchId,
         typeId: typeId,
         userId: userId,
-        corporateId: u.corporateId,
+        otProcessId: u?.OTProcessId,
       }));
 
-    if (corporates.length === 0) return;
+    if (dischargeProcess.length === 0) return;
 
-    const chunks = chunkArray(corporates, 50);
+    const chunks = chunkArray(dischargeProcess, 50);
 
     for (let i = 0; i < chunks.length; i++) {
-      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_CORPORATE_MAPPING, {
+      const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_OT_PROCESS_MAPPING, {
         branchId: branchId,
         typeId: typeId,
         userId: userId,
         isFirst: i === 0 ? 1 : 0,
-        userCorporates: chunks[i],
+        userOTProcessMappings: chunks[i],
       });
       if (!resp?.result) {
-        showError(error?.message);
+        showError(error?.message ?? "Failed to update discharge process mapping");
         return;
       }
-      showSuccess(resp?.message);
+      showSuccess(resp?.message ?? "Data saved successfully");
+      await otProcessMappingHandler?.();
     }
-  }, [corporateData, branchId, typeId, userId]);
+  }, [otProcessData, branchId, typeId, userId]);
 
   return (
     <div className="card">
@@ -134,21 +136,21 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
       <div className="flex justify-between flex-wrap  -mt-3">
         <div className="flex gap-1">
           <button
-            className={`text-sm table-header-button ${activeButton === "all" ? "save-btn" : "cursor-pointer"}`}
+            className={` text-sm table-header-button ${activeButton === "all" ? "save-btn" : "cursor-pointer"}`}
             onClick={filterAllHandler}
           >
             All
           </button>
 
           <button
-            className={` text-sm table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
+            className={`text-sm table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
             onClick={remainingHandler}
           >
             Remaining
           </button>
 
           <button
-            className={`text-sm table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
+            className={` text-sm table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
             onClick={grantedHandler}
           >
             Granted
@@ -168,16 +170,17 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
             <tr>
               <th className="table-index-header">#</th>
 
-              <th className="table-name-header">
-                <div className="table-header-content">
-                  <span className="table-title">Corporate Name</span>
+              <th className="table-name-header">Discharge Process Name</th>
 
-                  <input
-                    className="table-search-input input-field"
-                    placeholder="search corporate name"
-                    onChange={onSearchHandler}
-                  />
-                </div>
+              <th className="table-name-header">Discharge Process Key</th>
+
+              {/* SEARCH */}
+              <th className="table-search-header">
+                <input
+                  className="table-search-input input-field mt-2"
+                  placeholder="Search OT process"
+                  onChange={onSearchHandler}
+                />
               </th>
 
               {/* TOGGLE ALL */}
@@ -195,30 +198,39 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
 
           {/* TABLE BODY */}
           <tbody>
-            {!!filteredData && filteredData.length > 0 ? (
-              filteredData.map((item: CorporateMappingItem, idx) => (
+            {filteredData?.length > 0 ? (
+              filteredData.map((item: OtPrcoessMappingTableItem, idx) => (
                 <tr
-                  key={item?.corporateId}
+                  key={item?.OTProcessId}
                   className="table-row"
-                  onClick={() => toggleSingleHandler(item?.corporateId)}
+                  onClick={() => toggleSingleHandler(item?.OTProcessId)}
                 >
+                  {/* INDEX */}
                   <td className="table-cell">{idx + 1}</td>
 
+                  {/* PROCESS NAME */}
                   <td className="table-cell">
                     <span
                       className={`status-badge ${
                         item?.isGranted === 1 ? "status-success" : "status-inactive"
                       }`}
                     >
-                      {item?.corporateName}
+                      {item?.ProcessName}
                     </span>
                   </td>
 
+                  {/* PROCESS KEY */}
+                  <td className="table-cell table-text-truncate">{item?.ProcessKey}</td>
+
+                  {/* SEARCH COLUMN / SPACER */}
+                  <td className="table-cell" />
+
+                  {/* TOGGLE */}
                   <td className="table-action-cell">
                     <div onClick={e => e.stopPropagation()}>
                       <ToggleButton
-                        checked={item.isGranted === 1}
-                        onClick={() => toggleSingleHandler(item?.corporateId)}
+                        checked={item?.isGranted === 1}
+                        onClick={() => toggleSingleHandler(item?.OTProcessId)}
                       />
                     </div>
                   </td>
@@ -226,7 +238,7 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="table-empty">
+                <td colSpan={5} className="table-empty">
                   No data found
                 </td>
               </tr>
@@ -239,4 +251,4 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
   );
 };
 
-export default React.memo(CorporateMapping);
+export default React.memo(OtProcessMapping);

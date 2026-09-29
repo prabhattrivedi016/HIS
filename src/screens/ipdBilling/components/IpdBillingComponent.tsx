@@ -92,6 +92,9 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     remarks: "",
   });
 
+  const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
+  const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
+
   const billingPaymentDetails = useMemo(() => {
     const grossBillAmount = serviceDataTableItem.reduce(
       (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
@@ -1237,6 +1240,34 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setSelectedServiceRemark(null);
   }, []);
 
+  // advance amount
+  const settledWithPatientAdvanceHandler = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (!checked || !patient?.PatientId) {
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    const patientAdvance = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_LEDGER_BILL,
+      {},
+      { params: { patientId: patient?.PatientId } },
+      { component: "GenerateSupplementaryBillPopup" }
+    );
+
+    if (Number(patientAdvance?.data?.[0]?.TotalNetAmt ?? 0) <= 0) {
+      showWarning("No patient advance balance is available for this patient.");
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    setPatientAdvanceChecked(true);
+    setPatientAdvanceAmount(Number(patientAdvance?.data?.[0]?.TotalNetAmt ?? 0));
+  };
+
   return (
     <div>
       <div className="form-grid-4">
@@ -1546,6 +1577,30 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
 
                 {showBillingDetailsForm && (
                   <div className="mt-1 card">
+                    {/* patient advance */}
+                    <div className="flex flex-wrap justify-end gap-4 mb-2 ">
+                      {patientAdvanceChecked && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-bold text-gray-700">
+                            Patient Advance Net Amount:
+                          </label>
+                          <span className="text-base font-bold text-green-600">
+                            ₹ {patientAdvanceAmount.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={patientAdvanceChecked}
+                          onChange={settledWithPatientAdvanceHandler}
+                        />
+                        <span>Settled with Patient Advance</span>
+                      </label>
+                    </div>
+
                     <BillingDetails
                       ref={billingDetailsRef}
                       setBillingValues={setBillingValues}
@@ -1553,6 +1608,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                       paymentBilling={billingPaymentDetails}
                       showPaymentMode={true}
                       corporateId={patient?.CorporateId || 1}
+                      patientAdvanceEnabled={patientAdvanceChecked && patientAdvanceAmount > 0}
+                      patientAdvanceAmount={patientAdvanceAmount}
                     />
                   </div>
                 )}

@@ -6,8 +6,8 @@ import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showSuccess } from "@/utils/alert";
-import { useContext, useMemo, useRef } from "react";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { IpdPatientItem, IpdSummaryBillingTableList } from "../types";
 
 const GenerateSupplementaryBillPopup = ({
@@ -25,6 +25,9 @@ const GenerateSupplementaryBillPopup = ({
   const billingDetailsRef = useRef<BillingDetailsHandle>(null);
   const branchId = useContext(BranchContext)?.branchId ?? 1;
   const roleId = useContext(RoleContext)?.roleId ?? 0;
+
+  const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
+  const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
 
   // Compute bill summary from selected items — all read-only, no user edits
   const billingSummary = useMemo(() => {
@@ -128,8 +131,64 @@ const GenerateSupplementaryBillPopup = ({
       return;
     }
     showSuccess(resp?.message ?? "Data saved successfully");
+    setPatientAdvanceChecked(false);
+    setPatientAdvanceAmount(0);
     onClose();
   };
+
+  // advance amount
+  const settledWithPatientAdvanceHandler = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (!checked || patient?.PatientId) {
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    const patientAdvance = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_LEDGER_BILL,
+      {},
+      { params: { patientId: patient?.PatientId } },
+      { component: "GenerateSupplementaryBillPopup" }
+    );
+
+    if (Number(patientAdvance?.data?.[0]?.TotalNetAmt ?? 0) <= 0) {
+      showWarning("No patient advance balance is available for this patient.");
+      setPatientAdvanceChecked(false);
+      setPatientAdvanceAmount(0);
+      return;
+    }
+
+    setPatientAdvanceChecked(true);
+    setPatientAdvanceAmount(Number(patientAdvance?.data?.[0]?.TotalNetAmt ?? 0));
+  };
+
+  // validations
+
+  const restrictedItems = useMemo(() => {
+    return dataList.filter(
+      item =>
+        item?.CategoryTypeId === 11 || item?.CategoryTypeId === 12 || item?.IsUnderPackage === 1
+    );
+  }, [dataList]);
+
+  useEffect(() => {
+    if (isOpen && restrictedItems.length > 0) {
+      const uniqueItem = new Set();
+      restrictedItems.forEach(item => {
+        uniqueItem.add(item?.ServiceName);
+      });
+      showWarning(
+        `The following services cannot be included in supplementary bill:\n${[...uniqueItem].join(",\n")}`
+      );
+      onClose();
+    }
+  }, [isOpen, restrictedItems, onClose]);
+
+  if (restrictedItems.length > 0) {
+    return null;
+  }
 
   return (
     <CentralPopup
@@ -220,6 +279,28 @@ const GenerateSupplementaryBillPopup = ({
           </div>
         </div>
 
+        {/* patient advance */}
+        <div className="flex flex-wrap justify-end gap-4  ">
+          {patientAdvanceChecked && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-bold text-gray-700">Patient Advance Net Amount:</label>
+              <span className="text-base font-bold text-green-600">
+                ₹ {patientAdvanceAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={patientAdvanceChecked}
+              onChange={settledWithPatientAdvanceHandler}
+            />
+            <span>Settled with Patient Advance</span>
+          </label>
+        </div>
+
         {/* Billing Details — all fields read-only / disabled */}
         <div className="card ">
           <div className="flex flex-col lg:flex-row gap-1 w-full">
@@ -235,6 +316,8 @@ const GenerateSupplementaryBillPopup = ({
                 maxPaymentAmount={billingSummary.netAmount}
                 disableDiscountEditing={true}
                 disableApprovalFields={true}
+                patientAdvanceEnabled={patientAdvanceChecked && patientAdvanceAmount > 0}
+                patientAdvanceAmount={patientAdvanceAmount}
                 paymentBilling={{
                   grossBillAmount: billingSummary.grossBillAmount,
                   totalDiscPerOnBill: billingSummary.totalDiscPerOnBill,

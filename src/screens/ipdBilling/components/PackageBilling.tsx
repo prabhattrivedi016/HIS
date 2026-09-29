@@ -992,13 +992,13 @@ const PackageBilling = ({ patient }: { patient: IpdPatientItem }) => {
                             className="table-th "
                             title="Automatically include future services in the package during billing, based on the package configuration."
                           >
-                            Auto Add
+                            Auto Include
                           </th>
                           <th
                             className="table-th"
                             title="Automatically include existing services in the package during billing, based on the package configuration"
                           >
-                            Add Existing Items
+                            Run on Existing
                           </th>
                         </tr>
                       </thead>

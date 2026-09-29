@@ -149,21 +149,21 @@ const PageAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
       <div className="flex justify-between flex-wrap gap-3 -mt-3">
         <div className="flex ">
           <button
-            className={`table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
+            className={`text-sm table-header-button ${activeButton === "all" ? "save-btn " : "cursor-pointer"}`}
             onClick={filterAllHandler}
           >
             All
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
+            className={`text-sm table-header-button ${activeButton === "remaining" ? "save-btn" : "cursor-pointer"}`}
             onClick={remainingHandler}
           >
             Remaining
           </button>
 
           <button
-            className={`table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
+            className={`text-sm table-header-button ${activeButton === "granted" ? "save-btn" : "cursor-pointer"}`}
             onClick={grantedHandler}
           >
             Granted

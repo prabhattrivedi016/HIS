@@ -443,6 +443,11 @@ export enum IPDAdmissionTabName {
   IPD_DOCUMENT = "Documents",
 }
 
+export enum OTBookingTabName {
+  PATIENT_DETAILS = "Patient Details",
+  OT_BOOKING = "OT Booking Details",
+}
+
 export enum PageType {
   OPD_BILLING = "OPDBilling",
   IPD_BILLING = "IPDBilling",
@@ -525,3 +530,15 @@ export const misDashboardTabs = [
   "Inventory",
   "Detailed Reports",
 ];
+
+export enum userAuthorizationTabNames {
+  ROLE = "roles",
+  USER_RIGHTS = "userRights",
+  USER_DASHBOARD = "userDashboard",
+  PAGE_ACCESS = "pageAccess",
+  TAB_ACCESS = "tabsAccess",
+  CORPORATE_MAPPING = "corporateMapping",
+  ROOM_MAPPING = "roomMapping",
+  DISCHARGE_PROCESS_MAPPING = "dischargeProcessMapping",
+  OT_PROCESS_MAPPING = "otProcessMapping",
+}

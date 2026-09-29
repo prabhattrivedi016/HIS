@@ -4,7 +4,7 @@ import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { IpdSummaryBillingTableList } from "../types";
 
 type PackagePopupProps = {
@@ -54,19 +54,6 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
       return;
     }
 
-    const restrictedItems = selectedItems.filter(
-      item => Number(item?.CategoryTypeId) === 11 || Number(item?.CategoryTypeId) === 12
-    );
-
-    if (restrictedItems.length > 0) {
-      const itemDetails = restrictedItems
-        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
-        .join("\n");
-
-      showWarning(`The following items cannot be added to the package:\n${itemDetails}`);
-
-      return;
-    }
     const payload = createPayload();
     const resp = await fetchApi(
       "PATCH",
@@ -83,6 +70,25 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
     onClose();
     refetch?.();
   };
+
+  const restrictedItems = useMemo(() => {
+    return selectedItems.filter(item => item?.CategoryTypeId === 11 || item?.CategoryTypeId === 12);
+  }, [selectedItems]);
+
+  useEffect(() => {
+    if (isOpen && restrictedItems.length > 0) {
+      const uniqueItem = new Set();
+      restrictedItems.forEach(item => {
+        uniqueItem.add(item?.ServiceName);
+      });
+      showWarning(`The following services is already a package:\n${[...uniqueItem].join(",\n")}`);
+      onClose();
+    }
+  }, [isOpen, restrictedItems, onClose]);
+
+  if (restrictedItems.length > 0) {
+    return null;
+  }
 
   return (
     <CentralPopup isOpen={isOpen} onClose={onClose} title="Package">

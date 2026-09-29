@@ -1,13 +1,13 @@
 import axios from "axios";
 import { Bell, BriefcaseBusiness, Building2, HousePlus, Menu, User, User2 } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import useGetBranchList from "../../hooks/useGetBranchList";
 import { useAppDispatch } from "../../store/hooks";
-import { clearAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { clearAccessRights } from "../../store/slices/accessRightSlices";
+import { clearAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
 import { getAuthStorage } from "../../utils/authStorage";
@@ -15,7 +15,9 @@ import { getAuthStorage } from "../../utils/authStorage";
 import RoleBindPage from "./components/RoleBindPage";
 import UserReset from "./components/UserReset";
 
+import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
+import { BranchItem } from "@/types";
 import "../../styles/layout.css";
 import "../../styles/theme.css";
 
@@ -38,30 +40,30 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
   const user = authContext?.user;
   const branchId = Number(user?.branchId ?? 0);
   const userId = Number(user?.userId ?? 0);
+  const { setBranchId } = useContext(BranchContext);
 
   /* ---------------- STATE ---------------- */
   const [openRoleBind, setOpenRoleBind] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState<BranchItem | null>(null);
 
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [userProfileSetting, setUserProfileSetting] = useState(false);
   const [renderUserProfileSetting, setRenderUserProfileSetting] = useState(false);
 
-  const { branchList } = useGetBranchList();
+  const branchList = useGetBranchList()?.branchList?.data ?? [];
 
   /* ---------------- PROFILE DROPDOWN REF ---------------- */
-  const profileRef = useRef(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   useClickOutside(profileRef, () => setUserProfileOpen(false));
 
   /* ---------------- INIT BRANCH ---------------- */
   useEffect(() => {
-    if (!branchList?.data?.length) return;
+    if (!branchList?.length) return;
 
-    const defaultBranch =
-      branchList.data.find(b => b.branchId === branchId) ||
-      branchList.data.find(b => b.branchId === 1);
+    const defaultBranch = branchList.find(b => b.branchId === 1);
 
-    setSelectedBranch(defaultBranch);
+    setSelectedBranch(defaultBranch!);
+    setBranchId(defaultBranch?.branchId!);
   }, [branchList, branchId]);
 
   /* ---------------- HANDLERS ---------------- */
@@ -72,10 +74,11 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
 
   const roleBindHandler = () => setOpenRoleBind(true);
 
-  const branchChangeHandler = e => {
-    const branchId = e.target.value;
-    const branch = branchList?.data?.find(b => String(b.branchId) === branchId);
-    setSelectedBranch(branch);
+  const branchChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    const branch = branchList?.find(b => b.branchId === value);
+    setSelectedBranch(branch!);
+    setBranchId(value);
   };
 
   const logoutHandler = () => {
@@ -143,13 +146,13 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
           </button>
 
           <div className="hidden md:block w-full max-w-[120px] sm:max-w-[140px] md:max-w-xs">
-            {branchList?.data?.length > 1 ? (
+            {branchList?.length > 1 ? (
               <select
-                value={selectedBranch?.branchId || ""}
+                value={selectedBranch?.branchId}
                 onChange={branchChangeHandler}
                 className="branch-box "
               >
-                {branchList?.data?.map(branch => (
+                {branchList?.map(branch => (
                   <option key={branch.branchId} value={branch.branchId}>
                     {branch.branchName}
                   </option>

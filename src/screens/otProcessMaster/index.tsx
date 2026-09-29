@@ -3,35 +3,27 @@ import CustomLoader from "@/components/customLoader";
 import { SelectStyles } from "@/components/customSelect";
 import CancelButton from "@/components/globalButtons/CancelButton";
 import EditIconButton from "@/components/globalButtons/EditIconButton";
-import MappingIconButton from "@/components/globalButtons/MappingIconButton";
 import SubmitButton from "@/components/globalButtons/SubmitButton";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess } from "@/utils/alert";
-import {
-  dischargeProcessMasterFormData,
-  dischargeProcessMasterSchema,
-} from "@/validation/dischargeProcessMasterSchema";
+import { otProcessMasterFormData, otProcessMasterSchema } from "@/validation/otProcessMasterSchema";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import Select from "react-select";
-import CorporateMapping from "./components/CorporateMapping";
-import SequenceMappingPopup from "./components/SequenceMappingPopup";
-import { DischargeProcessItem, IconListItem } from "./types";
+import SequenceMappingPopup from "./components/SequenceMapping";
+import { IconListItem, OtProcessMasterItem } from "./types";
 
-const DischargeProcessMaster = () => {
+const OtProcessMaster = () => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const processKeyLists = usePickMaster("DischargeProcessKey")?.pickMasterValue ?? [];
+  const processKeyLists = usePickMaster("OTProcessKey")?.pickMasterValue ?? [];
 
-  const [openMappingPopup, setOpenMappingPopup] = useState<boolean>(false);
-  const [renderMappingPopup, setRenderMappingPopup] = useState<boolean>(false);
-  const [selectProcessItem, setSelectedProcessItem] = useState<DischargeProcessItem | null>(null);
+  const [otProcessList, setOtProcessList] = useState<OtProcessMasterItem[]>([]);
 
   const [openSequenceMapping, setOpenSequenceMapping] = useState<boolean>(false);
   const [renderSequenceMapping, setRenderSequenceMapping] = useState<boolean>(false);
@@ -49,72 +41,75 @@ const DischargeProcessMaster = () => {
     setValue,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(dischargeProcessMasterSchema),
+    resolver: yupResolver(otProcessMasterSchema),
     defaultValues: {
-      dischargeProcessId: 0,
+      otProcessId: 0,
       processKey: "",
       processName: "",
-      sequenceNo: 0,
       faIconId: 0,
-      isMandatory: 0,
       isActive: 1,
-      isSystemProcess: 0,
+      isSystemProcess: 1,
     },
   });
 
-  const isEdit = Boolean(watch("dischargeProcessId"));
+  const isEdit = Boolean(watch("otProcessId"));
   const buttonTitle = isEdit ? "Update" : "Create";
 
   //   submit handler
-  const onSubmit = async (formData: dischargeProcessMasterFormData) => {
+  const onSubmit = async (formData: otProcessMasterFormData) => {
     const resp = await fetchApi(
       "POST",
-      ENDPOINTS.CREATE_UPDATE_DISCHARGE_PROCESS_MASTER,
+      ENDPOINTS.CREATE_UPDATE_OT_PROCESS_MASTER,
       formData,
       {},
-      { component: "DischargeProcessMaster" }
+      { component: "OtProcessMaster" }
     );
     if (!resp?.result) {
       showError(resp?.message ?? "Error while saving discharge process data");
       return;
     }
+    console.log("respresprespresprespresprespresp", resp?.data);
+
     showSuccess(resp?.message ?? "Data saved successfully");
     reset({
-      dischargeProcessId: 0,
+      otProcessId: 0,
       processKey: "",
       processName: "",
-      sequenceNo: 0,
       faIconId: 0,
-      isMandatory: 0,
       isActive: 1,
-      isSystemProcess: 0,
+      isSystemProcess: 1,
     });
     setSelectedIcon(null);
-    await refetch();
+    await getOtProcessList();
   };
 
   //   get table list
-  const getDischargeProcessList = async () => {
+  const getOtProcessList = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_DISCHARGE_PROCESS_MASTER,
+      ENDPOINTS.GET_OT_PROCESS_MASTER,
       {},
       {},
-      { component: "DischargeProcessMaster" }
+      { component: "OtProcessMaster" }
     );
-    return resp?.data ?? [];
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while getting ot process list");
+      return;
+    }
+
+    setOtProcessList(resp?.data ?? []);
   };
 
-  const { data: dischargeProcessList, refetch } = useQuery({
-    queryKey: ["dischargeProcessList"],
-    queryFn: getDischargeProcessList,
-  });
+  useEffect(() => {
+    getOtProcessList();
+  }, []);
 
   // edit handler
-  const editHandler = (item: DischargeProcessItem) => {
+  const editHandler = (item: OtProcessMasterItem) => {
     if (!item) return;
 
-    Number(item?.DischargeProcessId) === 1 ? setIsDisabled(true) : setIsDisabled(false);
+    Number(item?.IsSystemProcess) === 1 ? setIsDisabled(true) : setIsDisabled(false);
+
     const matchedIcon =
       faIcons.find(
         i =>
@@ -128,12 +123,10 @@ const DischargeProcessMaster = () => {
     setSelectedIcon(matchedIcon);
 
     reset({
-      dischargeProcessId: Number(item?.DischargeProcessId),
+      otProcessId: Number(item?.OTProcessId),
       processKey: String(item?.ProcessKey ?? ""),
       processName: String(item?.ProcessName),
-      sequenceNo: Number(item?.SequenceNo),
       faIconId: Number(item?.FaIconId ?? matchedIcon?.id ?? 0),
-      isMandatory: Number(item?.IsMandatory),
       isSystemProcess: Number(item?.IsSystemProcess),
       isActive: Number(item?.IsActive),
     });
@@ -143,41 +136,16 @@ const DischargeProcessMaster = () => {
 
   const cancelHandler = () => {
     reset({
-      dischargeProcessId: 0,
+      otProcessId: 0,
       processKey: "",
       processName: "",
-      sequenceNo: 0,
       faIconId: 0,
-      isMandatory: 0,
       isActive: 1,
-      isSystemProcess: 0,
+      isSystemProcess: 1,
     });
     setSelectedIcon(null);
     setIsDisabled(false);
   };
-
-  // const tablePopupHandler = () => {
-  //   setShowDetails(p => !p);
-  // };
-
-  //   mapping handler
-  const mappingHandler = (item: DischargeProcessItem) => {
-    if (!item) {
-      setOpenMappingPopup(false);
-      setRenderMappingPopup(false);
-      setSelectedProcessItem(null);
-      return;
-    }
-    setSelectedProcessItem(item);
-    setRenderMappingPopup(true);
-    setOpenMappingPopup(true);
-  };
-
-  const closeMappingHandler = useCallback(() => {
-    setOpenMappingPopup(false);
-    setRenderMappingPopup(false);
-    setSelectedProcessItem(null);
-  }, []);
 
   // handle sequence mapping
   const handleSequenceMapping = () => {
@@ -253,14 +221,14 @@ const DischargeProcessMaster = () => {
     <div className="page-container">
       <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
         <div className="flex-1">
-          <h1 className="page-heading">Discharge Process Master</h1>
+          <h1 className="page-heading">OT Process Master</h1>
 
           <nav className="helper-text">
             <NavLink to="/dashboard" className="hover:underline">
               Home
             </NavLink>
             <span>››</span>
-            <span>Discharge Process Master</span>
+            <span>OT Process Master</span>
           </nav>
         </div>
         <div className="flex justify-end flex-1">
@@ -274,17 +242,19 @@ const DischargeProcessMaster = () => {
         <div className="form-grid-4">
           <InputField label="Process Key" required>
             <select
+              className={isEdit ? "disabled-input-field cursor-not-allowed" : "input-field"}
               {...register("processKey")}
-              className={isDisabled ? "disabled-input-field cursor-not-allowed" : "input-field"}
               disabled={isDisabled}
             >
               <option value="">Select Process Key</option>
+
               {processKeyLists.map((processKey: PickMasterItem) => (
                 <option key={processKey?.key} value={processKey?.key}>
                   {processKey?.value}
                 </option>
               ))}
             </select>
+
             {errors.processKey?.message && (
               <p className="input-field-error">{errors.processKey.message}</p>
             )}
@@ -294,35 +264,13 @@ const DischargeProcessMaster = () => {
             <input
               className="input-field"
               {...register("processName")}
-              placeholder="Enter discharge process name"
+              placeholder="Enter OT Process name"
             />
             {errors.processName?.message && (
               <p className="input-field-error">{errors.processName.message}</p>
             )}
           </InputField>
 
-          {/* <InputField label="Sequence Number ">
-            <input
-              className="input-field"
-              {...register("sequenceNo")}
-              onInput={allowOnlyNumbers}
-              placeholder="Enter sequence number"
-            />
-            {errors.sequenceNo?.message && (
-              <p className="input-field-error">{errors.sequenceNo.message}</p>
-            )}
-          </InputField> */}
-
-          {/* <InputField label="Is Mandatory" required>
-            <select className="input-field" {...register("isMandatory")}>
-              <option value={1}>Yes</option>
-              <option value={0}>No</option>
-            </select>
-            {errors.isMandatory?.message && (
-              <p className="input-field-error">{errors.isMandatory.message}</p>
-            )} 
-          </InputField>
-          */}
           <InputField label="Is System Process" required>
             <select
               {...register("isSystemProcess")}
@@ -384,15 +332,7 @@ const DischargeProcessMaster = () => {
       </form>
 
       {/* table */}
-      {/* <div className="card mt-1"> */}
-      {/* <div className="card-header">
-          <h2 className="card-title ">Discharge Process Master List</h2>
 
-          <button onClick={tablePopupHandler}>
-            {showDetails ? <Minus size={30} /> : <Plus size={30} />}
-          </button>
-        </div> */}
-      {/* <Animation isOpen={showDetails}> */}
       <div className="table-container mt-1 ">
         <div className="table-scroll-wrapper ">
           <div className="table-size lg:min-h-100 lg:max-h-100">
@@ -404,11 +344,9 @@ const DischargeProcessMaster = () => {
                   <th className="table-th">Icon</th>
                   <th className="table-th">Process Name</th>
                   <th className="table-th">Sequence No</th>
-                  {/* <th className="table-th">Mandatory</th> */}
 
                   <th className="table-th">System Process</th>
                   <th className="table-th">Active</th>
-                  <th className="table-th">Map Corporate</th>
                   <th className="table-th">Created By</th>
                   <th className="table-th">Created On</th>
                   <th className="table-th">Last Modified By</th>
@@ -418,35 +356,28 @@ const DischargeProcessMaster = () => {
               </thead>
 
               <tbody>
-                {dischargeProcessList?.length === 0 && (
+                {otProcessList?.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="table-empty">
+                    <td colSpan={12} className="table-empty">
                       No records found
                     </td>
                   </tr>
                 )}
 
-                {dischargeProcessList?.map((item: DischargeProcessItem, idx: number) => (
-                  <tr key={item?.DischargeProcessId} className="table-row">
+                {otProcessList?.map((item: OtProcessMasterItem, idx: number) => (
+                  <tr key={item?.OTProcessId} className="table-row">
                     <td className="table-td">{idx + 1}</td>
                     <td className="table-td">{item?.ProcessKey || "-"}</td>
 
-                    <td className="table-td">
-                      {<i className={` text-lg ${item?.IconClass}`}></i>}
+                    <td className="table-td ">
+                      {<i className={` text-lg  ${item?.IconClass}`}></i>}
                     </td>
 
                     <td className="table-td">{item?.ProcessName || "-"}</td>
                     <td className="table-td text-center">{item?.SequenceNo || "-"}</td>
 
-                    {/* <td
-                      className={`table-td ${
-                        Number(item?.IsMandatory) === 1 ? "active-text" : "inactive-text"
-                      }`}
-                    >
-                      {Number(item?.IsMandatory) === 1 ? "Yes" : "No"}
-                    </td> */}
                     <td
-                      className={`table-td text-center ${
+                      className={`table-td  text-center  ${
                         Number(item?.IsSystemProcess) === 1 ? "active-text" : "inactive-text"
                       }`}
                     >
@@ -460,13 +391,7 @@ const DischargeProcessMaster = () => {
                     >
                       {Number(item?.IsActive) === 1 ? "Active" : "Inactive"}
                     </td>
-                    {Number(item?.IsSystemProcess) === 0 ? (
-                      <td className="table-td">
-                        <MappingIconButton onClick={() => mappingHandler(item)} className="ml-7" />
-                      </td>
-                    ) : (
-                      <td className="table-td"></td>
-                    )}
+
                     <td className="table-td">{item?.CreatedBy || "-"}</td>
                     <td className="table-td">{item?.CreatedOn || "-"}</td>
                     <td className="table-td">{item?.ModifiedBy || "-"}</td>
@@ -478,27 +403,15 @@ const DischargeProcessMaster = () => {
                 ))}
               </tbody>
             </table>
-            {/* </div> */}
           </div>
         </div>
-        {/* </Animation> */}
       </div>
-
-      {/* mapping popup */}
-      {renderMappingPopup && (
-        <CorporateMapping
-          isOpen={openMappingPopup}
-          onClose={closeMappingHandler}
-          item={selectProcessItem}
-        />
-      )}
-
       {/* sequence mapping */}
       {renderSequenceMapping && (
         <SequenceMappingPopup
           isOpen={openSequenceMapping}
           onClose={closeSequenceMappingHandler}
-          refetch={refetch}
+          refetch={getOtProcessList}
         />
       )}
 
@@ -506,4 +419,4 @@ const DischargeProcessMaster = () => {
     </div>
   );
 };
-export default DischargeProcessMaster;
+export default OtProcessMaster;

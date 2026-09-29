@@ -6,13 +6,13 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { allowOnlyNumbers, allowOnlyText } from "@/utils/inputValidationHandler";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IpdSummaryBillingTableList } from "../types";
 
 type DiscountAmountPopupProps = {
   isOpen: boolean;
   onClose: () => void;
-  selectedItems?: IpdSummaryBillingTableList[]; // Replace 'any' with the actual type of your selected items
+  selectedItems: IpdSummaryBillingTableList[]; // Replace 'any' with the actual type of your selected items
   refetch?: () => void;
 };
 
@@ -68,19 +68,6 @@ const DiscountAmountPopup = ({
       return;
     }
 
-    const restrictedItems = selectedItems.filter(
-      item => Number(item?.CategoryTypeId) === 6 || Number(item?.CategoryTypeId) === 9
-    );
-
-    if (restrictedItems.length > 0) {
-      const itemDetails = restrictedItems
-        .map((item, index) => `${index + 1}. ${item?.ServiceName ?? "Unknown Service"}`)
-        .join("\n");
-
-      showWarning(`Discount amount cannot be updated of the following items.:\n${itemDetails}`);
-
-      return;
-    }
     const payload = createPayload();
 
     setDiscAmtValue(Number(discAmtValue));
@@ -99,6 +86,27 @@ const DiscountAmountPopup = ({
     onClose();
     refetch?.(); // Call refetch to refresh the data after updating quantity
   };
+
+  const restrictedItems = useMemo(() => {
+    return selectedItems.filter(item => item?.CategoryTypeId === 6 || item?.CategoryTypeId === 9);
+  }, [selectedItems]);
+
+  useEffect(() => {
+    if (isOpen && restrictedItems.length > 0) {
+      const uniqueItem = new Set();
+      restrictedItems.forEach(item => {
+        uniqueItem.add(item?.ServiceName);
+      });
+      showWarning(
+        `Discount amount cannot be updated of the following services.:\n${[...uniqueItem].join(",\n")}`
+      );
+      onClose();
+    }
+  }, [isOpen, restrictedItems, onClose]);
+
+  if (restrictedItems.length > 0) {
+    return null;
+  }
   return (
     <CentralPopup isOpen={isOpen} onClose={onClose} title="Discount Amount Update">
       <div>

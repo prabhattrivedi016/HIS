@@ -46,6 +46,8 @@ const ENDPOINTS = {
   SAVE_UPDATE_USER_IPD_TAB_MAPPING: "Admin/saveUpdateUserIPDTabMapping",
   GET_USER_WISE_DISCHARGE_PROCESS_MAPPING: "Admin/getUserWiseDischargeProcessMapping",
   SAVE_UPDATE_USER_DISCHARGE_PROCESS_MAPPING: "Admin/saveUpdateUserDischargeProcessMapping",
+  GET_USER_WISE_OTP_PROCESS_MAPPING: "Admin/getUserWiseOTProcessMapping",
+  SAVE_UPDATE_USER_OT_PROCESS_MAPPING: "Admin/saveUpdateUserOTProcessMapping",
 
   // navigation panel
   GET_NAVIGATION_SUB_MENU_MASTER: "Admin/getNavigationSubMenuMaster",
@@ -719,6 +721,11 @@ const ENDPOINTS = {
   // ot master
   GET_OT_MASTER_LIST: "Admin/getOTMasterList",
   CREATE_UPDATE_OT_MASTER: "Admin/createUpdateOTMaster",
+
+  // ot process master
+  GET_OT_PROCESS_MASTER: "Admin/getOTProcessMaster",
+  CREATE_UPDATE_OT_PROCESS_MASTER: "Admin/createUpdateOTProcessMaster",
+  UPDATE_OT_PROCESS_SEQUENCE: "Admin/updateOTProcessSequence",
 };
 
 export { ENDPOINTS };

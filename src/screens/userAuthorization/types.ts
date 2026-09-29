@@ -126,6 +126,8 @@ export type PageAccessTableItem = {
   data: PageAccessItem[];
 };
 
+
+
 export type CorporateMappingTableItem = {
   type: "corporateMapping";
   branchId: number;
@@ -134,6 +136,15 @@ export type CorporateMappingTableItem = {
   roleId: number;
   data: CorporateMappingItem[];
 };
+
+export type OtPrcoessMappingTableItem= {
+      "isGranted": number,
+      "ProcessKey": string,
+      "ProcessName": string,
+      "SequenceNo": number,
+      "OTProcessId": number,
+      "IsActive": boolean
+    },
 
 // tableData
 export type TableData =
