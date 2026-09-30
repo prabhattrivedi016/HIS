@@ -97,8 +97,6 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
   //submit handle
 
   const saveCorporateMappingHandler = useCallback(async () => {
-    if (!corporateData || corporateData?.length === 0) return;
-
     const corporates = corporateData
       ?.filter((u: CorporateMappingItem) => u.isGranted === 1)
       .map((u: CorporateMappingItem) => ({
@@ -108,9 +106,7 @@ const CorporateMapping = ({ branchId, typeId, userId }: ChildProps) => {
         corporateId: u.corporateId,
       }));
 
-    if (corporates.length === 0) return;
-
-    const chunks = chunkArray(corporates, 50);
+    const chunks = corporates.length > 0 ? chunkArray(corporates, 50) : [[]];
 
     for (let i = 0; i < chunks.length; i++) {
       const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_CORPORATE_MAPPING, {

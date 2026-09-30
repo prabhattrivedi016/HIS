@@ -1,14 +1,8 @@
-import CustomDateInput from "@/components/customDateInput";
-import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import CustomTimePicker from "@/components/timePicker";
 import { ENDPOINTS } from "@/config/defaults";
-import { dischargeProcessType } from "@/constants/constants";
 import { BranchContext } from "@/context/BranchContext";
 import { IpdPatientDetailsContext } from "@/context/IpdPatientDetailsContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { usePickMaster } from "@/hooks/usePickMaster";
-import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import {
   Check,
@@ -23,27 +17,20 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
-import { DischargeProcessStepItem, IpdPatientItem } from "../types";
-import AbscondedDischargeDetails from "./AbscondedDischargeDetails";
+import { IpdPatientItem, OtProcessItem } from "../types";
 import AddRemark from "./AddRemark";
-import DeathDischargeDetails from "./DeathDischargeDetails";
-import LamaDamaDischargeDetails from "./LamaDamaDischargeDetails";
-import NormalDischargeDetails from "./NormalDischargeDetails";
-import ReferralDischargeDetails from "./ReferralDischargeDetails";
 
-const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
+const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
 
   const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)! ?? {};
 
-  const dischargeProcessTypeList = usePickMaster("DischargeType")?.pickMasterValue ?? [];
+  const [isOtInitiated, setIsOtInitiated] = useState<boolean>(false);
 
-  const [isDischargeInitiated, setIsDischargeInitiated] = useState(false);
+  const [isInitiating, setIsInitiating] = useState<boolean>(false);
 
-  const [isInitiating, setIsInitiating] = useState(false);
-
-  const [steps, setSteps] = useState<DischargeProcessStepItem[]>([]);
+  const [steps, setSteps] = useState<OtProcessItem[]>([]);
 
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
@@ -74,9 +61,9 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     return `${hours}:${minutesStr} ${ampm}`;
   }, []);
 
-  const [dischargeType, setDischargeType] = useState<string>("");
-  const [dischargeDate, setDischargeDate] = useState<string>(currentLocalYYYYMMDD);
-  const [dischargeTime, setDischargeTime] = useState<string>(currentLocalTime);
+  const [otType, setOtType] = useState<string>("");
+  const [otDate, setOtDate] = useState<string>(currentLocalYYYYMMDD);
+  const [otTime, setOtTime] = useState<string>(currentLocalTime);
 
   // min date
   const minDate = useMemo(() => {
@@ -109,15 +96,15 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   // max date
   const maxDate = currentLocalYYYYMMDD;
 
-  // get current process
+  // get ot current process
 
   const getCurrentProcess = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_CURRENT_DISCHARGE_PROCESS,
+      ENDPOINTS.GET_CURRENT_OT_PROCESS,
       {},
       { params: { visitId: patient?.VisitId } },
-      { component: "DischargeProcess" }
+      { component: "OtProcess" }
     );
 
     SetAllProcessCompleted(resp?.data?.AllProcessesCompleted ?? false);
@@ -132,10 +119,10 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const getValidatePatientDischarge = async () => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.VALIDATE_PATIENT_DISCHARGE,
+      ENDPOINTS.VALIADTE_PATIENT_OT_PROCESS,
       {},
       { params: { visitId: patient?.VisitId } },
-      { component: "DischargeProcess" }
+      { component: "OtProcess" }
     );
     if (!resp?.result) {
       setCanDischarge(false);
@@ -154,12 +141,12 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     }
   }, [patient?.VisitId]);
 
-  // get discharge process
-  const getDischargeProcessLists = async () => {
+  // get ot  process
+  const getOtProcessLists = async () => {
     try {
       const resp = await fetchApi(
         "GET",
-        ENDPOINTS.GET_PATIENT_DISCHARGE_PROCESS,
+        ENDPOINTS.GET_PATIEENT_OT_PROCESS,
         {},
         {
           params: {
@@ -168,102 +155,22 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
           },
         },
         {
-          component: "DischargeProcess",
+          component: "OtProcess",
         }
       );
 
       if (!resp?.result) {
-        setIsDischargeInitiated(false);
+        setIsOtInitiated(false);
         setSteps([]);
         return;
       }
 
-      setIsDischargeInitiated(true);
-      setSteps([
-        ...(resp?.data ?? []),
-
-        {
-          PatientVisitDischargeProcessId: 0,
-          VisitId: 0,
-          DischargeProcessId: 0,
-          ProcessKey: "FINAL_DISCHARGED",
-          ProcessName: "Final Discharged",
-          SequenceNo: 0,
-          DischargeProcessStep: resp?.data?.length + 1,
-          IsMandatory: true,
-          Status: 0,
-          IconName: "fa-hospital-user",
-          IconClass: "fa-solid fa-hospital-user",
-          StartedBy: "",
-          StartedOn: "",
-          CompletedBy: updatedIpdPatientDetails?.DischargedBy ?? patient?.DischargedBy,
-          CompletedOn:
-            `${updatedIpdPatientDetails?.DischargeDate} ${updatedIpdPatientDetails?.DischargeTime}` ||
-            `${patient?.DischargeDate} ${patient?.DischargeTime}` ||
-            "--",
-          Remarks: "",
-          IsCompleted: updatedIpdPatientDetails?.IsDischarged ?? patient?.IsDischarged,
-          IsPending: 1,
-          IsCurrentProcess: 0,
-          CanExecute: 0,
-          IsFuture: 0,
-          IsUserAuthorized: 1,
-        },
-
-        {
-          PatientVisitDischargeProcessId: 0,
-          VisitId: 0,
-          DischargeProcessId: 0,
-          ProcessKey: "BILL_GENERATED",
-          ProcessName: "Bill Generated",
-          SequenceNo: 0,
-          DischargeProcessStep: resp?.data?.length + 2,
-          IsMandatory: true,
-          Status: 0,
-          IconName: "fa-indian-rupee-sign",
-          IconClass: "fa-solid fa-indian-rupee-sign",
-          StartedBy: "",
-          StartedOn: "",
-          CompletedBy: updatedIpdPatientDetails?.BillGeneratedBy ?? patient?.BillGeneratedBy,
-          CompletedOn: updatedIpdPatientDetails?.BillGeneratedOn ?? patient?.BillGeneratedOn,
-          Remarks: "",
-          IsCompleted: updatedIpdPatientDetails?.IsBillGenerated ?? patient?.IsBillGenerated,
-          IsPending: 1,
-          IsCurrentProcess: 0,
-          CanExecute: 0,
-          IsFuture: 0,
-          IsUserAuthorized: 1,
-        },
-
-        {
-          PatientVisitDischargeProcessId: 0,
-          VisitId: 0,
-          DischargeProcessId: 0,
-          ProcessKey: "FILE_CLOSED",
-          ProcessName: "File Closed",
-          SequenceNo: 0,
-          DischargeProcessStep: resp?.data?.length + 3,
-          IsMandatory: true,
-          Status: 0,
-          IconName: "fa-folder-closed",
-          IconClass: "fa-solid fa-folder-closed",
-          StartedBy: "",
-          StartedOn: "",
-          CompletedBy: updatedIpdPatientDetails?.FileClosedBy ?? patient?.FileClosedBy,
-          CompletedOn: updatedIpdPatientDetails?.FileClosedOn ?? patient?.FileClosedOn,
-          Remarks: "",
-          IsCompleted: updatedIpdPatientDetails?.IsFileClosed ?? patient?.IsFileClosed,
-          IsPending: 1,
-          IsCurrentProcess: 0,
-          CanExecute: 0,
-          IsFuture: 0,
-          IsUserAuthorized: 1,
-        },
-      ]);
+      setIsOtInitiated(true);
+      setSteps(resp?.data ?? []);
     } catch (error) {
       console.error("Get discharge process error:", error);
 
-      setIsDischargeInitiated(false);
+      setIsOtInitiated(false);
       setSteps([]);
     }
   };
@@ -271,16 +178,16 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   //  initial load
   useEffect(() => {
     if (patient?.VisitId) {
-      getDischargeProcessLists();
+      getOtProcessLists();
     } else {
-      setIsDischargeInitiated(false);
+      setIsOtInitiated(false);
       setSteps([]);
     }
   }, [patient?.VisitId, updatedIpdPatientDetails]);
 
-  //   initial discharge
+  //   initial ot process
 
-  const initiateDischargeHandler = async () => {
+  const initiateOtProcessHandler = async () => {
     if (!patient?.VisitId) {
       showError("Visit information is not available");
       return;
@@ -291,15 +198,14 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
       const resp = await fetchApi(
         "POST",
-        ENDPOINTS.INITIALIZE_PATIENT_DISCHARGE_PROCESS,
+        ENDPOINTS.INITIALIZE_PATIENT_OT_PROCESS,
         {
-          corporateId: patient?.CorporateId,
           visitId: patient?.VisitId,
           branchId,
         },
         {},
         {
-          component: "DischargeProcess",
+          component: "OtProcess",
         }
       );
 
@@ -310,7 +216,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
       showSuccess(resp?.message ?? "Discharge initiated successfully");
 
-      await getDischargeProcessLists();
+      await getOtProcessLists();
     } catch (error) {
       console.error("Initiate discharge error:", error);
 
@@ -326,13 +232,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     return steps.filter(step => Number(step?.IsCompleted) === 1).length;
   }, [steps]);
 
-  // current step
-
-  // const currentStep = useMemo(() => {
-  //   return steps.find(step => Number(step?.IsCurrentProcess) === 1);
-  // }, [steps]);
-
-  //  progress
+  //  progress percentage
 
   const progressPercentage = useMemo(() => {
     if (!steps.length) {
@@ -347,7 +247,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   //   step status
   const getStepStatus = (
-    step: DischargeProcessStepItem
+    step: OtProcessItem
   ): "completed" | "current" | "locked" | "future" | "unAuthorized" => {
     if (Number(step?.IsCompleted) === 1) {
       return "completed";
@@ -370,7 +270,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   //   step icons
 
-  const getStepIcon = (step: DischargeProcessStepItem) => {
+  const getStepIcon = (step: OtProcessItem) => {
     const processName = step?.ProcessName?.toLowerCase() ?? "";
 
     if (processName.includes("nursing")) {
@@ -398,7 +298,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   //   mark step handler
 
-  const markStepCompleteHandler = async (step: DischargeProcessStepItem) => {
+  const markStepCompleteHandler = async (step: OtProcessItem) => {
     if (Number(step?.IsUserAuthorized) === 0) {
       showWarning("You are unauthorized to complete this step.");
       return;
@@ -411,7 +311,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
     }
     setSteps(prevSteps => {
       const currentIndex = prevSteps.findIndex(
-        item => item?.DischargeProcessId === step?.DischargeProcessId
+        item => item?.PatientVisitOTProcessId === step?.PatientVisitOTProcessId
       );
 
       if (currentIndex === -1) {
@@ -483,24 +383,9 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   //  step action button
   const renderStepActionButton = (
-    step: DischargeProcessStepItem,
+    step: OtProcessItem,
     status: "completed" | "current" | "locked" | "future" | "unAuthorized"
   ) => {
-    //    completed
-
-    // if (status === "completed") {
-    //   return (
-    //     <button
-    //       type="button"
-    //       disabled
-    //       className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-[10px] font-semibold text-green-700 cursor-default"
-    //     >
-    //       <Check size={12} />
-    //       Completed
-    //     </button>
-    //   );
-    // }
-
     // current
 
     if (status === "current") {
@@ -524,14 +409,14 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   // discharge process type handler
   const dischargeProcessSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
-    setDischargeType(selectedValue);
+    setOtType(selectedValue);
   };
 
   return (
     <div className="w-full overflow-hidden">
       {/* before discharge initiation */}
 
-      {!isDischargeInitiated ? (
+      {!isOtInitiated ? (
         <div className="flex min-h-80 items-center justify-center px-1 py-2 sm:px-2 sm:py-2">
           <div className="w-full max-w-lg text-center">
             {/* Icon */}
@@ -555,13 +440,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
             {/* Initiate Button */}
             <button
               type="button"
-              onClick={initiateDischargeHandler}
+              onClick={initiateOtProcessHandler}
               disabled={isInitiating}
               className="save-btn mt-5 inline-flex w-full items-center justify-center gap-2 sm:w-auto"
             >
               <PlayCircle size={17} />
 
-              {isInitiating ? "Initiating Discharge..." : "Initiate Discharge"}
+              {isInitiating ? "Initiating OT process..." : "Initiate OT process"}
             </button>
           </div>
         </div>
@@ -569,24 +454,6 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
         <div className="w-full">
           {/* process flow */}
           <div className="rounded-xl border border-gray-200 p-4 sm:p-5">
-            {/* Flow Header */}
-            {/*   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ">
-               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 sm:text-sm">
-                  Discharge Process Flow
-                </h3>
-
-                <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">
-                  {completedSteps} of {steps.length} steps completed
-                </p>
-              </div> */}
-
-            {/* Percentage */}
-            {/* <div className="self-start rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm sm:self-auto">
-                {progressPercentage}%
-              </div> 
-            </div>*/}
-
             {/* Progress Bar */}
             <div className="mb-6 h-1.5  w-full overflow-hidden rounded-full bg-gray-200">
               <div
@@ -607,26 +474,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
                 return (
                   <div
-                    key={`${step?.DischargeProcessId}-${index}`}
+                    key={`${step?.PatientVisitOTProcessId}-${index}`}
                     className="flex min-w-0 flex-1 items-start"
                   >
                     {/* step count */}
                     <div className="flex min-w-0 flex-1 flex-col items-center text-center">
                       {/* Icon */}
-                      {/* <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-200 ${
-                          status === "completed"
-                            ? "border-green-500 bg-green-50 text-green-600"
-                            : status === "current"
-                              ? "border-blue-500 bg-blue-50 text-blue-600 shadow-blue-100"
-                              : "border-gray-300 bg-white text-gray-400"
-                        }`}
-                      >
-                        <i
-                          className={`${step?.IconClass || "fa-solid fa-circle"} text-lg`}
-                          aria-hidden="true"
-                        />
-                      </div> */}
+
                       <div
                         className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-200 ${
                           status === "completed"
@@ -649,7 +503,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
                       {/* Step Number */}
                       <span className="mt-1 text-[9px] font-medium text-gray-400">
-                        Step {step?.DischargeProcessStep || index + 1}
+                        Step {step?.OTProcessStep || index + 1}
                       </span>
 
                       {/* Step Name */}
@@ -695,7 +549,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
                 return (
                   <div
-                    key={`${step?.DischargeProcessId}-mobile-${index}`}
+                    key={`${step?.PatientVisitOTProcessId}-mobile-${index}`}
                     className="relative flex items-center rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition hover:border-gray-200"
                   >
                     {/* step icon */}
@@ -786,54 +640,16 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
                     <div>
                       <p className="text-xs font-semibold text-gray-700 sm:text-sm">
-                        {isAllCompleted ? "Ready For Discharge." : "Final discharge is locked."}
+                        {isAllCompleted ? "OT Process Completed" : "Final OT Process is locked."}
                       </p>
 
                       <p className="mt-0.5 text-xs text-gray-500">
                         {isAllCompleted
-                          ? "Select discharge type to view and complete the required details."
-                          : "Complete all required steps before final discharge."}
+                          ? "All required OT Process steps have been completed."
+                          : "Complete all required steps of the OT Process."}
                       </p>
                     </div>
                   </div>
-
-                  {/* Discharge Details */}
-                  {(isAllCompleted || Number(canDischarge) === 1) && (
-                    <div className="form-grid-3">
-                      <InputField>
-                        <select
-                          className="input-field lg:max-h-13 lg:max-w-35"
-                          onChange={dischargeProcessSelectHandler}
-                        >
-                          <option value="">--Select--</option>
-
-                          {dischargeProcessTypeList.map((d: PickMasterItem) => (
-                            <option key={d?.key} value={d?.key}>
-                              {d?.value}
-                            </option>
-                          ))}
-                        </select>
-                      </InputField>
-
-                      <InputField>
-                        <CustomDateInput
-                          className="input-field lg:max-h-13 lg:max-w-35"
-                          value={dischargeDate}
-                          onChange={setDischargeDate}
-                          min={minDate}
-                          max={maxDate}
-                        />
-                      </InputField>
-
-                      <InputField>
-                        <CustomTimePicker
-                          className="lg:max-h-13 lg:max-w-35"
-                          value={dischargeTime}
-                          onChange={setDischargeTime}
-                        />
-                      </InputField>
-                    </div>
-                  )}
 
                   {/* Final Button */}
                   <button
@@ -851,52 +667,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                   >
                     <ShieldCheck size={16} />
 
-                    {Number(patient?.IsDischarged) === 1
-                      ? "Discharged"
+                    {Number(isAllCompleted) === 1
+                      ? "OT Process Completed"
                       : isAllCompleted || Number(canDischarge) === 1
-                        ? "Ready For Discharge"
-                        : "Discharge Pending"}
+                        ? "Complete OT Process"
+                        : "OT Process Pending"}
                   </button>
                 </div>
-
-                {/* discharge types */}
-                {(isAllCompleted || Number(canDischarge) === 1) &&
-                dischargeType === dischargeProcessType?.NORMAL ? (
-                  <NormalDischargeDetails
-                    patientDetails={patient}
-                    dischargeDate={dischargeDate}
-                    dischargeTime={dischargeTime}
-                    refreshDischargeProcess={getDischargeProcessLists}
-                  />
-                ) : dischargeType === dischargeProcessType?.LAMA_DAMA ? (
-                  <LamaDamaDischargeDetails
-                    patientDetails={patient}
-                    dischargeDate={dischargeDate}
-                    dischargeTime={dischargeTime}
-                    refreshDischargeProcess={getDischargeProcessLists}
-                  />
-                ) : dischargeType === dischargeProcessType?.REFERRAL ? (
-                  <ReferralDischargeDetails
-                    patientDetails={patient}
-                    dischargeDate={dischargeDate}
-                    dischargeTime={dischargeTime}
-                    refreshDischargeProcess={getDischargeProcessLists}
-                  />
-                ) : dischargeType === dischargeProcessType?.ABSCONDED ? (
-                  <AbscondedDischargeDetails
-                    patientDetails={patient}
-                    dischargeDate={dischargeDate}
-                    dischargeTime={dischargeTime}
-                    refreshDischargeProcess={getDischargeProcessLists}
-                  />
-                ) : dischargeType === dischargeProcessType?.DEATH ? (
-                  <DeathDischargeDetails
-                    patientDetails={patient}
-                    dischargeDate={dischargeDate}
-                    dischargeTime={dischargeTime}
-                    refreshDischargeProcess={getDischargeProcessLists}
-                  />
-                ) : null}
               </div>
             </div>
           )}
@@ -913,7 +690,7 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                 </h3>
 
                 <p className="mt-0.5 text-[11px] text-gray-500 sm:text-xs">
-                  Discharge workflow activity
+                  OT Process workflow activity
                 </p>
               </div>
 
@@ -959,13 +736,13 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                         return (
                           <>
                             <tr
-                              key={`${step?.DischargeProcessId}-row`}
+                              key={`${step?.PatientVisitOTProcessId}-row`}
                               className={`cursor-pointer border-b border-gray-100 transition hover:bg-gray-50 ${status === "current" ? "bg-blue-50/30" : ""}`}
                             >
                               {/* Step No */}
                               <td className="w-16 px-3 py-3 align-top">
                                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-600">
-                                  {step?.DischargeProcessStep || index + 1}
+                                  {step?.OTProcessStep || index + 1}
                                 </div>
                               </td>
 
@@ -1057,14 +834,14 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
                 {steps.map((step, index) => {
                   const status = getStepStatus(step);
 
-                  const isExpanded = expandedStep === step?.DischargeProcessId;
+                  const isExpanded = expandedStep === step?.PatientVisitOTProcessId;
 
                   return (
-                    <div key={`${step?.DischargeProcessId}-mobile-card`} className="p-4">
+                    <div key={`${step?.PatientVisitOTProcessId}-mobile-card`} className="p-4">
                       {/* Step Header */}
                       <button
                         type="button"
-                        onClick={() => toggleStepDetails(step?.DischargeProcessId)}
+                        onClick={() => toggleStepDetails(step?.PatientVisitOTProcessId)}
                         className="w-full text-left"
                       >
                         <div className="flex items-start gap-3">
@@ -1250,11 +1027,11 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
             setRenderAddRemark(false);
           }}
           selectedPatient={patient}
-          refreshList={getDischargeProcessLists}
+          refreshList={getOtProcessLists}
           SetAllProcessCompleted={SetAllProcessCompleted}
           validateDischarge={getValidatePatientDischarge}
           currProcess={getCurrentProcess}
-          processType="dischargeProcess"
+          processType={"otProcess"}
         />
       )}
 
@@ -1264,4 +1041,4 @@ const DischargeProcess = ({ patient }: { patient: IpdPatientItem }) => {
   );
 };
 
-export default DischargeProcess;
+export default OtProcess;

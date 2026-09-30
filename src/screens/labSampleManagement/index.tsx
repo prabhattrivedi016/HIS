@@ -29,7 +29,7 @@ const LabSampleManagement = () => {
             {/* Choose Center Button */}
             <button
               onClick={() => handleActionClick("Select Center")}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className=" flex  gap-1.5 items-center save-btn"
             >
               <Building2 size={15} strokeWidth={2.5} />
               <span>Center</span>
@@ -37,7 +37,7 @@ const LabSampleManagement = () => {
             {/* New Sample Button */}
             <button
               onClick={() => handleActionClick("New Sample")}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex  gap-1.5 items-center save-btn"
             >
               <Plus size={15} strokeWidth={2.5} />
               <span>New Sample</span>
@@ -46,29 +46,29 @@ const LabSampleManagement = () => {
             {/* Scan Barcode Button */}
             <button
               onClick={() => handleActionClick("Scan Barcode")}
-              className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex  gap-1.5 items-center save-btn"
             >
-              <Barcode size={16} strokeWidth={2} className="text-blue-600" />
-              <span className="text-blue-600">Scan Barcode</span>
+              <Barcode size={16} strokeWidth={2} />
+              <span>Scan Barcode</span>
             </button>
 
             {/* Bulk Receive Button */}
             <button
               onClick={() => navigate("/bulk-receive")}
-              className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex  gap-1.5 items-center save-btn"
             >
-              <Upload size={15} strokeWidth={2} className="text-blue-600" />
-              <span className="text-blue-600">Bulk Receive</span>
+              <Upload size={15} strokeWidth={2} />
+              <span className="">Bulk Receive</span>
             </button>
 
             {/* Export Button */}
             <button
               onClick={() => handleActionClick("Export")}
-              className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex  gap-1.5 items-center save-btn"
             >
-              <Download size={15} strokeWidth={2} className="text-blue-600" />
+              <Download size={15} strokeWidth={2} />
               <span>Export</span>
-              <ChevronDown size={13} className="text-gray-400 ml-0.5" />
+              <ChevronDown size={13} />
             </button>
           </div>
         </div>

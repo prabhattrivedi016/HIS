@@ -72,6 +72,7 @@ import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleJourney from "../sampleJourney";
 import SampleManagement from "../sampleManagement";
+import SampleResultEntry from "../sampleResultEntry";
 import ServiceMaster from "../serviceMaster";
 import SurgeryMaster from "../surgeryMaster";
 import TabMaster from "../tabMaster";
@@ -179,4 +180,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "lab-sample-management": <LabSampleManagement />,
   "bulk-receive": <BulkReceive />,
   "sample-journey": <SampleJourney />,
+  "sample-result-entry": <SampleResultEntry />,
 };

@@ -350,22 +350,16 @@ export default function TableData() {
               name="barcodeOption"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
             />
-            <span>Barcode</span>
+            <span className="font-bold text-[120%]">Barcode</span>
           </label>
 
           {/* Print Button */}
-          <button
-            onClick={() => alert("Print clicked")}
-            className="border border-blue-600 text-blue-600   text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
-          >
+          <button onClick={() => alert("Print clicked")} className="save-btn w-20">
             Print
           </button>
 
           {/* Save Button */}
-          <button
-            onClick={() => alert("Save clicked")}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
-          >
+          <button onClick={() => alert("Save clicked")} className="save-btn w-20">
             Save
           </button>
         </div>

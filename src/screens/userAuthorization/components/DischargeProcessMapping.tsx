@@ -102,8 +102,6 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
   //submit handle
 
   const saveCorporateMappingHandler = useCallback(async () => {
-    if (!dischargeProcessData || dischargeProcessData?.length === 0) return;
-
     const dischargeProcess = dischargeProcessData
       ?.filter((u: DischargeProcessItem) => u.isGranted === 1)
       .map((u: DischargeProcessItem) => ({
@@ -113,9 +111,7 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
         DischargeProcessId: u?.DischargeProcessId,
       }));
 
-    if (dischargeProcess.length === 0) return;
-
-    const chunks = chunkArray(dischargeProcess, 50);
+    const chunks = dischargeProcess.length > 0 ? chunkArray(dischargeProcess, 50) : [[]];
 
     for (let i = 0; i < chunks.length; i++) {
       const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_DISCHARGE_PROCESS_MAPPING, {
@@ -174,9 +170,9 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
             <tr>
               <th className="table-index-header">#</th>
 
-              <th className="table-name-header">Discharge Process Name</th>
-
               <th className="table-name-header">Discharge Process Key</th>
+
+              <th className="table-name-header">Discharge Process Name</th>
 
               {/* SEARCH */}
               <th className="table-search-header">
@@ -212,6 +208,9 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
                   {/* INDEX */}
                   <td className="table-cell">{idx + 1}</td>
 
+                  {/* PROCESS KEY */}
+                  <td className="table-cell table-text-truncate">{item?.ProcessKey}</td>
+
                   {/* PROCESS NAME */}
                   <td className="table-cell">
                     <span
@@ -222,9 +221,6 @@ const DischargeProcessMapping = ({ branchId, typeId, userId }: ChildProps) => {
                       {item?.ProcessName}
                     </span>
                   </td>
-
-                  {/* PROCESS KEY */}
-                  <td className="table-cell table-text-truncate">{item?.ProcessKey}</td>
 
                   {/* SEARCH COLUMN / SPACER */}
                   <td className="table-cell" />

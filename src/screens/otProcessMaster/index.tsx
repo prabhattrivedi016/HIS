@@ -48,7 +48,7 @@ const OtProcessMaster = () => {
       processName: "",
       faIconId: 0,
       isActive: 1,
-      isSystemProcess: 1,
+      isSystemProcess: 0,
     },
   });
 
@@ -68,7 +68,6 @@ const OtProcessMaster = () => {
       showError(resp?.message ?? "Error while saving discharge process data");
       return;
     }
-    console.log("respresprespresprespresprespresp", resp?.data);
 
     showSuccess(resp?.message ?? "Data saved successfully");
     reset({
@@ -77,7 +76,7 @@ const OtProcessMaster = () => {
       processName: "",
       faIconId: 0,
       isActive: 1,
-      isSystemProcess: 1,
+      isSystemProcess: 0,
     });
     setSelectedIcon(null);
     await getOtProcessList();
@@ -141,7 +140,7 @@ const OtProcessMaster = () => {
       processName: "",
       faIconId: 0,
       isActive: 1,
-      isSystemProcess: 1,
+      isSystemProcess: 0,
     });
     setSelectedIcon(null);
     setIsDisabled(false);

@@ -1,4 +1,3 @@
-import { File, Printer, Share, StepBack } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProgressSteps from "./components/ProgessSteps";
 import SampleCard from "./components/SampleCard";
@@ -25,30 +24,26 @@ const SampleJourney = () => {
           <div className="flex justify-around flex-wrap items-center gap-2">
             {/* Active Back Button */}
             <button
-              className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-blue-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="save-btn"
               onClick={() => {
                 naviagte("/lab-sample-management");
               }}
             >
-              <StepBack size={15} strokeWidth={2.5} className="sample-button-text" />
               <span className="sample-button-text">Back</span>
             </button>
 
             {/* Scan Barcode Button -> Navigates to Bulk Receive */}
-            <button className="flex items-center gap-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer">
-              <Printer size={16} strokeWidth={2} className="sample-button-text" />
+            <button className="save-btn">
               <span className="sample-button-text">Print Journey</span>
             </button>
 
             {/* Bulk Receive Button -> Navigates to Bulk Receive */}
-            <button className="flex items-center gap-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer">
-              <File size={15} strokeWidth={2} className="sample-button-text" />
-              <span className="sample-button-text">Download PDf</span>
+            <button className="save-btn">
+              <span className="sample-button-text">Download PDF</span>
             </button>
 
             {/* share Receive Button -> Navigates to Bulk Receive */}
-            <button className="flex items-center gap-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-500 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer">
-              <Share size={15} strokeWidth={2} className="sample-button-text" />
+            <button className="save-btn">
               <span className="sample-button-text">Share</span>
             </button>
           </div>

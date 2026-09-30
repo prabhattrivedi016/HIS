@@ -448,31 +448,63 @@ type DischargeProcessStepItem = {
   DischargeProcessStep: number;
 };
 
-/*
-{
-    "PatientVisitDischargeProcessId": 64,
-    "VisitId": 15,
-    "DischargeProcessId": 1,
-    "ProcessKey": "DISCHARGE_NOTICE",
-    "ProcessName": "Discharge Notice",
-    "SequenceNo": 1,
-    "DischargeProcessStep": 1,
-    "IsMandatory": true,
-    "Status": 2,
-    "IconName": "notes-medical",
-    "IconClass": "fa-solid fa-notes-medical",
-    "StartedBy": "Prabhat  Trivedi (Prabhat)",
-    "StartedOn": "16-09-2026 03:17 PM",
-    "CompletedBy": "Prabhat  Trivedi (Prabhat)",
-    "CompletedOn": "16-09-2026 03:17 PM",
-    "Remarks": "",
-    "IsCompleted": 1,
-    "IsPending": 0,
-    "IsCurrentProcess": 0,
-    "CanExecute": 0,
-    "IsFuture": 0,
-    "IsUserAuthorized": 1
-} */
+/*{
+            "PatientVisitOTProcessId": 5,
+            "VisitId": 15,
+            "OTProcessId": 1,
+            "ProcessKey": "OT_CONFIRM",
+            "ProcessName": "OT Confirm",
+            "SequenceNo": 1,
+            "OTProcessStep": 1,
+            "Status": 0,
+            "IconName": "notes-medical",
+            "IconClass": "fa-solid fa-notes-medical",
+            "CompletedBy": null,
+            "CompletedOn": null,
+            "Remarks": null,
+            "IsCompleted": 0,
+            "IsPending": 1,
+            "IsCurrentProcess": 1,
+            "CanExecute": 1,
+            "IsFuture": 0,
+            "IsUserAuthorized": 1
+        } */
+
+type OtProcessItem = {
+  PatientVisitOTProcessId: number;
+  VisitId: number;
+  OTProcessId: number;
+  ProcessKey: "OT_CANCEL";
+  ProcessName: "OT CHECK OUT";
+  SequenceNo: number;
+  OTProcessStep: number;
+  Status: number;
+  IconName: string;
+  IconClass: string;
+  CompletedOn: string | null;
+  CompletedBy: string | null;
+  CompletedByName: string | null;
+  Remarks: string | null;
+  IsCompleted: number;
+  IsPending: number;
+  IsCurrentProcess: number;
+  CanExecute: number;
+  IsFuture: number;
+  IsUserAuthorized: number;
+};
+
+type OtProcessCurrentStepItem = {
+  VisitId: number;
+  PatientVisitOTProcessId: number;
+  OTProcessId: number;
+  ProcessKey: string;
+  ProcessName: string;
+  SequenceNo: number;
+  Status: number;
+  WorkflowInitialized: boolean;
+  AllProcessesCompleted: boolean;
+};
+
 type CurrentProcessItem = {
   VisitId: number;
   PatientVisitDischargeProcessId?: number;
@@ -646,6 +678,8 @@ export type {
   IpdPatientItem,
   IpdSummaryBillingTableList,
   MainBillWithPatientAdvanceItem,
+  OtProcessCurrentStepItem,
+  OtProcessItem,
   PackageItemList,
   PatientDetailsMainBillItem,
   PaymentListItem,

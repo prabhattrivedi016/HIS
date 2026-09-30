@@ -94,8 +94,6 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
   //submit handler
 
   const saveRoomDataHandler = useCallback(async () => {
-    if (!roomData || roomData.length === 0) return;
-
     const grantedBeds = roomData
       .filter((u: BedMappingItem) => u.isGranted === 1)
       .map((u: BedMappingItem) => ({
@@ -105,9 +103,7 @@ const RoomMapping = ({ branchId, typeId, userId }: ChildProps) => {
         serviceItemId: u.serviceItemId,
       }));
 
-    if (grantedBeds.length === 0) return;
-
-    const chunks = chunkArray(grantedBeds, 50);
+    const chunks = grantedBeds.length > 0 ? chunkArray(grantedBeds, 50) : [[]];
 
     for (let i = 0; i < chunks.length; i++) {
       const resp = await fetchApi("POST", ENDPOINTS.SAVE_UPDATE_USER_BED_MAPPING, {

@@ -88,11 +88,7 @@ const UserDashboard = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
   };
   //submit handler
   const saveUserDashboardHandler = async () => {
-    if (!userDashboard || userDashboard.length === 0) return;
-
     const grantedDashboards = userDashboard.filter((u: UserDashboardItem) => u.isGranted === 1);
-
-    if (grantedDashboards.length === 0) return;
 
     const payload = {
       typeId,
