@@ -109,8 +109,6 @@ const TabAccess = ({ branchId, typeId, userId, roleId }: PageAccessProps) => {
 
   //submit handler
   const saveTabAccessHandler = async () => {
-    if (!tabAccessData || tabAccessData.length === 0) return;
-
     const grantedMenus = tabAccessData.filter((u: TabAccessItem) => u.isGranted === 1);
 
     const userMenus = grantedMenus.map((u: TabAccessItem) => ({

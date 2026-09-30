@@ -38,10 +38,10 @@ const UserAuthorization = () => {
   const authList = authValue?.pickMasterValue ?? [];
 
   const [branchId, setBranchId] = useState<number | null>(null);
-  const [typeId, setTypeId] = useState<number | null>(null);
+  const [typeId, setTypeId] = useState<number | null>(1);
   const [userId, setUserId] = useState<number | null>(null);
   const [roleId, setRoleId] = useState<number | null>(null);
-  const [groupType, setGroupType] = useState<AuthItem | null>(null);
+  const [groupType, setGroupType] = useState<AuthItem | null>({ value: "User Wise", key: "1" });
   const [userGroupGrantedList, setUserGroupGrantedList] = useState<
     UserGroupGroupItem[] | UserGroupRoleItem[] | null
   >(null);
@@ -126,7 +126,7 @@ const UserAuthorization = () => {
   useEffect(() => {
     if (!selectedUserGroup) return;
 
-    fetchRolesForUser(selectedUserGroup?.value);
+    fetchRolesForUser(selectedUserGroup?.value ?? 1);
   }, [selectedUserGroup]);
 
   /*----------------------------------api calls------------------------------- */
@@ -260,10 +260,6 @@ const UserAuthorization = () => {
 
     setSelectedButton("otProcessMapping");
   };
-
-  //
-
-  /*--------------------------role handlers---------------------------- */
 
   //toggle single handler
   const toggleSingleHandler = (id: number) => {
@@ -664,7 +660,7 @@ const UserAuthorization = () => {
                 }`}
                 onClick={dischargeProcessMappingHandler}
               >
-                Discharge Process Mapping
+                Discharge Process
               </button>
 
               <button
@@ -676,7 +672,7 @@ const UserAuthorization = () => {
                 }`}
                 onClick={otProcessMappingHandler}
               >
-                OT Process Mapping
+                OT Process
               </button>
             </div>
           </div>

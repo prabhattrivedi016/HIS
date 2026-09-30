@@ -92,11 +92,7 @@ const UserRightData = ({ branchId, typeId, userId, roleId }: PageAccessProps) =>
 
   //submit handler
   const saveUserRightsHandler = async () => {
-    if (!userRightsData || userRightsData?.length === 0) return;
-
     const grantedRights = userRightsData?.filter((u: UserRightsItem) => u.isGranted === 1);
-
-    if (grantedRights.length === 0) return;
 
     const payload = {
       typeId,

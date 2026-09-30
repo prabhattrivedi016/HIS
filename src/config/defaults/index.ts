@@ -533,6 +533,12 @@ const ENDPOINTS = {
   SAVE_IPD_DISCHARGE: "IPD/saveIPDDischarge",
   CREATE_SUPPLEMENTARY_BILL_FROM_MAIN_BILL: "IPD/createSupplementaryBillFromMainBill",
 
+  GET_CURRENT_OT_PROCESS: "IPD/getCurrentOTProcess",
+  VALIADTE_PATIENT_OT_PROCESS: "IPD/validatePatientOTProcess",
+  INITIALIZE_PATIENT_OT_PROCESS: "IPD/initializePatientOTProcess",
+  GET_PATIEENT_OT_PROCESS: "IPD/getPatientOTProcess",
+  COMPLETE_PATIENT_OT_PROCESS: "IPD/completePatientOTProcess",
+
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
   GET_ALLERGY_MASTER_LIST: "EMR/getAllergyMasterList",

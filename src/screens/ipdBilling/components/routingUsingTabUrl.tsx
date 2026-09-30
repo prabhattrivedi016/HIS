@@ -6,6 +6,7 @@ import DischargeProcess from "./DischargeProcess";
 import DoctorTransfer from "./DoctorTransfer";
 import IpdBillingComponent from "./IpdBillingComponent";
 import IpdBillingSummary from "./IpdBillingSummary";
+import OtProcess from "./OtProcess";
 import PackageBilling from "./PackageBilling";
 import SurgeryOrder from "./SurgeryOrder";
 
@@ -42,6 +43,9 @@ const RoutingUsingTabUrl: React.FC<RoutingUsingTabUrlProps> = ({ tabViewUrl, pat
 
     case "discharge-process":
       return <DischargeProcess patient={patient} />;
+
+    case "ot-process":
+      return <OtProcess patient={patient} />;
 
     default:
       return (

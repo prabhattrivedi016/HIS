@@ -1,4 +1,4 @@
-import { Barcode, Calendar, Droplet, Eye, FlaskConical, User } from "lucide-react";
+import { Barcode, Calendar, Droplet, FlaskConical, User } from "lucide-react";
 
 export default function SampleCard() {
   const handleViewReport = () => {
@@ -93,11 +93,7 @@ export default function SampleCard() {
 
         {/* 8. View Report Button */}
         <div className="flex items-center justify-start lg:justify-center">
-          <button
-            onClick={handleViewReport}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-white hover:bg-blue-50 text-blue-600 border border-blue-500 font-bold text-xs py-2 px-3 rounded-xl transition-all cursor-pointer active:scale-95 shadow-2xs whitespace-nowrap"
-          >
-            <Eye size={15} />
+          <button onClick={handleViewReport} className="save-btn">
             <span>View Report</span>
           </button>
         </div>

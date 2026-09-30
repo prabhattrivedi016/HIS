@@ -1,79 +1,50 @@
+import InputField from "@/components/customInputField";
 import { misDashboardTabs } from "@/constants/constants";
-import { Calendar, ChevronDown } from "lucide-react";
 
 export default function HeaderSection({ activeTab, setActiveTab }) {
   return (
     <div className="w-full bg-white border-b border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-3 sm:px-4 pt-3">
       {/* ================= FILTER SECTION ================= */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-end justify-between gap-3 pt-2 pb-3 border-t border-gray-100">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:flex xl:flex-wrap items-end gap-2.5 flex-1 min-w-0">
+      <div className="w-full pt-2 pb-3 border-t border-gray-100 overflow-x-auto">
+        <div className="flex flex-nowrap items-end gap-2.5 min-w-max w-full">
           {/* DATE RANGE */}
-          <div className="w-full xl:w-auto xl:min-w-[180px] flex-1">
-            <label className="block text-[10px] font-semibold text-gray-500 mb-1">Date Range</label>
-
-            <div className="h-[32px] flex items-center justify-between bg-white border border-gray-300 rounded-md px-2.5 text-[11px] text-gray-700 cursor-pointer hover:border-blue-400 transition-colors">
-              <div className="flex items-center min-w-0">
-                <Calendar size={13} className="mr-1.5 text-gray-500 shrink-0" />
-
-                <span className="truncate">01 Sep 2026 - 15 Sep 2026</span>
-              </div>
-
-              <ChevronDown size={13} className="ml-2 text-gray-500 shrink-0" />
-            </div>
+          <div className="flex-1 min-w-[140px]">
+            <InputField label="Date Range">
+              <input className="input-field" />
+            </InputField>
           </div>
 
           {/* DEPARTMENT */}
-          <div className="w-full xl:w-auto xl:min-w-[140px] flex-1">
-            <label className="block text-[10px] font-semibold text-gray-500 mb-1">Department</label>
-
-            <div className="h-[32px] flex items-center justify-between bg-white border border-gray-300 rounded-md px-2.5 text-[11px] text-gray-700 cursor-pointer hover:border-blue-400 transition-colors">
-              <span className="truncate">All Departments</span>
-
-              <ChevronDown size={13} className="ml-2 text-gray-500 shrink-0" />
-            </div>
+          <div className="flex-1 min-w-[140px]">
+            <InputField label="Department">
+              <input className="input-field" />
+            </InputField>
           </div>
 
           {/* PAYMENT MODE */}
-          <div className="w-full xl:w-auto xl:min-w-[115px] flex-1">
-            <label className="block text-[10px] font-semibold text-gray-500 mb-1">
-              Payment Mode
-            </label>
-
-            <div className="h-[32px] flex items-center justify-between bg-white border border-gray-300 rounded-md px-2.5 text-[11px] text-gray-700 cursor-pointer hover:border-blue-400 transition-colors">
-              <span className="truncate">All</span>
-
-              <ChevronDown size={13} className="ml-2 text-gray-500 shrink-0" />
-            </div>
+          <div className="flex-1 min-w-[140px]">
+            <InputField label="Payment Mode">
+              <input className="input-field" />
+            </InputField>
           </div>
 
           {/* PAYER / TPA */}
-          <div className="w-full xl:w-auto xl:min-w-[115px] flex-1">
-            <label className="block text-[10px] font-semibold text-gray-500 mb-1">
-              Payer / TPA
-            </label>
-
-            <div className="h-[32px] flex items-center justify-between bg-white border border-gray-300 rounded-md px-2.5 text-[11px] text-gray-700 cursor-pointer hover:border-blue-400 transition-colors">
-              <span className="truncate">All</span>
-
-              <ChevronDown size={13} className="ml-2 text-gray-500 shrink-0" />
-            </div>
+          <div className="flex-1 min-w-[140px]">
+            <InputField label="Payable/TPA">
+              <input className="input-field" />
+            </InputField>
           </div>
 
           {/* BRANCH */}
-          <div className="w-full xl:w-auto xl:min-w-[150px] flex-1">
-            <label className="block text-[10px] font-semibold text-gray-500 mb-1">Branch</label>
-
-            <div className="h-[32px] flex items-center justify-between bg-white border border-gray-300 rounded-md px-2.5 text-[11px] text-gray-700 cursor-pointer hover:border-blue-400 transition-colors">
-              <span className="truncate">Main Hospital</span>
-
-              <ChevronDown size={13} className="ml-2 text-gray-500 shrink-0" />
-            </div>
+          <div className="flex-1 min-w-[140px]">
+            <InputField label="Branch">
+              <input className="input-field" />
+            </InputField>
           </div>
-        </div>
 
-        {/* APPLY BUTTON */}
-        <button
-          className="
+          {/* APPLY BUTTON */}
+          <button
+            className="
             h-[32px]
             px-7
             bg-[#0969d7]
@@ -86,11 +57,11 @@ export default function HeaderSection({ activeTab, setActiveTab }) {
             transition-colors
             cursor-pointer
             shrink-0
-            w-full xl:w-auto
           "
-        >
-          Apply
-        </button>
+          >
+            Apply
+          </button>
+        </div>
       </div>
 
       {/* =========================================================
