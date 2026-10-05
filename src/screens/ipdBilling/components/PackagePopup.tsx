@@ -5,7 +5,7 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { IpdSummaryBillingTableList } from "../types";
+import { IpdSummaryBillingTableList, PatientPackageItem } from "../types";
 
 type PackagePopupProps = {
   isOpen: boolean;
@@ -17,24 +17,45 @@ type PackagePopupProps = {
 const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  const [packageLists, setPackageLists] = useState<IpdSummaryBillingTableList[]>([]);
+  console.log("selectedItems", selectedItems);
 
-  const [selectedPackage, setSelectedPackage] = useState<IpdSummaryBillingTableList | null>(null);
+  const [packageLists, setPackageLists] = useState<PatientPackageItem[]>([]);
+
+  const [selectedPackage, setSelectedPackage] = useState<PatientPackageItem | null>(null);
+
+  // package list
+
+  const getPackageList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PREDEFINE_QUERY_RESULT,
+      {},
+      {
+        params: {
+          queryName: "GetPatientIPDPackagesByVisitId",
+          filter1: selectedItems?.[0]?.VisitId,
+        },
+      },
+      { component: "IpdBillingComponent" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No package found");
+      return;
+    }
+    setPackageLists(resp?.data ?? []);
+  };
 
   useEffect(() => {
-    const filteredPackage = selectedItems.filter(
-      (s: IpdSummaryBillingTableList) =>
-        Number(s?.CategoryTypeId) === 12 && Number(s?.IsSupplementaryBill) === 0
-    );
-
-    setPackageLists(filteredPackage);
+    if (selectedItems.length > 0) {
+      getPackageList();
+    }
   }, [selectedItems]);
 
   // package select handler
   const packageSelectHandler = (e: ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.target;
     const selectedPackage = packageLists.find(
-      (item: IpdSummaryBillingTableList) => item?.ServiceItemId === Number(value)
+      (item: PatientPackageItem) => item?.PackageId === Number(value)
     );
     setSelectedPackage(selectedPackage || null);
   };
@@ -43,7 +64,7 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
     return {
       visitId: selectedItems?.[0]?.VisitId!,
       ftdIdList: selectedItems!.map(item => item?.FTDId).join(","),
-      packageId: selectedPackage?.CategoryTypeId!,
+      packageId: selectedPackage?.PackageId,
     };
   };
 
@@ -91,25 +112,25 @@ const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupP
   }
 
   return (
-    <CentralPopup isOpen={isOpen} onClose={onClose} title="Package">
-      <div>
+    <CentralPopup isOpen={isOpen} onClose={onClose} title="Update Package">
+      <div className="form-grid-1">
         <InputField>
           <select
             className="input-field"
-            value={selectedPackage?.CategoryTypeId}
+            value={selectedPackage?.PackageId}
             onChange={packageSelectHandler}
           >
-            <option value={0}>No Package</option>
-            {packageLists?.map((item: IpdSummaryBillingTableList) => (
-              <option key={item?.ServiceItemId} value={item?.ServiceItemId}>
-                {item?.ServiceName}
+            <option value={0}>--Select Package--</option>
+            {packageLists?.map(item => (
+              <option key={item?.PackageId} value={item?.PackageId}>
+                {item?.PackageName}
               </option>
             ))}
           </select>
         </InputField>
-        <div className="flex justify-end mt-1">
+        <div className="flex justify-end mt-2">
           <button className="save-btn" onClick={packageUpdateHandler}>
-            Update Package
+            Update
           </button>
         </div>
 

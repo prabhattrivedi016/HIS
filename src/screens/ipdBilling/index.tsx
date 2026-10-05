@@ -413,10 +413,6 @@ const IpdBilling = () => {
 
   return (
     <div className="page-container w-full min-w-0">
-      {/* ======================================================
-          PAGE HEADER
-      ====================================================== */}
-
       <div className="flex items-center justify-between w-full mb-1 flex-wrap gap-2">
         <div>
           <h1 className="page-heading">Patient IPD Journey</h1>
@@ -449,14 +445,10 @@ const IpdBilling = () => {
         )}
       </div>
 
-      {/* ======================================================
-          MAIN LAYOUT
-      ====================================================== */}
+      {/* main layout  */}
 
       <div className="relative flex flex-col lg:flex-row w-full items-stretch gap-0">
-        {/* ====================================================
-            LEFT PANEL
-        ==================================================== */}
+        {/* left panel */}
 
         <div
           className={`transition-all duration-300 shrink-0 mr-1 ${

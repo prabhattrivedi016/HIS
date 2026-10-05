@@ -281,6 +281,7 @@ type ServiceTableItem = {
   tatTimeInMin?: number;
   IsAutoAddToPackage?: number;
   IsAutoAddExistingServices?: number;
+  packageId: number;
 };
 
 type ApprovalLists = {
@@ -661,6 +662,11 @@ type userMasterItem = {
   userDepartmentId: number;
 };
 
+type PatientPackageItem = {
+  PackageName: string;
+  PackageId: number;
+};
+
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -682,6 +688,7 @@ export type {
   OtProcessItem,
   PackageItemList,
   PatientDetailsMainBillItem,
+  PatientPackageItem,
   PaymentListItem,
   PreviousBedListItem,
   PreviousDoctorListItem,
