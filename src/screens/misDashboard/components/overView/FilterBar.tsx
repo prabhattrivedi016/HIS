@@ -5,38 +5,38 @@ export default function HeaderSection({ activeTab, setActiveTab }) {
   return (
     <div className="w-full bg-white border-b border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-3 sm:px-4 pt-3">
       {/* ================= FILTER SECTION ================= */}
-      <div className="w-full pt-2 pb-3 border-t border-gray-100 overflow-x-auto">
-        <div className="flex flex-nowrap items-end gap-2.5 min-w-max w-full">
+      <div className="flex flex-col xl:flex-row items-stretch xl:items-end justify-between gap-3 pt-2 pb-3 border-t border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:flex xl:flex-wrap items-center gap-2.5 flex-1 min-w-0">
           {/* DATE RANGE */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full xl:w-auto xl:min-w-[180px] flex-1">
             <InputField label="Date Range">
               <input className="input-field" />
             </InputField>
           </div>
 
           {/* DEPARTMENT */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full xl:w-auto xl:min-w-[140px] flex-1">
             <InputField label="Department">
               <input className="input-field" />
             </InputField>
           </div>
 
           {/* PAYMENT MODE */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full xl:w-auto xl:min-w-[115px] flex-1">
             <InputField label="Payment Mode">
               <input className="input-field" />
             </InputField>
           </div>
 
           {/* PAYER / TPA */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full xl:w-auto xl:min-w-[115px] flex-1">
             <InputField label="Payable/TPA">
               <input className="input-field" />
             </InputField>
           </div>
 
           {/* BRANCH */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full xl:w-auto xl:min-w-[150px] flex-1">
             <InputField label="Branch">
               <input className="input-field" />
             </InputField>
@@ -45,18 +45,7 @@ export default function HeaderSection({ activeTab, setActiveTab }) {
           {/* APPLY BUTTON */}
           <button
             className="
-            h-[32px]
-            px-7
-            bg-[#0969d7]
-            hover:bg-[#075bbd]
-            text-white
-            text-[11px]
-            font-bold
-            rounded-md
-            shadow-sm
-            transition-colors
-            cursor-pointer
-            shrink-0
+           save-btn mt-3.5
           "
           >
             Apply
@@ -94,13 +83,14 @@ export default function HeaderSection({ activeTab, setActiveTab }) {
                   transition-all
                   duration-150
                   cursor-pointer
+                
 
                   ${
                     isActive
                       ? `
-                        bg-[#0875d1]
+                        bg-[#0B5394]
                         text-white
-                        border-[#0875d1]
+                        border-[#09457A]
                         shadow-[0_1px_2px_rgba(0,0,0,0.08)]
                       `
                       : `

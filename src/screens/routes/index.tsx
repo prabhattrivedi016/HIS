@@ -39,6 +39,7 @@ import IpdPackageMaster from "../ipdPackageMaster";
 import Ivf from "../ivf";
 import LabInvestigationMaster from "../labInvestigationMaster";
 import LabMaster from "../labMaster";
+import LaboratoryHelp from "../laboratoryHelp";
 import LaboratoryHelpDesk from "../laboratoryHelpDesk";
 import PathologyResultEntry from "../labResultEntry";
 import LabSampleManagement from "../labSampleManagement";
@@ -61,6 +62,7 @@ import OPRefundPayment from "../opRefundPayment";
 import OtBooking from "../otBooking";
 import OtMaster from "../otMaster";
 import OtProcessMaster from "../otProcessMaster";
+import OtSchedular from "../otSchedular";
 import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import PrintSettings from "../printSettings";
@@ -73,6 +75,7 @@ import RoleMaster from "../roleMaster";
 import SampleJourney from "../sampleJourney";
 import SampleManagement from "../sampleManagement";
 import SampleResultEntry from "../sampleResultEntry";
+import SendOutsource from "../sendOutSource";
 import ServiceMaster from "../serviceMaster";
 import SurgeryMaster from "../surgeryMaster";
 import TabMaster from "../tabMaster";
@@ -181,4 +184,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "bulk-receive": <BulkReceive />,
   "sample-journey": <SampleJourney />,
   "sample-result-entry": <SampleResultEntry />,
+  "ot-schedular": <OtSchedular />,
+  "send-outsource": <SendOutsource />,
+  "laboratory-help": <LaboratoryHelp />,
 };

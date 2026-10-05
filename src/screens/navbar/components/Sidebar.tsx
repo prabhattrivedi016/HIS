@@ -7,6 +7,7 @@ import logo from "../../../../assets/logo.jpg";
 import miniLogo from "../../../../assets/mini-logo.png";
 
 import { useAppSelector } from "@/store/hooks";
+import { allowOnlyText } from "@/utils/inputValidationHandler";
 import InputField from "../../../components/customInputField";
 import CustomLoader from "../../../components/customLoader";
 import FavRoleButtonToggle from "../../../components/FavouriteRoleToggleButton";
@@ -227,6 +228,8 @@ const Sidebar = () => {
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search..."
                 className="input-field mb-2"
+                onInput={allowOnlyText}
+                maxLength={10}
               />
             </InputField>
           )}

@@ -29,6 +29,7 @@ import {
   IpdPatientItem,
   MainBillWithPatientAdvanceItem,
   PatientDetailsMainBillItem,
+  PatientPackageItem,
   ServiceItemList,
   ServiceTableItem,
   SubCategoryItem,
@@ -42,6 +43,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
 
   const accessRights = useAppSelector(state => state.accessRights.accessRights);
+
+  const canForceAddServiceToPackage = Number(accessRights?.CanForceAddServiceToPackage);
 
   const canPerformCaseBilling = Number(accessRights?.CanPerformCaseBillingForIPDPatient);
 
@@ -95,6 +98,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
   const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
 
+  // billing payment details
   const billingPaymentDetails = useMemo(() => {
     const grossBillAmount = serviceDataTableItem.reduce(
       (sum, item) => sum + (item.qty ?? 1) * (item.rate ?? 0),
@@ -120,7 +124,8 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
   const [paymentModeList, setPaymentModeList] = useState<PaymentModeItem[]>([]);
   const [totalPaidAmount, setTotalPaidAmount] = useState<number>(0);
   const [receiptFtid, setReceiptFtid] = useState<number | undefined>(undefined);
-  const [receiptIdState, setReceiptIdState] = useState<number | undefined>(undefined);
+  const [patientPackageLists, setPatientPackageLists] = useState<PatientPackageItem[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<PatientPackageItem | null>(null);
 
   const billingTypeRef = useRef<"separateBill" | "mainBillWithAdvance" | "addInMainBill" | null>(
     null
@@ -178,6 +183,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setSelectedDoctor(option);
   };
 
+  // performing doctor
   const getPerformingDoctorOptions = (doctorDepartmentIds?: string) => {
     if (!doctorLists) return [];
     if (!doctorDepartmentIds || !doctorDepartmentIds.trim()) {
@@ -213,6 +219,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     );
   };
 
+  // urgent change handler
   const urgentChangeHandler = (rowIndex: number, checked: boolean) => {
     setServiceDataTableItem(prev =>
       prev.map((item, index) =>
@@ -586,6 +593,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           remarks: "",
           Billing: dateText,
           labTypeId: item?.labTypeId,
+          packageId: selectedPackage?.PackageId ?? 0,
         }));
 
         setServiceDataTableItem(prev => [...prev, ...newRows]);
@@ -696,6 +704,34 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
     setToDate(finalDate);
   };
 
+  // patient package list
+  const getPatientPackageList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PREDEFINE_QUERY_RESULT,
+      {},
+      { params: { queryName: "GetPatientIPDPackagesByVisitId", filter1: patient?.VisitId } },
+      { component: "IpdBillingComponent" }
+    );
+    setPatientPackageLists(resp?.data ?? []);
+  };
+
+  // package select handler
+  const patientPackageChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+    if (!value) {
+      setSelectedPackage(null);
+      return;
+    }
+    const selected = patientPackageLists?.find((p: PatientPackageItem) => p?.PackageId === value);
+    if (!selected) return;
+    setSelectedPackage(selected);
+  };
+
+  useEffect(() => {
+    getPatientPackageList();
+  }, [patient?.VisitId]);
+
   // create paylaod
   const buildCompletePayload = (
     paymentType: "savePayload" | "generateSeparateBill" | "mainBillWithAdvance"
@@ -760,6 +796,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
         isUrgent: item?.isUrgent ?? 0,
         sampleTypeId: item?.sampleTypeId ?? 0,
         billingDate: item?.Billing || "",
+        packageId: item?.packageId ?? 0,
       };
     });
 
@@ -802,6 +839,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       billingItems,
       paymentDetails,
       isBillDiscount: totalDiscAmtOnBill > 0 ? 1 : 0,
+      isForceAddServiceToPackage: canForceAddServiceToPackage ? 1 : 0,
     };
   };
 
@@ -897,6 +935,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
           isUrgent: item?.isUrgent ?? 0,
           sampleTypeId: item?.sampleTypeId ?? 0,
           billingDate: item?.Billing || "",
+          packageId: item?.packageId ?? 0,
         };
       });
 
@@ -1105,6 +1144,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
       }
       case "savePayload": {
         const payload = buildCompletePayload("savePayload");
+
         const resp = await fetchApi(
           "POST",
           ENDPOINTS.SAVE_IPD_BILLING,
@@ -1338,6 +1378,18 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
             menuPosition="fixed"
           />
         </InputField>
+
+        <InputField label="Patient Package List">
+          <select className="input-field" onChange={patientPackageChangeHandler}>
+            <option value={0}>--Select--</option>
+            {patientPackageLists?.map((p: PatientPackageItem) => (
+              <option key={p?.PackageId} value={p?.PackageId}>
+                {p?.PackageName}
+              </option>
+            ))}
+          </select>
+        </InputField>
+
         <InputField label="From Date">
           <CustomDateInput
             value={fromDate}
@@ -1406,6 +1458,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                         <tr>
                           <th className="table-th ">#</th>
                           <th className="table-th ">Billing Date</th>
+                          <th className="table-th ">Package</th>
                           <th className="table-th ">Service Name</th>
                           <th className="table-th ">Code</th>
                           <th className="table-th ">Doctor</th>
@@ -1427,7 +1480,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                       <tbody>
                         {serviceDataTableItem?.length === 0 && (
                           <tr>
-                            <td colSpan={13} className="table-empty">
+                            <td colSpan={14} className="table-empty">
                               No records found
                             </td>
                           </tr>
@@ -1459,6 +1512,7 @@ const IpdBillingComponent = ({ patient }: { patient: IpdPatientItem }) => {
                             >
                               <td className="table-td">{idx + 1}</td>
                               <td className="table-td">{item?.Billing ?? "--"}</td>
+                              <td className="table-td">{selectedPackage?.PackageName ?? "-"}</td>
 
                               <td className="table-td ">
                                 <div className="flex items-center justify-between ">

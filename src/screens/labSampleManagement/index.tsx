@@ -12,9 +12,9 @@ const LabSampleManagement = () => {
   };
 
   return (
-    <div className="page-container ">
-      <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
-        <div className="flex-1">
+    <div className="page-container">
+      <div className="flex w-full items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="page-heading">Lab Sample Management</h1>
 
           <nav className="helper-text">
@@ -24,50 +24,63 @@ const LabSampleManagement = () => {
           </nav>
         </div>
 
-        <div className="flex justify-end flex-1">
-          <div className="flex justify-between flex-wrap items-center gap-2">
-            {/* Choose Center Button */}
+        {/* action button */}
+        <div className="flex shrink-0 items-center justify-end">
+          <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+            {/* Choose Center */}
             <button
+              type="button"
               onClick={() => handleActionClick("Select Center")}
-              className=" flex  gap-1.5 items-center save-btn"
+              className="save-btn flex shrink-0 items-center gap-1"
             >
               <Building2 size={15} strokeWidth={2.5} />
+
               <span>Center</span>
             </button>
-            {/* New Sample Button */}
+
+            {/* New Sample */}
             <button
+              type="button"
               onClick={() => handleActionClick("New Sample")}
-              className="flex  gap-1.5 items-center save-btn"
+              className="save-btn flex shrink-0 items-center gap-1"
             >
               <Plus size={15} strokeWidth={2.5} />
+
               <span>New Sample</span>
             </button>
 
-            {/* Scan Barcode Button */}
+            {/* Scan Barcode */}
             <button
+              type="button"
               onClick={() => handleActionClick("Scan Barcode")}
-              className="flex  gap-1.5 items-center save-btn"
+              className="save-btn flex shrink-0 items-center gap-1"
             >
               <Barcode size={16} strokeWidth={2} />
+
               <span>Scan Barcode</span>
             </button>
 
-            {/* Bulk Receive Button */}
+            {/* Bulk Receive */}
             <button
+              type="button"
               onClick={() => navigate("/bulk-receive")}
-              className="flex  gap-1.5 items-center save-btn"
+              className="save-btn flex shrink-0 items-center gap-1"
             >
               <Upload size={15} strokeWidth={2} />
-              <span className="">Bulk Receive</span>
+
+              <span>Bulk Receive</span>
             </button>
 
-            {/* Export Button */}
+            {/* Export */}
             <button
+              type="button"
               onClick={() => handleActionClick("Export")}
-              className="flex  gap-1.5 items-center save-btn"
+              className="save-btn flex shrink-0 items-center gap-1"
             >
               <Download size={15} strokeWidth={2} />
+
               <span>Export</span>
+
               <ChevronDown size={13} />
             </button>
           </div>
@@ -75,8 +88,11 @@ const LabSampleManagement = () => {
       </div>
 
       {/* data */}
+
       <FilterBar />
+
       <SearchBar />
+
       <TableData />
     </div>
   );

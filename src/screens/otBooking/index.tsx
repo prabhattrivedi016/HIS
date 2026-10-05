@@ -1,19 +1,19 @@
 import GlobalFooterButtons from "@/components/globalButtons/GlobalFooterButtons";
 import UhidGlobalSearch from "@/components/SingledrawerAndPopup/components/UhidGlobalSearch";
-import { IPDAdmissionTabName, OTBookingTabName, PageType } from "@/constants/constants";
+import { OTBookingTabName, PageType } from "@/constants/constants";
 import React from "react";
 import { NavLink } from "react-router-dom";
-import IpdAdmissionDetails from "../ipdAdmission/components/IpdAdmissionDetails";
 import PatientData from "../patientRegistration/components/PatientData";
+import OtBookingDetails from "./components/OtBookingDetails";
 
 const OtBooking = () => {
-  const [activeTab, setActiveTab] = React.useState<string>(IPDAdmissionTabName.PATIENT_DETAILS);
+  const [activeTab, setActiveTab] = React.useState<string>(OTBookingTabName.PATIENT_DETAILS);
   const patientTabError = false;
 
   //   render tabs
   const renderTabs = () => (
     <>
-      <div className={activeTab === IPDAdmissionTabName.PATIENT_DETAILS ? "" : "hidden"}>
+      <div className={activeTab === OTBookingTabName.PATIENT_DETAILS ? "" : "hidden"}>
         <PatientData
         //   key={`patient-data-${formResetKey}`}
         //   ref={patientDataRef}
@@ -24,11 +24,8 @@ const OtBooking = () => {
         />
       </div>
 
-      <div className={activeTab === IPDAdmissionTabName.IPD_ADIMISSION ? "" : "hidden"}>
-        <IpdAdmissionDetails
-        //   ref={admissionDetailsRef}
-        //   patientDetails={patientRegistrationDetails}
-        />
+      <div className={activeTab === OTBookingTabName.OT_BOOKING ? "" : "hidden"}>
+        <OtBookingDetails />
       </div>
     </>
   );

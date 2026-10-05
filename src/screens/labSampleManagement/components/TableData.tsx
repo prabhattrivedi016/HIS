@@ -1,8 +1,6 @@
 import { ArrowUp, Eye, File, MoreVertical, Plus, Printer } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
-export default function TableData() {
-  const navigate = useNavigate();
+export default function TableData({ onNavigate }) {
   const sampleData = [
     {
       timeLine: "Delayed",
@@ -210,10 +208,16 @@ export default function TableData() {
         <table className="w-full min-w-[1290px] table-fixed border-collapse text-left text-[10px] sm:text-[11px]">
           <thead>
             <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
+              <th className="w-[3%] border border-gray-300 py-2 px-1 text-center">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-blue-600 cursor-pointer w-3.5 h-3.5"
+                />
+              </th>
               <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
               <th className="w-[6%] border border-gray-300 py-2 px-1 text-center">Time Line</th>
               <th className="w-[10%] border border-gray-300 py-2 px-2">Sample ID</th>
-              <th className="w-[6%] border border-gray-300 py-2 px-2 text-center">Barcode</th>
+              <th className="w-[6%] border border-gray-300 py-2 px-1 text-center">Barcode</th>
               <th className="w-[8%] border border-gray-300 py-2 px-2">UHID</th>
               <th className="w-[10%] border border-gray-300 py-2 px-2">Patient Name</th>
               <th className="w-[10%] border border-gray-300 py-2 px-2">Sample Type</th>
@@ -231,6 +235,12 @@ export default function TableData() {
           <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
             {sampleData.map(row => (
               <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                <td className="border border-gray-300 py-2 px-1 text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-blue-600 cursor-pointer w-3.5 h-3.5"
+                  />
+                </td>
                 <td className="border border-gray-300 py-2 px-1 font-bold text-gray-900 text-center">
                   {row.id}
                 </td>
@@ -291,7 +301,7 @@ export default function TableData() {
                 <td className="border border-gray-300 py-2 px-1 text-center">
                   <div className="flex items-center justify-center space-x-.2">
                     <button
-                      onClick={() => navigate("/sample-journey")}
+                      onClick={() => handleViewClick(row.sampleId)}
                       className="text-gray-500 hover:text-blue-600 cursor-pointer p-1 transition-colors"
                       title="View Details"
                     >
@@ -350,16 +360,22 @@ export default function TableData() {
               name="barcodeOption"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
             />
-            <span className="font-bold text-[120%]">Barcode</span>
+            <span>Barcode</span>
           </label>
 
           {/* Print Button */}
-          <button onClick={() => alert("Print clicked")} className="save-btn w-20">
+          <button
+            onClick={() => alert("Print clicked")}
+            className="border border-blue-600 text-blue-600  text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
+          >
             Print
           </button>
 
           {/* Save Button */}
-          <button onClick={() => alert("Save clicked")} className="save-btn w-20">
+          <button
+            onClick={() => alert("Save clicked")}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
+          >
             Save
           </button>
         </div>
