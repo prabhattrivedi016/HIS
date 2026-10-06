@@ -8,7 +8,8 @@ type FormConfig = {
     | "email"
     | "textArea"
     | "password"
-    | "button";
+    | "button"
+    | "checkbox";
   label: string;
   fieldId?: string;
   required?: boolean;
@@ -130,7 +131,7 @@ export const formConfig: FormConfig[] = [
     label: "Report to User",
     fieldId: "reportToUserId",
     placeholder: "Report to User",
-    required: true,
+    required: false,
     readonly: false,
   },
   {
@@ -138,7 +139,21 @@ export const formConfig: FormConfig[] = [
     label: " Department ",
     fieldId: "userDepartmentId",
     placeholder: "Enter User Department ID",
+    required: false,
+    readonly: false,
+  },
+  {
+    type: "select",
+    label: " User Role ",
+    fieldId: "userRoleId",
     required: true,
+    readonly: false,
+  },
+  {
+    type: "checkbox",
+    label: " Can Change Password ",
+    fieldId: "canChangePassword",
+    required: false,
     readonly: false,
   },
   {

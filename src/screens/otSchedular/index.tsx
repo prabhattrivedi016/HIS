@@ -2,13 +2,11 @@ import InputField from "@/components/customInputField";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { OtMasterItem } from "./types";
 
 type ViewMode = "day" | "week";
-
 type SlotInterval = 30 | 60 | 90 | 120;
-
 type SchedulerStatus = "scheduled" | "in-progress" | "completed";
 
 type ResourceItem = {
@@ -37,6 +35,7 @@ type SchedulerEvent = {
 
 export default function OtSchedular() {
   const { fetchApi } = useGlobalApi();
+  const navigate = useNavigate();
 
   // =========================================================
   // STATE
@@ -52,10 +51,8 @@ export default function OtSchedular() {
 
   const [slotInterval, setSlotInterval] = useState<SlotInterval>(30);
 
-  const [selectedEvent, setSelectedEvent] = useState<SchedulerEvent | null>(null);
-
   // =========================================================
-  // GET OT MASTER LIST
+  // OT MASTER LIST
   // =========================================================
 
   const getOtMasterList = async () => {
@@ -77,7 +74,6 @@ export default function OtSchedular() {
       setOtNameList(resp?.data ?? []);
     } catch (error) {
       console.error("Failed to get OT master list:", error);
-
       setOtNameList([]);
     }
   };
@@ -131,10 +127,7 @@ export default function OtSchedular() {
     });
   };
 
-  // =========================================================
-  // OT RESOURCES
-  // =========================================================
-
+  // ot resources
   const resources = useMemo<ResourceItem[]>(() => {
     if (selectedOtId === 0) {
       return otNameList.map(ot => ({
@@ -159,12 +152,7 @@ export default function OtSchedular() {
     ];
   }, [otNameList, selectedOtId]);
 
-  // =========================================================
-  // TIME SLOTS
-  //
-  // Used ONLY in Day View
-  // =========================================================
-
+  // time slots
   const timeSlots = useMemo(() => {
     const slots: string[] = [];
 
@@ -182,14 +170,8 @@ export default function OtSchedular() {
     return slots;
   }, [slotInterval]);
 
-  // =========================================================
-  // WEEK DATES
-  //
-  // Selected date = first date
-  // Total = 7 dates
-  // =========================================================
-
-  const weekDates = useMemo(() => {
+  // week days
+  const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => addDays(selectedDate, index));
   }, [selectedDate]);
 
@@ -201,10 +183,6 @@ export default function OtSchedular() {
 
   const events = useMemo<SchedulerEvent[]>(
     () => [
-      // =====================================================
-      // DAY 1
-      // =====================================================
-
       {
         id: 1,
         resourceId: resources[0]?.id ?? 1,
@@ -377,10 +355,7 @@ export default function OtSchedular() {
     return `${displayHour}:${String(mins).padStart(2, "0")} ${period}`;
   };
 
-  // =========================================================
-  // GET STARTING EVENT
-  // =========================================================
-
+  // get starting event
   const getStartingEvent = (resourceId: number, time: string) => {
     const slotStart = timeToMinutes(time);
 
@@ -401,10 +376,7 @@ export default function OtSchedular() {
     });
   };
 
-  // =========================================================
-  // GET ACTIVE EVENT
-  // =========================================================
-
+  // get active event
   const getActiveEvent = (resourceId: number, time: string) => {
     const slotStart = timeToMinutes(time);
 
@@ -427,10 +399,7 @@ export default function OtSchedular() {
     });
   };
 
-  // =========================================================
-  // ROW SPAN
-  // =========================================================
-
+  // get row span
   const getRowSpan = (event: SchedulerEvent) => {
     const start = timeToMinutes(event.startTime);
 
@@ -441,10 +410,7 @@ export default function OtSchedular() {
     return Math.max(1, Math.ceil(duration / slotInterval));
   };
 
-  // =========================================================
-  // STATUS STYLE
-  // =========================================================
-
+  // status style
   const getStatusStyle = (status: SchedulerStatus) => {
     switch (status) {
       case "in-progress":
@@ -470,14 +436,57 @@ export default function OtSchedular() {
     }
   };
 
-  // booking ca
+  // existing booking click
+  const handleEventClick = (event: SchedulerEvent) => {
+    const resource = resources.find(item => item.id === event.resourceId);
+
+    navigate("/ipd-billing", {
+      state: {
+        mode: "view",
+        event,
+        resource,
+      },
+    });
+  };
+
+  // empty day cell click
+  const handleEmptyDayCellClick = (resource: ResourceItem, startTime: string) => {
+    const startMinutes = timeToMinutes(startTime);
+
+    const endMinutes = Math.min(startMinutes + slotInterval, 24 * 60);
+
+    const endHour = Math.floor(endMinutes / 60);
+
+    const endMinute = endMinutes % 60;
+
+    const endTime = `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+
+    navigate("/ot-booking", {
+      state: {
+        mode: "create",
+        bookingDate: selectedDate,
+        resourceId: resource.id,
+        resourceName: resource.name,
+        startTime,
+        endTime,
+        slotInterval,
+      },
+    });
+  };
+
+  // =========================================================
+  // BOOKING CARD
+  // =========================================================
 
   const renderEventCard = (event: SchedulerEvent) => {
     const statusStyle = getStatusStyle(event.status);
 
     return (
       <div
-        onClick={() => setSelectedEvent(event)}
+        onClick={e => {
+          e.stopPropagation();
+          handleEventClick(event);
+        }}
         className={`cursor-pointer rounded-md p-3 shadow-sm transition-all duration-150 hover:-translate-y-[1px] hover:shadow-md ${statusStyle.container}`}
       >
         {/* PATIENT */}
@@ -519,7 +528,9 @@ export default function OtSchedular() {
     );
   };
 
-  // day wise
+  // =========================================================
+  // DAY VIEW
+  // =========================================================
 
   const renderDayView = () => {
     return (
@@ -535,14 +546,14 @@ export default function OtSchedular() {
 
             <thead>
               <tr>
-                <th className=" left-0 top-0 z-40 w-[100px] min-w-[100px] border-b border-r border-slate-300 bg-slate-100 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <th className="left-0 top-0 z-40 w-[100px] min-w-[100px] border-b border-r border-slate-300 bg-slate-100 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Time
                 </th>
 
                 {resources.map(resource => (
                   <th
                     key={resource.id}
-                    className=" top-0 z-30 w-full border-b border-r border-slate-300 bg-slate-100 px-4 py-3 text-left"
+                    className="top-0 z-30 w-full border-b border-r border-slate-300 bg-slate-100 px-4 py-3 text-left"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -561,7 +572,7 @@ export default function OtSchedular() {
                 <tr key={time}>
                   {/* TIME */}
 
-                  <td className=" left-0 z-20 h-[60px] w-[100px] min-w-[100px] border-b border-r border-slate-200 bg-white px-2 text-center align-top">
+                  <td className="left-0 z-20 h-[60px] w-[100px] min-w-[100px] border-b border-r border-slate-200 bg-white px-2 text-center align-top">
                     <span className="relative top-2 text-xs font-semibold text-slate-500">
                       {formatTime(time)}
                     </span>
@@ -575,9 +586,9 @@ export default function OtSchedular() {
                     const activeEvent = getActiveEvent(resource.id, time);
 
                     /*
-                     * Event already spanning
-                     * this row.
+                     * Event already spanning this row.
                      */
+
                     if (activeEvent) {
                       return null;
                     }
@@ -585,13 +596,16 @@ export default function OtSchedular() {
                     /*
                      * Empty cell
                      */
+
                     if (!event) {
                       return (
                         <td
                           key={`${resource.id}-${time}`}
-                          className={`h-[60px] w-full border-b border-r border-slate-200 ${
+                          onClick={() => handleEmptyDayCellClick(resource, time)}
+                          className={`h-[60px] w-full cursor-pointer border-b border-r border-slate-200 transition-colors ${
                             rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50/30"
-                          }`}
+                          } hover:bg-blue-50`}
+                          title={`Create booking: ${resource.name} - ${formatTime(time)}`}
                         >
                           <div className="h-full border-t border-dashed border-slate-100" />
                         </td>
@@ -601,6 +615,7 @@ export default function OtSchedular() {
                     /*
                      * Booking
                      */
+
                     return (
                       <td
                         key={`${resource.id}-${time}`}
@@ -620,25 +635,32 @@ export default function OtSchedular() {
     );
   };
 
+  // =========================================================
+  // GET EVENTS FOR DATE + RESOURCE
+  // =========================================================
+
   const getEventsForDateAndResource = (date: string, resourceId: number) => {
     return events
       .filter(event => event.bookingDate === date && event.resourceId === resourceId)
       .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
   };
 
-  // week wise
+  // =========================================================
+  // WEEK VIEW
+  // =========================================================
+
   const renderWeekView = () => {
     return (
       <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div className="max-h-[700px] w-full overflow-auto">
           <table className="w-full min-w-[1400px] table-fixed border-collapse">
-            {/* week header */}
+            {/* WEEK HEADER */}
 
             <thead>
               <tr>
                 {/* RESOURCE HEADER */}
 
-                <th className=" left-0 top-0 z-50 w-[120px] min-w-[120px] border-b border-r border-slate-300 bg-slate-100 px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <th className="left-0 top-0 z-50 w-[120px] min-w-[120px] border-b border-r border-slate-300 bg-slate-100 px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                   OT Name
                 </th>
 
@@ -647,7 +669,7 @@ export default function OtSchedular() {
                 {weekDates.map(date => (
                   <th
                     key={date}
-                    className=" top-0 z-40 min-w-[250px] border-b border-r border-slate-300 bg-slate-100 px-4 py-4 text-center"
+                    className="top-0 z-40 min-w-[250px] border-b border-r border-slate-300 bg-slate-100 px-4 py-4 text-center"
                   >
                     <p className="text-sm font-semibold text-slate-800">{formatWeekDate(date)}</p>
 
@@ -657,12 +679,13 @@ export default function OtSchedular() {
               </tr>
             </thead>
 
-            {/* week body */}
+            {/* WEEK BODY */}
+
             <tbody>
               {resources.map((resource, resourceIndex) => (
                 <tr key={resource.id} className="align-top">
                   <td
-                    className={` left-0 z-30 w-[200px] min-w-[200px] border-b border-r border-slate-200 px-4 py-4 align-top ${
+                    className={`left-0 z-30 w-[200px] min-w-[200px] border-b border-r border-slate-200 px-4 py-4 align-top ${
                       resourceIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
                     }`}
                   >
@@ -673,7 +696,8 @@ export default function OtSchedular() {
                     </div>
                   </td>
 
-                  {/* date cells */}
+                  {/* DATE CELLS */}
+
                   {weekDates.map(date => {
                     const dateEvents = getEventsForDateAndResource(date, resource.id);
 
@@ -705,7 +729,9 @@ export default function OtSchedular() {
     );
   };
 
-  // form handler
+  // =========================================================
+  // FORM HANDLER
+  // =========================================================
 
   const handleOtChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedOtId(Number(e.target.value));
@@ -727,6 +753,10 @@ export default function OtSchedular() {
     console.log("View:", viewMode);
   };
 
+  // =========================================================
+  // CANCEL
+  // =========================================================
+
   const handleCancel = () => {
     setSelectedOtId(0);
 
@@ -735,9 +765,11 @@ export default function OtSchedular() {
     setSlotInterval(30);
 
     setViewMode("day");
-
-    setSelectedEvent(null);
   };
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <div className="page-container">
@@ -858,125 +890,7 @@ export default function OtSchedular() {
         ==================================================== */}
 
         {viewMode === "day" ? renderDayView() : renderWeekView()}
-
-        {/* ===================================================
-            FOOTER
-        ==================================================== */}
       </div>
-
-      {/* =====================================================
-          EVENT DETAILS MODAL
-      ====================================================== */}
-
-      {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
-            {/* HEADER */}
-
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <div>
-                <h2 className="text-base font-semibold text-slate-800">OT Booking Details</h2>
-
-                <p className="mt-0.5 text-xs text-slate-500">{selectedEvent.uhid}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedEvent(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* BODY */}
-
-            <div className="space-y-4 px-5 py-5">
-              {/* PATIENT */}
-
-              <div>
-                <p className="text-xs text-slate-500">Patient</p>
-
-                <p className="mt-1 text-sm font-semibold text-slate-800">
-                  {selectedEvent.patientName}
-                </p>
-              </div>
-
-              {/* UHID */}
-
-              <div>
-                <p className="text-xs text-slate-500">UHID</p>
-
-                <p className="mt-1 text-sm text-slate-800">{selectedEvent.uhid}</p>
-              </div>
-
-              {/* PROCEDURE */}
-
-              <div>
-                <p className="text-xs text-slate-500">Procedure</p>
-
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {selectedEvent.procedureName}
-                </p>
-              </div>
-
-              {/* DATE */}
-
-              <div>
-                <p className="text-xs text-slate-500">Booking Date</p>
-
-                <p className="mt-1 text-sm text-slate-800">
-                  {formatFullDate(selectedEvent.bookingDate)}
-                </p>
-              </div>
-
-              {/* DOCTOR + TIME */}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-slate-500">Doctor</p>
-
-                  <p className="mt-1 text-sm text-slate-800">{selectedEvent.doctorName}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-500">Time</p>
-
-                  <p className="mt-1 text-sm text-slate-800">
-                    {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
-                  </p>
-                </div>
-              </div>
-
-              {/* STATUS */}
-
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Status</p>
-
-                <p
-                  className={`mt-1 text-sm font-semibold capitalize ${
-                    getStatusStyle(selectedEvent.status).text
-                  }`}
-                >
-                  {selectedEvent.status.replace("-", " ")}
-                </p>
-              </div>
-            </div>
-
-            {/* FOOTER */}
-
-            <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-5 py-3">
-              <button
-                type="button"
-                onClick={() => setSelectedEvent(null)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -81,7 +81,11 @@ interface ConsultationEmrSectionsProps {
   onTemplateEntriesChange?: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
   /** opens a print-preview scoped to just the selected template's data — relayed straight up to
    * index.tsx, which is the only place that holds the full PatientItem the print modal needs */
-  onPrintTemplate?: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
+  onPrintTemplate?: (
+    templateName: string,
+    entries: EmrSectionAnswerEntry[],
+    templateId: number
+  ) => void;
 }
 
 const getSectionIcon = (name: string): LucideIcon => {
@@ -565,7 +569,12 @@ const ConsultationEmrSections = ({
       setData(prev => {
         let next = prev;
         rowsBySectionId.forEach((rows, sectionId) => {
-          next = applySnapshotToSectionData(next, sectionId, headersBySection[sectionId] ?? [], rows);
+          next = applySnapshotToSectionData(
+            next,
+            sectionId,
+            headersBySection[sectionId] ?? [],
+            rows
+          );
         });
         return next;
       });
@@ -819,7 +828,9 @@ const ConsultationEmrSections = ({
             >
               <LayoutTemplate size={13} className="shrink-0" />
               <span className="truncate max-w-40">
-                {selectedTemplate ? selectedTemplate.displayName || selectedTemplate.templateName : "Templates"}
+                {selectedTemplate
+                  ? selectedTemplate.displayName || selectedTemplate.templateName
+                  : "Templates"}
               </span>
               <ChevronDown size={14} className="shrink-0" />
             </button>
@@ -862,7 +873,9 @@ const ConsultationEmrSections = ({
                       }`}
                     >
                       <LayoutTemplate size={13} className="shrink-0" />
-                      <span className="truncate">{template.displayName || template.templateName}</span>
+                      <span className="truncate">
+                        {template.displayName || template.templateName}
+                      </span>
                     </button>
                   ))
                 )}
