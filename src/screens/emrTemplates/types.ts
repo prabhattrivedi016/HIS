@@ -18,6 +18,7 @@ type TemplateItem = {
   templateCategoryId: number;
   categoryName: string;
   isActive: number;
+  TemplateId?: number;
   /** 1 = the doctor can fill this template more than once per visit (e.g. repeated dressing
    * rounds), 0 = single-entry only. CONFIRMED against createUpdateEMRTemplateMaster's payload. */
   isMultipleEntryAllow: number;

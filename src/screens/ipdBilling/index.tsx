@@ -9,7 +9,7 @@ import { useClickOutside } from "@/hooks/useClickOutside";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
 import { PickMasterItem } from "@/types";
-import { showError } from "@/utils/alert";
+import { showError, showWarning } from "@/utils/alert";
 import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
@@ -229,13 +229,14 @@ const IpdBilling = () => {
       return;
     }
 
+    if (favoriteTabIds?.length >= 5 && !isTabFavorite(tabId)) {
+      showWarning("You cannot add more than 5 tabs as favorite");
+      return;
+    }
+
     const wasFavorite = isTabFavorite(tabId);
 
-    /**
-     * -----------------------------------------
-     * OPTIMISTIC UI UPDATE
-     * -----------------------------------------
-     */
+    //  optimistic ui updates
 
     setFavoriteTabIds(prev => {
       if (wasFavorite) {

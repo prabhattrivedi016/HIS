@@ -19,6 +19,7 @@ import {
 import { useContext, useEffect, useMemo, useState } from "react";
 import { IpdPatientItem, OtProcessItem } from "../types";
 import AddRemark from "./AddRemark";
+import OtNoteTemplate from "./OtNoteTemplate";
 
 const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
@@ -41,6 +42,9 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const [canDischarge, setCanDischarge] = useState<boolean>(false);
 
+  const [openOtTemplate, setOpenOtTemplate] = useState<boolean>(false);
+  const [renderOtTemplate, setRenderOtTemplate] = useState<boolean>(false);
+
   // current date
   const currentLocalYYYYMMDD = useMemo(() => {
     const today = new Date();
@@ -60,10 +64,6 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
     const minutesStr = minutes < 10 ? "0" + minutes : minutes.toString();
     return `${hours}:${minutesStr} ${ampm}`;
   }, []);
-
-  const [otType, setOtType] = useState<string>("");
-  const [otDate, setOtDate] = useState<string>(currentLocalYYYYMMDD);
-  const [otTime, setOtTime] = useState<string>(currentLocalTime);
 
   // min date
   const minDate = useMemo(() => {
@@ -406,10 +406,14 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
     }
   };
 
-  // discharge process type handler
-  const dischargeProcessSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-    setOtType(selectedValue);
+  // ot note template handler
+  const otNoteTemplateHandler = () => {
+    setOpenOtTemplate(true);
+    setRenderOtTemplate(true);
+  };
+
+  const closeOtTemplateHandler = () => {
+    setOpenOtTemplate(false);
   };
 
   return (
@@ -452,6 +456,15 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
         </div>
       ) : (
         <div className="w-full">
+          <div className="mb-1 flex flex-row items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={otNoteTemplateHandler}
+              className="save-btn !px-2 !py-1.5 text-xs sm:text-sm"
+            >
+              Template
+            </button>
+          </div>
           {/* process flow */}
           <div className="rounded-xl border border-gray-200 p-4 sm:p-5">
             {/* Progress Bar */}
@@ -1032,6 +1045,15 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
           validateDischarge={getValidatePatientDischarge}
           currProcess={getCurrentProcess}
           processType={"otProcess"}
+        />
+      )}
+
+      {/* ot note template */}
+      {renderOtTemplate && (
+        <OtNoteTemplate
+          isOpen={openOtTemplate}
+          onClose={closeOtTemplateHandler}
+          selectedPatient={patient}
         />
       )}
 

@@ -19,14 +19,14 @@ interface TemplateInlineSectionsProps {
   /** fired continuously (not just on an explicit Apply click, since this view has no modal footer)
    * — the caller (ConsultationEmrSections → doctorConsultationNew/index.tsx) merges this into
    * templateEntriesByTemplateId, the same bucket TemplateFillerModal's onApply already feeds */
-  onEntriesChange: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
+  onEntriesChange?: (templateId: number, entries: EmrSectionAnswerEntry[]) => void;
   /** opens a print-preview scoped to just this template's currently-filled data — the caller
    * (ConsultationEmrSections → index.tsx) owns the actual PrintPreviewModal instance, since only
    * index.tsx holds the full PatientItem that modal needs. templateId is passed explicitly (not
    * inferred from entries[0]) because entries can be empty — a doctor opening Print to browse this
    * template's past-visit history, without having typed anything this session, must still be able
    * to filter that history down to just this template. */
-  onPrint: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
+  onPrint?: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
 }
 
 /**
@@ -51,6 +51,8 @@ const TemplateInlineSections = ({
   onPrint,
 }: TemplateInlineSectionsProps) => {
   const { fetchApi } = useGlobalApi();
+
+  console.log("templatetemplatetemplatetemplatetemplatetemplate", template);
 
   const [templateSections, setTemplateSections] = useState<TemplateSectionMappingRecord[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
@@ -94,7 +96,7 @@ const TemplateInlineSections = ({
         "GET",
         ENDPOINTS.GET_TEMPLATE_SECTION_MAPPING,
         {},
-        { params: { templateId: template.templateId } },
+        { params: { templateId: template.templateId || template.TemplateId } },
         { component: "TemplateInlineSections", silent: true }
       );
       if (cancelled) return;
@@ -158,7 +160,7 @@ const TemplateInlineSections = ({
     const serialized = JSON.stringify(entries);
     if (serialized === lastPropagatedRef.current) return;
     lastPropagatedRef.current = serialized;
-    onEntriesChange(template.templateId, entries);
+    onEntriesChange?.(template.templateId!, entries);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entriesBySectionId, template.templateId]);
 

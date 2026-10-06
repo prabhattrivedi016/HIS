@@ -22,6 +22,8 @@ const FormComponent = ({
   const genderValue = usePickMaster("gender");
   const genderList = genderValue?.pickMasterValue ?? [];
 
+  const userRolesList = usePickMaster("UserRoleForUserMaster")?.pickMasterValue ?? [];
+
   const [userDepartment, setUserDepartment] = useState([]);
   const [userMasterList, setUserMasterList] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -78,6 +80,8 @@ const FormComponent = ({
     formState: { errors },
     getValues,
     reset,
+    watch,
+    setValue,
   } = useForm({
     defaultValues: {},
   });
@@ -141,6 +145,10 @@ const FormComponent = ({
       const payload = {
         ...data,
         userId: userId || "0",
+        userRole: userRolesList.find(u => String(u?.key) === String(data?.userRoleId))?.value ?? "",
+        canChangePassword: data?.canChangePassword ? 1 : 0,
+        reportToUserId: Number(data?.reportToUserId) || 0,
+        userDepartmentId: Number(data?.userDepartmentId) || 0,
       };
 
       const response = await fetchApi("POST", ENDPOINTS.CREATE_UPDATE_USER_MASTER, payload);
@@ -151,11 +159,11 @@ const FormComponent = ({
       }
 
       setSuccessMessage(response?.message || "Saved successfully!");
-      refreshData();
 
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 1000);
+      refreshData();
     } catch (err) {
       setErrorMessage("Something went wrong!");
     }
@@ -187,6 +195,12 @@ const FormComponent = ({
           value: user.userName,
         }));
 
+      case "userRoleId":
+        return userRolesList?.map(role => ({
+          key: role.key,
+          value: role.value,
+        }));
+
       default:
         return [];
     }
@@ -200,7 +214,8 @@ const FormComponent = ({
       case "text":
       case "email":
       case "password":
-      case "date":
+      case "date": {
+        const isDisabled = isEditMode && isPassword && !watch("canChangePassword");
         return (
           <div key={index}>
             <InputField label={label} required={!isEditMode && component.required}>
@@ -209,25 +224,30 @@ const FormComponent = ({
                 placeholder={component.placeholder || `Enter ${label}`}
                 {...register(
                   fieldId,
-                  isEditMode && isPassword
+                  (isEditMode && isPassword) || isDisabled
                     ? {} // ✅ no validation
                     : formValidator(component, getValues, formConfig).validationRules
                 )}
                 // ✅ FIX: use readOnly instead of disabled
-                readOnly={isEditMode && isPassword}
+                disabled={isDisabled}
+                readOnly={isEditMode && isPassword && isDisabled}
                 {...(!isEditMode || !isPassword
                   ? formValidator(component, getValues, formConfig).uiAttributes
                   : {})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white 
-                           focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition ${
+                  isDisabled
+                    ? "disabled-input-field cursor-not-allowed"
+                    : "bg-white focus:ring-indigo-500 focus:border-indigo-500"
+                }`}
               />
             </InputField>
 
             {errors[fieldId] && (
-              <p className="text-red-500 text-sm mt-1">{errors[fieldId].message}</p>
+              <p className="text-red-500 text-sm mt-1">{errors[fieldId]?.message as string}</p>
             )}
           </div>
         );
+      }
 
       case "select":
         const options = getSelectOptions(fieldId);
@@ -235,7 +255,13 @@ const FormComponent = ({
         return (
           <div key={index}>
             <InputField label={component.label} required={component.required}>
-              <select {...register(component.fieldId)} className="input-field">
+              <select
+                {...register(
+                  component.fieldId,
+                  formValidator(component, getValues, formConfig).validationRules
+                )}
+                className="input-field"
+              >
                 <option value="">{localSelectData?.[component?.fieldId]}</option>
                 {options.map((g, idx) => (
                   <option key={idx} value={g.key}>
@@ -244,15 +270,52 @@ const FormComponent = ({
                 ))}
               </select>
             </InputField>
+            {errors[fieldId] && (
+              <p className="text-red-500 text-sm mt-1">{errors[fieldId]?.message as string}</p>
+            )}
           </div>
         );
 
       case "textArea":
         return (
           <div key={index}>
-            <InputField label={component.label}>
-              <textarea {...register(component.fieldId)} className="input-field" />
+            <InputField label={component.label} required={component.required}>
+              <textarea
+                {...register(
+                  component.fieldId,
+                  formValidator(component, getValues, formConfig).validationRules
+                )}
+                className="input-field"
+              />
             </InputField>
+            {errors[fieldId] && (
+              <p className="text-red-500 text-sm mt-1">{errors[fieldId]?.message as string}</p>
+            )}
+          </div>
+        );
+
+      case "checkbox":
+        if (!isEditMode) return null;
+        return (
+          <div key={index} className="col-span-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                {...register(component.fieldId, {
+                  onChange: e => {
+                    if (e.target.checked) {
+                      setValue("password", "");
+                      setValue("confirmPassword", "");
+                    }
+                  },
+                })}
+                disabled={watch(component.fieldId)}
+                className={`input-checkbox ${watch(component.fieldId) ? "cursor-not-allowed opacity-50" : ""}`}
+              />
+              <label htmlFor={component.fieldId} className="font-bold">
+                {component.label}
+              </label>
+            </div>
           </div>
         );
 
@@ -261,9 +324,7 @@ const FormComponent = ({
           <div key={index} className="col-span-2 mt-4">
             <button
               type="submit"
-              className={`w-full py-2 rounded transition-colors font-medium mt-5 flex justify-center items-center ${
-                loading ? "bg-gray-400 cursor-not-allowed text-white" : "save-btn"
-              }`}
+              className={`save-btn w-full ${loading ? "bg-gray-400 cursor-not-allowed text-white" : ""}`}
               disabled={loading}
             >
               {loading ? <Spinner /> : buttonTitle}
