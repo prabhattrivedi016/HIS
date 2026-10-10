@@ -61,6 +61,7 @@ import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
 import OtBooking from "../otBooking";
 import OtMaster from "../otMaster";
+import OtPatientLists from "../otPatientList";
 import OtProcessMaster from "../otProcessMaster";
 import OtSchedular from "../otSchedular";
 import PatientAdvance from "../patientAdvance";
@@ -187,4 +188,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ot-schedular": <OtSchedular />,
   "send-outsource": <SendOutsource />,
   "laboratory-help": <LaboratoryHelp />,
+  "ot-patient-list": <OtPatientLists />,
 };

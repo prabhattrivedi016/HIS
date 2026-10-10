@@ -3,7 +3,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
-export type WriteOffApprovalFilterValues = {
+export type OtPatientListFilterValues = {
   branchId: number;
   fromDate: string;
   toDate: string;
@@ -14,22 +14,22 @@ type BranchOption = {
   branchName: string;
 };
 
-const WriteOffFilterPopup = ({
+const OtPatientListFilterPopup = ({
   isOpen,
   onClose,
   onApply,
   initialValues,
   branchList = [],
-  modalTitle = "Filter Write Off Approval",
+  modalTitle = "Filter OT Patient List",
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (values: WriteOffApprovalFilterValues) => void;
-  initialValues: WriteOffApprovalFilterValues;
+  onApply: (values: OtPatientListFilterValues) => void;
+  initialValues: OtPatientListFilterValues;
   branchList?: BranchOption[];
   modalTitle?: string;
 }) => {
-  const [filterValues, setFilterValues] = useState<WriteOffApprovalFilterValues>(initialValues);
+  const [filterValues, setFilterValues] = useState<OtPatientListFilterValues>(initialValues);
 
   useEffect(() => {
     if (isOpen) {
@@ -104,4 +104,4 @@ const WriteOffFilterPopup = ({
   );
 };
 
-export default WriteOffFilterPopup;
+export default OtPatientListFilterPopup;

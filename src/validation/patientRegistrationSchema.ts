@@ -305,6 +305,7 @@ export const defaultPatientRegistrationValues: PatientRegistrationFormItem = {
   Remarks: "",
 
   ipdNumber: "",
+  ipdVisitId: 0,
 
   Pincode: "",
 

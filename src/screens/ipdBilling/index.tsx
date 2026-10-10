@@ -14,7 +14,7 @@ import { formatToDDMMYYYY } from "@/utils/dateConvertHandler";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import RoutingUsingTabUrl from "./components/routingUsingTabUrl";
 import { IpdPatientItem, TabNameItem } from "./types";
 
@@ -45,6 +45,10 @@ const IpdBilling = () => {
 
   const [activeTab, setActiveTab] = useState<TabNameItem | null>(null);
   const [ipdPatientList, setIpdPatientList] = useState<IpdPatientItem[]>([]);
+
+  const location = useLocation();
+
+  const { event, resource } = location.state ?? {};
 
   // more actions
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
@@ -412,6 +416,30 @@ const IpdBilling = () => {
     },
   ];
 
+  // selected patient from ot schedular to ipd billing page
+  useEffect(() => {
+    if (!ipdPatientList?.length || !event) return;
+
+    const patient = ipdPatientList.find(
+      (item: IpdPatientItem) => String(item?.IPDNo)?.trim() === String(event?.ipdNo)?.trim()
+    );
+
+    if (patient) {
+      setSelectedPatient(patient);
+      setUpdatedIpdPatientDetails(patient);
+      setLeftPanelVisible(false);
+
+      if (ipdTabs?.length) {
+        const otTab = ipdTabs.find(
+          (tab: TabNameItem) => String(tab?.TabViewURL)?.toLowerCase().trim() === "ot-process"
+        );
+        if (otTab) {
+          setActiveTab(otTab);
+        }
+      }
+    }
+  }, [ipdPatientList, event, ipdTabs]);
+
   return (
     <div className="page-container w-full min-w-0">
       <div className="flex items-center justify-between w-full mb-1 flex-wrap gap-2">
@@ -541,6 +569,9 @@ const IpdBilling = () => {
                           setSelectedPatient(item);
                           setUpdatedIpdPatientDetails(item);
                           setLeftPanelVisible(false);
+
+                          // explicitly clear the active tab when a new patient is selected
+                          setActiveTab(null as any);
                         }}
                         className={`w-full rounded-xl border shadow-sm p-3 cursor-pointer active:scale-[0.98] transition-all duration-150 ${
                           isSelected

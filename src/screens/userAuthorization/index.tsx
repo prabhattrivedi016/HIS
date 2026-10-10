@@ -174,10 +174,12 @@ const UserAuthorization = () => {
   //select option for roles
   const roleSelectOption = useMemo(() => {
     return (
-      roleData?.map((r: RoleDataItem) => ({
-        value: r?.roleId,
-        label: r?.roleName,
-      })) || []
+      roleData
+        ?.filter((r: RoleDataItem) => r?.isGranted === 1)
+        ?.map((r: RoleDataItem) => ({
+          value: r?.roleId,
+          label: r?.roleName,
+        })) || []
     );
   }, [roleData]);
 

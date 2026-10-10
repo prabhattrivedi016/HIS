@@ -272,13 +272,9 @@ const IPDAdmission = () => {
 
       const patientResponse = await fetchApi(
         "GET",
-
         ENDPOINTS.GET_PATIENT_MASTER,
-
         {},
-
         { params: { patientId } },
-
         { component: "IpdAdmission" }
       );
 
@@ -306,13 +302,9 @@ const IPDAdmission = () => {
 
       const saveResp = await fetchApi(
         "POST",
-
         ENDPOINTS.SAVE_IPD_ADMISSION,
-
         payload,
-
         {},
-
         { component: "IpdAdmission" }
       );
 

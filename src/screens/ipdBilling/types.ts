@@ -682,6 +682,20 @@ type OtTemplateItem = {
   LastModifiedOn: string | null;
 };
 
+type TemplateIListtem = {
+  TemplateId: number;
+  TemplateName: string;
+  DisplayName: string;
+  TemplateCategoryId: number;
+  IsMultipleEntryAllow: number;
+  ApplicableTo: number;
+  TemplateCategoryName: string;
+  IsActive: number;
+  CreatedBy: number;
+  CreatedOn: string;
+  LastModifiedBy: number | null;
+  LastModifiedOn: string | null;
+};
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -716,5 +730,7 @@ export type {
   SubCategoryItem,
   SubSubCategoryItem,
   TabNameItem,
+  TemplateIListtem,
+  TemplateItem,
   userMasterItem,
 };

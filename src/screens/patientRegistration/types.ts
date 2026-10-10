@@ -131,7 +131,7 @@ type SearchedPatientItem = {
 type PatientDataProps = {
   selectedPatientId?: number | null;
   showRegistrationButton?: boolean;
-  onPayloadChange?: (payload: Record<string, unknown>) => void;
+  onPayloadChange?: (payload: PatientDataEditItem | null) => void;
   onPatientLoaded?: (source: "uhid") => void;
   onRegistrationSuccess?: () => void;
 };
@@ -223,6 +223,7 @@ type PatientDataEditItem = {
   referenceType: string | null;
   remarks: string | null;
   doctorId: number;
+  ipdVisitId: number;
   ipdNo: number;
   dayCareNo: number;
   dialysisNo: number;
