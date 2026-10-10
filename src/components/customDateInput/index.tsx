@@ -15,7 +15,23 @@ const formatDate = (date?: string) => {
   if (!date) return "";
   const [y, m, d] = date.split("-");
   if (!y || !m || !d) return "";
-  return `${d}/${m}/${y}`;
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const monthIndex = parseInt(m, 10) - 1;
+  const monthStr = monthNames[monthIndex] || m;
+  return `${d}-${monthStr}-${y}`;
 };
 
 const CustomDateInput: React.FC<Props> = ({
@@ -23,7 +39,7 @@ const CustomDateInput: React.FC<Props> = ({
   onChange,
   min,
   max,
-  placeholder = "DD/MM/YYYY",
+  placeholder = "DD-MMM-YYYY",
   className,
   disabled,
 }) => {
@@ -69,7 +85,7 @@ const CustomDateInput: React.FC<Props> = ({
       <input
         type="text"
         placeholder={placeholder}
-        className={`input-field ${className} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`input-field ${className} ${disabled ? "disabled-input-field" : ""}`}
         onClick={disabled ? undefined : handleOpen}
         value={formattedValue}
         disabled={disabled}

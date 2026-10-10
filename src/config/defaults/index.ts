@@ -370,7 +370,7 @@ const ENDPOINTS = {
   // templateCategoryName}, and its save response only echoes back {templateCategoryId}).
   GET_TEMPLATE_CATEGORY_LIST: "EMR/getTemplateCategoryMasterList",
   CREATE_UPDATE_TEMPLATE_CATEGORY: "EMR/createUpdateTemplateCategoryMaster",
-  GET_ALL_TEMPLATES: "EMR/getEMRTemplateMaster",
+  GET_EMR_TEMPLATE_MASTER: "EMR/getEMRTemplateMaster",
   CREATE_UPDATE_TEMPLATE: "EMR/createUpdateEMRTemplateMaster",
   GET_TEMPLATE_SECTION_MAPPING: "EMR/getEMRTemplateSectionMapping",
 
@@ -732,6 +732,10 @@ const ENDPOINTS = {
   GET_OT_PROCESS_MASTER: "Admin/getOTProcessMaster",
   CREATE_UPDATE_OT_PROCESS_MASTER: "Admin/createUpdateOTProcessMaster",
   UPDATE_OT_PROCESS_SEQUENCE: "Admin/updateOTProcessSequence",
+
+  // OT booking
+  SAVE_OT_BOOKING: "IPD/saveOTBooking",
+  GET_OT_BOOKING_DETAILS: "IPD/getOTBookingDetails",
 };
 
 export { ENDPOINTS };

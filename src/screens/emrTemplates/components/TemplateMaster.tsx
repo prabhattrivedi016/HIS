@@ -1,9 +1,9 @@
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
-import { EmrSectionItem } from "@/screens/emrControls/types";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { usePickMaster } from "@/hooks/usePickMaster";
+import { EmrSectionItem } from "@/screens/emrControls/types";
 import { PickMasterItem } from "@/types";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { TemplateFormData, templateSchema } from "@/validation/templateMasterSchema";
@@ -266,9 +266,9 @@ const TemplateMaster = () => {
         isActive: 1,
         isMultipleEntryAllow: 0,
         // 1 = "EMR Page" in the TemplateApplicableTo picklist — every template created from this
-      // screen is an EMR-page template, so default straight to it instead of making the admin
-      // pick it every single time
-      applicableTo: 1,
+        // screen is an EMR-page template, so default straight to it instead of making the admin
+        // pick it every single time
+        applicableTo: 1,
       });
       buildRows([]);
     },
@@ -300,7 +300,7 @@ const TemplateMaster = () => {
   const getAllTemplates = async (): Promise<TemplateItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
+      ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
       {},
       { params: { isActive: listActiveFilter } },
       { component: "TemplateMaster", silent: true }

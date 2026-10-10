@@ -1,3 +1,4 @@
+import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
@@ -13,11 +14,12 @@ import {
   Lock,
   LockKeyhole,
   PlayCircle,
+  Plus,
   ShieldCheck,
   Stethoscope,
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
-import { IpdPatientItem, OtProcessItem } from "../types";
+import { IpdPatientItem, OtProcessItem, TemplateIListtem, TemplateItem } from "../types";
 import AddRemark from "./AddRemark";
 import OtNoteTemplate from "./OtNoteTemplate";
 
@@ -45,6 +47,9 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const [openOtTemplate, setOpenOtTemplate] = useState<boolean>(false);
   const [renderOtTemplate, setRenderOtTemplate] = useState<boolean>(false);
 
+  const [templateDropdownList, setTemplateDropdownList] = useState<TemplateItem[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateIListtem | null>(null);
+
   // current date
   const currentLocalYYYYMMDD = useMemo(() => {
     const today = new Date();
@@ -53,48 +58,48 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
     ).padStart(2, "0")}`;
   }, []);
 
-  // current time
-  const currentLocalTime = useMemo(() => {
-    const today = new Date();
-    let hours = today.getHours();
-    const minutes = today.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    const minutesStr = minutes < 10 ? "0" + minutes : minutes.toString();
-    return `${hours}:${minutesStr} ${ampm}`;
-  }, []);
+  // // current time
+  // const currentLocalTime = useMemo(() => {
+  //   const today = new Date();
+  //   let hours = today.getHours();
+  //   const minutes = today.getMinutes();
+  //   const ampm = hours >= 12 ? "PM" : "AM";
+  //   hours = hours % 12;
+  //   hours = hours ? hours : 12;
+  //   const minutesStr = minutes < 10 ? "0" + minutes : minutes.toString();
+  //   return `${hours}:${minutesStr} ${ampm}`;
+  // }, []);
 
   // min date
-  const minDate = useMemo(() => {
-    if (!patient?.AdmissionDate) return undefined;
-    const clean = patient.AdmissionDate.replace(/\//g, "-");
-    const parts = clean.split("-");
-    if (parts.length >= 3) {
-      const [day, month, year] = parts;
-      const cleanYear = year.split(" ")[0];
-      const monthMap: Record<string, string> = {
-        jan: "01",
-        feb: "02",
-        mar: "03",
-        apr: "04",
-        may: "05",
-        jun: "06",
-        jul: "07",
-        aug: "08",
-        sep: "09",
-        oct: "10",
-        nov: "11",
-        dec: "12",
-      };
-      const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
-      return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
-    }
-    return undefined;
-  }, [patient?.AdmissionDate]);
+  // const minDate = useMemo(() => {
+  //   if (!patient?.AdmissionDate) return undefined;
+  //   const clean = patient.AdmissionDate.replace(/\//g, "-");
+  //   const parts = clean.split("-");
+  //   if (parts.length >= 3) {
+  //     const [day, month, year] = parts;
+  //     const cleanYear = year.split(" ")[0];
+  //     const monthMap: Record<string, string> = {
+  //       jan: "01",
+  //       feb: "02",
+  //       mar: "03",
+  //       apr: "04",
+  //       may: "05",
+  //       jun: "06",
+  //       jul: "07",
+  //       aug: "08",
+  //       sep: "09",
+  //       oct: "10",
+  //       nov: "11",
+  //       dec: "12",
+  //     };
+  //     const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
+  //     return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
+  //   }
+  //   return undefined;
+  // }, [patient?.AdmissionDate]);
 
   // max date
-  const maxDate = currentLocalYYYYMMDD;
+  // const maxDate = currentLocalYYYYMMDD;
 
   // get ot current process
 
@@ -414,6 +419,37 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
   const closeOtTemplateHandler = () => {
     setOpenOtTemplate(false);
+    setSelectedTemplate(null);
+  };
+
+  // ot notes template dropdown
+  const getTemplateTypeLists = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
+      {},
+      {},
+      { component: "OtProcess" }
+    );
+    setTemplateDropdownList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getTemplateTypeLists();
+  }, []);
+
+  // template type select handler
+  const templateTypeSelectHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value);
+
+    if (!value) {
+      setSelectedTemplate(null);
+      return;
+    }
+
+    const selected = templateDropdownList?.find(item => Number(item?.TemplateId) === value);
+
+    setSelectedTemplate(selected);
   };
 
   return (
@@ -456,13 +492,28 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
         </div>
       ) : (
         <div className="w-full">
-          <div className="mb-1 flex flex-row items-center justify-end gap-1.5">
+          <div className="mb-1 flex flex-row  items-center justify-end gap-1.5">
+            <InputField>
+              <select
+                className="input-field max-h-10"
+                onChange={templateTypeSelectHandler}
+                value={selectedTemplate?.TemplateId || 0}
+              >
+                <option value={0}>--Select--</option>
+                {templateDropdownList?.map(item => (
+                  <option key={item?.TemplateId} value={item?.TemplateId}>
+                    {item?.TemplateName}
+                  </option>
+                ))}
+              </select>
+            </InputField>
             <button
               type="button"
               onClick={otNoteTemplateHandler}
-              className="save-btn !px-2 !py-1.5 text-xs sm:text-sm"
+              className={` !px-2 !py-1.5 text-xs sm:text-sm ${selectedTemplate ? "save-btn" : "disabled-btn"}`}
+              disabled={!selectedTemplate}
             >
-              Template
+              <Plus size={20} />
             </button>
           </div>
           {/* process flow */}
@@ -1054,6 +1105,7 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
           isOpen={openOtTemplate}
           onClose={closeOtTemplateHandler}
           selectedPatient={patient}
+          selectedTemplateId={selectedTemplate?.TemplateId ?? 0}
         />
       )}
 

@@ -20,7 +20,7 @@ const CreditNoteGenerationFilterPopup = ({
   onApply,
   initialValues,
   branchList = [],
-  modalTitle = "Filter Credit Note Approval",
+  modalTitle = "Filter Credit Note Generation",
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -65,7 +65,7 @@ const CreditNoteGenerationFilterPopup = ({
       isOpen={isOpen}
       onClose={onClose}
       title={modalTitle}
-      className="w-[92vw] max-w-2xl! max-h-[calc(100vh-20px)] overflow-auto"
+      className="min-w-[50vw] max-w-2xl! max-h-[calc(100vh-20px)] overflow-auto"
     >
       <form onSubmit={submitHandler}>
         <div className="form-grid-3">

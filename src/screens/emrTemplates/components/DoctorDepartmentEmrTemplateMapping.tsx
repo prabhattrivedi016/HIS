@@ -48,7 +48,7 @@ const DoctorDepartmentEmrTemplateMapping = () => {
   const getAllTemplates = async (): Promise<TemplateMappingTableItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
+      ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
       {},
       { params: { isActive: Status?.ACTIVE } },
       { component: "DoctorDepartmentEmrTemplateMapping", silent: true }

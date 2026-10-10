@@ -104,6 +104,18 @@ const GlobalFooterButtons = ({
             </button>
           </>
         ) : null}
+
+        {/* ot booking */}
+        {pageType === PageType?.OT_BOOKING ? (
+          <>
+            <button type="button" className="save-btn" onClick={() => onButtonClick("save")}>
+              Save
+            </button>
+            <button type="button" className="cancel-button" onClick={() => onButtonClick("cancel")}>
+              Cancel
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -364,7 +364,7 @@ const ConsultationEmrSections = ({
   const getTemplatesForDropdown = async (): Promise<TemplateItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
+      ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
       {},
       { params: { isActive: 1 } },
       { component: "ConsultationEmrSections", silent: true }

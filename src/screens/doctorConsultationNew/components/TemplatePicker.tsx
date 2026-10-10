@@ -50,7 +50,7 @@ const TemplatePicker = ({ isOpen, onClose, onSelectTemplate }: TemplatePickerPro
   const getTemplates = async (): Promise<TemplateItem[]> => {
     const resp = await fetchApi(
       "GET",
-      ENDPOINTS.GET_ALL_TEMPLATES,
+      ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
       {},
       { params: { isActive: 1 } },
       { component: "TemplatePicker", silent: true }

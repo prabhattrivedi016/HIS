@@ -456,6 +456,7 @@ export enum PageType {
   CREDIT_NOTE = "creditNote",
   WRITE_OFF = "writeOff",
   IPD_ADMISSION = "IPDAdmission",
+  OT_BOOKING = "OtBooking",
 }
 export enum OPDBillingTabName {
   PATIENT_DETAILS = "Patient Details",

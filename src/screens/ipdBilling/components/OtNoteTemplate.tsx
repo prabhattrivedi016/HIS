@@ -12,10 +12,12 @@ const OtNoteTemplate = ({
   isOpen,
   onClose,
   selectedPatient,
+  selectedTemplateId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   selectedPatient: IpdPatientItem;
+  selectedTemplateId: number;
 }) => {
   const { loading, fetchApi } = useGlobalApi();
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
@@ -44,15 +46,14 @@ const OtNoteTemplate = ({
     try {
       const resp = await fetchApi(
         "GET",
-        ENDPOINTS.GET_ALL_TEMPLATES,
+        ENDPOINTS.GET_EMR_TEMPLATE_MASTER,
         {},
         { params: { isActive: 1 } },
         { component: "OtNoteTemplate" }
       );
 
       const otNoteTemplate = resp?.data?.find(
-        (item: OtTemplateItem) =>
-          item?.TemplateId === 4 || item?.TemplateName?.toLowerCase() === "ot notes"
+        (item: OtTemplateItem) => item?.TemplateId === selectedTemplateId
       );
 
       if (otNoteTemplate) {
@@ -74,8 +75,16 @@ const OtNoteTemplate = ({
   };
 
   useEffect(() => {
+    if (!isOpen) {
+      setTemplateEntriesByTemplateId({});
+      setSelectedTemplate(null);
+      setTemplateId(0);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     getTemplateList();
-  }, [selectedPatient]);
+  }, [selectedPatient, isOpen]);
 
   //   consulation details
   const consultationDetailsPayloadData = () => {
@@ -125,7 +134,7 @@ const OtNoteTemplate = ({
     <CentralPopup
       onClose={onClose}
       isOpen={isOpen}
-      title={"OT Note Template"}
+      title={"Notes Template"}
       className="min-w-[95vw]"
     >
       {selectedTemplate ? (
@@ -158,32 +167,3 @@ const OtNoteTemplate = ({
 };
 
 export default OtNoteTemplate;
-
-/*{
-  "consultationDetails": {
-    "doctorId": 2147483647,
-    "patientId": 2147483647,
-    "visitId": 2147483647,
-    "visitTypeId": 2,
-    "isFileClosed": 0,
-    "isTemperatureRoomOut": 0,
-    "patientVitalId": 0,
-    "vitalDateTime": "2026-10-06T04:56:50.822Z"
-  },
-  "consultationHeadersData": [
-    {
-      "dataId": 0,
-      "sectionId": 2147483647,
-      "headerId": 2147483647,
-      "controlTypeId": 2147483647,
-      "templateId": 0,
-      "headerValue": "string"
-    }
-  ],
-  "patientVitalValue": [
-    {
-      "vitalId": 2147483647,
-      "vitalValue": "string"
-    }
-  ]
-} */
