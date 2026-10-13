@@ -110,13 +110,33 @@ type SchedulerEvent = {
   endTime: string;
 };
 
+type BreakItem = {
+  id: string;
+  resourceId: number;
+  resourceName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  title?: string;
+};
+
+type SelectedSlot = {
+  resourceId: number;
+  resourceName: string;
+  date: string;
+  time: string;
+};
+
 export type {
+  BreakItem,
   OtMasterItem,
   OtSchedularItem,
   resourceItem,
   ResourceItem,
   SchedulerEvent,
   SchedulerStatus,
+  SelectedSlot,
   SlotInterval,
   ViewMode,
 };
+
