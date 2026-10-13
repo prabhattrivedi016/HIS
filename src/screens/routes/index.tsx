@@ -45,6 +45,7 @@ import PathologyResultEntry from "../labResultEntry";
 import LabSampleManagement from "../labSampleManagement";
 import LabWorkSheet from "../labWorkSheet";
 import LocationMaster from "../loactionMaster";
+import MedicineSalesOrIssue from "../medicineSalesORIssue";
 import MicroReportMaster from "../microReportMaster";
 import MicroResultEntry from "../microResultEntry";
 import MisDashboard from "../misDashboard";
@@ -78,6 +79,8 @@ import SampleManagement from "../sampleManagement";
 import SampleResultEntry from "../sampleResultEntry";
 import SendOutsource from "../sendOutSource";
 import ServiceMaster from "../serviceMaster";
+import StockReceiving from "../stockReceiving";
+import StoreItemMaster from "../StoreItemMaster";
 import SurgeryMaster from "../surgeryMaster";
 import TabMaster from "../tabMaster";
 import TariffManager from "../tariffManager";
@@ -189,4 +192,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "send-outsource": <SendOutsource />,
   "laboratory-help": <LaboratoryHelp />,
   "ot-patient-list": <OtPatientLists />,
+  "medicine-sales": <MedicineSalesOrIssue />,
+  "stock-receiving": <StockReceiving />,
+  "store-item-master": <StoreItemMaster />,
 };
