@@ -95,8 +95,6 @@ const OpdBillingSection = ({
   const [patientAdvanceAmount, setPatientAdvanceAmount] = useState<number>(0);
   const [patientAdvanceChecked, setPatientAdvanceChecked] = useState<boolean>(false);
 
-  console.log("serviceDataTableItem", serviceDataTableItem);
-
   useEffect(() => {
     setQtyDrafts({});
   }, [formResetKey, serviceDataTableItem.length]);

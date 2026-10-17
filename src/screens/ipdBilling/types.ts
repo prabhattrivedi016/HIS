@@ -696,6 +696,18 @@ type TemplateIListtem = {
   LastModifiedBy: number | null;
   LastModifiedOn: string | null;
 };
+
+type OtNoteGetItem = {
+  DataId: number;
+  PatientId: number;
+  VisitId: number;
+  SectionId: number;
+  HeaderId: number;
+  ControlTypeId: number;
+  TemplateId: number;
+  HeaderValue: string;
+  CreatedOn: string;
+};
 export type {
   ApprovalLists,
   BillFilterItem,
@@ -713,6 +725,7 @@ export type {
   IpdPatientItem,
   IpdSummaryBillingTableList,
   MainBillWithPatientAdvanceItem,
+  OtNoteGetItem,
   OtProcessCurrentStepItem,
   OtProcessItem,
   OtTemplateItem,

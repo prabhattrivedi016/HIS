@@ -28,6 +28,8 @@ interface DoctorMasterItem {
   doctorSignFilePath: string;
   isDoctorUnit: number;
   roomNo: string;
+  doctorRoleId?: number;
+  doctorRole?: string;
 }
 
 interface GridLeftTop {

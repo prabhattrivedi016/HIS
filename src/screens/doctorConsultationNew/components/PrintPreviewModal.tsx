@@ -1,6 +1,7 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { AuthContext } from "@/context/AuthContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { IpdPatientItem } from "@/screens/ipdBilling/types";
 import {
   DEFAULT_PRINT_SETTINGS,
   PrintSettings,
@@ -38,7 +39,7 @@ interface PrintPreviewModalProps {
   /** filters GET_EMR_SECTION_HEADER_MAPPING_BY_DOCTOR the same way ConsultationEmrSections does —
    * needed to resolve a past visit's raw HeaderId rows back to real section/header names */
   usedForPatientTypeId?: number;
-  patient: PatientItem | null;
+  patient: PatientItem | IpdPatientItem | null;
   emrSectionsData: EmrSectionAnswerEntry[];
   vitals?: VitalMasterLike[];
   vitalsData?: Record<number, string>;
@@ -162,7 +163,9 @@ const formatEntryValue = (value: unknown): ReactNode => {
                   {row?.frequency || "-"}
                 </td>
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
-                  {row ? [row.durationValue, row.durationUnit].filter(Boolean).join(" ") || "-" : "-"}
+                  {row
+                    ? [row.durationValue, row.durationUnit].filter(Boolean).join(" ") || "-"
+                    : "-"}
                 </td>
                 <td className="py-1 pr-1.5 text-slate-700 align-top break-words">
                   {row?.route || "-"}
@@ -455,12 +458,13 @@ const PrintPreviewModal = ({
   );
 
   const hasAllergyData = Boolean(
-    allergy && (allergy.notKnownAllergy || allergy.summary?.trim() || allergy.records.length > 0)
+    allergy &&
+    (allergy?.notKnownAllergy || allergy?.summary?.trim() || allergy?.records?.length > 0)
   );
 
   const groupedSections = useMemo(() => {
     const map = new Map<number, SectionGroup>();
-    printEmrSectionsData.forEach(e => {
+    printEmrSectionsData?.forEach(e => {
       // "Diagnosis Image" (and any other *Image entry) holds raw file-upload metadata rows
       // (PatientId/HeaderId/FileName/Pages/UploadedOn/...) meant for the attachment viewer, not the
       // printed chart — skip it rather than dumping that metadata as an unreadable generic table.
@@ -544,7 +548,7 @@ const PrintPreviewModal = ({
       return;
     }
     printWindow.document.write(
-      "<title>Print</title><p style=\"font:14px sans-serif;padding:24px\">Preparing print…</p>"
+      '<title>Print</title><p style="font:14px sans-serif;padding:24px">Preparing print…</p>'
     );
 
     setIsGeneratingPdf(true);
@@ -682,10 +686,7 @@ const PrintPreviewModal = ({
     return visible.length === 1 && visible[0].dataId != null ? visible[0].dataId : "all";
   };
 
-  const chooseTimespan = (
-    group: { entries: { dataId?: number }[] },
-    choice: "all" | number
-  ) => {
+  const chooseTimespan = (group: { entries: { dataId?: number }[] }, choice: "all" | number) => {
     const groupIds = group.entries.map(e => e.dataId).filter((id): id is number => id != null);
     setSettings(prev => {
       const withoutGroup = prev.excludedDataIds.filter(id => !groupIds.includes(id));
@@ -740,7 +741,9 @@ const PrintPreviewModal = ({
                 <option value="current">Current (unsaved) visit</option>
                 {pastVisits.map(v => (
                   <option key={v.visitId} value={v.visitId}>
-                    {isTemplateVariant ? formatVisitDateTime(v.recordedOn) : formatVisitDate(v.recordedOn)}
+                    {isTemplateVariant
+                      ? formatVisitDateTime(v.recordedOn)
+                      : formatVisitDate(v.recordedOn)}
                     {" — Dr. "}
                     {v.doctorName || "—"}
                   </option>
@@ -1209,8 +1212,8 @@ const PrintPreviewModal = ({
                       <div className="grid grid-cols-1">
                         {group.entries.map((entry, entryIdx) => {
                           const isDuplicateHeader =
-                            (headerCountsBySection.get(group.sectionId)?.get(entry.headerId) ??
-                              0) > 1;
+                            (headerCountsBySection.get(group.sectionId)?.get(entry.headerId) ?? 0) >
+                            1;
                           return (
                             <div
                               key={entry.dataId ?? entryIdx}

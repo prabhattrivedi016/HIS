@@ -58,7 +58,7 @@ const AppointmentSlot = ({
   const { data: appointmentLists = [] } = useQuery({
     queryKey: ["appointmentSlots", selectedDate, doctorId],
     queryFn: getAppointmentLists,
-    enabled: isOpen && doctorId > 0,
+    enabled: isOpen && Number(doctorId) > 0,
   });
 
   const [localSelectedSlot, setLocalSelectedSlot] = useState<SlotListItem | null>(null);

@@ -56,8 +56,6 @@ const TextEditor = ({ value, onChange }: TextEditorProps) => {
         onChange={(_, editor) => {
           const data = editor.getData();
 
-          console.log("CKEditor Data:", data);
-
           onChange(data);
         }}
         config={{

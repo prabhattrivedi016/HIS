@@ -1,5 +1,4 @@
 import axios from "axios";
-import { getAuthStorage } from "../utils/authStorage";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -9,8 +8,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   config => {
-    const storage = getAuthStorage();
-    const token = storage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -34,16 +32,9 @@ axiosInstance.interceptors.response.use(
     const isLoginRequest = requestUrl.includes("User/userLogin");
 
     if (error.response?.status === 401 && !isLoginRequest) {
-      const storage = getAuthStorage();
-      storage.removeItem("auth");
-      storage.removeItem("accessToken");
-      storage.removeItem("role");
       localStorage.removeItem("auth");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("role");
-      sessionStorage.removeItem("auth");
-      sessionStorage.removeItem("accessToken");
-      sessionStorage.removeItem("role");
 
       window.dispatchEvent(new CustomEvent("unauthorized", { detail: { status: 401 } }));
 

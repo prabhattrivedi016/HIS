@@ -71,6 +71,14 @@ type OtSchedularItem = {
   CreatedOn: string;
   LastModifiedBy: string | null;
   LastModifiedOn: string | null;
+  IsCancel: number;
+  CancelReason: string | null;
+  CancelBy: string | null;
+  CancelOn: string | null;
+  Status: string;
+  StatusId: number;
+  IsConfirm: number;
+  IsReschedule: number;
 };
 
 type ViewMode = "day" | "week";
@@ -108,6 +116,11 @@ type SchedulerEvent = {
   startTime: string;
 
   endTime: string;
+
+  status: string;
+  isCancel: number;
+  isReschedule: number;
+  isConfirm: number;
 };
 
 type BreakItem = {
@@ -139,4 +152,3 @@ export type {
   SlotInterval,
   ViewMode,
 };
-

@@ -3,7 +3,7 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
-export type OtPatientListFilterValues = {
+export type OtBookingDetailsFilterValues = {
   branchId: number;
   fromDate: string;
   toDate: string;
@@ -14,22 +14,22 @@ type BranchOption = {
   branchName: string;
 };
 
-const OtPatientListFilterPopup = ({
+const OtBookingDetailsFilterPopup = ({
   isOpen,
   onClose,
   onApply,
   initialValues,
   branchList = [],
-  modalTitle = "Filter OT Patient List",
+  modalTitle = "Filter OT Booking Details",
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (values: OtPatientListFilterValues) => void;
-  initialValues: OtPatientListFilterValues;
+  onApply: (values: OtBookingDetailsFilterValues) => void;
+  initialValues: OtBookingDetailsFilterValues;
   branchList?: BranchOption[];
   modalTitle?: string;
 }) => {
-  const [filterValues, setFilterValues] = useState<OtPatientListFilterValues>(initialValues);
+  const [filterValues, setFilterValues] = useState<OtBookingDetailsFilterValues>(initialValues);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,7 +72,7 @@ const OtPatientListFilterPopup = ({
           <InputField label="Branch" required>
             <select
               className="input-field"
-              value={filterValues.branchId}
+              value={filterValues?.branchId}
               onChange={branchChangeHandler}
               name="branchId"
             >
@@ -86,11 +86,11 @@ const OtPatientListFilterPopup = ({
           </InputField>
 
           <InputField label="From Date">
-            <CustomDateInput value={filterValues.fromDate} onChange={fromDateChangeHandler} />
+            <CustomDateInput value={filterValues?.fromDate} onChange={fromDateChangeHandler} />
           </InputField>
 
           <InputField label="To Date">
-            <CustomDateInput value={filterValues.toDate} onChange={toDateChangeHandler} />
+            <CustomDateInput value={filterValues?.toDate} onChange={toDateChangeHandler} />
           </InputField>
         </div>
 
@@ -104,4 +104,4 @@ const OtPatientListFilterPopup = ({
   );
 };
 
-export default OtPatientListFilterPopup;
+export default OtBookingDetailsFilterPopup;

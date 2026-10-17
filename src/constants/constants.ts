@@ -469,6 +469,11 @@ export enum IpdOpdTypeName {
   IPD = "ipd",
 }
 
+export enum TemplateMappingCode {
+  CONSULTATION = 1,
+  OT_NOTES = 2,
+}
+
 /** every comparison operator a conditional-visibility rule can use (EMR Controls'
  * Conditional Controls builder) — value must match ConditionalRule["exp"] in dynamicForm/types.ts */
 export const ConditionOperatorOptions = [
@@ -542,4 +547,17 @@ export enum userAuthorizationTabNames {
   ROOM_MAPPING = "roomMapping",
   DISCHARGE_PROCESS_MAPPING = "dischargeProcessMapping",
   OT_PROCESS_MAPPING = "otProcessMapping",
+}
+
+export enum labSampleManagementButtonClicked {
+  NEW_CLICKED = "newClicked",
+  SAMPLE_COLLECTED_CLICKED = "sampleCollectedClicked",
+  SAMPLE_REJECTED_CLICKED = "sampleRejectedClicked",
+  DEPARTMENT_RECEIVE_CLICKED = "departmentReceiveClicked",
+  TESTED_CLICKED = "testedClicked",
+  APPROVED_CLICKED = "approvedClicked",
+  PRINTED_CLICKED = "printedClicked",
+  HOLD_CLICKED = "holdClicked",
+  DISPATCHED_CLICKED = "dispatchedClicked",
+  ALL_CLICKED = "allClicked",
 }

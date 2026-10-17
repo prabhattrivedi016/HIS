@@ -9,6 +9,7 @@ import { normalizeRouteKey } from "../../utils/route";
 import InvestigationResultEntry from "../InvestigationResultEntry";
 import Login from "../login";
 import { authorizedRouteMap } from "../routes";
+import SampleJourney from "../sampleJourney";
 import NoPage from "../unauthorized";
 import Sidebar from "./components/Sidebar";
 import { hasAccess } from "./components/accessControl";
@@ -77,6 +78,17 @@ const Navbar = () => {
                 );
               })
           )}
+
+          <Route
+            path="/sample-journey/:id"
+            element={
+              hasAccess("sample-journey", response) ? (
+                <SampleJourney />
+              ) : (
+                <Navigate to="/no-page" replace />
+              )
+            }
+          />
 
           {/* Unauthorized Page */}
           <Route path="/no-page" element={<NoPage />} />

@@ -61,8 +61,8 @@ import OPPaymentCollection from "../opPaymentCollection";
 import OpRefundApproval from "../opRefundApproval";
 import OPRefundPayment from "../opRefundPayment";
 import OtBooking from "../otBooking";
+import OtBookingDetails from "../otBookingDetails";
 import OtMaster from "../otMaster";
-import OtPatientLists from "../otPatientList";
 import OtProcessMaster from "../otProcessMaster";
 import OtSchedular from "../otSchedular";
 import PatientAdvance from "../patientAdvance";
@@ -74,7 +74,6 @@ import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
-import SampleJourney from "../sampleJourney";
 import SampleManagement from "../sampleManagement";
 import SampleResultEntry from "../sampleResultEntry";
 import SendOutsource from "../sendOutSource";
@@ -186,12 +185,12 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ot-process-master": <OtProcessMaster />,
   "lab-sample-management": <LabSampleManagement />,
   "bulk-receive": <BulkReceive />,
-  "sample-journey": <SampleJourney />,
+  // "sample-journey": <SampleJourney />,
   "sample-result-entry": <SampleResultEntry />,
   "ot-schedular": <OtSchedular />,
   "send-outsource": <SendOutsource />,
   "laboratory-help": <LaboratoryHelp />,
-  "ot-patient-list": <OtPatientLists />,
+  "ot-booking-details": <OtBookingDetails />,
   "medicine-sales": <MedicineSalesOrIssue />,
   "stock-receiving": <StockReceiving />,
   "store-item-master": <StoreItemMaster />,

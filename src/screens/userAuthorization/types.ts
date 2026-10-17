@@ -144,7 +144,7 @@ export type OtPrcoessMappingTableItem= {
       "SequenceNo": number,
       "OTProcessId": number,
       "IsActive": boolean
-    },
+    };
 
 // tableData
 export type TableData =

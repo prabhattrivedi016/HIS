@@ -57,7 +57,7 @@ const OpdAppointmentConfirmation = () => {
   const { configDataValue: opdAppointmentConfirmationConfigFromApi } = useConfigMaster(
     "opdAppointmentConfirmation"
   );
-  const activeConfig = opdAppointmentConfirmation;
+  const activeConfig = opdAppointmentConfirmationConfigFromApi || opdAppointmentConfirmation;
 
   // opdAppointmentConfirmationConfigFromApi
 

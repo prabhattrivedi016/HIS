@@ -1,4 +1,5 @@
 import { ENDPOINTS } from "@/config/defaults";
+import { TemplateMappingCode } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { useEffect, useMemo, useState } from "react";
 import { EmrSectionVisitSnapshotEntry, RawConsultationHeaderRow } from "../types";
@@ -10,9 +11,15 @@ import { EmrSectionVisitSnapshotEntry, RawConsultationHeaderRow } from "../types
  * ConsultationEmrSections.tsx computes for itself) so TemplateInlineSections can reuse the exact
  * same logic instead of a second hand-copied version drifting out of sync.
  */
-export const useVisitSavedHeaderValues = (visitId?: number, enabled = true) => {
+export const useVisitSavedHeaderValues = (
+  visitId?: number,
+  enabled = true,
+  templateCode?: number
+) => {
   const { fetchApi } = useGlobalApi();
   const [savedHeaderRows, setSavedHeaderRows] = useState<RawConsultationHeaderRow[]>([]);
+
+  console.log("templateCodetemplateCodetemplateCodetemplateCodetemplateCode", templateCode);
 
   useEffect(() => {
     if (!enabled || visitId == null) {
@@ -24,7 +31,9 @@ export const useVisitSavedHeaderValues = (visitId?: number, enabled = true) => {
     (async () => {
       const resp = await fetchApi<{ data?: RawConsultationHeaderRow[] }>(
         "GET",
-        ENDPOINTS.GET_DOCTOR_CONSULTATION_BY_VISIT_ID,
+        templateCode === Number(TemplateMappingCode?.OT_NOTES)
+          ? ENDPOINTS.GET_PATIENT_OT_NOTES_BY_VISIT_ID
+          : ENDPOINTS.GET_DOCTOR_CONSULTATION_BY_VISIT_ID,
         {},
         { params: { visitId } },
         { component: "useVisitSavedHeaderValues", silent: true }

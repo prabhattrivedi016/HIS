@@ -108,6 +108,15 @@ const Login = () => {
     };
   }, []);
   /* ----------------------------- handlers---------------------------------- */
+  const handleRememberMeToggle = (checked: boolean) => {
+    setRememberMe(checked);
+    if (!checked) {
+      localStorage.removeItem("userLogin");
+      localStorage.removeItem("passLogin");
+      localStorage.removeItem("remember");
+    }
+  };
+
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedBranchId(Number(e.target.value));
   };
@@ -157,11 +166,21 @@ const Login = () => {
 
       setErrorMessage("");
 
-      const storage = rememberMe ? localStorage : sessionStorage;
+      /*-------------------------- Remember Me Credentials -------------------- */
+      if (rememberMe) {
+        localStorage.setItem("userLogin", userName);
+        localStorage.setItem("passLogin", password);
+        localStorage.setItem("remember", "true");
+      } else {
+        localStorage.removeItem("userLogin");
+        localStorage.removeItem("passLogin");
+        localStorage.removeItem("remember");
+      }
+
       const { accessToken, branchId, userId } = loginRes.data;
       setBranchId(Number(branchId));
 
-      storage.setItem("accessToken", accessToken);
+      localStorage.setItem("accessToken", accessToken);
 
       const { isContactVerified: contactVerified, isEmailVerified: emailVerified } =
         getVerificationFlags(loginRes.data);
@@ -407,7 +426,7 @@ const Login = () => {
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
+                  onChange={e => handleRememberMeToggle(e.target.checked)}
                   className="h-4 w-4 accent-indigo-600"
                 />
                 <span>Remember Me</span>

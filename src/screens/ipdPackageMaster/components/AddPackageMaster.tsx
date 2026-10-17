@@ -107,8 +107,6 @@ const AddPackageMaster = ({
     serviceName: "",
   });
 
-  console.log("packageSetupDetails", packageSetupDetails);
-
   // useForm Hook setup with Yup Schema validation
   const {
     register,
