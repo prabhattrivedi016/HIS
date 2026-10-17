@@ -1,9 +1,9 @@
-export const otPatientListConfig = {
-  type: "otPatientList",
+export const otBookingDetailsConfig = {
+  type: "otBookingDetails",
 
   gridCardView: {
-    type: "otPatientList",
-    cardType: "otPatientListGrid",
+    type: "otBookingDetails",
+    cardType: "otBookingDetailsGrid",
     cardViewType: "grid",
 
     recordIdKey: "OTBookingId",
@@ -25,16 +25,16 @@ export const otPatientListConfig = {
     ],
 
     gridButtonSection: [
-      { label: "Confirm", action: "toggleConfirmOtPatientList" },
-      { label: "Reschedule", action: "toggleRescheduleOtPatientList" },
+      { label: "Confirm", action: "toggleConfirmOtBookingDetails" },
 
-      { label: "Cancel", action: "toggleCancelOtPatientList" },
+      { label: "Cancel", action: "toggleCancelOtBookingDetails" },
+      { label: "Reschedule", action: "toggleRescheduleOtBookingDetails" },
     ],
   },
 
   listCardView: {
-    type: "otPatientList",
-    cardType: "otPatientListList",
+    type: "otBookingDetails",
+    cardType: "otBookingDetailsList",
     cardViewType: "list",
 
     recordIdKey: "OTBookingId",

@@ -3,8 +3,11 @@ import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
+import { BranchContext } from "@/context/BranchContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { showError, showSuccess } from "@/utils/alert";
+import { normalizeToYYYYMMDD } from "@/utils/dateConvertHandler";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import type {
   BreakItem,
@@ -130,7 +133,67 @@ const formatWeekDate = (dateString: string): string => {
   });
 };
 
-export default function OtSchedular() {
+const getBookingStatus = (item: OtSchedularItem): string => {
+  const rawStatus = item?.Status ? String(item.Status).trim() : "";
+  if (rawStatus) return rawStatus;
+  if (Number(item?.IsCancel ?? 0) === 1) return "Cancelled";
+  if (Number(item?.IsConfirm ?? 0) === 1) return "Confirmed";
+  if (Number(item?.IsReschedule ?? 0) === 1) return "Rescheduled";
+  return "Scheduled";
+};
+
+const getStatusBadgeClass = (status?: string | null): string => {
+  const s = String(status ?? "")
+    .trim()
+    .toLowerCase();
+  if (s.includes("confirm")) {
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  }
+  if (s.includes("reschedule")) {
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  }
+  if (s.includes("cancel")) {
+    return "bg-red-50 text-red-700 border-red-200";
+  }
+  if (s.includes("progress")) {
+    return "bg-purple-50 text-purple-700 border-purple-200";
+  }
+  return "bg-blue-50 text-blue-700 border-blue-200";
+};
+
+const isBreakRecord = (item: OtSchedularItem): boolean => {
+  const hasNoPatientId = !item?.PatientId || Number(item?.PatientId) <= 0;
+  const hasNoPatientName = !item?.PatientName || String(item?.PatientName).trim() === "";
+  return (
+    (hasNoPatientId && hasNoPatientName) ||
+    String(item?.PatientName ?? "")
+      .trim()
+      .toLowerCase() === "break" ||
+    String(item?.DiagnosisName ?? "")
+      .trim()
+      .toLowerCase() === "break"
+  );
+};
+
+export default function OtSchedular({
+  hideSomeDetails = false,
+  onSlotSelectRange,
+  initialDate,
+  initialOtId,
+}: {
+  hideSomeDetails?: boolean;
+  onSlotSelectRange?: (
+    range: {
+      otId: number;
+      otName: string;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+    } | null
+  ) => void;
+  initialDate?: string;
+  initialOtId?: number;
+}) {
   const { loading, fetchApi } = useGlobalApi();
 
   const navigate = useNavigate();
@@ -139,31 +202,13 @@ export default function OtSchedular() {
 
   const [otNameList, setOtNameList] = useState<OtMasterItem[]>([]);
 
-  const [selectedOtId, setSelectedOtId] = useState<number>(0);
+  const [selectedOtId, setSelectedOtId] = useState<number>(initialOtId ?? 0);
 
-  const [selectedDate, setSelectedDate] = useState<string>(getCurrentDate());
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate || getCurrentDate());
 
   const [viewMode, setViewMode] = useState<ViewMode>("day");
 
   const [slotInterval, setSlotInterval] = useState<SlotInterval>(30);
-
-  // breaks state with localStorage persistence
-  const [breaks, setBreaks] = useState<BreakItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("ot_scheduler_breaks");
-      return saved ? (JSON.parse(saved) as BreakItem[]) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("ot_scheduler_breaks", JSON.stringify(breaks));
-    } catch (e) {
-      console.error("Failed to save breaks", e);
-    }
-  }, [breaks]);
 
   // selected slots for multi-selection
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
@@ -250,6 +295,9 @@ export default function OtSchedular() {
     };
   }, [contextMenu, bookedOtContextMenu]);
 
+  const branchContext = useContext(BranchContext);
+  const branchId = branchContext?.branchId ?? 1;
+
   // booked scheduled
   const getOtBookingSchedular = async (fromDate: string, toDate: string) => {
     const resp = await fetchApi(
@@ -258,6 +306,7 @@ export default function OtSchedular() {
       {},
       {
         params: {
+          branchId,
           fromDate,
           toDate,
         },
@@ -267,12 +316,10 @@ export default function OtSchedular() {
       }
     );
 
-    setOtScheduledList(resp?.data ?? []);
+    setOtScheduledList(
+      resp?.data?.filter((d: OtSchedularItem) => Number(d?.IsCancel ?? 0) !== 1) ?? []
+    );
   };
-
-  useEffect(() => {
-    getOtBookingSchedular(selectedDate, selectedDate);
-  }, [selectedDate]);
 
   // ot master list
   const getOtMasterList = async () => {
@@ -302,7 +349,7 @@ export default function OtSchedular() {
     const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
 
     void getOtBookingSchedular(selectedDate, toDate);
-  }, [selectedDate, viewMode]);
+  }, [selectedDate, viewMode, branchId]);
 
   // resources
   const resources = useMemo<ResourceItem[]>(() => {
@@ -327,41 +374,66 @@ export default function OtSchedular() {
     ];
   }, [otNameList, selectedOtId]);
 
-  // events booking
+  // breaks derived from otScheduledList (records with no patientId and name)
+  const breaks = useMemo<BreakItem[]>(() => {
+    return otScheduledList
+      .filter(item => isBreakRecord(item) && Number(item?.IsCancel ?? 0) !== 1)
+      .map(item => {
+        const rawDate = item?.OTBookingDate;
+        const bookingDate = normalizeToYYYYMMDD(rawDate);
+        const startTime = normalizeTime(item?.OTBookingFromTime);
+        const endTime = normalizeTime(item?.OTBookingToTime);
+        const resourceId = Number(item?.OTId);
+        const resourceName = otNameList.find(ot => Number(ot.OTId) === resourceId)?.OTName || "";
+
+        return {
+          id: String(item?.OTBookingId),
+          resourceId,
+          resourceName,
+          bookingDate,
+          startTime,
+          endTime,
+          title: item?.DiagnosisName?.trim() || "OT Break",
+        };
+      });
+  }, [otScheduledList, otNameList]);
+
+  // events booking (excluding breaks)
   const events = useMemo<SchedulerEvent[]>(() => {
-    return otScheduledList.map((item: OtSchedularItem): SchedulerEvent => {
-      const bookingDate = item.OTBookingDate?.split("T")[0] || "";
+    return otScheduledList
+      .filter(item => !isBreakRecord(item))
+      .map((item: OtSchedularItem): SchedulerEvent => {
+        const rawDate = item?.OTBookingDate;
+        const bookingDate = normalizeToYYYYMMDD(rawDate);
 
-      const startTime = normalizeTime(item.OTBookingFromTime);
+        const rawFromTime = item?.OTBookingFromTime;
+        const rawToTime = item?.OTBookingToTime;
 
-      const endTime = normalizeTime(item.OTBookingToTime);
+        const startTime = normalizeTime(rawFromTime);
+        const endTime = normalizeTime(rawToTime);
 
-      return {
-        id: Number(item.OTBookingId),
+        const resourceId = Number(item?.OTId);
+        const id = Number(item?.OTBookingId);
 
-        resourceId: Number(item.OTId),
-
-        bookingDate,
-
-        bookingNo: item.OTBookingNo || "",
-
-        patientName: item?.PatientName || "",
-
-        visitId: item.VisitId,
-
-        uhid: item.UHID || "",
-
-        ipdNo: item.IPDNo || "",
-
-        otType: item.OTType || "",
-
-        diagnosisName: item.DiagnosisName || "",
-
-        startTime,
-
-        endTime,
-      };
-    });
+        return {
+          id,
+          resourceId,
+          bookingDate,
+          bookingNo: item.OTBookingNo || "",
+          patientName: item?.PatientName || "",
+          visitId: item.VisitId,
+          uhid: item.UHID || "",
+          ipdNo: item.IPDNo || "",
+          otType: item.OTType || "",
+          diagnosisName: item.DiagnosisName || "",
+          startTime,
+          endTime,
+          status: getBookingStatus(item),
+          isCancel: Number(item.IsCancel ?? 0),
+          isReschedule: Number(item.IsReschedule ?? 0),
+          isConfirm: Number(item.IsConfirm ?? 0),
+        };
+      });
   }, [otScheduledList]);
 
   // time slot
@@ -418,8 +490,9 @@ export default function OtSchedular() {
 
       const eventStart = timeToMinutes(event.startTime);
       const eventEnd = timeToMinutes(event.endTime);
+      const startSlot = Math.floor(eventStart / slotInterval) * slotInterval;
 
-      return eventStart < slotStart && eventEnd > slotStart;
+      return slotStart > startSlot && slotStart < eventEnd;
     });
   };
 
@@ -429,12 +502,10 @@ export default function OtSchedular() {
 
   const getRowSpan = (event: SchedulerEvent): number => {
     const start = timeToMinutes(event.startTime);
-
     const end = timeToMinutes(event.endTime);
-
-    const duration = end - start;
-
-    return Math.max(1, Math.ceil(duration / slotInterval));
+    const startSlot = Math.floor(start / slotInterval);
+    const endSlot = Math.ceil(end / slotInterval);
+    return Math.max(1, endSlot - startSlot);
   };
 
   /* =======================================================
@@ -469,15 +540,17 @@ export default function OtSchedular() {
       if (String(b.bookingDate).trim() !== String(date).trim()) return false;
       const bStart = timeToMinutes(b.startTime);
       const bEnd = timeToMinutes(b.endTime);
-      return bStart < slotStart && bEnd > slotStart;
+      const startSlot = Math.floor(bStart / slotInterval) * slotInterval;
+      return slotStart > startSlot && slotStart < bEnd;
     });
   };
 
   const getBreakRowSpan = (breakItem: BreakItem): number => {
     const start = timeToMinutes(breakItem.startTime);
     const end = timeToMinutes(breakItem.endTime);
-    const duration = Math.max(0, end - start);
-    return Math.max(1, Math.ceil(duration / slotInterval));
+    const startSlot = Math.floor(start / slotInterval);
+    const endSlot = Math.ceil(end / slotInterval);
+    return Math.max(1, endSlot - startSlot);
   };
 
   const getBreaksForDateAndResource = (date: string, resourceId: number): BreakItem[] => {
@@ -542,6 +615,34 @@ export default function OtSchedular() {
       count: sorted.length,
     };
   }, [selectedSlots, slotInterval]);
+
+  useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(initialDate);
+    }
+  }, [initialDate]);
+
+  useEffect(() => {
+    if (initialOtId !== undefined && initialOtId !== null && initialOtId > 0) {
+      setSelectedOtId(initialOtId);
+    }
+  }, [initialOtId]);
+
+  useEffect(() => {
+    if (onSlotSelectRange) {
+      if (calculatedRange) {
+        onSlotSelectRange({
+          otId: Number(calculatedRange.resourceId),
+          otName: calculatedRange.resourceName,
+          bookingDate: calculatedRange.date,
+          startTime: calculatedRange.startTime,
+          endTime: calculatedRange.endTime,
+        });
+      } else {
+        onSlotSelectRange(null);
+      }
+    }
+  }, [calculatedRange, onSlotSelectRange]);
 
   /* =======================================================
      SELECTION & CONTEXT MENU ACTIONS
@@ -683,6 +784,10 @@ export default function OtSchedular() {
     e.preventDefault();
     e.stopPropagation();
 
+    if (hideSomeDetails) {
+      return;
+    }
+
     if (isSlotOccupied(resource.id, date, time)) {
       return;
     }
@@ -736,26 +841,65 @@ export default function OtSchedular() {
     setContextMenu(null);
   };
 
-  const handleTakeBreakFromSelection = () => {
+  const handleTakeBreakFromSelection = async () => {
     if (!calculatedRange) return;
 
-    const newBreak: BreakItem = {
-      id: `break-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      resourceId: calculatedRange.resourceId,
-      resourceName: calculatedRange.resourceName,
-      bookingDate: calculatedRange.date,
-      startTime: calculatedRange.startTime,
-      endTime: calculatedRange.endTime,
-      title: "OT Break",
-    };
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.ADD_BREAK_IN_OT_BOOKING,
+      {
+        otId: calculatedRange.resourceId,
+        otBookingDate: normalizeToYYYYMMDD(calculatedRange.date),
+        otBookingFromTime: calculatedRange.startTime,
+        otBookingToTime: calculatedRange.endTime,
+      },
+      {},
+      { component: "OtSchedular" }
+    );
 
-    setBreaks(prev => [...prev, newBreak]);
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while adding break in ot booking");
+      setContextMenu(null);
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
     setSelectedSlots([]);
     setContextMenu(null);
+    const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
+    await getOtBookingSchedular(normalizeToYYYYMMDD(selectedDate), normalizeToYYYYMMDD(toDate));
   };
 
-  const handleRemoveBreak = (breakId: string) => {
-    setBreaks(prev => prev.filter(b => b.id !== breakId));
+  const handleRemoveBreak = async (breakId: string) => {
+    const bookingId = Number(breakId);
+    if (!bookingId || isNaN(bookingId)) {
+      return;
+    }
+
+    // Optimistically remove from scheduled list
+    setOtScheduledList(prev => prev.filter(item => Number(item.OTBookingId) !== bookingId));
+
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.CANCEL_OT_BOOKING,
+      {
+        otBookingId: bookingId,
+        cancelReason: "Cancelled break",
+      },
+      {},
+      { component: "OtSchedular" }
+    );
+
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while removing break");
+      const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
+      await getOtBookingSchedular(normalizeToYYYYMMDD(selectedDate), normalizeToYYYYMMDD(toDate));
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Break removed successfully");
+    const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
+    await getOtBookingSchedular(normalizeToYYYYMMDD(selectedDate), normalizeToYYYYMMDD(toDate));
   };
 
   const handleClearSelection = () => {
@@ -770,6 +914,10 @@ export default function OtSchedular() {
   const handleEventContextMenu = (e: React.MouseEvent, event: SchedulerEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (hideSomeDetails) {
+      return;
+    }
 
     // Close slot selection context menu if open
     setContextMenu(null);
@@ -789,65 +937,45 @@ export default function OtSchedular() {
     });
   };
 
-  const handleRescheduleOt = (event: SchedulerEvent) => {
-    const resource = resources.find(item => item.id === event.resourceId);
-
-    navigate("/ot-booking", {
-      state: {
-        mode: "reschedule",
-        event,
-        resource,
-        bookingDate: event.bookingDate,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        resourceId: event.resourceId,
-        resourceName: resource?.name,
-        otId: event.resourceId,
-        otName: resource?.name,
-        otType: event.otType,
-        patientName: event.patientName,
-        bookingNo: event.bookingNo,
-        uhid: event.uhid,
-        visitId: event.visitId,
-      },
-    });
-
-    setBookedOtContextMenu(null);
-  };
-
   const handleInitiateCancel = (event: SchedulerEvent) => {
     setBookedOtContextMenu(null);
     setCancelModalEvent(event);
     setCancelReason("");
   };
 
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = async (event: SchedulerEvent) => {
     if (!cancelModalEvent) return;
 
-    setOtScheduledList(prev =>
-      prev.filter(item => Number(item.OTBookingId) !== cancelModalEvent.id)
-    );
-
-    showValidationToast(
-      `OT Booking ${cancelModalEvent.bookingNo || `#${cancelModalEvent.id}`} has been cancelled.`
-    );
-    setCancelModalEvent(null);
-  };
-
-  // booking click (single)
-  const handleEventClick = (event: SchedulerEvent) => {
-    const resource = resources.find(item => item.id === event.resourceId);
-
-    navigate("/ot-booking", {
-      state: {
-        event,
-        resource,
+    let resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.CANCEL_OT_BOOKING,
+      {
+        otBookingId: Number(event?.id),
+        cancelReason: cancelReason.trim(),
       },
-    });
+      {},
+      { component: "OtSchedular" }
+    );
+
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while cancelling ot booking");
+      setCancelModalEvent(null);
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+    setCancelModalEvent(null);
+    setCancelReason("");
+    const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
+    await getOtBookingSchedular(normalizeToYYYYMMDD(selectedDate), normalizeToYYYYMMDD(toDate));
   };
 
   // booking double click
   const handleEventDoubleClick = (event: SchedulerEvent) => {
+    if (hideSomeDetails) {
+      return;
+    }
+
     const resource = resources.find(item => item.id === event.resourceId);
 
     navigate("/ipd-billing", {
@@ -860,6 +988,10 @@ export default function OtSchedular() {
 
   //  empty cell click
   const handleEmptyDayCellClick = (resource: ResourceItem, startTime: string) => {
+    if (hideSomeDetails) {
+      return;
+    }
+
     const startMinutes = timeToMinutes(startTime);
 
     const endMinutes = Math.min(startMinutes + slotInterval, 24 * 60);
@@ -890,8 +1022,6 @@ export default function OtSchedular() {
   ======================================================= */
 
   const renderEventCard = (event: SchedulerEvent, index: number = 0) => {
-    console.log(`event ${event?.id}`, event);
-
     const isClickable = Number(event.visitId) > 0;
 
     return (
@@ -938,7 +1068,7 @@ export default function OtSchedular() {
         </div>
 
         {/* DIAGNOSIS */}
-        {event.diagnosisName && (
+        {/* {event.diagnosisName && (
           <div className="mt-3 rounded-md bg-slate-50 px-2.5 py-2">
             <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
               Diagnosis
@@ -948,7 +1078,7 @@ export default function OtSchedular() {
               {event.diagnosisName}
             </p>
           </div>
-        )}
+        )} */}
 
         {/* FOOTER / TIME */}
         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
@@ -966,19 +1096,19 @@ export default function OtSchedular() {
 
           {/* STATUS */}
           <span
-            className="
+            className={`
             rounded-full
-            bg-emerald-50
+            border
             px-2
-            py-1
+            py-0.5
             text-[9px]
             font-semibold
             uppercase
             tracking-wide
-            text-emerald-600
-          "
+            ${getStatusBadgeClass(event?.status)}
+          `}
           >
-            Scheduled
+            {event?.status || "Scheduled"}
           </span>
         </div>
       </div>
@@ -1005,9 +1135,26 @@ export default function OtSchedular() {
         <div className="flex items-start gap-2">
           <div className="mt-0.5 h-6 w-1 shrink-0 rounded-full bg-blue-500" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-slate-800">
-              {event.bookingNo || `Booking #${event.id}`}
-            </p>
+            <div className="flex items-center justify-between gap-1">
+              <p className="truncate text-xs font-semibold text-slate-800">
+                {event.bookingNo || `Booking #${event.id}`}
+              </p>
+              <span
+                className={`
+                  rounded-full
+                  border
+                  px-1.5
+                  py-0.2
+                  text-[8px]
+                  font-semibold
+                  uppercase
+                  tracking-wide
+                  ${getStatusBadgeClass(event?.status)}
+                `}
+              >
+                {event?.status || "Scheduled"}
+              </span>
+            </div>
             <p className="truncate text-[10px] font-medium text-slate-600">
               {event.patientName || "Patient Name Not Available"}
             </p>
@@ -1290,10 +1437,7 @@ export default function OtSchedular() {
               <tr>
                 <th
                   className="
-                    sticky
                     left-0
-                    top-0
-                    z-50
                     w-[200px]
                     min-w-[200px]
                     border-b
@@ -1317,9 +1461,7 @@ export default function OtSchedular() {
                   <th
                     key={date}
                     className="
-                        sticky
                         top-0
-                        z-40
                         min-w-[250px]
                         border-b
                         border-r
@@ -1349,7 +1491,6 @@ export default function OtSchedular() {
                     className={`
                         sticky
                         left-0
-                        z-30
                         w-[200px]
                         min-w-[200px]
                         border-b-2
@@ -1391,7 +1532,8 @@ export default function OtSchedular() {
                         {!hasItems ? (
                           <button
                             type="button"
-                            onDoubleClick={() =>
+                            onDoubleClick={() => {
+                              if (hideSomeDetails) return;
                               navigate("/ot-booking", {
                                 state: {
                                   mode: "create",
@@ -1404,8 +1546,8 @@ export default function OtSchedular() {
                                   endTime: "09:30",
                                   slotInterval: 30,
                                 },
-                              })
-                            }
+                              });
+                            }}
                             onContextMenu={e => handleSlotContextMenu(e, resource, "09:00", date)}
                             className="
                                   flex
@@ -1487,20 +1629,114 @@ export default function OtSchedular() {
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">OT Scheduler</h1>
+      {!hideSomeDetails ? (
+        <>
+          <h1 className="page-heading">OT Scheduler</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span>OT Scheduler</span>
-      </nav>
+          <nav className="helper-text">
+            <NavLink to="/dashboard" className="hover:underline">
+              Home
+            </NavLink>
+            <span>››</span>
+            <span>OT Scheduler</span>
+          </nav>
+        </>
+      ) : (
+        <></>
+      )}
 
       <div className="card">
-        <form onSubmit={handleSubmit} className="mb-4">
+        {!hideSomeDetails ? (
+          <>
+            <form onSubmit={handleSubmit} className="mb-4">
+              <div className="form-grid-4">
+                <InputField label={viewMode === "week" ? "Start Date" : "Date"} required>
+                  <CustomDateInput
+                    value={selectedDate}
+                    onChange={(value: string) => setSelectedDate(value)}
+                  />
+                </InputField>
+
+                <InputField label="OT Name" required>
+                  <select
+                    className="input-field w-full"
+                    value={selectedOtId}
+                    onChange={handleOtChange}
+                  >
+                    <option value={0}>All OTs</option>
+
+                    {otNameList.map(ot => (
+                      <option key={ot.OTId} value={ot.OTId}>
+                        {ot.OTName}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+
+                <InputField label="Time Slot" required>
+                  <select
+                    className="input-field w-full"
+                    value={slotInterval}
+                    onChange={handleSlotChange}
+                  >
+                    <option value={30}>30 Minutes</option>
+
+                    <option value={60}>1 Hour</option>
+
+                    <option value={90}>1 Hour 30 Minutes</option>
+
+                    <option value={120}>2 Hours</option>
+                  </select>
+                </InputField>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                {/* VIEW */}
+
+                <div className="flex items-center gap-5">
+                  <span className="text-sm font-medium text-slate-700">View:</span>
+
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="viewMode"
+                      value="day"
+                      checked={viewMode === "day"}
+                      onChange={() => setViewMode("day")}
+                    />
+
+                    <span>Day</span>
+                  </label>
+
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="viewMode"
+                      value="week"
+                      checked={viewMode === "week"}
+                      onChange={() => setViewMode("week")}
+                    />
+
+                    <span>Week</span>
+                  </label>
+                </div>
+
+                <div className="form-actions-responsive !mt-0">
+                  <button type="submit" className="save-btn">
+                    {/* {loading ? "Loading..." : "Search"} */}
+                    Search
+                  </button>
+
+                  <button type="button" className="cancel-button" onClick={handleCancel}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </form>
+          </>
+        ) : (
           <div className="form-grid-4">
-            <InputField label={viewMode === "week" ? "Start Date" : "Date"} required>
+            <InputField label="Date" required>
               <CustomDateInput
                 value={selectedDate}
                 onChange={(value: string) => setSelectedDate(value)}
@@ -1518,7 +1754,6 @@ export default function OtSchedular() {
                 ))}
               </select>
             </InputField>
-
             <InputField label="Time Slot" required>
               <select
                 className="input-field w-full"
@@ -1535,53 +1770,10 @@ export default function OtSchedular() {
               </select>
             </InputField>
           </div>
-
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-            {/* VIEW */}
-
-            <div className="flex items-center gap-5">
-              <span className="text-sm font-medium text-slate-700">View:</span>
-
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="viewMode"
-                  value="day"
-                  checked={viewMode === "day"}
-                  onChange={() => setViewMode("day")}
-                />
-
-                <span>Day</span>
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="viewMode"
-                  value="week"
-                  checked={viewMode === "week"}
-                  onChange={() => setViewMode("week")}
-                />
-
-                <span>Week</span>
-              </label>
-            </div>
-
-            <div className="form-actions-responsive !mt-0">
-              <button type="submit" className="save-btn">
-                {/* {loading ? "Loading..." : "Search"} */}
-                Search
-              </button>
-
-              <button type="button" className="cancel-button" onClick={handleCancel}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </form>
+        )}
 
         {/* INSTRUCTIONAL TIP / SELECTION SUMMARY BAR */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
+        {/* <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center justify-center rounded bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">
               Shortcuts
@@ -1607,7 +1799,7 @@ export default function OtSchedular() {
               </button>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* SCHEDULER */}
 
@@ -1626,7 +1818,7 @@ export default function OtSchedular() {
         )}
 
         {/* FLOATING SELECTION BAR */}
-        {selectedSlots.length > 0 && calculatedRange && (
+        {selectedSlots.length > 0 && calculatedRange && !hideSomeDetails && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-3 rounded-xl border border-blue-200 bg-white/95 px-4 py-2.5 shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center gap-2 text-xs">
               <span className="flex h-2.5 w-2.5 rounded-full bg-blue-600 animate-pulse" />
@@ -1807,27 +1999,6 @@ export default function OtSchedular() {
 
             {/* Menu Items */}
             <div className="mt-1 space-y-0.5">
-              {/* Reschedule */}
-              <button
-                type="button"
-                onClick={() => handleRescheduleOt(bookedOtContextMenu.event)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-100 text-blue-600">
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-800">Reschedule</p>
-                  <p className="text-[10px] text-slate-500">Change date, time or OT</p>
-                </div>
-              </button>
-
               {/* Cancel OT */}
               <button
                 type="button"
@@ -1884,32 +2055,31 @@ export default function OtSchedular() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Reason for Cancellation (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={cancelReason}
-                  onChange={e => setCancelReason(e.target.value)}
-                  placeholder="Enter reason for cancelling this OT booking..."
-                  className="input-field w-full text-xs"
-                />
+                <InputField label="Reason for Cancellation (Optional)">
+                  <textarea
+                    rows={3}
+                    value={cancelReason}
+                    onChange={e => setCancelReason(e.target.value)}
+                    placeholder="Enter reason for cancelling this OT booking..."
+                    className="input-field w-full"
+                  />
+                </InputField>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setCancelModalEvent(null)}
-                  className="cancel-button text-xs"
+                  className="cancel-button"
                 >
-                  Keep Booking
-                </button>
+                  Cancel
+                </button> */}
                 <button
                   type="button"
-                  onClick={handleConfirmCancel}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                  onClick={() => handleConfirmCancel(cancelModalEvent)}
+                  className="save-btn  "
                 >
-                  Confirm Cancel
+                  Confirm
                 </button>
               </div>
             </div>

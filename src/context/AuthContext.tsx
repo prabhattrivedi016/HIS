@@ -34,9 +34,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const localAuth = localStorage.getItem("auth");
-    const sessionAuth = sessionStorage.getItem("auth");
-    const storedAuth = localAuth || sessionAuth;
+    const storedAuth = localStorage.getItem("auth");
+
+    // Clean up any legacy sessionStorage auth items
+    try {
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("accessToken");
+    } catch {
+      // ignore
+    }
 
     if (!storedAuth) {
       setIsInitialized(true);
@@ -52,20 +58,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = ({ token, user }: AuthData, rememberMe = false) => {
+  const login = ({ token, user }: AuthData, _rememberMe = false) => {
     const data = { token, user };
     setAuthData(data);
 
-    const storage = rememberMe ? localStorage : sessionStorage;
-    const otherStorage = rememberMe ? sessionStorage : localStorage;
-
-    storage.setItem("auth", JSON.stringify(data));
+    // Always store auth and access token in localStorage
+    localStorage.setItem("auth", JSON.stringify(data));
     if (token) {
-      storage.setItem("accessToken", token);
+      localStorage.setItem("accessToken", token);
     }
 
-    otherStorage.removeItem("auth");
-    otherStorage.removeItem("accessToken");
+    // Clean up any legacy sessionStorage auth items
+    try {
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("accessToken");
+    } catch {
+      // ignore
+    }
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -75,15 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const nextUser = { ...prev.user, ...updates };
       const nextData = { ...prev, user: nextUser };
 
-      const localAuth = localStorage.getItem("auth");
-      const sessionAuth = sessionStorage.getItem("auth");
-
-      if (localAuth) {
-        localStorage.setItem("auth", JSON.stringify(nextData));
-      }
-      if (sessionAuth) {
-        sessionStorage.setItem("auth", JSON.stringify(nextData));
-      }
+      localStorage.setItem("auth", JSON.stringify(nextData));
 
       return nextData;
     });
@@ -95,8 +96,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("auth");
     localStorage.removeItem("accessToken");
 
-    sessionStorage.removeItem("auth");
-    sessionStorage.removeItem("accessToken");
+    try {
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("accessToken");
+    } catch {
+      // ignore
+    }
   };
 
   return (

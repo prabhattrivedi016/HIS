@@ -249,7 +249,6 @@ const OtBooking = () => {
   }, []);
 
   const handleFooterButtonClick = (action: string) => {
-    console.log("actionactionactionaction button", action);
     if (action === "save") {
       void handleSave();
     }
@@ -449,7 +448,7 @@ const OtBooking = () => {
       setActiveTab(OTBookingTabName.PATIENT_DETAILS);
       setIsmainSurgery(0);
     } catch (error) {
-      console.log("error", error);
+      console.error("error", error);
     }
   };
 
@@ -546,12 +545,12 @@ const OtBooking = () => {
             </div>
           )}
 
-          {ipdVisitId ? (
+          {/* {ipdVisitId ? (
             <div className="flex flex-row">
               <h1 className="name-header ml-2">IPD VisitId:</h1>
               <span className="">{ipdVisitId}</span>
             </div>
-          ) : null}
+          ) : null} */}
         </div>
       )}
 

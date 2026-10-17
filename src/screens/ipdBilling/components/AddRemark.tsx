@@ -283,9 +283,6 @@ const AddRemark = ({
     }
   };
 
-  console.log("currentProcess", currentProcess);
-  console.log("otCurrentProcess", otCurrentProcess);
-
   //  Current process name
   const currentProcessName =
     processType === "dischargeProcess"

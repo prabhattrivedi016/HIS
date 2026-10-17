@@ -1,10 +1,15 @@
 import Animation from "@/components/animation";
 import CustomDateInput from "@/components/customDateInput";
 import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
+import { ENDPOINTS } from "@/config/defaults";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { SubSubCategoryItem } from "@/types";
 import {
   Building2,
   Clock,
   Droplet,
+  Folder,
   Microscope,
   Printer,
   Search,
@@ -13,32 +18,65 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { CorporateItem, FilterTypeItem } from "../types";
 
-export default function SearchBar() {
+export default function SearchBar({
+  filters,
+  setFilters,
+  onClick,
+  onFilterButtonClick,
+}: {
+  filters: FilterTypeItem;
+  setFilters: Dispatch<SetStateAction<FilterTypeItem>>;
+  onClick: () => void;
+  onFilterButtonClick: (buttonType: string) => void;
+}) {
+  const { loading, fetchApi } = useGlobalApi();
+  const [subSubCategoryList, setSubSubCategoryList] = useState<SubSubCategoryItem[]>([]);
+  const [corporateMasterList, setCorporateMasterList] = useState<CorporateItem[]>([]);
   const [showSearchInputs, setShowSearchInputs] = useState(false);
-  const [filters, setFilters] = useState({
-    sampleId: "",
-    patientName: "",
-    uhid: "",
-    sampleType: "All",
-    status: "All",
-    fromDate: "",
-    toDate: "",
-    priority: "All",
-    department: "All",
-    corporate: "All",
-  });
 
-  const handleChange = e => {
+  // sub sub category list
+  const getSubSubCategory = async (subCategoryIds: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
+      {},
+      { params: { subCategoryIds } },
+      { component: "SearchBar" }
+    );
+    setSubSubCategoryList(resp?.data ?? []);
+  };
+
+  // corporate master list
+  const getCorporateMasterList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+      {},
+      { params: { isActive: 1 } },
+      { component: "SearchBar" }
+    );
+    setCorporateMasterList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getSubSubCategory(1);
+    getCorporateMasterList();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev: FilterTypeItem) => ({ ...prev, [name]: value }));
+  };
+
+  const dateChangeHandler = (val: string, date: string) => {
+    setFilters((prev: FilterTypeItem) => ({ ...prev, [date]: val }));
   };
 
   const handleSearch = () => {
-    alert(
-      `Search initiated!\nApplied filters:\n- Sample ID: ${filters.sampleId || "None"}\n- Patient Name: ${filters.patientName || "None"}\n- UHID: ${filters.uhid || "None"}\n- Sample Type: ${filters.sampleType}\n- Status: ${filters.status}\n- Priority: ${filters.priority}\n- Department: ${filters.department}\n- Corporate: ${filters.corporate}`
-    );
+    onClick?.();
   };
 
   return (
@@ -60,15 +98,28 @@ export default function SearchBar() {
           <div className="transition-all duration-300 ease-in-out space-y-3 mb-4 pt-2 border-t border-blue-200">
             {/* ================= ROW 1 ================= */}
             <div className="form-grid-5">
-              <InputField label="Sample ID / Barcode / Test">
+              <InputField label="Barcode">
                 <input
                   type="text"
-                  name="sampleId"
-                  value={filters.sampleId}
+                  name="barCode"
+                  value={filters.barCode}
                   onChange={handleChange}
                   placeholder="Search..."
                   className="input-field"
                 />
+              </InputField>
+
+              <InputField label="Patient Type">
+                <select
+                  className="input-field"
+                  value={filters?.typeId}
+                  onChange={handleChange}
+                  name="typeId"
+                >
+                  <option value={0}>All</option>
+                  <option value={1}>OPD</option>
+                  <option value={2}>IPD</option>
+                </select>
               </InputField>
 
               <InputField label="Patient Name">
@@ -121,11 +172,18 @@ export default function SearchBar() {
               </InputField>
 
               {/* ================= ROW 2 ================= */}
-              <InputField label="Collection Date">
-                <div className="flex gap-1">
-                  <CustomDateInput />
-                  <CustomDateInput />
-                </div>
+              <InputField label="From Date">
+                <CustomDateInput
+                  value={filters?.fromDate}
+                  onChange={(val: string) => dateChangeHandler(val, "fromDate")}
+                />
+              </InputField>
+
+              <InputField label="To Date">
+                <CustomDateInput
+                  value={filters?.toDate}
+                  onChange={(val: string) => dateChangeHandler(val, "toDate")}
+                />
               </InputField>
 
               <InputField label="Priority">
@@ -141,32 +199,44 @@ export default function SearchBar() {
                 </select>
               </InputField>
 
-              <InputField label="Department">
+              <InputField label=" Department">
                 <select
-                  name="department"
-                  value={filters.department}
-                  onChange={handleChange}
                   className="input-field"
+                  name="subSubCategoryId"
+                  value={filters?.subSubCategoryId}
+                  onChange={handleChange}
                 >
-                  <option value="All">All</option>
-                  <option value="Hematology">Hematology</option>
+                  <option value={0}>All</option>
+
+                  {subSubCategoryList.map(subSubCategory => (
+                    <option
+                      key={subSubCategory.subSubCategoryId}
+                      value={subSubCategory.subSubCategoryId}
+                    >
+                      {subSubCategory.subSubCategoryName}
+                    </option>
+                  ))}
                 </select>
               </InputField>
 
               <InputField label="Corporate">
                 <select
-                  name="corporate"
-                  value={filters.corporate}
+                  name="corporateId"
+                  value={filters.corporateId}
                   onChange={handleChange}
                   className="input-field"
                 >
-                  <option value="All">All</option>
-                  <option value="Varanasi">Varanasi</option>
+                  <option value={0}>All</option>
+                  {corporateMasterList.map((c: CorporateItem) => (
+                    <option key={c.corporateId} value={c.corporateId}>
+                      {c.corporateName}
+                    </option>
+                  ))}
                 </select>
               </InputField>
 
-              <div className="flex items-center justify-end mt-4">
-                <button onClick={handleSearch} className="save-btn w-30">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-5 mt-3">
+                <button onClick={handleSearch} className="save-btn !py-2">
                   <span>Search</span>
                 </button>
               </div>
@@ -188,7 +258,7 @@ export default function SearchBar() {
         <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3 text-xs font-semibold text-gray-700">
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("New clicked")}
+            onClick={() => onFilterButtonClick("newClicked")}
           >
             <Sparkles size={14} className="text-purple-600" />
             <span>New</span>
@@ -196,7 +266,15 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Sample Collected clicked")}
+            onClick={() => onFilterButtonClick("allClicked")}
+          >
+            <Folder size={14} className="text-purple-600" />
+            <span>All</span>
+          </div>
+
+          <div
+            className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+            onClick={() => onFilterButtonClick("sampleCollectedClicked")}
           >
             <Droplet size={14} className="text-amber-600" />
             <span>Sample Collected</span>
@@ -204,7 +282,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Sample Rejected clicked")}
+            onClick={() => onFilterButtonClick("sampleRejectedClicked")}
           >
             <XCircle size={14} className="text-red-600" />
             <span>Sample Rejected</span>
@@ -212,7 +290,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Department Receive clicked")}
+            onClick={() => onFilterButtonClick("departmentReceiveClicked")}
           >
             <Building2 size={14} className="text-blue-500" />
             <span>Department Receive</span>
@@ -220,7 +298,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Tested clicked")}
+            onClick={() => onFilterButtonClick("testedClicked")}
           >
             <Microscope size={14} className="text-pink-600" />
             <span>Tested</span>
@@ -228,7 +306,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Approved clicked")}
+            onClick={() => onFilterButtonClick("approvedClicked")}
           >
             <ShieldCheck size={14} className="text-emerald-600" />
             <span>Approved</span>
@@ -236,7 +314,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Printed clicked")}
+            onClick={() => onFilterButtonClick("printedClicked")}
           >
             <Printer size={14} className="text-blue-600" />
             <span>Printed</span>
@@ -244,7 +322,7 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Hold clicked")}
+            onClick={() => onFilterButtonClick("holdClicked")}
           >
             <Clock size={14} className="text-amber-500" />
             <span>Hold</span>
@@ -252,13 +330,14 @@ export default function SearchBar() {
 
           <div
             className="flex items-center gap-2 transition-all cursor-pointer active:scale-95"
-            onClick={() => alert("Dispatched clicked")}
+            onClick={() => onFilterButtonClick("dispatchedClicked")}
           >
             <Truck size={14} className="text-emerald-700" />
             <span>Dispatched</span>
           </div>
         </div>
       </div>
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 }

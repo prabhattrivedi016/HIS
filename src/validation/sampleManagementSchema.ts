@@ -41,21 +41,32 @@ export const sampleManagementDocumentUploadSchema = yup.object().shape({
 
   InvestigationDocumentNameId: yup
     .number()
-    .required("Select atleast one investigation")
-    .moreThan(0, "Select atleast one investigation"),
+    .typeError("Please select a document name")
+    .transform((value, originalValue) => {
+      if (originalValue === "Select" || originalValue === "" || originalValue == null) {
+        return 0;
+      }
+      const num = Number(originalValue);
+      return isNaN(num) ? 0 : num;
+    })
+    .required("Please select a document name")
+    .moreThan(0, "Please select a document name"),
 
   UploadFile: yup
     .mixed()
     .required("File is required")
-    .test("fileType", "Unsupported file format", (value: any) => {
-      if (!value) return false;
+    .test("fileRequired", "File is required", (value: any) => {
+      return Boolean(value && (value instanceof File || value.name));
+    })
+    .test("fileType", "Unsupported file format (only JPEG, PNG, or PDF)", (value: any) => {
+      if (!value || !(value instanceof File)) return true;
 
-      const allowedTypes = ["image/jpeg", "image/png"];
+      const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
 
       return allowedTypes.includes(value.type);
     })
     .test("fileSize", "File size too large (max 5MB)", (value: any) => {
-      if (!value) return false;
+      if (!value || !(value instanceof File)) return true;
 
       return value.size <= 5 * 1024 * 1024;
     }),

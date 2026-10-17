@@ -1,11 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { decryptRouteId } from "@/utils/routeEncryption";
+import { useNavigate, useParams } from "react-router-dom";
 import ProgressSteps from "./components/ProgessSteps";
 import SampleCard from "./components/SampleCard";
 import TableData from "./components/TableData";
 import TurnAroundTimeDetails from "./components/TurnAroundTimeDetails";
 
 const SampleJourney = () => {
-  const naviagte = useNavigate();
+  const navigate = useNavigate();
+  const { id: patientId } = useParams();
+  const patientInvestigationId = patientId ? decryptRouteId(patientId) : null;
   return (
     <div className="page-container">
       <div className="flex items-center justify-between w-full flex-col lg:flex-row gap-3">
@@ -26,7 +29,7 @@ const SampleJourney = () => {
             <button
               className="save-btn"
               onClick={() => {
-                naviagte("/lab-sample-management");
+                navigate("/lab-sample-management");
               }}
             >
               <span className="sample-button-text">Back</span>

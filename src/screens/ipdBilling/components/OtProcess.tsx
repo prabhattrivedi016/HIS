@@ -27,6 +27,8 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
 
+  console.log("patientpatientpatientpatient", patient);
+
   const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)! ?? {};
 
   const [isOtInitiated, setIsOtInitiated] = useState<boolean>(false);
@@ -57,49 +59,6 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
       today.getDate()
     ).padStart(2, "0")}`;
   }, []);
-
-  // // current time
-  // const currentLocalTime = useMemo(() => {
-  //   const today = new Date();
-  //   let hours = today.getHours();
-  //   const minutes = today.getMinutes();
-  //   const ampm = hours >= 12 ? "PM" : "AM";
-  //   hours = hours % 12;
-  //   hours = hours ? hours : 12;
-  //   const minutesStr = minutes < 10 ? "0" + minutes : minutes.toString();
-  //   return `${hours}:${minutesStr} ${ampm}`;
-  // }, []);
-
-  // min date
-  // const minDate = useMemo(() => {
-  //   if (!patient?.AdmissionDate) return undefined;
-  //   const clean = patient.AdmissionDate.replace(/\//g, "-");
-  //   const parts = clean.split("-");
-  //   if (parts.length >= 3) {
-  //     const [day, month, year] = parts;
-  //     const cleanYear = year.split(" ")[0];
-  //     const monthMap: Record<string, string> = {
-  //       jan: "01",
-  //       feb: "02",
-  //       mar: "03",
-  //       apr: "04",
-  //       may: "05",
-  //       jun: "06",
-  //       jul: "07",
-  //       aug: "08",
-  //       sep: "09",
-  //       oct: "10",
-  //       nov: "11",
-  //       dec: "12",
-  //     };
-  //     const cleanMonth = monthMap[month.trim().toLowerCase()] || month.trim().padStart(2, "0");
-  //     return `${cleanYear.trim()}-${cleanMonth}-${day.trim().padStart(2, "0")}`;
-  //   }
-  //   return undefined;
-  // }, [patient?.AdmissionDate]);
-
-  // max date
-  // const maxDate = currentLocalYYYYMMDD;
 
   // get ot current process
 
@@ -468,12 +427,12 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
 
             {/* Heading */}
             <h3 className="mt-5 text-base font-semibold text-gray-800 sm:text-lg">
-              Ready to initiate discharge
+              Ready to initiate OT Process
             </h3>
 
             {/* Description */}
             <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-gray-500 sm:text-sm sm:leading-6">
-              Start the discharge workflow to begin the required billing, nursing and medical
+              Start the OT Process workflow to begin the required billing, nursing and medical
               clearance process.
             </p>
 

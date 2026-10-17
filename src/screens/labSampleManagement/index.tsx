@@ -1,14 +1,218 @@
+import CustomLoader from "@/components/customLoader";
+import { ENDPOINTS } from "@/config/defaults";
+import { labSampleManagementButtonClicked } from "@/constants/constants";
+import { BranchContext } from "@/context/BranchContext";
+import { RoleContext } from "@/context/RoleContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { showWarning } from "@/utils/alert";
+import { formatToYYYYMMDD } from "@/utils/dateConvertHandler";
 import { Barcode, Building2, ChevronDown, Download, Plus, Upload } from "lucide-react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FilterBar from "./components/FilterBar";
 import SearchBar from "./components/SearchBar";
 import TableData from "./components/TableData";
+import { FilterTypeItem, SampleManagementItem, SampleTypeItem } from "./types";
 
 const LabSampleManagement = () => {
+  const { loading, fetchApi } = useGlobalApi();
   const navigate = useNavigate();
+  const currentDate = new Date().toISOString().split("T")[0];
+  const roleId = useContext(RoleContext)?.roleId!;
+  const branchId = useContext(BranchContext)?.branchId;
+
+  const [sampleManagementList, setSampleManagementList] = useState<SampleManagementItem[]>([]);
+  const [updatedSampleManagementList, setUpdatedSampleManagementList] = useState<
+    SampleManagementItem[]
+  >([]);
+  const [sampleType, setSampleType] = useState<SampleTypeItem[]>([]);
+
+  const [filters, setFilters] = useState<FilterTypeItem>({
+    barCode: "",
+    patientName: "",
+    uhid: "",
+    sampleType: "",
+    status: "",
+    fromDate: currentDate,
+    toDate: currentDate,
+    priority: "",
+    corporateId: "0",
+    typeId: 0,
+    roleId,
+    branchId,
+    subSubCategoryId: 0,
+  });
+
+  // all sample  of patient investigation
+  const getSampleManagement = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_MANAGEMENT,
+      {},
+      { params: filters },
+      { component: "LabSampleManagement" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "No data found!");
+      return;
+    }
+    setSampleManagementList(resp?.data ?? []);
+    setUpdatedSampleManagementList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getSampleManagement();
+  }, []);
+
+  // sample type
+  const getAllSampleType = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
+      {},
+      {},
+      { component: "SampleType", silent: true }
+    );
+
+    setSampleType(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getAllSampleType();
+  }, []);
+
+  // search handler
+  const searchHandler = () => {
+    getSampleManagement();
+  };
+
+  // stats
+  const statsValue = useMemo(() => {
+    let all = 0;
+    let pending = 0;
+    let collected = 0;
+    let notCollected = 0;
+    let totalSampleonCurrentDate = 0;
+    let totalSampleOnLastWeek = 0;
+
+    const lastWeekDate = new Date();
+    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
+    const lastWeekDateStr = lastWeekDate.toISOString().split("T")[0];
+
+    updatedSampleManagementList.forEach(item => {
+      all++;
+      const itemStatus = (item as any)?.status;
+      if (itemStatus === "Pending" || item?.IsSampleCollected === 0) pending++;
+      if (itemStatus === "Collected" || item?.IsSampleCollected === 1) collected++;
+      if (itemStatus === "Not Collected") notCollected++;
+
+      const formattedBillDate = formatToYYYYMMDD(item?.BillDate) || item?.BillDate || "";
+      if (formattedBillDate === currentDate || item?.BillDate?.includes(currentDate)) {
+        totalSampleonCurrentDate++;
+      }
+      if (formattedBillDate === lastWeekDateStr || item?.BillDate?.includes(lastWeekDateStr)) {
+        totalSampleOnLastWeek++;
+      }
+    });
+
+    return {
+      all,
+      pending,
+      collected,
+      notCollected,
+      totalSampleonCurrentDate,
+      totalSampleOnLastWeek,
+    };
+  }, [updatedSampleManagementList, currentDate]);
+
+  const totalSample = statsValue?.totalSampleonCurrentDate || 0;
+
+  const percentageIncreaseOrDecrease = useMemo(() => {
+    const current = Number(statsValue?.totalSampleonCurrentDate || 0);
+    const lastWeek = Number(statsValue?.totalSampleOnLastWeek || 0);
+    const difference = current - lastWeek;
+
+    if (!lastWeek || lastWeek === 0) {
+      return { percentage: "0", type: difference >= 0 ? "increase" : "decrease" };
+    }
+
+    const percentage = (difference / lastWeek) * 100;
+
+    if (isNaN(percentage) || !isFinite(percentage)) {
+      return { percentage: "0", type: "increase" };
+    }
+
+    if (difference < 0) {
+      return { percentage: Math.abs(percentage).toFixed(2), type: "decrease" };
+    }
+    return { percentage: Math.abs(percentage).toFixed(2), type: "increase" };
+  }, [statsValue]);
 
   const handleActionClick = actionName => {
     alert(`${actionName} clicked`);
+  };
+
+  // button click handler
+  const buttonClickHandler = (buttonType: string) => {
+    switch (buttonType) {
+      case labSampleManagementButtonClicked.NEW_CLICKED:
+        alert("New Sample");
+        break;
+      case labSampleManagementButtonClicked.SAMPLE_COLLECTED_CLICKED:
+        const filteredSampleCollected = sampleManagementList.filter(
+          item => Number(item?.IsSampleCollected) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleCollected);
+        break;
+      case labSampleManagementButtonClicked.SAMPLE_REJECTED_CLICKED:
+        const filteredSampleRejected = sampleManagementList.filter(
+          item => Number(item?.isSampleRejected) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleRejected);
+        break;
+      case labSampleManagementButtonClicked.DEPARTMENT_RECEIVE_CLICKED:
+        const filteredSampleDepartmentReceive = sampleManagementList.filter(
+          item => Number(item?.IsSampleReceivedByDepartment) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleDepartmentReceive);
+        break;
+      case labSampleManagementButtonClicked.TESTED_CLICKED:
+        const filteredSampleTested = sampleManagementList.filter(
+          item => Number(item?.isTested) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleTested);
+        break;
+      case labSampleManagementButtonClicked.APPROVED_CLICKED:
+        const filteredSampleApproved = sampleManagementList.filter(
+          item => Number(item?.isApproved) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleApproved);
+        break;
+      case labSampleManagementButtonClicked.PRINTED_CLICKED:
+        const filteredSamplePrinted = sampleManagementList.filter(
+          item => Number(item?.isPrinted) === 1
+        );
+        setUpdatedSampleManagementList(filteredSamplePrinted);
+        break;
+      case labSampleManagementButtonClicked.HOLD_CLICKED:
+        const filteredSampleHold = sampleManagementList.filter(item => Number(item?.isHold) === 1);
+        setUpdatedSampleManagementList(filteredSampleHold);
+        break;
+      case labSampleManagementButtonClicked.DISPATCHED_CLICKED:
+        const filteredSampleDispatched = sampleManagementList.filter(
+          item => Number(item?.IsDispatched) === 1
+        );
+        setUpdatedSampleManagementList(filteredSampleDispatched);
+        break;
+
+      case labSampleManagementButtonClicked?.ALL_CLICKED:
+        setUpdatedSampleManagementList(sampleManagementList);
+        break;
+
+      default:
+        setUpdatedSampleManagementList(sampleManagementList);
+        break;
+    }
   };
 
   return (
@@ -89,11 +293,27 @@ const LabSampleManagement = () => {
 
       {/* data */}
 
-      <FilterBar />
+      <FilterBar
+        totalSample={totalSample}
+        percentageIncreaseOrDecrease={percentageIncreaseOrDecrease}
+        statsValue={statsValue}
+      />
 
-      <SearchBar />
+      <SearchBar
+        filters={filters}
+        setFilters={setFilters}
+        onClick={searchHandler}
+        onFilterButtonClick={buttonClickHandler}
+      />
 
-      <TableData />
+      <TableData
+        updatedSampleManagementList={updatedSampleManagementList}
+        setUpdatedSampleManagementList={setUpdatedSampleManagementList}
+        sampleType={sampleType}
+        refetchSampleManagement={getSampleManagement}
+      />
+
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

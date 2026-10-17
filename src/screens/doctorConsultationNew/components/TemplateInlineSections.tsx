@@ -1,4 +1,5 @@
 import { ENDPOINTS } from "@/config/defaults";
+import { TemplateMappingCode } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { TemplateItem, TemplateSectionMappingRecord } from "@/screens/emrTemplates/types";
 import { Check, Loader2, Printer } from "lucide-react";
@@ -27,6 +28,7 @@ interface TemplateInlineSectionsProps {
    * template's past-visit history, without having typed anything this session, must still be able
    * to filter that history down to just this template. */
   onPrint?: (templateName: string, entries: EmrSectionAnswerEntry[], templateId: number) => void;
+  templateCode?: number;
 }
 
 /**
@@ -49,10 +51,9 @@ const TemplateInlineSections = ({
   initialEntries,
   onEntriesChange,
   onPrint,
+  templateCode,
 }: TemplateInlineSectionsProps) => {
   const { fetchApi } = useGlobalApi();
-
-  console.log("templatetemplatetemplatetemplatetemplatetemplate", template);
 
   const [templateSections, setTemplateSections] = useState<TemplateSectionMappingRecord[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
@@ -133,7 +134,8 @@ const TemplateInlineSections = ({
   // instead of pre-populated with whatever was entered last time.
   const { savedHeaderValuesBySectionId, savedDataIdsByHeaderId } = useVisitSavedHeaderValues(
     visitId,
-    template.isMultipleEntryAllow !== 1
+    template.isMultipleEntryAllow !== 1,
+    templateCode
   );
 
   const handleSectionEntries = useCallback(
@@ -189,14 +191,16 @@ const TemplateInlineSections = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={handlePrintClick}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-white hover:text-[#0B5394] hover:border-[#0B5394]/40 transition-colors"
-        >
-          <Printer size={13} />
-          Print
-        </button>
+        {templateCode !== TemplateMappingCode?.OT_NOTES && (
+          <button
+            type="button"
+            onClick={handlePrintClick}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-white hover:text-[#0B5394] hover:border-[#0B5394]/40 transition-colors"
+          >
+            <Printer size={13} />
+            Print
+          </button>
+        )}
       </div>
 
       <div className="emr-shell flex min-h-72 max-h-[760px]">

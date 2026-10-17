@@ -29,6 +29,13 @@ const doctorMasterSchema = yup.object({
   Specialization: yup.string().required("Specialization is required"),
   Department: yup.string().required("Department is required"),
 
+  DoctorRoleId: yup
+    .number()
+    .typeError("Doctor Role is required")
+    .moreThan(0, "Doctor Role is required"),
+
+  DoctorRole: yup.string().required("Doctor Role is required"),
+
   ProfileSummery: yup.string().required("Profile Summary is required"),
   RegistrationNo: yup.string().nullable(),
 

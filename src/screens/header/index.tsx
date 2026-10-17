@@ -10,7 +10,6 @@ import { clearAccessRights } from "../../store/slices/accessRightSlices";
 import { clearAssignBranchRight } from "../../store/slices/assignBranchRightSlice";
 import { useAuthorizedPages } from "../../store/useAuthorizedPages";
 import { useFavoriteRoles } from "../../store/useFavouriteRole";
-import { getAuthStorage } from "../../utils/authStorage";
 
 import RoleBindPage from "./components/RoleBindPage";
 import UserReset from "./components/UserReset";
@@ -23,10 +22,9 @@ import "../../styles/theme.css";
 
 export default function Header({ toggleSidebar, isSidebarOpen }) {
   const roleContext = useContext(RoleContext);
-  const storage = getAuthStorage();
   let storedRoleName = "";
   try {
-    storedRoleName = JSON.parse(storage.getItem("role") || "{}")?.roleName || "";
+    storedRoleName = JSON.parse(localStorage.getItem("role") || "{}")?.roleName || "";
   } catch {
     storedRoleName = "";
   }
@@ -89,14 +87,12 @@ export default function Header({ toggleSidebar, isSidebarOpen }) {
     setAuthorizedPages([]);
     setFavoriteRoles([]);
 
-    storage.removeItem("accessToken");
-    storage.removeItem("auth");
-    storage.removeItem("role");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("auth");
+    localStorage.removeItem("role");
 
     localStorage.removeItem("authorized-pages");
     localStorage.removeItem("favorite-roles");
-    sessionStorage.removeItem("authorized-pages");
-    sessionStorage.removeItem("favorite-roles");
 
     delete axios.defaults.headers.common["Authorization"];
     navigate("/", { replace: true });

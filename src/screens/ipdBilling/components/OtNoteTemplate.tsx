@@ -1,10 +1,14 @@
 import CentralPopup from "@/components/centralPopup";
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
+import { TemplateMappingCode } from "@/constants/constants";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import PrintPreviewModal from "@/screens/doctorConsultationNew/components/PrintPreviewModal";
 import TemplateInlineSections from "@/screens/doctorConsultationNew/components/TemplateInlineSections";
 import { EmrSectionAnswerEntry } from "@/screens/doctorConsultationNew/types";
 import { TemplateItem } from "@/screens/emrTemplates/types";
+import { showError, showSuccess } from "@/utils/alert";
+import { Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { IpdPatientItem, OtTemplateItem } from "../types";
 
@@ -26,7 +30,12 @@ const OtNoteTemplate = ({
     Record<number, EmrSectionAnswerEntry[]>
   >({});
 
-  console.log("templateEntriesByTemplateId", templateEntriesByTemplateId);
+  const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
+
+  console.log(
+    "templateEntriesByTemplateIdtemplateEntriesByTemplateIdtemplateEntriesByTemplateIdtemplateEntriesByTemplateId",
+    templateEntriesByTemplateId
+  );
 
   const [printTemplateContext, setPrintTemplateContext] = useState<{
     name: string;
@@ -86,20 +95,6 @@ const OtNoteTemplate = ({
     getTemplateList();
   }, [selectedPatient, isOpen]);
 
-  //   consulation details
-  const consultationDetailsPayloadData = () => {
-    return {
-      doctorId: selectedPatient?.PrimaryDoctorId,
-      patientId: selectedPatient?.PatientId,
-      visitId: selectedPatient?.VisitId,
-      visitTypeId: selectedPatient?.VisitTypeId,
-      isFileClosed: selectedPatient?.IsFileClosed,
-      isTemperatureRoomOut: 0,
-      patientVitalId: 0,
-      vitalDateTime: "",
-    };
-  };
-
   //   consultation headers data
   const consultationHeadersDataPayloadData = () => {
     return templateEntriesByTemplateId?.[templateId].map((item: EmrSectionAnswerEntry) => {
@@ -109,7 +104,9 @@ const OtNoteTemplate = ({
         headerId: item?.headerId,
         controlTypeId: item?.controlTypeId,
         templateId: item?.templateId,
-        headerValue: item?.headerName,
+        headerValue: item?.value,
+        patientId: selectedPatient?.PatientId,
+        visitId: selectedPatient?.VisitId,
       };
     });
   };
@@ -117,17 +114,24 @@ const OtNoteTemplate = ({
   //   save handler
   const saveHandler = async () => {
     const payload = {
-      consultationDetails: consultationDetailsPayloadData(),
-      consultationHeadersData: consultationHeadersDataPayloadData(),
-      patientVitalValue: [
-        {
-          vitalId: 0,
-          vitalValue: "",
-        },
-      ],
+      otNotesHeadersData: consultationHeadersDataPayloadData(),
     };
 
     console.log("payload", payload);
+
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_OT_NOTES,
+      payload,
+      {},
+      { component: "OtNOteTemplate" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Data saved successfully");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    onClose?.();
   };
 
   return (
@@ -140,6 +144,16 @@ const OtNoteTemplate = ({
       {selectedTemplate ? (
         <>
           <div className="card mt-1">
+            <div className="flex justify-end w-full">
+              <button
+                type="button"
+                onClick={() => setShowPrintPreview(true)}
+                className="inline-flex items-center justify-center gap-1.5 text-sm font-medium border border-gray-300 rounded-lg px-3 sm:px-4 py-1.5 text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                <Printer size={14} />
+                Print
+              </button>
+            </div>
             <TemplateInlineSections
               key={selectedTemplate?.templateId}
               template={selectedTemplate}
@@ -149,6 +163,7 @@ const OtNoteTemplate = ({
               initialEntries={templateEntriesByTemplateId?.[selectedTemplate?.templateId]}
               onEntriesChange={onTemplateEntriesChange ?? (() => {})}
               onPrint={onPrintTemplate ?? (() => {})}
+              templateCode={TemplateMappingCode?.OT_NOTES}
             />
           </div>
           <div className="mt-1 justify-end flex">
@@ -160,6 +175,20 @@ const OtNoteTemplate = ({
       ) : (
         <></>
       )}
+
+      {/* print */}
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        doctorId={selectedPatient?.PrimaryDoctorId}
+        patientId={selectedPatient?.PatientId}
+        usedForPatientTypeId={2}
+        patient={selectedPatient}
+        emrSectionsData={templateEntriesByTemplateId?.[Number(selectedTemplate?.templateId!)]}
+        vitals={[]}
+        vitalsData={[]}
+        allergy={[]}
+      />
 
       {loading && <CustomLoader isLoading={loading} />}
     </CentralPopup>

@@ -1,25 +1,26 @@
-import {
-  Activity,
-  Plus,
-  Barcode,
-  Upload,
-  Download,
-  ChevronDown,
-  ArrowUp,
-  ArrowDown,
-  FlaskConical,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Cog,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, Clock, Cog, FlaskConical, XCircle } from "lucide-react";
 
-export default function FilterBar() {
+export default function FilterBar({
+  totalSample = 0,
+  percentageIncreaseOrDecrease,
+  statsValue,
+}: {
+  totalSample?: number;
+  percentageIncreaseOrDecrease?: { percentage: string; type: string };
+  statsValue?: {
+    all: number;
+    pending: number;
+    collected: number;
+    notCollected: number;
+    totalSampleonCurrentDate: number;
+    totalSampleOnLastWeek: number;
+  };
+}) {
+  const isDecrease = percentageIncreaseOrDecrease?.type === "decrease";
 
   return (
     <div className="card">
       {/* ================= TOP HEADER ================= */}
-      
 
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 px-3 ">
         {/* =====================================================
@@ -28,11 +29,7 @@ export default function FilterBar() {
         <div className="h-[110px] bg-[#f1f9ff] border border-[#dcecf7] rounded-lg px-3 py-2.5 flex flex-col justify-between min-w-0 overflow-hidden">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-[68px] h-[68px] rounded-md bg-[#e1f2ff] flex items-center justify-center shrink-0">
-              <FlaskConical
-                size={40}
-                strokeWidth={2.2}
-                className="text-[#0875d1]"
-              />
+              <FlaskConical size={40} strokeWidth={2.2} className="text-[#0875d1]" />
             </div>
 
             <div className="min-w-0 flex flex-col">
@@ -40,17 +37,23 @@ export default function FilterBar() {
                 Total Samples
               </div>
               <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate sm:ml-4 lg:ml-6">
-                1,248
+                {totalSample || 0}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center text-[14px] font-bold text-[#079669] text-center justify-center sm:ml-10 lg:ml-21">
-            <ArrowUp size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">12%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">
-              from last week
-            </span>
+          <div
+            className={`flex items-center text-[14px] font-bold text-center justify-center sm:ml-10 lg:ml-21 ${
+              isDecrease ? "text-[#dc2626]" : "text-[#079669]"
+            }`}
+          >
+            {isDecrease ? (
+              <ArrowDown size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
+            ) : (
+              <ArrowUp size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
+            )}
+            <span className="shrink-0">{percentageIncreaseOrDecrease?.percentage ?? "0"}%</span>
+            <span className="text-gray-400 font-medium ml-1 truncate">from last week</span>
           </div>
         </div>
 
@@ -60,11 +63,7 @@ export default function FilterBar() {
         <div className="h-[110px] bg-[#eafaf6] border border-[#d6eee8] rounded-lg px-3 py-2.5 flex flex-col justify-between min-w-0 overflow-hidden">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-[68px] h-[68px] rounded-md bg-[#d8f3eb] flex items-center justify-center shrink-0">
-              <CheckCircle2
-                size={40}
-                strokeWidth={2.2}
-                className="text-[#159879]"
-              />
+              <CheckCircle2 size={40} strokeWidth={2.2} className="text-[#159879]" />
             </div>
 
             <div className="min-w-0">
@@ -72,7 +71,7 @@ export default function FilterBar() {
                 Received
               </div>
               <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate sm:ml-4 lg:ml-6">
-                186
+                {statsValue ? statsValue.collected : 0}
               </div>
             </div>
           </div>
@@ -80,9 +79,7 @@ export default function FilterBar() {
           <div className="flex items-center text-[14px] font-bold text-[#079669] text-center justify-center sm:ml-10 lg:ml-21">
             <ArrowUp size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
             <span className="shrink-0">8%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">
-              from yesterday
-            </span>
+            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
           </div>
         </div>
 
@@ -100,7 +97,7 @@ export default function FilterBar() {
                 Processing
               </div>
               <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate sm:ml-4 lg:ml-6">
-                74
+                0
               </div>
             </div>
           </div>
@@ -108,9 +105,7 @@ export default function FilterBar() {
           <div className="flex items-center text-[14px] font-bold text-[#079669] text-center justify-center sm:ml-10 lg:ml-21">
             <ArrowUp size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
             <span className="shrink-0">5%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">
-              from yesterday
-            </span>
+            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
           </div>
         </div>
 
@@ -128,21 +123,15 @@ export default function FilterBar() {
                 Pending
               </div>
               <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate sm:ml-4 lg:ml-6">
-                32
+                {statsValue ? statsValue.pending : 0}
               </div>
             </div>
           </div>
 
           <div className="flex items-center text-[14px] font-bold text-[#dc2626] text-center justify-center sm:ml-10 lg:ml-21">
-            <ArrowDown
-              size={16}
-              strokeWidth={2.7}
-              className="mr-0.5 shrink-0"
-            />
+            <ArrowDown size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
             <span className="shrink-0">3%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">
-              from yesterday
-            </span>
+            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
           </div>
         </div>
 
@@ -160,21 +149,15 @@ export default function FilterBar() {
                 Rejected
               </div>
               <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate sm:ml-4 lg:ml-6">
-                8
+                {statsValue ? statsValue.notCollected : 0}
               </div>
             </div>
           </div>
 
           <div className="flex items-center text-[14px] font-bold text-[#dc2626] text-center justify-center sm:ml-10 lg:ml-21">
-            <ArrowDown
-              size={16}
-              strokeWidth={2.7}
-              className="mr-0.5 shrink-0"
-            />
+            <ArrowDown size={16} strokeWidth={2.7} className="mr-0.5 shrink-0" />
             <span className="shrink-0">1%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">
-              from yesterday
-            </span>
+            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
           </div>
         </div>
       </div>

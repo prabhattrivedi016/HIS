@@ -513,8 +513,6 @@ const OpdBilling = () => {
       { component: "OpdBilling" }
     );
 
-    console.log("resp of service", resp);
-
     if (!resp?.result) {
       showWarning(resp?.message ?? "Failed to fetch services");
       return;

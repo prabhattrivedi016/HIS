@@ -17,8 +17,6 @@ type PackagePopupProps = {
 const PackagePopup = ({ isOpen, onClose, selectedItems, refetch }: PackagePopupProps) => {
   const { loading, fetchApi } = useGlobalApi();
 
-  console.log("selectedItems", selectedItems);
-
   const [packageLists, setPackageLists] = useState<PatientPackageItem[]>([]);
 
   const [selectedPackage, setSelectedPackage] = useState<PatientPackageItem | null>(null);

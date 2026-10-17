@@ -47,8 +47,6 @@ const OtBookingDetails = ({
 
   const anesthesiaTypeList = usePickMaster("AnesthesiaType")?.pickMasterValue ?? [];
 
-  console.log("anesthesiaTypeList", anesthesiaTypeList);
-
   const [thearterLists, setTheaterList] = useState<OtMasterItem[]>([]);
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [userMasterLists, setUserMasterList] = useState<UserMasterItem[]>([]);
@@ -506,8 +504,6 @@ const OtBookingDetails = ({
   // text change handler
   const textChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    console.log("namenamenamename", name);
-    console.log("valuevaluevaluevalue", value);
 
     if (!name) return;
     setPayloadValue((prev: PaylaodValueItem) => ({ ...prev, [name]: value }));
@@ -672,7 +668,6 @@ const OtBookingDetails = ({
       { params: { categoryTypeId: 14, isActive: 1 } },
       { component: "OtBookingDetails" }
     );
-    console.log("resp", resp?.data);
     setEquipmentList(resp?.data ?? []);
   };
 

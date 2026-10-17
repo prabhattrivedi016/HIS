@@ -538,6 +538,8 @@ const ENDPOINTS = {
   INITIALIZE_PATIENT_OT_PROCESS: "IPD/initializePatientOTProcess",
   GET_PATIEENT_OT_PROCESS: "IPD/getPatientOTProcess",
   COMPLETE_PATIENT_OT_PROCESS: "IPD/completePatientOTProcess",
+  SAVE_PATIENT_OT_NOTES: "IPD/savePatientOTNotes",
+  GET_PATIENT_OT_NOTES_BY_VISIT_ID: "IPD/getPatientOTNotesByVisitId",
 
   // allergy master
   GET_PATIENT_ALLERGY_DETAIL_LIST: "EMR/getPatientAllergyDetailList",
@@ -736,6 +738,11 @@ const ENDPOINTS = {
   // OT booking
   SAVE_OT_BOOKING: "IPD/saveOTBooking",
   GET_OT_BOOKING_DETAILS: "IPD/getOTBookingDetails",
+  CONFIRM_OT_BOOKING: "IPD/confirmOTBooking",
+  CANCEL_OT_BOOKING: "IPD/cancelOTBooking",
+  RESCHEDULE_OT_BOOKING: "IPD/rescheduleOTBooking",
+  GET_OT_BOOKING_ITEM_DETAILS: "IPD/getOTBookingItemDetails",
+  ADD_BREAK_IN_OT_BOOKING: "IPD/addBreakInOTBooking",
 };
 
 export { ENDPOINTS };

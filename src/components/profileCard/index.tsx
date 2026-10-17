@@ -158,7 +158,7 @@ const GridView = ({
         </div>
 
         <p className="card-id  m-1"></p>
-        <h2 className="card-title wrap-break-word  ">{cardTitleName}</h2>
+        <h2 className="card-title wrap-break-word">{cardTitleName || "Unknown"}</h2>
       </div>
 
       {/* footer items */}

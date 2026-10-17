@@ -11,15 +11,13 @@ export const BranchContext = createContext<BranchContextType>({
 
 export const BranchProvider = ({ children }: { children: ReactNode }) => {
   const [branchId, setBranchIdState] = useState<number>(() => {
-    const stored =
-      localStorage.getItem("selectedBranchId") || sessionStorage.getItem("selectedBranchId");
+    const stored = localStorage.getItem("selectedBranchId");
     return stored ? Number(stored) : 1;
   });
 
   const setBranchId = (id: number) => {
     setBranchIdState(id);
     localStorage.setItem("selectedBranchId", String(id));
-    sessionStorage.setItem("selectedBranchId", String(id));
   };
 
   return (

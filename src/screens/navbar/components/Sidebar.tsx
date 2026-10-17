@@ -220,13 +220,13 @@ const Sidebar = () => {
         </div>
 
         {/* Content */}
-        <div className="sidebar-nav-scroll h-[calc(100%-4rem)] p-2 overflow-y-auto">
+        <div className=" h-[calc(100%-4rem)] p-2 overflow-y-auto">
           {sidebarOpen && (
             <InputField>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder="Search navigation"
                 className="input-field mb-2"
                 onInput={allowOnlyText}
                 maxLength={10}

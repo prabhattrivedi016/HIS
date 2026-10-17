@@ -36,6 +36,8 @@ const DoctorMasterDrawer = ({
 }: DoctorMasterDrawerProps) => {
   const { loading, error, fetchApi } = useGlobalApi();
 
+  const doctorRoleList = usePickMaster("DoctorRoleForDoctorMaster")?.pickMasterValue ?? [];
+
   const titleLists = usePickMaster("title");
 
   const titleSelectOption = useMemo(() => titleLists?.pickMasterValue ?? [], [titleLists]);
@@ -54,8 +56,11 @@ const DoctorMasterDrawer = ({
 
   const [selectedDepartment, setSelectedDepartment] = useState<SelectItem | null>(null);
   const [selectedSpecialization, setSelectedSpecialization] = useState<SelectItem | null>(null);
+  const [selectedDoctorRole, setSelectedDoctorRole] = useState<SelectItem | null>(null);
 
-  const [popupType, setPopupType] = useState<"specialization" | "department" | null>(null);
+  const [popupType, setPopupType] = useState<"specialization" | "department" | "doctorRole" | null>(
+    null
+  );
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
 
   const [checked, setChecked] = useState<boolean>(false);
@@ -88,6 +93,8 @@ const DoctorMasterDrawer = ({
       Specialization: "",
       DepartmentId: 0,
       Department: "",
+      DoctorRoleId: 0,
+      DoctorRole: "",
       ProfileSummery: "",
       RegistrationNo: "",
       IsActive: 1,
@@ -188,6 +195,43 @@ const DoctorMasterDrawer = ({
     });
   };
 
+  /*------------------------------doctor role--------------------------- */
+  const doctorRoleSelectOption = useMemo<SelectItem[]>(() => {
+    return doctorRoleList.map((item: any) => {
+      if (item?.key !== undefined) {
+        return {
+          value: Number(item.key),
+          label: String(item.value ?? ""),
+        };
+      }
+      if (item?.label !== undefined) {
+        return {
+          value: Number(item.value ?? 0),
+          label: String(item.label),
+        };
+      }
+      return {
+        value: Number(item?.id ?? item?.value ?? 0),
+        label: String(item?.name ?? item?.value ?? ""),
+      };
+    });
+  }, [doctorRoleList]);
+
+  const selectDoctorRoleHandler = (option: SelectItem | null) => {
+    setSelectedDoctorRole(option);
+    setValue("DoctorRoleId", option?.value ? Number(option.value) : 0, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue("DoctorRole", option?.label ? String(option.label) : "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    if (option?.value) {
+      clearErrors(["DoctorRoleId", "DoctorRole"]);
+    }
+  };
+
   useEffect(() => {
     getDepartmentLists();
     getSpecializationLists();
@@ -258,6 +302,9 @@ const DoctorMasterDrawer = ({
     formData.append("UserName", rawData?.UserName ?? "");
     formData.append("Password", rawData?.Password ?? "");
 
+    formData.append("DoctorRoleId", String(rawData?.DoctorRoleId ?? 0));
+    formData.append("DoctorRole", rawData?.DoctorRole ?? "");
+
     const photoFile = rawData?.DoctorPhotoFile as FileList | null;
     if (photoFile && photoFile.length > 0) {
       formData.append("DoctorPhotoFile", photoFile[0]);
@@ -289,6 +336,7 @@ const DoctorMasterDrawer = ({
     setSelectedBranches([]);
     setSelectedDepartment(null);
     setSelectedSpecialization(null);
+    setSelectedDoctorRole(null);
     setChecked(false);
 
     if (defaultTitle) {
@@ -315,6 +363,8 @@ const DoctorMasterDrawer = ({
       Specialization: doctor?.specialization,
       DepartmentId: doctor?.departmentId,
       Department: doctor?.department,
+      DoctorRoleId: doctor?.doctorRoleId ?? (doctor as any)?.DoctorRoleId ?? 0,
+      DoctorRole: doctor?.doctorRole ?? (doctor as any)?.DoctorRole ?? "",
       ProfileSummery: doctor?.profileSummery,
       RegistrationNo: doctor?.registrationNo,
       IsActive: doctor?.isActive,
@@ -332,6 +382,8 @@ const DoctorMasterDrawer = ({
   useEffect(() => {
     const specId = watch("SpecializationId");
     const deptId = watch("DepartmentId");
+    const roleId = watch("DoctorRoleId");
+    const roleName = watch("DoctorRole");
 
     if (specializationList.length) {
       const spec = specializationList.find(s => s.specializationId === specId);
@@ -346,7 +398,18 @@ const DoctorMasterDrawer = ({
 
       setSelectedDepartment(dept ? { value: dept.departmentId, label: dept.department } : null);
     }
-  }, [specializationList, departmentList]);
+
+    if (doctorRoleSelectOption.length) {
+      const role = doctorRoleSelectOption.find(
+        r =>
+          (roleId && Number(r.value) === Number(roleId)) ||
+          (roleName &&
+            String(r.label).trim().toLowerCase() === String(roleName).trim().toLowerCase())
+      );
+
+      setSelectedDoctorRole(role ?? null);
+    }
+  }, [specializationList, departmentList, doctorRoleSelectOption]);
 
   useEffect(() => {
     const branchListValue = watch("BranchList");
@@ -382,6 +445,8 @@ const DoctorMasterDrawer = ({
         Specialization: "",
         DepartmentId: 0,
         Department: "",
+        DoctorRoleId: 0,
+        DoctorRole: "",
         ProfileSummery: "",
         RegistrationNo: "",
         IsActive: 1,
@@ -397,10 +462,11 @@ const DoctorMasterDrawer = ({
       });
 
       setChecked(false);
+      setSelectedDoctorRole(null);
     }
   }, [doctorId, reset]);
 
-  const popupHandler = (type: "specialization" | "department") => {
+  const popupHandler = (type: "specialization" | "department" | "doctorRole") => {
     setPopupType(type);
     requestAnimationFrame(() => {
       setIsPopupOpen(true);
@@ -627,6 +693,25 @@ const DoctorMasterDrawer = ({
                     />
                     {errors.ProfileSummery && (
                       <p className="input-field-error">{errors.ProfileSummery.message}</p>
+                    )}
+                  </InputField>
+
+                  <InputField label="Doctor Role" required>
+                    <div className="flex gap-2 items-center">
+                      <Select
+                        options={doctorRoleSelectOption}
+                        value={selectedDoctorRole}
+                        placeholder="Select..."
+                        isSearchable
+                        isClearable
+                        onChange={(option: any) => selectDoctorRoleHandler(option)}
+                        styles={SelectStyles}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                      />
+                    </div>
+                    {errors.DoctorRoleId && (
+                      <p className="input-field-error">{errors.DoctorRoleId.message}</p>
                     )}
                   </InputField>
 
