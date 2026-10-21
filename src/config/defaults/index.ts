@@ -19,6 +19,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_ROLE_MASTER: "Admin/createUpdateRoleMaster",
   UPDATE_USER_MASTER_STATUS: "Admin/updateUserMasterStatus",
   UPDATE_PASSWORD: "User/updatePassword",
+  GET_COMPANY_SETTINGS: "Home/getCompanySettings",
   // user group
   USER_GROUP_LIST: "Admin/userGroupList",
   UPDATE_USER_GROUP_STATUS: "Admin/updateUserGroupStatus",
@@ -262,6 +263,7 @@ const ENDPOINTS = {
   CREATE_UPDATE_INVESTIGATION_DOCUMENT_NAME_MASTER:
     "Lab/createUpdateInvestigationDocumentNameMaster",
   REJECT_SAMPLE_STATUS: "Lab/rejectSampleStatus",
+  GET_SAMPLE_JOURNEY_BY_PATIENT_INVESTIGATION_ID: "Lab/getSampleJourneyByPatientInvestigationId",
 
   //pathology result entry
   SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY:

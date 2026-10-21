@@ -48,6 +48,9 @@ type SampleManagementItem = {
   IsDispatched: number;
   DispatchedOn: string;
   isSampleRejected: number;
+  IsAbnormalResult: number;
+  isReportPrinted: number;
+  ReportPrintedOn: string;
   DefaultSampleTypeId: string | null;
   SampleTypeList: string;
   DeliveryDate: string;
@@ -55,6 +58,55 @@ type SampleManagementItem = {
   Name: string;
   SampleTypeName?: string;
   isSampleSelected?: boolean;
+  BedNo: string | null;
+  TargetTATInMin: string;
+  ActualTATInMin: string;
+};
+
+type GroupedDataSampleManagement = {
+  BillDate: string;
+  Type: string;
+  UHID: string;
+  IPDNo: string;
+  LabNo: number;
+  WardName: string;
+  PatientName: string;
+  CurrentAge: string;
+  CorporateName: string;
+  Gender: string;
+  TotalBalanceAmount: number;
+  VisitId: number;
+  isUrgent: number;
+  Barcode: string;
+  IsSampleRequired: string | null;
+  IsDepartmentReceivingRequired: string | null;
+  PatientInvestigationId: number;
+  ReportTypeId: string | null;
+  IsReportHold: number;
+  CreatedOn: string;
+  VIPPatient: number;
+  IsSampleCollected: number;
+  SampleCollectedOn: string;
+  IsSampleReceivedByDepartment: number;
+  SampleReceivedByDepartmentOn: string;
+  IsResultDone: number;
+  ResultDoneOn: string;
+  IsReportApproved: number;
+  ReportApprovedOn: string;
+  IsDispatched: number;
+  DispatchedOn: string;
+  isSampleRejected: number;
+  DefaultSampleTypeId: string | null;
+  SampleTypeList: string;
+  DeliveryDate: string;
+  IsUnderPackage: number;
+  Name: string;
+  SampleTypeName?: string;
+  isSampleSelected?: boolean;
+  serumTypes?: string[];
+  serumCount?: number;
+  serviceNames?: string[];
+  serviceCount?: number;
 };
 
 type SampleTypeItem = {
@@ -126,13 +178,29 @@ type DocumentNameItem = {
   createdBy: number;
 };
 
+type ColumnItem = { isChecked: boolean; tableHeaderName: string; id: number };
+
+type ViewMode = "patient" | "sample" | "test";
+
+type StateValueProps = {
+  all: number;
+  pending: number;
+  collected: number;
+  received: number;
+  rejected: number;
+};
+
 export type {
+  ColumnItem,
   CorporateItem,
   DocumentNameItem,
   FilterTypeItem,
+  GroupedDataSampleManagement,
   SampleManagementItem,
   SampleRemarksItem,
   SampleRemarkTableDataItem,
   SampleTypeItem,
+  StateValueProps,
   SubSubCategoryItem,
+  ViewMode,
 };

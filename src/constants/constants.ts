@@ -550,14 +550,18 @@ export enum userAuthorizationTabNames {
 }
 
 export enum labSampleManagementButtonClicked {
-  NEW_CLICKED = "newClicked",
+  ALL_CLICKED = "allClicked",
+  COLLECTION_PENDING_CLICKED = "collectionPendingClicked",
   SAMPLE_COLLECTED_CLICKED = "sampleCollectedClicked",
   SAMPLE_REJECTED_CLICKED = "sampleRejectedClicked",
+  DEPARTMENT_RECEIVING_PENDING_CLICKED = "departmentReceivingPendingClicked",
   DEPARTMENT_RECEIVE_CLICKED = "departmentReceiveClicked",
-  TESTED_CLICKED = "testedClicked",
-  APPROVED_CLICKED = "approvedClicked",
-  PRINTED_CLICKED = "printedClicked",
+  RESULT_PENDING_CLICKED = "resultPendingClicked",
+  REPORT_APPROVAL_PENDING_CLICKED = "reportApprovalPendingClicked",
   HOLD_CLICKED = "holdClicked",
+  APPROVED_CLICKED = "approvedClicked",
   DISPATCHED_CLICKED = "dispatchedClicked",
-  ALL_CLICKED = "allClicked",
+  PRINTED_CLICKED = "printedClicked",
+  URGENT_CLICKED = "urgentClicked",
+  ABNORMAL_CLICKED = "abnormalClicked",
 }

@@ -1,18 +1,14 @@
 import { OPPaymentItem } from "../types";
 
-const getIsDiscountApproved = (item: OPPaymentItem) =>
-  Number(
-    item.IsDiscountApproved ??
-      (item as OPPaymentItem & { isDiscountApproved?: number }).isDiscountApproved ??
-      0
-  ) === 1;
-
 export const shouldShowCollectPaymentButton = (item?: OPPaymentItem | null) => !!item;
 
 export const shouldShowCancelPaymentButton = (item?: OPPaymentItem | null) => !!item;
 
 export const isCollectPaymentButtonDisabled = (item?: OPPaymentItem | null) =>
-  !item || item.IsCancel === 1 || item.IsPaymentCollected === 1 || !getIsDiscountApproved(item);
+  !item ||
+  item.IsCancel === 1 ||
+  item.IsPaymentCollected === 1 ||
+  (item?.IsDiscountApproved === 0 && item?.StatusId === 1);
 
 export const isCancelPaymentButtonDisabled = (item?: OPPaymentItem | null) =>
   !item || item.IsCancel === 1 || item.IsPaymentCollected === 1;

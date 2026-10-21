@@ -22,6 +22,7 @@ import VerifyOtp from "./components/VerifyOtp";
 
 import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
+import { showWarning } from "@/utils/alert";
 import { getAuthStorage } from "../../utils/authStorage";
 import { getVerificationFlags, isAccountFullyVerified } from "../../utils/authVerification";
 import { InputError, PageItem, TabItem } from "./type";
@@ -215,6 +216,7 @@ const Login = () => {
       await dispatch(fetchUserRightAccess({ branchId, roleId })).unwrap();
       await dispatch(fetchAssignBranchRight({ branchId })).unwrap();
       await fetchAuthorizedPages(branchId, roleId);
+      await getSampleJourneySteps();
 
       if (contactVerified && emailVerified) {
         setSuccessMessage(loginRes.message ?? "User logged in successfully");
@@ -331,6 +333,22 @@ const Login = () => {
     }));
 
     setAuthorizedPages([quickLinksTab, ...normalTabs]);
+  };
+
+  // lab sample management sample journey
+  const getSampleJourneySteps = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_COMPANY_SETTINGS,
+      {},
+      {},
+      { component: "Login" }
+    );
+    if (!resp?.result) {
+      showWarning(resp?.message ?? "Error while fetching sample journey steps");
+      return;
+    }
+    localStorage.setItem("sampleJourneyStepProcess", JSON.stringify(resp?.data?.[0]));
   };
 
   return (
