@@ -106,7 +106,7 @@ const RejectSamplePopup = React.memo(
         title="Reject Sample"
         isOpen={isOpen}
         onClose={onClose}
-        className="w-full sm:max-w-md lg:min-w-200"
+        className="w-full sm:max-w-md lg:min-w-250"
       >
         <div className="space-y-3">
           {/* Patient Details */}

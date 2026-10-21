@@ -1,32 +1,106 @@
-import CustomBarcode from "@/components/customBarcode";
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { encryptRouteId } from "@/utils/routeEncryption";
-import { Eye, File, MoreVertical, Plus, Printer } from "lucide-react";
-import { ChangeEvent, useCallback, useState } from "react";
+import { Eye, File, MoreVertical, Plus, Printer, RotateCw, Search, Settings } from "lucide-react";
+import {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
-import { SampleManagementItem, SampleTypeItem } from "../types";
+import {
+  ColumnItem,
+  GroupedDataSampleManagement,
+  SampleManagementItem,
+  SampleTypeItem,
+  ViewMode,
+} from "../types";
 import AddRemarkPopup from "./AddRemarkPopup";
 import RejectSamplePopup from "./RejectSamplePopup";
+import SampleCollection from "./SampleCollection";
 import UploadDocument from "./UploadDocument";
 
+const columnVisibilityTableValue = [
+  { isChecked: true, tableHeaderName: "Time Line", id: 1 },
+  { isChecked: true, tableHeaderName: "Lab No", id: 2 },
+  { isChecked: true, tableHeaderName: "Bill Date", id: 3 },
+  { isChecked: true, tableHeaderName: "UHID", id: 4 },
+  { isChecked: true, tableHeaderName: "Patient Name", id: 5 },
+  { isChecked: true, tableHeaderName: "Age / Gender", id: 6 },
+  { isChecked: true, tableHeaderName: "Corporate", id: 7 },
+  { isChecked: true, tableHeaderName: "Test(s)", id: 8 },
+  { isChecked: true, tableHeaderName: "Sample Type", id: 9 },
+  { isChecked: true, tableHeaderName: "Barcode", id: 10 },
+  { isChecked: true, tableHeaderName: "Collection Time", id: 11 },
+  { isChecked: true, tableHeaderName: "Received Time", id: 12 },
+  { isChecked: true, tableHeaderName: "Priority", id: 13 },
+  { isChecked: true, tableHeaderName: "Status", id: 14 },
+  { isChecked: true, tableHeaderName: "IPD No/Beds", id: 15 },
+];
+
+// value match search helper
+const valueMatchesSearch = (value: unknown, query: string): boolean => {
+  if (value === null || value === undefined) return false;
+
+  if (Array.isArray(value)) {
+    return value.some(item => valueMatchesSearch(item, query));
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some(item =>
+      valueMatchesSearch(item, query)
+    );
+  }
+
+  return String(value).toLowerCase().includes(query);
+};
+
+// matches search
+const matchesSearch = <T extends object>(row: T, searchValue: string): boolean => {
+  const query = searchValue.trim().toLowerCase();
+
+  if (!query) return true;
+
+  return Object.values(row).some(value => valueMatchesSearch(value, query));
+};
+
 export default function TableData({
-  onNavigate,
   updatedSampleManagementList,
   setUpdatedSampleManagementList,
   sampleType,
   refetchSampleManagement,
+  uhidGroupedSampleManagementList,
+  sampleWiseGroupedSampleManagementList,
+  setUhidGroupedSampleManagementList,
+  setSampleWiseGroupedSampleManagementList,
+  viewMode,
+  setViewMode,
 }: {
-  onNavigate?: (id: any) => void;
   updatedSampleManagementList: SampleManagementItem[];
   setUpdatedSampleManagementList: (data: SampleManagementItem[]) => void;
   sampleType: SampleTypeItem[];
   refetchSampleManagement?: () => Promise<void>;
+  uhidGroupedSampleManagementList: GroupedDataSampleManagement[];
+  sampleWiseGroupedSampleManagementList: GroupedDataSampleManagement[];
+  setUhidGroupedSampleManagementList: (data: GroupedDataSampleManagement[]) => void;
+  setSampleWiseGroupedSampleManagementList: (data: GroupedDataSampleManagement[]) => void;
+  viewMode: ViewMode;
+  setViewMode: Dispatch<SetStateAction<ViewMode>>;
 }) {
   const { loading, fetchApi } = useGlobalApi();
   const navigate = useNavigate();
+
+  const [searchValue, setSearchValue] = useState<string>("");
+
   const [checkedSample, setCheckedSample] = useState<SampleManagementItem[]>([]);
+
   const [selectedSampleData, setSelelectedSampleData] = useState<SampleManagementItem | null>(null);
 
   const [renderAddRemarks, setRenderAddRemarks] = useState<boolean>(false);
@@ -37,6 +111,20 @@ export default function TableData({
 
   const [renderUploadDocument, setRenderUploadDocument] = useState<boolean>(false);
   const [openUploadDocument, setOpenUploadDocument] = useState<boolean>(false);
+
+  const [showColumnVisbility, setShowColumnVisbility] = useState<boolean>(false);
+  const [columnVisibilityTable, setColumnVisibilityTable] = useState<ColumnItem[]>(
+    columnVisibilityTableValue
+  );
+
+  const settingsContainerRef = useRef<HTMLDivElement>(null);
+
+  const [columnsLoaded, setColumnsLoaded] = useState(false);
+  const [selectedRowForSampleCollect, setSelectedRowForSampleCollect] =
+    useState<GroupedDataSampleManagement | null>(null);
+
+  const [openSampleCollect, setOpenSampleCollect] = useState<boolean>(false);
+  const [renderSampleCollect, setRenderSampleCollect] = useState<boolean>(false);
 
   // patient view details
   const handlePatientViewDetails = (row: SampleManagementItem) => {
@@ -73,10 +161,6 @@ export default function TableData({
     alert(`Print clicked for sample: ${sampleId}`);
   };
 
-  const handleAttachClick = sampleId => {
-    alert(`Attach clicked for sample: ${sampleId}`);
-  };
-
   // handle upload document
   const handleUploadDocument = (row: SampleManagementItem) => {
     if (!row) {
@@ -94,6 +178,12 @@ export default function TableData({
   const closeUploadDocument = useCallback(() => {
     setOpenUploadDocument(false);
     setRenderUploadDocument(false);
+    setSelelectedSampleData(null);
+  }, []);
+
+  const closeSampleCollection = useCallback(() => {
+    setOpenSampleCollect(false);
+    setRenderSampleCollect(false);
     setSelelectedSampleData(null);
   }, []);
 
@@ -117,32 +207,75 @@ export default function TableData({
     setSelelectedSampleData(null);
   }, []);
 
-  const handleUploadClick = sampleId => {
-    alert(`Upload clicked for sample: ${sampleId}`);
-  };
-
   // sample type change handler
-  const sampleChangeHandlerRowWise = (
-    e: ChangeEvent<HTMLSelectElement>,
-    row: SampleManagementItem
-  ) => {
-    const selectedValue = e.target.value;
-    const selectedTypeObj = sampleType.find(x => Number(x.sampleTypeId) === Number(selectedValue));
-    const selectedTypeName = selectedTypeObj?.sampleType ?? "";
+  // sample type change handler
+  const sampleChangeHandlerRowWise = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>, row: SampleManagementItem) => {
+      const selectedValue = e.target.value;
 
-    const updatedList = updatedSampleManagementList.map(item =>
-      Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
-        ? {
-            ...item,
-            DefaultSampleTypeId: selectedValue === "0" ? null : selectedValue,
-            SampleTypeName: selectedTypeName,
-          }
-        : item
-    );
+      const selectedTypeObj = sampleType.find(
+        x => Number(x.sampleTypeId) === Number(selectedValue)
+      );
 
-    setUpdatedSampleManagementList(updatedList);
-  };
+      const selectedTypeName = selectedTypeObj?.sampleType ?? "";
 
+      const updatedList = updatedSampleManagementList.map(item =>
+        Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+          ? {
+              ...item,
+              DefaultSampleTypeId: selectedValue === "0" ? null : selectedValue,
+              SampleTypeName: selectedTypeName,
+            }
+          : item
+      );
+
+      setCheckedSample(prevList =>
+        prevList.map(item =>
+          Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+            ? {
+                ...item,
+                DefaultSampleTypeId: selectedValue === "0" ? null : selectedValue,
+                SampleTypeName: selectedTypeName,
+              }
+            : item
+        )
+      );
+
+      setUpdatedSampleManagementList(updatedList);
+    },
+    [updatedSampleManagementList, sampleType, setUpdatedSampleManagementList]
+  );
+
+  // rowWiseBarcodeChangeHandler;
+
+  const rowWiseBarcodeChangeHandler = useCallback(
+    (e: ChangeEvent<HTMLInputElement>, row: SampleManagementItem) => {
+      const barcodeValue = e.target.value;
+
+      const updatedList = updatedSampleManagementList.map(item =>
+        Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+          ? {
+              ...item,
+              Barcode: barcodeValue,
+            }
+          : item
+      );
+
+      setCheckedSample(prevList =>
+        prevList.map(item =>
+          Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+            ? {
+                ...item,
+                Barcode: barcodeValue,
+              }
+            : item
+        )
+      );
+
+      setUpdatedSampleManagementList(updatedList);
+    },
+    [updatedSampleManagementList, setUpdatedSampleManagementList]
+  );
   // check items for sample collection
 
   const rowWiseCheckHandler = (e: ChangeEvent<HTMLInputElement>, row: SampleManagementItem) => {
@@ -196,7 +329,7 @@ export default function TableData({
         sampleDateTime: new Date().toISOString(),
         statusId: 1,
         defaultSampleTypeId: c.DefaultSampleTypeId,
-        labNo: c.LabNo,
+        labNo: c?.LabNo,
       })),
     };
   };
@@ -227,290 +360,1013 @@ export default function TableData({
     refetchSampleManagement?.();
   };
 
-  return (
-    <div className="card mt-2">
-      <div className="overflow-x-auto lg:max-h-186">
-        <table className="w-full min-w-400 table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
-          <thead>
-            <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
-              <th className="w-[3%] border border-gray-300 py-2 px-1 text-center">
-                <input
-                  type="checkbox"
-                  className="input-checkbox"
-                  checked={
-                    updatedSampleManagementList.some(
-                      item => Number(item.IsSampleCollected) !== 1
-                    ) &&
-                    updatedSampleManagementList
-                      .filter(item => Number(item.IsSampleCollected) !== 1)
-                      .every(item => Boolean(item.isSampleSelected))
-                  }
-                  onChange={handleSelectAll}
-                />
-              </th>
-              <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
-              <th className="w-[5%] border border-gray-300 py-2 px-1 text-center">Time Line</th>
-              <th className="w-[4%] border border-gray-300 py-2 text-center px-2">Lab No</th>
-              <th className="w-[5%] border border-gray-300 py-2 px-1 text-center">Barcode</th>
-              <th className="w-[9%] border border-gray-300 py-2 text-center px-2">UHID</th>
-              <th className="w-[10%] border border-gray-300 py-2  text-center px-2">
-                Patient Name
-              </th>
-              <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Sample Type</th>
-              <th className="w-[10%] border border-gray-300 py-2 text-center px-2">Test(s)</th>
-              <th className="w-[7%] border border-gray-300 py-2 text-center px-2">
-                Collection Time
-              </th>
-              <th className="w-[7%] border border-gray-300 py-2 text-center px-2">Received Time</th>
-              <th className="w-[7%] border border-gray-300 py-2 text-center px-2">Priority</th>
-              <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Status</th>
-              <th className="w-[7%] border border-gray-300 py-2 text-center px-2">Location/Beds</th>
-              <th className="w-[10%] border border-gray-300 py-2 px-1 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-            {updatedSampleManagementList?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={15}
-                  className="border border-gray-300 py-2 px-1 text-center text-gray-700"
-                >
-                  No records found
-                </td>
-              </tr>
-            )}
-            {updatedSampleManagementList.map((row: SampleManagementItem, idx: number) => (
-              <tr key={`${row?.LabNo}_${idx}`} className="hover:bg-slate-50 transition-colors">
-                <td className="border border-gray-300 py-2 px-1 text-center">
-                  <input
-                    type="checkbox"
-                    className="input-checkbox"
-                    checked={Boolean(row?.isSampleSelected)}
-                    onChange={e => rowWiseCheckHandler(e, row)}
-                    disabled={Number(row?.IsSampleCollected) === 1}
-                  />
-                </td>
-                <td className="border border-gray-300 py-2 px-1 font-bold text-gray-900 text-center">
-                  {idx + 1}
-                </td>
-                <td className="border border-gray-300 py-2 px-1 text-center">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${row.timeLineColor || row.tmeLineColor || "text-emerald-700 bg-emerald-50"}`}
-                  >
-                    {row.timeLine}
-                  </span>
-                </td>
-                <td className="border border-gray-300 py-2 px-2 text-center text-blue-600 font-bold">
-                  {row?.LabNo}
-                </td>
-                <td className="border border-gray-300 py-1.5 px-2 text-center">
-                  <CustomBarcode value={row?.Barcode} fallbackValue={row?.LabNo} />
-                </td>
-                <td className="border border-gray-300 py-2 px-2 text-gray-800">
-                  {row?.UHID || "-"}
-                </td>
-                <td className="border border-gray-300 text-center py-2 px-2 text-gray-900 font-bold">
-                  {row?.PatientName || "-"}
-                </td>
-                <td className="border border-gray-300 text-center py-2 px-2 text-gray-700">
-                  <select
-                    value={Number(row?.DefaultSampleTypeId || 0)}
-                    className="input-field"
-                    onChange={e => sampleChangeHandlerRowWise(e, row)}
-                    disabled={!!row?.isSampleRejected || !!row?.IsSampleCollected}
-                  >
-                    <option value={0}>Select</option>
-                    {sampleType.map((item: SampleTypeItem) => (
-                      <option key={item?.sampleTypeId} value={item?.sampleTypeId}>
-                        {item?.sampleType}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="border border-gray-300 py-2 px-2 text-gray-800 font-medium">
-                  {(() => {
-                    const status =
-                      Number(row?.isSampleRejected) === 1
-                        ? { color: "text-red-600 bg-red-100" }
-                        : Number(row?.IsReportHold) === 1
-                          ? { color: "text-orange-700 bg-orange-100" }
-                          : Number(row?.IsReportApproved) === 1
-                            ? { color: "text-emerald-700 bg-emerald-100" }
-                            : Number(row?.IsDispatched) === 1
-                              ? { color: "text-purple-700 bg-purple-100" }
-                              : Number(row?.IsResultDone) === 1
-                                ? { color: "text-pink-700 bg-pink-100" }
-                                : Number(row?.IsSampleReceivedByDepartment) === 1
-                                  ? { color: "text-blue-500 bg-cyan-100" }
-                                  : Number(row?.IsSampleCollected) === 1
-                                    ? { color: "text-amber-600 bg-amber-100" }
-                                    : { color: "text-yellow-800 bg-yellow-100" };
+  const options: { label: string; value: string }[] = [
+    { label: "Patient Wise", value: "patient" },
+    { label: "Sample Wise", value: "sample" },
+    { label: "Test Wise", value: "test" },
+  ];
 
-                    return (
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}
+  // set view mode handler
+  const setViewModeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    localStorage.setItem("labSampleManagementSelectedViewMode", JSON.stringify(e.target.value));
+    setViewMode(e.target.value as ViewMode);
+  };
+
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem("labSampleManagementSelectedViewMode");
+    if (savedViewMode) {
+      setViewMode(JSON.parse(savedViewMode));
+    }
+  }, []);
+
+  // patient wise filter data
+  const getFilteredDataByUhid = useMemo(() => {
+    let newFilteredData = new Set(updatedSampleManagementList?.map(u => u?.LabNo).filter(Boolean));
+    return Array.from(newFilteredData);
+  }, [updatedSampleManagementList]);
+
+  useEffect(() => {
+    let newData: GroupedDataSampleManagement[] = [];
+    getFilteredDataByUhid.forEach(labNo => {
+      const patientData = updatedSampleManagementList?.filter(
+        x => Number(x.LabNo) === Number(labNo)
+      );
+
+      if (patientData && patientData.length > 0) {
+        const serumTypes = Array.from(
+          new Set(
+            patientData
+              .map(
+                item =>
+                  item?.SampleTypeName ||
+                  sampleType?.find(
+                    s => Number(s.sampleTypeId) === Number(item?.DefaultSampleTypeId)
+                  )?.sampleType ||
+                  item?.SampleTypeList ||
+                  ""
+              )
+              .filter(Boolean) as string[]
+          )
+        );
+
+        const serviceNames = Array.from(
+          new Set(patientData.map(item => item?.Name).filter(Boolean) as string[])
+        );
+
+        newData.push({
+          BillDate: patientData[0]?.BillDate,
+          Type: patientData[0]?.Type,
+          UHID: patientData[0]?.UHID,
+          IPDNo: patientData[0]?.IPDNo,
+          LabNo: patientData[0]?.LabNo,
+          WardName: patientData[0]?.WardName,
+          PatientName: patientData[0]?.PatientName,
+          CurrentAge: patientData[0]?.CurrentAge,
+          CorporateName: patientData[0]?.CorporateName,
+          Gender: patientData[0]?.Gender,
+          TotalBalanceAmount: patientData[0]?.TotalBalanceAmount,
+          VisitId: patientData[0]?.VisitId,
+          isUrgent: patientData[0]?.isUrgent,
+          Barcode: patientData[0]?.Barcode,
+          IsSampleRequired: patientData[0]?.IsSampleRequired,
+          IsDepartmentReceivingRequired: patientData[0]?.IsDepartmentReceivingRequired,
+          PatientInvestigationId: patientData[0]?.PatientInvestigationId,
+          ReportTypeId: patientData[0]?.ReportTypeId,
+          IsReportHold: patientData[0]?.IsReportHold,
+          CreatedOn: patientData[0]?.CreatedOn,
+          VIPPatient: patientData[0]?.VIPPatient,
+          IsSampleCollected: patientData[0]?.IsSampleCollected,
+          SampleCollectedOn: patientData[0]?.SampleCollectedOn,
+          IsSampleReceivedByDepartment: patientData[0]?.IsSampleReceivedByDepartment,
+          SampleReceivedByDepartmentOn: patientData[0]?.SampleReceivedByDepartmentOn,
+          IsResultDone: patientData[0]?.IsResultDone,
+          ResultDoneOn: patientData[0]?.ResultDoneOn,
+          IsReportApproved: patientData[0]?.IsReportApproved,
+          ReportApprovedOn: patientData[0]?.ReportApprovedOn,
+          IsDispatched: patientData[0]?.IsDispatched,
+          DispatchedOn: patientData[0]?.DispatchedOn,
+          isSampleRejected: patientData[0]?.isSampleRejected,
+          DefaultSampleTypeId: patientData[0]?.DefaultSampleTypeId,
+          SampleTypeList: patientData[0]?.SampleTypeList,
+          DeliveryDate: patientData[0]?.DeliveryDate,
+          IsUnderPackage: patientData[0]?.IsUnderPackage,
+          Name: patientData[0]?.Name,
+          SampleTypeName: patientData[0]?.SampleTypeName,
+          isSampleSelected: patientData[0]?.isSampleSelected,
+          serumTypes,
+          serumCount: serumTypes.length,
+          serviceNames,
+          serviceCount: serviceNames.length,
+        });
+      }
+    });
+
+    setUhidGroupedSampleManagementList(newData);
+  }, [
+    updatedSampleManagementList,
+    getFilteredDataByUhid,
+    sampleType,
+    setUhidGroupedSampleManagementList,
+  ]);
+
+  // sample wise filter data
+  const getFilteredDataBySampleType = useMemo(() => {
+    const seen = new Set<string>();
+    const groups: { labNo: number; defaultSampleTypeId: string | null }[] = [];
+
+    updatedSampleManagementList?.forEach(u => {
+      if (!u?.LabNo) return;
+      const key = `${u.LabNo}_${u.DefaultSampleTypeId ?? ""}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        groups.push({
+          labNo: u.LabNo,
+          defaultSampleTypeId: u.DefaultSampleTypeId ?? null,
+        });
+      }
+    });
+
+    return groups;
+  }, [updatedSampleManagementList]);
+
+  useEffect(() => {
+    let newData: GroupedDataSampleManagement[] = [];
+    getFilteredDataBySampleType.forEach(({ labNo, defaultSampleTypeId }) => {
+      const patientData = updatedSampleManagementList?.filter(
+        x =>
+          Number(x.LabNo) === Number(labNo) &&
+          String(x.DefaultSampleTypeId ?? "") === String(defaultSampleTypeId ?? "")
+      );
+
+      if (patientData && patientData.length > 0) {
+        const serumTypes = Array.from(
+          new Set(
+            patientData
+              .map(
+                item =>
+                  item?.SampleTypeName ||
+                  sampleType?.find(
+                    s => Number(s.sampleTypeId) === Number(item?.DefaultSampleTypeId)
+                  )?.sampleType ||
+                  item?.SampleTypeList ||
+                  ""
+              )
+              .filter(Boolean) as string[]
+          )
+        );
+
+        const serviceNames = Array.from(
+          new Set(patientData.map(item => item?.Name).filter(Boolean) as string[])
+        );
+
+        newData.push({
+          BillDate: patientData[0]?.BillDate,
+          Type: patientData[0]?.Type,
+          UHID: patientData[0]?.UHID,
+          IPDNo: patientData[0]?.IPDNo,
+          LabNo: patientData[0]?.LabNo,
+          WardName: patientData[0]?.WardName,
+          PatientName: patientData[0]?.PatientName,
+          CurrentAge: patientData[0]?.CurrentAge,
+          CorporateName: patientData[0]?.CorporateName,
+          Gender: patientData[0]?.Gender,
+          TotalBalanceAmount: patientData[0]?.TotalBalanceAmount,
+          VisitId: patientData[0]?.VisitId,
+          isUrgent: patientData[0]?.isUrgent,
+          Barcode: patientData[0]?.Barcode,
+          IsSampleRequired: patientData[0]?.IsSampleRequired,
+          IsDepartmentReceivingRequired: patientData[0]?.IsDepartmentReceivingRequired,
+          PatientInvestigationId: patientData[0]?.PatientInvestigationId,
+          ReportTypeId: patientData[0]?.ReportTypeId,
+          IsReportHold: patientData[0]?.IsReportHold,
+          CreatedOn: patientData[0]?.CreatedOn,
+          VIPPatient: patientData[0]?.VIPPatient,
+          IsSampleCollected: patientData[0]?.IsSampleCollected,
+          SampleCollectedOn: patientData[0]?.SampleCollectedOn,
+          IsSampleReceivedByDepartment: patientData[0]?.IsSampleReceivedByDepartment,
+          SampleReceivedByDepartmentOn: patientData[0]?.SampleReceivedByDepartmentOn,
+          IsResultDone: patientData[0]?.IsResultDone,
+          ResultDoneOn: patientData[0]?.ResultDoneOn,
+          IsReportApproved: patientData[0]?.IsReportApproved,
+          ReportApprovedOn: patientData[0]?.ReportApprovedOn,
+          IsDispatched: patientData[0]?.IsDispatched,
+          DispatchedOn: patientData[0]?.DispatchedOn,
+          isSampleRejected: patientData[0]?.isSampleRejected,
+          DefaultSampleTypeId: patientData[0]?.DefaultSampleTypeId,
+          SampleTypeList: patientData[0]?.SampleTypeList,
+          DeliveryDate: patientData[0]?.DeliveryDate,
+          IsUnderPackage: patientData[0]?.IsUnderPackage,
+          Name: patientData[0]?.Name,
+          SampleTypeName: patientData[0]?.SampleTypeName,
+          isSampleSelected: patientData[0]?.isSampleSelected,
+          serumTypes,
+          serumCount: serumTypes.length,
+          serviceNames,
+          serviceCount: serviceNames.length,
+        });
+      }
+    });
+
+    setSampleWiseGroupedSampleManagementList(newData);
+  }, [
+    updatedSampleManagementList,
+    getFilteredDataBySampleType,
+    sampleType,
+    setSampleWiseGroupedSampleManagementList,
+  ]);
+
+  const settingCoulmnVisibility = () => {
+    setShowColumnVisbility(prev => !prev);
+  };
+
+  useEffect(() => {
+    if (!showColumnVisbility) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsContainerRef.current &&
+        !settingsContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowColumnVisbility(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showColumnVisbility]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("labSampleManagementColumnsVisiblity");
+
+      if (stored) {
+        const parsed = JSON.parse(stored) as ColumnItem[];
+
+        // Merge saved settings with the latest configuration.
+        const merged = columnVisibilityTableValue.map(column => {
+          const saved = parsed.find(item => item.id === column.id);
+          return saved ? { ...column, isChecked: saved.isChecked } : column;
+        });
+
+        setColumnVisibilityTable(merged);
+      }
+    } catch {
+      localStorage.removeItem("labSampleManagementColumnsVisiblity");
+    } finally {
+      setColumnsLoaded(true);
+    }
+  }, []);
+
+  const isColumnVisible = useCallback(
+    (headerName: string) =>
+      columnVisibilityTable.find(column => column.tableHeaderName === headerName)?.isChecked ??
+      true,
+    [columnVisibilityTable]
+  );
+
+  // update column visibility
+
+  const updateColumnVisibility = (e: ChangeEvent<HTMLInputElement>, col: ColumnItem) => {
+    const checked = e.target.checked;
+
+    setColumnVisibilityTable(prev => {
+      const updated = prev.map(item =>
+        item.id === col.id ? { ...item, isChecked: checked } : item
+      );
+
+      localStorage.setItem("labSampleManagementColumnsVisiblity", JSON.stringify(updated));
+
+      return updated;
+    });
+  };
+
+  // select row handler
+  const selecteRowHandler = (row: GroupedDataSampleManagement) => {
+    if (!row) {
+      setSelectedRowForSampleCollect(null);
+      setOpenSampleCollect(false);
+      setRenderSampleCollect(false);
+      return;
+    }
+    setOpenSampleCollect(true);
+    setRenderSampleCollect(true);
+    setSelectedRowForSampleCollect(row);
+  };
+
+  const searchHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
+
+  // filtered data
+  const filteredTestData = useMemo(
+    () => updatedSampleManagementList.filter(row => matchesSearch(row, searchValue)),
+    [updatedSampleManagementList, searchValue]
+  );
+
+  const filteredPatientData = useMemo(
+    () => uhidGroupedSampleManagementList.filter(row => matchesSearch(row, searchValue)),
+    [uhidGroupedSampleManagementList, searchValue]
+  );
+
+  const filteredSampleData = useMemo(
+    () => sampleWiseGroupedSampleManagementList.filter(row => matchesSearch(row, searchValue)),
+    [sampleWiseGroupedSampleManagementList, searchValue]
+  );
+
+  // render table
+  const renderTable = (viewMode: string) => {
+    switch (viewMode) {
+      case "sample":
+        return (
+          <>
+            <div className="overflow-x-auto lg:max-h-186">
+              <table className="w-full  min-w-90  table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+                <thead>
+                  <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
+                    <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
+
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                      Bill Date
+                    </th>
+
+                    <th className="w-[2%] border border-gray-300 py-2 text-center px-2">Lab No</th>
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">UHID</th>
+                    <th className="w-[5%] border border-gray-300 py-2  text-center px-2">
+                      Patient Name
+                    </th>
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                      Sample Type
+                    </th>
+                    <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Test(s)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                  {filteredSampleData?.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="border border-gray-300 py-2 px-1 text-center text-gray-700"
                       >
-                        {row?.Name || "-"}
-                      </span>
-                    );
-                  })()}
-                </td>
-                <td className="border border-gray-300 text-center py-2 px-2 text-gray-600 whitespace-pre-line text-[10px]">
-                  {row?.SampleCollectedOn || "-"}
-                </td>
-                <td className="border border-gray-300  text-center py-2 px-2 text-gray-600 whitespace-pre-line text-[10px]">
-                  {row?.SampleReceivedByDepartmentOn || "-"}
-                </td>
-                <td className="border border-gray-300 py-2 px-2 text-center">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                      row?.isUrgent === 1
-                        ? "text-rose-700 bg-rose-100"
-                        : "text-emerald-700 bg-emerald-100"
-                    }`}
-                  >
-                    {row?.isUrgent === 1 ? "Urgent" : "Normal"}
-                  </span>
-                </td>
+                        No records found
+                      </td>
+                    </tr>
+                  )}
+                  {filteredSampleData.map((row: GroupedDataSampleManagement, idx: number) => (
+                    <tr
+                      key={`${row?.LabNo}_${idx}`}
+                      className="hover:bg-slate-50 transition-transform cursor-pointer"
+                      onDoubleClick={() => selecteRowHandler(row)}
+                    >
+                      <td className="border border-gray-300 py-2 px-1 font-bold text-gray-900 text-center">
+                        {idx + 1}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center">
+                        {row?.BillDate}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center text-blue-600 font-bold">
+                        {row?.LabNo}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center text-gray-800">
+                        {row?.UHID || "-"}
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 px-2 text-gray-900 font-bold">
+                        {row?.PatientName || "-"}
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 cursor-pointer">
+                        {row?.serumTypes?.[0] || "-"}
+                        <div className="text-blue-600 font-bold">
+                          {row?.serumCount! > 1 && ` + ${row?.serumCount! - 1}`}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 cursor-pointer">
+                        {row?.serviceNames?.[0] || "-"}
+                        <div className="text-blue-600 font-bold">
+                          {row?.serviceCount! > 1 && ` + ${row?.serviceCount! - 1}`}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      case "test": {
+        return (
+          <>
+            <div className="overflow-x-auto lg:max-h-186">
+              <table className="w-full min-w-400 table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+                <thead>
+                  <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
+                    {/* Always-visible selection checkbox */}
+                    <th className="w-[3%] border border-gray-300 px-1 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        className="input-checkbox"
+                        checked={
+                          updatedSampleManagementList.some(
+                            item => Number(item.IsSampleCollected) !== 1
+                          ) &&
+                          updatedSampleManagementList
+                            .filter(item => Number(item.IsSampleCollected) !== 1)
+                            .every(item => Boolean(item.isSampleSelected))
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </th>
 
-                <td className="border border-gray-300 py-2 px-2 text-center">
-                  {(() => {
-                    const status =
-                      Number(row?.isSampleRejected) === 1
-                        ? {
-                            label: "Rejected",
-                            color: "text-red-600 bg-red-100",
-                          }
-                        : Number(row?.IsReportHold) === 1
-                          ? {
-                              label: "On Hold",
-                              color: "text-orange-700 bg-orange-100",
+                    <th className="w-[2%] border border-gray-300 py-1 px-2 text-center">#</th>
+                    {isColumnVisible("Time Line") && (
+                      <th className=" w-[5%] border border-gray-300 px-1 py-2 text-center">
+                        Time Line
+                      </th>
+                    )}
+                    {isColumnVisible("Lab No") && (
+                      <th className=" w-[5%] border border-gray-300 px-1 py-2 text-center">
+                        Lab No
+                      </th>
+                    )}
+                    {isColumnVisible("Bill Date") && (
+                      <th className=" w-[6%] border border-gray-300 px-1 py-2 text-center">
+                        Bill Date
+                      </th>
+                    )}
+                    {isColumnVisible("UHID") && (
+                      <th className=" w-[7%] border border-gray-300 px-1 py-2 text-center">UHID</th>
+                    )}
+
+                    {isColumnVisible("Patient Name") && (
+                      <th className=" w-[9%] border border-gray-300 px-1 py-2 text-center">
+                        Patient Name
+                      </th>
+                    )}
+                    {isColumnVisible("Age / Gender") && (
+                      <th className=" w-[8%] border border-gray-300 px-1 py-2 text-center">
+                        Age / Gender
+                      </th>
+                    )}
+                    {isColumnVisible("Corporate") && (
+                      <th className=" w-[9%] border border-gray-300 px-1 py-2 text-center">
+                        Corporate
+                      </th>
+                    )}
+                    {isColumnVisible("Test(s)") && (
+                      <th className=" w-[7%] border border-gray-300 px-1 py-2 text-center">
+                        Test(s)
+                      </th>
+                    )}
+                    {isColumnVisible("Sample Type") && (
+                      <th className="w-[7%] border border-gray-300 px-1 py-2 text-center">
+                        Sample Type
+                      </th>
+                    )}
+
+                    {isColumnVisible("Barcode") && (
+                      <th className=" w-[5%] border border-gray-300 px-1 py-2 text-center">
+                        Barcode
+                      </th>
+                    )}
+                    {isColumnVisible("Collection Time") && (
+                      <th className=" w-[6%] border border-gray-300 px-1 py-2 text-center">
+                        Collection Time
+                      </th>
+                    )}
+                    {isColumnVisible("Received Time") && (
+                      <th className=" w-[6%] border border-gray-300 px-1 py-2 text-center">
+                        Received Time
+                      </th>
+                    )}
+                    {isColumnVisible("Priority") && (
+                      <th className=" w-[5%] border border-gray-300 px-1 py-2 text-center">
+                        Priority
+                      </th>
+                    )}
+                    {isColumnVisible("Status") && (
+                      <th className=" w-[6%] border border-gray-300 px-1 py-2 text-center">
+                        Status
+                      </th>
+                    )}
+                    {isColumnVisible("IPD No/Beds") && (
+                      <th className=" w-[8%] border border-gray-300 px-1 py-2 text-center">
+                        IPD No/Beds
+                      </th>
+                    )}
+
+                    <th className="w-[9%] border border-gray-300 py-2 px-1 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                  {filteredTestData?.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={17}
+                        className="border border-gray-300 py-2 px-1 text-center text-gray-700"
+                      >
+                        No records found
+                      </td>
+                    </tr>
+                  )}
+                  {filteredTestData.map((row: SampleManagementItem, idx: number) => (
+                    <tr
+                      key={`${row?.LabNo}_${idx}`}
+                      className="transition-colors hover:bg-slate-50"
+                    >
+                      {/* Always visible: selection checkbox */}
+                      <td className="border border-gray-300 px-1 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          className="input-checkbox"
+                          checked={Boolean(row?.isSampleSelected)}
+                          onChange={e => rowWiseCheckHandler(e, row)}
+                          disabled={Number(row?.IsSampleCollected) === 1}
+                        />
+                      </td>
+
+                      {/* Always visible: row number */}
+                      <td className="border border-gray-300 px-1 py-1 text-center font-bold">
+                        {idx + 1}
+                      </td>
+
+                      {isColumnVisible("Time Line") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center">
+                          <span
+                            className={`inline-block rounded px-2 py-0.5 text-[9px] font-bold ${
+                              row.timeLineColor ||
+                              row.tmeLineColor ||
+                              "bg-emerald-50 text-emerald-700"
+                            }`}
+                          >
+                            {row.timeLine || "-"}
+                          </span>
+                        </td>
+                      )}
+
+                      {isColumnVisible("Lab No") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center font-bold text-blue-600">
+                          {row?.LabNo ?? "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Bill Date") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center ">
+                          {row?.BillDate ?? "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("UHID") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center">
+                          {row?.UHID || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Patient Name") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center font-bold">
+                          {row?.PatientName || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Age / Gender") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center font-bold">
+                          {row?.CurrentAge + "/" + row?.Gender || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Corporate") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center">
+                          {row?.CorporateName || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Test(s)") && (
+                        <td className="border border-gray-300 px-2 py-2 font-medium">
+                          <span
+                            className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
+                              Number(row?.isSampleRejected) === 1
+                                ? "bg-red-100 text-red-600"
+                                : Number(row?.IsReportHold) === 1
+                                  ? "bg-orange-100 text-orange-700"
+                                  : Number(row?.IsReportApproved) === 1
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : Number(row?.IsDispatched) === 1
+                                      ? "bg-purple-100 text-purple-700"
+                                      : Number(row?.IsResultDone) === 1
+                                        ? "bg-pink-100 text-pink-700"
+                                        : Number(row?.IsSampleReceivedByDepartment) === 1
+                                          ? "bg-cyan-100 text-blue-500"
+                                          : Number(row?.IsSampleCollected) === 1
+                                            ? "bg-amber-100 text-amber-600"
+                                            : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {row?.Name || "-"}
+                          </span>
+                        </td>
+                      )}
+
+                      {isColumnVisible("Sample Type") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center">
+                          <select
+                            value={Number(row?.DefaultSampleTypeId || 0)}
+                            className="input-field lg:h-8.5"
+                            onChange={e => sampleChangeHandlerRowWise(e, row)}
+                            disabled={!!row?.isSampleRejected || !!row?.IsSampleCollected}
+                          >
+                            <option value={0}>Select</option>
+                            {sampleType.map((item: SampleTypeItem) => (
+                              <option key={item.sampleTypeId} value={item.sampleTypeId}>
+                                {item.sampleType}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
+
+                      {isColumnVisible("Barcode") && (
+                        <td className="border border-gray-300 px-1 py-1 text-center">
+                          <input
+                            className="input-field lg:h-8"
+                            value={row?.Barcode}
+                            disabled={
+                              Number(row?.isSampleRejected) === 1 ||
+                              Number(row?.IsSampleCollected) === 1
+                              // Number(row?.IsDepartmentReceivingRequired) === 1 ||
+                              // Number(row?.IsResultDone) === 1 ||
+                              // Number(row?.IsReportApproved) === 1 ||
+                              // Number(row?.IsDispatched) === 1
                             }
-                          : Number(row?.IsReportApproved) === 1
-                            ? {
-                                label: "Approved",
-                                color: "text-emerald-700 bg-emerald-100",
-                              }
-                            : Number(row?.IsDispatched) === 1
-                              ? {
-                                  label: "Dispatched",
-                                  color: "text-purple-700 bg-purple-100",
-                                }
-                              : Number(row?.IsResultDone) === 1
-                                ? {
-                                    label: "Report Generated",
-                                    color: "text-pink-700 bg-pink-100",
-                                  }
-                                : Number(row?.IsSampleReceivedByDepartment) === 1
-                                  ? {
-                                      label: "Received",
-                                      color: "text-blue-500 bg-blue-100",
-                                    }
-                                  : Number(row?.IsSampleCollected) === 1
+                            onChange={e => rowWiseBarcodeChangeHandler(e, row)}
+                            maxLength={7}
+                          />
+                        </td>
+                      )}
+
+                      {isColumnVisible("Collection Time") && (
+                        <td className="border border-gray-300 px-2 py-2 text-center text-gray-600">
+                          {row?.SampleCollectedOn || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Received Time") && (
+                        <td className="border border-gray-300 px-2 py-2 text-center text-gray-600">
+                          {row?.SampleReceivedByDepartmentOn || "-"}
+                        </td>
+                      )}
+
+                      {isColumnVisible("Priority") && (
+                        <td className="border border-gray-300 px-2 py-2 text-center">
+                          <span
+                            className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
+                              Number(row?.isUrgent) === 1
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {Number(row?.isUrgent) === 1 ? "Urgent" : "Normal"}
+                          </span>
+                        </td>
+                      )}
+
+                      {isColumnVisible("Status") && (
+                        <td className="border border-gray-300 px-2 py-2 text-center">
+                          {(() => {
+                            const status =
+                              Number(row?.isSampleRejected) === 1
+                                ? { label: "Rejected", color: "bg-red-100 text-red-600" }
+                                : Number(row?.IsReportHold) === 1
+                                  ? { label: "On Hold", color: "bg-orange-100 text-orange-700" }
+                                  : Number(row?.IsReportApproved) === 1
                                     ? {
-                                        label: "Collected",
-                                        color: "text-amber-700 bg-amber-100",
+                                        label: "Approved",
+                                        color: "bg-emerald-100 text-emerald-700",
                                       }
-                                    : {
-                                        label: "Pending",
-                                        color: "text-yellow-800 bg-yellow-100",
-                                      };
+                                    : Number(row?.IsDispatched) === 1
+                                      ? {
+                                          label: "Dispatched",
+                                          color: "bg-purple-100 text-purple-700",
+                                        }
+                                      : Number(row?.IsResultDone) === 1
+                                        ? {
+                                            label: "Report Generated",
+                                            color: "bg-pink-100 text-pink-700",
+                                          }
+                                        : Number(row?.IsSampleReceivedByDepartment) === 1
+                                          ? {
+                                              label: "Received",
+                                              color: "bg-cyan-100 text-blue-500",
+                                            }
+                                          : Number(row?.IsSampleCollected) === 1
+                                            ? {
+                                                label: "Collected",
+                                                color: "bg-amber-100 text-amber-700",
+                                              }
+                                            : {
+                                                label: "Pending",
+                                                color: "bg-yellow-100 text-yellow-800",
+                                              };
 
-                    return (
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${status.color}`}
+                            return (
+                              <span
+                                className={`inline-block rounded px-2.5 py-0.5 text-[10px] font-bold ${status.color}`}
+                              >
+                                {status.label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                      )}
+
+                      {isColumnVisible("IPD No/Beds") && (
+                        <td className="border border-gray-300 px-2 py-2 text-center">
+                          {row?.IPDNo || "-"} / {row?.BedNo || "-"}
+                        </td>
+                      )}
+
+                      <td className="border border-gray-300 px-1 py-2 text-center">
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handlePatientViewDetails(row)}
+                            className="cursor-pointer p-1 text-gray-500 hover:text-blue-600"
+                            title="View Details"
+                          >
+                            <Eye size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRejectSample(row)}
+                            className="cursor-pointer p-1 text-gray-500 hover:text-gray-800"
+                            title="Reject Sample"
+                          >
+                            <MoreVertical size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePrintClick(row.sampleId)}
+                            className="cursor-pointer p-1 text-gray-500 hover:text-emerald-600"
+                            title="Print Sample"
+                          >
+                            <Printer size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddRemarkClick(row)}
+                            className="cursor-pointer p-1 text-green-700 hover:text-emerald-600"
+                            title="Add Remarks"
+                          >
+                            <Plus size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleUploadDocument(row)}
+                            className="cursor-pointer p-1 text-gray-500 hover:text-emerald-600"
+                            title="Upload Document"
+                          >
+                            <File size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Footer Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-end pt-4 mt-2 border-t border-gray-200 text-xs text-gray-500 gap-3">
+              <div className="flex items-center  gap-3">
+                {/* Barcode Radio Button */}
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="barcodeOption"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span>Barcode</span>
+                </label>
+
+                {/* Print Button */}
+                <button
+                  onClick={() => alert("Print clicked")}
+                  className="border border-blue-600 text-blue-600  text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  Print
+                </button>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSampleCollectetion}
+                  className="save-btn text-white !text-xs font-semibold !px-3 !py-1.5 ounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  Collect Sample
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      }
+      case "patient": {
+        return (
+          <>
+            <div className="overflow-x-auto lg:max-h-186">
+              <table className="w-full  min-w-90  table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+                <thead>
+                  <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
+                    <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
+
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                      Bill Date
+                    </th>
+
+                    <th className="w-[2%] border border-gray-300 py-2 text-center px-2">Lab No</th>
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">UHID</th>
+                    <th className="w-[5%] border border-gray-300 py-2  text-center px-2">
+                      Patient Name
+                    </th>
+                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                      Sample Type
+                    </th>
+                    <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Test(s)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                  {filteredPatientData?.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="border border-gray-300 py-2 px-1 text-center text-gray-700"
                       >
-                        {status.label}
-                      </span>
-                    );
-                  })()}
-                </td>
+                        No records found
+                      </td>
+                    </tr>
+                  )}
+                  {filteredPatientData.map((row: GroupedDataSampleManagement, idx: number) => (
+                    <tr
+                      key={`${row?.LabNo}_${idx}`}
+                      className="hover:bg-slate-50 transition-transform cursor-pointer"
+                      onDoubleClick={() => selecteRowHandler(row)}
+                    >
+                      <td className="border border-gray-300 py-2 px-1 font-bold text-gray-900 text-center">
+                        {idx + 1}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center">
+                        {row?.BillDate}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center text-blue-600 font-bold">
+                        {row?.LabNo}
+                      </td>
+                      <td className="border border-gray-300 py-2 px-2 text-center text-gray-800">
+                        {row?.UHID || "-"}
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 px-2 text-gray-900 font-bold">
+                        {row?.PatientName || "-"}
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 cursor-pointer">
+                        {row?.serumTypes?.[0] || "-"}
+                        <div className="text-blue-600 font-bold">
+                          {row?.serumCount! > 1 && ` + ${row?.serumCount! - 1}`}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 text-center py-2 cursor-pointer">
+                        {row?.serviceNames?.[0] || "-"}
+                        <div className="text-blue-600 font-bold">
+                          {row?.serviceCount! > 1 && ` + ${row?.serviceCount! - 1}`}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      }
+      default:
+        return <></>;
+    }
+  };
 
-                <td className="border border-gray-300 rounded py-2 px-2 text-center text-gray-700">
-                  {row?.WardName || (row as any)?.BedAndLocation || "-"}
-                </td>
-                <td className="border border-gray-300 py-2 px-1 text-center">
-                  <div className="flex items-center justify-center space-x-.2">
-                    <button
-                      onClick={() => handlePatientViewDetails(row)}
-                      className="text-gray-500 hover:text-blue-600 cursor-pointer p-1 transition-colors"
-                      title="View Details"
-                    >
-                      <Eye size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleRejectSample(row)}
-                      className="text-gray-500 hover:text-gray-800 cursor-pointer p-1 transition-colors"
-                      title="Reject Sample"
-                    >
-                      <MoreVertical size={15} />
-                    </button>
-                    <button
-                      onClick={() => handlePrintClick(row.sampleId)}
-                      className="text-gray-500 hover:text-emerald-600 cursor-pointer p-1 transition-colors"
-                      title="Print Sample"
-                    >
-                      <Printer size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleAddRemarkClick(row)}
-                      className="text-green-700 hover:text-emerald-600 cursor-pointer p-1 transition-colors"
-                      title="Add Remarks"
-                    >
-                      <Plus size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleUploadDocument(row)}
-                      className="text-gray-500 hover:text-emerald-600 cursor-pointer p-1 transition-colors"
-                      title="Upload Document"
-                    >
-                      <File size={15} />
-                    </button>
-                    {/* <button
-                      onClick={() => handleUploadClick(row.sampleId)}
-                      className="text-red-500 hover:text-emerald-600 cursor-pointer p-1 transition-colors"
-                      title="Upload"
-                    >
-                      <ArrowUp size={15} />
-                    </button> */}
-                  </div>
-                </td>
-              </tr>
+  // refresh button handler
+  const refreshButtonHandler = () => {
+    refetchSampleManagement?.();
+  };
+
+  return (
+    <div className="card mt-1">
+      {/* group by  and settings */}
+      <div className="w-full -mt-2 px-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Group By */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {options.map(option => (
+              <label
+                key={option.value}
+                className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 whitespace-nowrap"
+              >
+                <input
+                  type="radio"
+                  name="sampleViewMode"
+                  value={option.value}
+                  checked={viewMode === option.value}
+                  onChange={setViewModeHandler}
+                  className="h-4 w-4 accent-blue-600 cursor-pointer"
+                />
+                <span>{option.label}</span>
+              </label>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
 
-      {/* Footer Button */}
-      <div className="flex flex-col sm:flex-row items-center justify-end pt-4 mt-2 border-t border-gray-200 text-xs text-gray-500 gap-3">
-        <div className="flex items-center  gap-3">
-          {/* Barcode Radio Button */}
-          <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
-            <input
-              type="radio"
-              name="barcodeOption"
-              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
-            />
-            <span>Barcode</span>
-          </label>
+          {/* Search and Actions */}
+          <div className="flex items-center gap-2 w-full lg:w-auto mb-1">
+            {/* Search */}
+            <div className="relative min-w-0 flex-1 lg:flex-none">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={searchValue}
+                onChange={searchHandler}
+                placeholder="Search in list..."
+                className="h-7 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-xs text-gray-800 placeholder-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100 lg:w-[220px]"
+              />
+            </div>
 
-          {/* Print Button */}
-          <button
-            onClick={() => alert("Print clicked")}
-            className="border border-blue-600 text-blue-600  text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
-          >
-            Print
-          </button>
+            {/* Reload */}
+            <button
+              type="button"
+              onClick={refreshButtonHandler}
+              className="flex h-7 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+              title="Reload"
+              aria-label="Reload"
+            >
+              <RotateCw size={15} />
+            </button>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSampleCollectetion}
-            className="save-btn text-white !text-xs font-semibold !px-3 !py-1.5 ounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
-          >
-            Collect Sample
-          </button>
+            {/* Settings */}
+            {viewMode === "test" && (
+              <div className="relative" ref={settingsContainerRef}>
+                <button
+                  type="button"
+                  onClick={settingCoulmnVisibility}
+                  className="flex h-7 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                  title="Settings"
+                  aria-label="Settings"
+                >
+                  <Settings size={15} />
+                </button>
+
+                {showColumnVisbility && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-64 rounded-lg border border-gray-200 bg-white shadow-xl">
+                    <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+                      <h3 className="text-sm font-semibold text-gray-700">Column Visibility</h3>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowColumnVisbility(false)}
+                        aria-label="Close"
+                        className="text-gray-500 hover:text-gray-800"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto p-2">
+                      {columnVisibilityTable.map(col => (
+                        <label
+                          key={col.id}
+                          htmlFor={`column-${col.id}`}
+                          className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 text-sm text-gray-700 transition-colors hover:bg-blue-50"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`column-${col.tableHeaderName}`}
+                            checked={col.isChecked}
+                            onChange={e => {
+                              updateColumnVisibility(e, col);
+                            }}
+                            className="input-checkbox"
+                          />
+
+                          <span className="min-w-0 flex-1 break-words">{col.tableHeaderName}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {/* render table */}
+
+      {renderTable(viewMode)}
 
       {/* add remark */}
       {renderAddRemarks && (
@@ -539,6 +1395,26 @@ export default function TableData({
           data={selectedSampleData}
         />
       )}
+
+      {/* sample collection */}
+      {renderSampleCollect && (
+        <SampleCollection
+          isOpen={openSampleCollect}
+          onClose={closeSampleCollection}
+          data={selectedRowForSampleCollect}
+          updatedSampleManagementList={updatedSampleManagementList}
+          viewMode={viewMode}
+          sampleType={sampleType}
+          refetchSampleManagement={refetchSampleManagement}
+          handlePatientViewDetails={handlePatientViewDetails}
+          handleRejectSample={handleRejectSample}
+          handlePrintClick={handlePrintClick}
+          handleAddRemarkClick={handleAddRemarkClick}
+          handleUploadDocument={handleUploadDocument}
+        />
+      )}
+
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 }
