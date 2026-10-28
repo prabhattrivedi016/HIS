@@ -4,11 +4,11 @@ import AllergyResultEntry from "../allergyResultEntry";
 import ApprovalAuthorityMaster from "../approvalAuthorityMaster";
 import BankMaster from "../bankMaster";
 import BedDetails from "../bedDetails";
+import BedInfo from "../bedInfo";
 import BedMaster from "../bedMaster";
 import BillReceiptReprint from "../billReceiptReprint";
 import BranchMaster from "../branchMaster";
 import BranchSettings from "../branchSettings";
-import BulkReceive from "../bulkReceive";
 import CompanySetting from "../companySetting";
 import ConsultationHeaderMaster from "../consultationHeaderMaster";
 import ControlTest from "../controlTest";
@@ -18,6 +18,7 @@ import CreditNoteApproval from "../creditNoteApproval";
 import CreditNoteGeneration from "../creditNoteGeneration";
 import CreditNote from "../creditNoteWriteOff";
 import Dashboard from "../dashboard";
+import DepartmentReceive from "../departmentReceive";
 import DiagnosisMaster from "../diagnosisMaster";
 import DischargeProcessMaster from "../dischargeProcessMaster";
 import DiscountApprovalMaster from "../discountApprovalMaster";
@@ -72,10 +73,11 @@ import ProcedureMaster from "../procedureMaster";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
+import ResultEntryPathology from "../resultEntryPathology";
 import ResultEntryRadiology from "../resultEntryRadiology";
 import RoleMaster from "../roleMaster";
 import SampleManagement from "../sampleManagement";
-import SampleResultEntry from "../sampleResultEntry";
+import SampleSegregation from "../sampleSegregation";
 import SendOutsource from "../sendOutSource";
 import ServiceMaster from "../serviceMaster";
 import StockReceiving from "../stockReceiving";
@@ -184,9 +186,9 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "ot-booking": <OtBooking />,
   "ot-process-master": <OtProcessMaster />,
   "lab-sample-management": <LabSampleManagement />,
-  "bulk-receive": <BulkReceive />,
+  "department-receive": <DepartmentReceive />,
   // "sample-journey": <SampleJourney />,
-  "sample-result-entry": <SampleResultEntry />,
+  // "sample-result-entry": <SampleResultEntry />,
   "ot-schedular": <OtSchedular />,
   "send-outsource": <SendOutsource />,
   "laboratory-help": <LaboratoryHelp />,
@@ -194,4 +196,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "medicine-sales": <MedicineSalesOrIssue />,
   "stock-receiving": <StockReceiving />,
   "store-item-master": <StoreItemMaster />,
+  "bed-info": <BedInfo />,
+  "sample-segregation": <SampleSegregation />,
+  "result-entry-pathology": <ResultEntryPathology />,
 };

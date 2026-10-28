@@ -42,6 +42,24 @@ type SampleJourneyItem = {
   isReportPrinted: number;
   ReportPrintedOn: string | null;
   ReportPrintedBy: string | null;
+  timeLine?: string;
+  timeLineColor?: string;
+  tmeLineColor?: string;
+  ActualTat?: number | string;
+  ActualTAT?: number | string;
+  actualTat?: number | string;
+  actual_tat?: number | string;
+  ExpectedTat?: number | string;
+  ExpectedTAT?: number | string;
+  expectedTat?: number | string;
+  expected_tat?: number | string;
+  TargetTat?: number | string;
+  targetTat?: number | string;
+  TargetTAT?: number | string;
+  ExpectedTATInMin?: number | string;
+  CreatedOn?: string;
+  BillDate?: string;
+  [key: string]: any;
 };
 
 type SampleJourneyStep = {

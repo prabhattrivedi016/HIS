@@ -1,18 +1,64 @@
+import { ENDPOINTS } from "@/config/defaults";
+import { BranchContext } from "@/context/BranchContext";
+import useGlobalApi from "@/hooks/useGlobalApi";
 import { AlertTriangle, FileText, MoveLeft, MoveRight, Printer, User } from "lucide-react";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import CommentBox from "./components/CommentBox";
 import FooterButton from "./components/FooterButton";
 import LabInfoFilterBar from "./components/LabInfoFilterBar";
 import LabInfoRightChart from "./components/LabInfoRightChart";
 import LabInfoSmallTable from "./components/LabInfoSmallTable";
 import LabInfoTableData from "./components/LabInfoTableData";
+import { PatientDetailsInvestigationItem } from "./types";
 
 const SampleResultEntry = () => {
+  const { loading, fetchApi } = useGlobalApi();
+  const { uhid, visitId, labNo } = useParams();
+  const [investigationLists, setInvestigationsLists] = useState<PatientDetailsInvestigationItem[]>(
+    []
+  );
+  const [selectedPatientInvestigation, setSelectedInvestigation] = useState<number>();
+
+  const branchId = useContext(BranchContext)?.branchId;
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleActionClick = actionName => {
     alert(`${actionName} clicked`);
   };
+
+  // get all investigation details
+  const getAllInvestigationDetailsOfPatient = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_ALL_INVESTIGATION_NAME_OF_PATIENT,
+      {},
+      { params: { labTypeId: 1, branchId, visitId, uhid, labNo } },
+      { component: "SampleResultEntry" }
+    );
+    setInvestigationsLists(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getAllInvestigationDetailsOfPatient();
+  }, [branchId, uhid, visitId, labNo]);
+
+  // patient tabular report
+  const getPatientTabularReport = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_TABULAR_REPORT_FOR_RESULT_ENTRY,
+      {},
+      { params: { patientInvestigationId: selectedPatientInvestigation } },
+      { component: "SampleResultEntry" }
+    );
+    setInvestigationsLists(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    if (selectedPatientInvestigation) getPatientTabularReport();
+  }, [selectedPatientInvestigation]);
 
   return (
     <>
@@ -111,7 +157,7 @@ const SampleResultEntry = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start mt-3">
           {/* Left Column: Test List Sidebar */}
           <div className="lg:col-span-3 min-w-0">
-            <LabInfoSmallTable />
+            <LabInfoSmallTable investigationLists={investigationLists} />
           </div>
 
           {/* Center Column: CBC Parameters Table & Comments (Expands to col-span-9 when isExpanded is true) */}

@@ -1,18 +1,22 @@
 type FilterTypeItem = {
-  barCode: string;
-  patientName: string;
-  uhid: string;
-  sampleType: string;
-  status: string;
-  fromDate: string;
-  toDate: string;
-  priority: string;
-  corporateId: string;
-  roleId: number;
   branchId: number;
   typeId: number;
+  uhid: string;
+  ipdNo: string;
+  labNo: string;
+  fromDate: string;
+  toDate: string;
+  subCategoryId: number;
   subSubCategoryId: number;
-  [key: string]: any;
+  investigationId: number;
+  patientName: string;
+  roleId: number;
+  corporateId: number;
+  statusId: number;
+  barCode: string;
+  roomTypeId: number;
+  sampleTypeId: number;
+  isUrgent: string;
 };
 
 type SampleManagementItem = {
@@ -31,6 +35,7 @@ type SampleManagementItem = {
   isUrgent: number;
   Barcode: string;
   IsSampleRequired: string | null;
+  IsSampleSegregationRequired: string | number | null;
   IsDepartmentReceivingRequired: string | null;
   PatientInvestigationId: number;
   ReportTypeId: string | null;
@@ -39,6 +44,8 @@ type SampleManagementItem = {
   VIPPatient: number;
   IsSampleCollected: number;
   SampleCollectedOn: string;
+  IsSampleSegregated: string | number | null;
+  SampleSegregationOn: string;
   IsSampleReceivedByDepartment: number;
   SampleReceivedByDepartmentOn: string;
   IsResultDone: number;
@@ -61,6 +68,22 @@ type SampleManagementItem = {
   BedNo: string | null;
   TargetTATInMin: string;
   ActualTATInMin: string;
+  timeLine?: string;
+  timeLineColor?: string;
+  tmeLineColor?: string;
+  ExpectedTat?: string | number;
+  ActualTat?: string | number;
+  ExpectedTAT?: string | number;
+  ActualTAT?: string | number;
+  TargetTat?: string | number;
+  TargetTAT?: string | number;
+  ExpectedTATInMin?: string | number;
+  actual_tat?: string | number;
+  expected_tat?: string | number;
+  actualTat?: string | number;
+  expectedTat?: string | number;
+  targetTat?: string | number;
+  [key: string]: unknown;
 };
 
 type GroupedDataSampleManagement = {
@@ -184,10 +207,23 @@ type ViewMode = "patient" | "sample" | "test";
 
 type StateValueProps = {
   all: number;
-  pending: number;
-  collected: number;
-  received: number;
-  rejected: number;
+  collectionPending: number;
+  sampleCollected: number;
+  sampleRejected: number;
+  departmentReceivingPending: number;
+  departmentReceived: number;
+  resultPending: number;
+  reportApprovalPending: number;
+  hold: number;
+  approved: number;
+  dispatched: number;
+  printed: number;
+  urgent: number;
+  abnormal: number;
+  pending?: number;
+  collected?: number;
+  received?: number;
+  rejected?: number;
 };
 
 export type {

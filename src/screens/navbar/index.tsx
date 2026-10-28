@@ -10,6 +10,7 @@ import InvestigationResultEntry from "../InvestigationResultEntry";
 import Login from "../login";
 import { authorizedRouteMap } from "../routes";
 import SampleJourney from "../sampleJourney";
+import SampleResultEntry from "../sampleResultEntry";
 import NoPage from "../unauthorized";
 import Sidebar from "./components/Sidebar";
 import { hasAccess } from "./components/accessControl";
@@ -84,6 +85,17 @@ const Navbar = () => {
             element={
               hasAccess("sample-journey", response) ? (
                 <SampleJourney />
+              ) : (
+                <Navigate to="/no-page" replace />
+              )
+            }
+          />
+
+          <Route
+            path="/sample-result-entry/:uhid/:visitId/:labNo"
+            element={
+              hasAccess("sample-result-entry", response) ? (
+                <SampleResultEntry />
               ) : (
                 <Navigate to="/no-page" replace />
               )

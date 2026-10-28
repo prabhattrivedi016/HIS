@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { SampleJourneyItem } from "../types";
 
 const formatMinutes = (minutes: number) => {
-  if (!minutes || isNaN(minutes) || minutes <= 0) return "0 m";
+  if (!minutes || isNaN(minutes) || minutes <= 0) return "0m";
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours === 0) return `${remainingMinutes}m`;
@@ -11,67 +11,18 @@ const formatMinutes = (minutes: number) => {
   return `${hours}h ${remainingMinutes}m`;
 };
 
-const parseDateToMs = (dateStr?: string | null): number | null => {
-  if (!dateStr || typeof dateStr !== "string") return null;
-  const trimmed = dateStr.trim();
-  if (!trimmed || trimmed === "-") return null;
-
-  // 1. Try ISO or YYYY-MM-DD
-  if (/^\d{4}/.test(trimmed)) {
-    const isoCandidate = trimmed.replace(" ", "T");
-    const direct = new Date(isoCandidate);
-    if (!isNaN(direct.getTime())) return direct.getTime();
+// parse string or number into minutes
+const parseMinutes = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  const str = String(val).trim();
+  if (!str || str === "-") return 0;
+  if (/hr|hour/i.test(str)) {
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : Math.round(num * 60);
   }
-
-  // 2. Try DD-MM-YYYY or DD/MM/YYYY or DD-MMM-YYYY
-  const match = trimmed.match(
-    /^(\d{1,2})[-/]([A-Za-z]+|\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?)?$/i
-  );
-  if (match) {
-    const [, dayStr, monthStr, yearStr, hourStr, minStr, secStr, ampm] = match;
-    const day = parseInt(dayStr, 10);
-    const year = parseInt(yearStr, 10);
-
-    let month = 0;
-    if (isNaN(Number(monthStr))) {
-      const monthMap: Record<string, number> = {
-        jan: 0,
-        feb: 1,
-        mar: 2,
-        apr: 3,
-        may: 4,
-        jun: 5,
-        jul: 6,
-        aug: 7,
-        sep: 8,
-        oct: 9,
-        nov: 10,
-        dec: 11,
-      };
-      month = monthMap[monthStr.toLowerCase().slice(0, 3)] ?? 0;
-    } else {
-      month = parseInt(monthStr, 10) - 1;
-    }
-
-    let hours = hourStr ? parseInt(hourStr, 10) : 0;
-    const minutes = minStr ? parseInt(minStr, 10) : 0;
-    const seconds = secStr ? parseInt(secStr, 10) : 0;
-
-    if (ampm) {
-      const upper = ampm.toUpperCase();
-      if (upper === "PM" && hours < 12) hours += 12;
-      if (upper === "AM" && hours === 12) hours = 0;
-    }
-
-    const d = new Date(year, month, day, hours, minutes, seconds);
-    if (!isNaN(d.getTime())) return d.getTime();
-  }
-
-  // 3. General fallback
-  const fallback = new Date(trimmed);
-  if (!isNaN(fallback.getTime())) return fallback.getTime();
-
-  return null;
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 export default function TurnAroundTimeDetails({
@@ -85,154 +36,183 @@ export default function TurnAroundTimeDetails({
     Number(sampleJourneyValue?.isSampleRejected) === 1 ||
     Boolean(sampleJourneyValue?.SampleRejectedOn);
 
-  const targetTAT = Math.max(0, Number(sampleJourneyValue?.TargetTATInMin) || 0);
-  const apiActualTAT = Math.max(0, Number(sampleJourneyValue?.ActualTATInMin) || 0);
+  // Candidate fields for Actual TAT and Expected/Target TAT given in the API
+  const actualRaw =
+    sampleJourneyValue?.ActualTat ??
+    sampleJourneyValue?.ActualTAT ??
+    sampleJourneyValue?.actualTat ??
+    sampleJourneyValue?.actual_tat ??
+    sampleJourneyValue?.ActualTATInMin;
 
-  // Compute effective actual TAT: use API value if > 0, otherwise compute from timestamps if report is ready
-  const effectiveActualTAT = useMemo(() => {
-    if (apiActualTAT > 0) return apiActualTAT;
+  const expectedRaw =
+    sampleJourneyValue?.ExpectedTat ??
+    sampleJourneyValue?.ExpectedTAT ??
+    sampleJourneyValue?.expectedTat ??
+    sampleJourneyValue?.ExpectedTATInMin ??
+    sampleJourneyValue?.TargetTat ??
+    sampleJourneyValue?.targetTat ??
+    sampleJourneyValue?.TargetTAT ??
+    sampleJourneyValue?.expected_tat ??
+    sampleJourneyValue?.TargetTATInMin;
 
-    const startDate = sampleJourneyValue?.SampleCollectedOn || sampleJourneyValue?.RegistrationOn;
-    const endDate = sampleJourneyValue?.ReportPrintedOn || sampleJourneyValue?.ReportApprovedOn;
+  const expectedTat = parseMinutes(expectedRaw);
+  const actualTat = parseMinutes(actualRaw);
 
-    if (startDate && endDate) {
-      const startMs = parseDateToMs(startDate);
-      const endMs = parseDateToMs(endDate);
-      if (startMs && endMs && endMs >= startMs) {
-        return Math.round((endMs - startMs) / 60000);
-      }
-    }
-    return 0;
-  }, [apiActualTAT, sampleJourneyValue]);
-
-  // If report not ready yet, calculate elapsed time since collection/registration
-  const elapsedTime = useMemo(() => {
-    if (effectiveActualTAT > 0) return 0;
-    const startDate = sampleJourneyValue?.SampleCollectedOn || sampleJourneyValue?.RegistrationOn;
-    if (startDate) {
-      const startMs = parseDateToMs(startDate);
-      if (startMs && Date.now() >= startMs) {
-        return Math.round((Date.now() - startMs) / 60000);
-      }
-    }
-    return 0;
-  }, [effectiveActualTAT, sampleJourneyValue]);
-
+  // Show only time given in the API (no self-calculation from dates)
   const tatInfo = useMemo(() => {
     if (!sampleJourneyValue) {
       return {
         displayTime: "-",
         subText: "Collection to Report",
-        badge: null,
+        label: "-",
+        diffText: "",
+        className: "text-gray-400 font-normal",
+        title: "",
       };
     }
 
-    // Case 1: Both Target and Actual TAT are > 0
-    if (targetTAT > 0 && effectiveActualTAT > 0) {
-      if (effectiveActualTAT > targetTAT) {
-        const diff = effectiveActualTAT - targetTAT;
+    // 1. Explicit timeline string from API if provided
+    if (sampleJourneyValue?.timeLine && sampleJourneyValue.timeLine !== "-") {
+      const lower = sampleJourneyValue.timeLine.toLowerCase();
+      if (lower.includes("delay")) {
         return {
-          displayTime: formatMinutes(effectiveActualTAT),
+          displayTime: actualTat > 0 ? formatMinutes(actualTat) : "-",
           subText: "Collection to Report",
-          badge: (
-            <div className="mt-2.5 inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full text-xs font-bold border border-rose-200">
-              <AlertCircle size={14} />
-              <span>Late by {formatMinutes(diff)}</span>
-            </div>
-          ),
+          label: "Delay",
+          diffText: "",
+          className: "bg-red-50 text-red-600 border border-red-200",
+          title: sampleJourneyValue.timeLine,
+        };
+      }
+      if (lower.includes("on time") || lower.includes("ontime")) {
+        return {
+          displayTime: actualTat > 0 ? formatMinutes(actualTat) : "-",
+          subText: "Collection to Report",
+          label: "On Time",
+          diffText: "",
+          className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+          title: sampleJourneyValue.timeLine,
         };
       }
       return {
-        displayTime: formatMinutes(effectiveActualTAT),
+        displayTime: actualTat > 0 ? formatMinutes(actualTat) : "-",
         subText: "Collection to Report",
-        badge: (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-            <CheckCircle2 size={14} />
-            <span>Within Expected TAT</span>
-          </div>
-        ),
+        label: sampleJourneyValue.timeLine,
+        diffText: "",
+        className:
+          sampleJourneyValue.timeLineColor ||
+          sampleJourneyValue.tmeLineColor ||
+          "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        title: sampleJourneyValue.timeLine,
       };
     }
 
-    // Case 2: TargetTAT > 0 but ActualTAT === 0 (In-progress sample or pending report)
-    if (targetTAT > 0 && effectiveActualTAT === 0) {
-      if (elapsedTime > 0) {
-        if (elapsedTime > targetTAT) {
-          const diff = elapsedTime - targetTAT;
-          return {
-            displayTime: formatMinutes(elapsedTime),
-            subText: "Collection to Report",
-            badge: (
-              <div className="mt-2.5 inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full text-xs font-bold border border-rose-200">
-                <AlertCircle size={14} />
-                <span>Late by {formatMinutes(diff)}</span>
-              </div>
-            ),
-          };
-        }
+    // 2. Direct status keywords in actualRaw or expectedRaw
+    if (typeof actualRaw === "string") {
+      const lower = actualRaw.trim().toLowerCase();
+      if (lower === "delay" || lower.includes("delay")) {
         return {
-          displayTime: formatMinutes(elapsedTime),
+          displayTime: "-",
           subText: "Collection to Report",
-          badge: (
-            <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-              <CheckCircle2 size={14} />
-              <span>Within Expected Time</span>
-            </div>
-          ),
+          label: "Delay",
+          diffText: "",
+          className: "bg-red-50 text-red-600 border border-red-200",
+          title: actualRaw,
         };
       }
+      if (lower === "on time" || lower === "ontime" || lower.includes("on time")) {
+        return {
+          displayTime: "-",
+          subText: "Collection to Report",
+          label: "On Time",
+          diffText: "",
+          className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+          title: actualRaw,
+        };
+      }
+    }
 
+    if (typeof expectedRaw === "string") {
+      const lower = expectedRaw.trim().toLowerCase();
+      if (lower === "delay" || lower.includes("delay")) {
+        return {
+          displayTime: "-",
+          subText: "Collection to Report",
+          label: "Delay",
+          diffText: "",
+          className: "bg-red-50 text-red-600 border border-red-200",
+          title: expectedRaw,
+        };
+      }
+      if (lower === "on time" || lower === "ontime" || lower.includes("on time")) {
+        return {
+          displayTime: "-",
+          subText: "Collection to Report",
+          label: "On Time",
+          diffText: "",
+          className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+          title: expectedRaw,
+        };
+      }
+    }
+
+    // 3. Numerical comparison of API-provided Actual and Expected TAT
+    if (expectedTat > 0 && actualTat > 0) {
+      if (actualTat > expectedTat) {
+        const diff = actualTat - expectedTat;
+        return {
+          displayTime: formatMinutes(actualTat),
+          subText: "Collection to Report",
+          label: "Delay",
+          diffText: `Late by ${formatMinutes(diff)}`,
+          className: "bg-red-50 text-red-600 border border-red-200",
+          title: `Expected: ${expectedTat}m | Actual: ${actualTat}m (Delayed by ${diff}m)`,
+        };
+      }
       return {
-        displayTime: formatMinutes(targetTAT),
+        displayTime: formatMinutes(actualTat),
         subText: "Collection to Report",
-        badge: (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-            <Clock size={14} />
-            <span>Within Expected Time</span>
-          </div>
-        ),
+        label: "On Time",
+        diffText: "",
+        className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        title: `Expected: ${expectedTat}m | Actual: ${actualTat}m`,
       };
     }
 
-    // Case 3: TargetTAT === 0 and ActualTAT > 0 (Actual recorded, target not configured)
-    if (targetTAT === 0 && effectiveActualTAT > 0) {
+    // 4. Actual TAT is provided in API, but no expected TAT
+    if (actualTat > 0 && expectedTat === 0) {
       return {
-        displayTime: formatMinutes(effectiveActualTAT),
+        displayTime: formatMinutes(actualTat),
         subText: "Collection to Report",
-        badge: (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-            <CheckCircle2 size={14} />
-            <span>Within Expected TAT</span>
-          </div>
-        ),
+        label: "On Time",
+        diffText: "",
+        className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        title: `Actual: ${actualTat}m`,
       };
     }
 
-    // Case 4: TargetTAT === 0 and ActualTAT === 0
-    if (elapsedTime > 0) {
+    // 5. Expected TAT is provided in API, but Actual TAT is pending/not yet in API
+    if (expectedTat > 0 && actualTat === 0) {
       return {
-        displayTime: formatMinutes(elapsedTime),
+        displayTime: "-",
         subText: "Collection to Report",
-        badge: (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-            <Clock size={14} />
-            <span>Within Expected Time</span>
-          </div>
-        ),
+        label: "On Time",
+        diffText: "",
+        className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        title: `Expected: ${expectedTat}m`,
       };
     }
 
+    // 6. No TAT data provided in API
     return {
-      displayTime: "0m",
+      displayTime: "-",
       subText: "Collection to Report",
-      badge: (
-        <div className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
-          <Clock size={14} />
-          <span>Within Expected Time</span>
-        </div>
-      ),
+      label: "-",
+      diffText: "",
+      className: "text-gray-400 font-normal",
+      title: "",
     };
-  }, [sampleJourneyValue, targetTAT, effectiveActualTAT, elapsedTime]);
+  }, [sampleJourneyValue, actualRaw, expectedRaw, expectedTat, actualTat]);
 
   return (
     <div className="w-full space-y-1 lg:mt-1 ">
@@ -245,14 +225,38 @@ export default function TurnAroundTimeDetails({
         <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100 mt-2">
           <div className="flex items-baseline justify-between">
             <div className="text-2xl font-extrabold text-[#123b70]">{tatInfo.displayTime}</div>
-            {targetTAT > 0 && (
+            {expectedTat > 0 && (
               <div className="text-[11px] font-semibold text-gray-500">
-                Target: <span className="font-bold text-gray-800">{formatMinutes(targetTAT)}</span>
+                Target: <span className="font-bold text-gray-800">{formatMinutes(expectedTat)}</span>
               </div>
             )}
           </div>
           <div className="text-xs font-medium text-gray-500 mt-0.5">{tatInfo.subText}</div>
-          {tatInfo.badge}
+
+          {/* Timeline Status Badge */}
+          {tatInfo.label && tatInfo.label !== "-" ? (
+            <div
+              className={`mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${tatInfo.className}`}
+              title={tatInfo.title || undefined}
+            >
+              {tatInfo.label === "Delay" ? (
+                <AlertCircle size={14} className="shrink-0" />
+              ) : tatInfo.label === "On Time" ? (
+                <CheckCircle2 size={14} className="shrink-0" />
+              ) : (
+                <Clock size={14} className="shrink-0" />
+              )}
+              <span>{tatInfo.label}</span>
+              {tatInfo.diffText && (
+                <span className="text-[11px] font-medium opacity-90">({tatInfo.diffText})</span>
+              )}
+            </div>
+          ) : (
+            <div className="mt-2.5 inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-xs font-semibold">
+              <Clock size={14} className="shrink-0" />
+              <span>TAT Not Configured</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -263,6 +267,23 @@ export default function TurnAroundTimeDetails({
           <span>Key Dates</span>
         </div>
         <div className="space-y-2.5 text-xs font-medium">
+          {/* Timeline Status in Key Dates */}
+          <div className="flex justify-between items-center py-.5 border-b border-gray-100">
+            <span className="text-gray-500">Timeline:</span>
+            <span
+              className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
+                tatInfo.label === "Delay"
+                  ? "bg-red-50 text-red-600 border border-red-200"
+                  : tatInfo.label === "On Time"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "text-gray-500 font-normal"
+              }`}
+              title={tatInfo.title || undefined}
+            >
+              {tatInfo.label}
+            </span>
+          </div>
+
           <div className="flex justify-between items-center py-.5 border-b border-gray-100">
             <span className="text-gray-500">Registration Time:</span>
             <span className="font-bold text-center text-gray-800">
