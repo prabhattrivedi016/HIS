@@ -23,11 +23,151 @@ import {
   Printer,
   Search,
   Send,
+  Star,
   TestTube,
   Zap,
 } from "lucide-react";
-import { Activity, Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
-import { CorporateItem, FilterTypeItem, SampleManagementItem, ViewMode } from "../types";
+import {
+  Activity,
+  Dispatch,
+  MouseEvent,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  CorporateItem,
+  FilterTypeItem,
+  RoomTypeItem,
+  SampleManagementItem,
+  SampleTypeItem,
+  ViewMode,
+} from "../types";
+
+export interface FilterButtonConfig {
+  key: string;
+  label: string;
+  icon: typeof Layers;
+  iconColor: string;
+  countKey:
+    | "all"
+    | "collectionPending"
+    | "sampleCollected"
+    | "sampleRejected"
+    | "departmentReceivingPending"
+    | "departmentReceived"
+    | "resultPending"
+    | "reportApprovalPending"
+    | "hold"
+    | "approved"
+    | "dispatched"
+    | "printed"
+    | "urgent"
+    | "abnormal";
+}
+
+export const FILTER_BUTTONS: FilterButtonConfig[] = [
+  {
+    key: "allClicked",
+    label: "All",
+    icon: Layers,
+    iconColor: "text-purple-600",
+    countKey: "all",
+  },
+  {
+    key: "collectionPendingClicked",
+    label: "CollectionPending",
+    icon: Hourglass,
+    iconColor: "text-purple-600",
+    countKey: "collectionPending",
+  },
+  {
+    key: "sampleCollectedClicked",
+    label: "Sample Collected",
+    icon: TestTube,
+    iconColor: "text-amber-600",
+    countKey: "sampleCollected",
+  },
+  {
+    key: "sampleRejectedClicked",
+    label: "Sample Rejected",
+    icon: Ban,
+    iconColor: "text-red-600",
+    countKey: "sampleRejected",
+  },
+  {
+    key: "departmentReceivingPendingClicked",
+    label: "Dept. Receiving Pending",
+    icon: Inbox,
+    iconColor: "text-blue-500",
+    countKey: "departmentReceivingPending",
+  },
+  {
+    key: "departmentReceiveClicked",
+    label: "Department Received",
+    icon: CheckCheck,
+    iconColor: "text-blue-500",
+    countKey: "departmentReceived",
+  },
+  {
+    key: "resultPendingClicked",
+    label: "Result Pending",
+    icon: Activity,
+    iconColor: "text-pink-600",
+    countKey: "resultPending",
+  },
+  {
+    key: "reportApprovalPendingClicked",
+    label: "Report Approval Pending",
+    icon: FileText,
+    iconColor: "text-blue-500",
+    countKey: "reportApprovalPending",
+  },
+  {
+    key: "holdClicked",
+    label: "Hold",
+    icon: PauseCircle,
+    iconColor: "text-amber-500",
+    countKey: "hold",
+  },
+  {
+    key: "approvedClicked",
+    label: "Approved",
+    icon: CheckCircle,
+    iconColor: "text-emerald-600",
+    countKey: "approved",
+  },
+  {
+    key: "dispatchedClicked",
+    label: "Dispatched",
+    icon: Send,
+    iconColor: "text-emerald-700",
+    countKey: "dispatched",
+  },
+  {
+    key: "printedClicked",
+    label: "Printed",
+    icon: Printer,
+    iconColor: "text-blue-600",
+    countKey: "printed",
+  },
+  {
+    key: "urgentClicked",
+    label: "Urgent",
+    icon: Zap,
+    iconColor: "text-blue-600",
+    countKey: "urgent",
+  },
+  {
+    key: "abnormalClicked",
+    label: "Abnormal",
+    icon: AlertCircle,
+    iconColor: "text-blue-600",
+    countKey: "abnormal",
+  },
+];
 
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en-GB", {
@@ -77,6 +217,7 @@ export default function SearchBar({
   setViewMode: Dispatch<SetStateAction<ViewMode>>;
   sampleManagementList?: SampleManagementItem[];
   updatedSampleManagementList?: SampleManagementItem[];
+  storageKey?: string;
 }) {
   const { loading, fetchApi } = useGlobalApi();
   const [subSubCategoryList, setSubSubCategoryList] = useState<SubSubCategoryItem[]>([]);
@@ -98,6 +239,10 @@ export default function SearchBar({
   const [selectedDate, setSelectedDate] = useState<Date>(() => parseDateString(filters?.fromDate));
 
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+
+  const [sampleTypeList, setSampleTypeList] = useState<SampleTypeItem[]>([]);
+
+  const [roomTypeLists, setRoomTypeLists] = useState([]);
 
   useEffect(() => {
     if (filters?.fromDate && filters?.toDate) {
@@ -134,6 +279,36 @@ export default function SearchBar({
     };
   }, [showFullCalendar, appliedRange]);
 
+  // room type lists
+  const getRoomTypeLists = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      { params: { categoryTypeId: 10, isActive: 1 } },
+      { component: "SearchBar" }
+    );
+    setRoomTypeLists(resp?.data ?? []);
+
+    console.log("room type lists", resp?.data);
+  };
+
+  // sample type list
+  const getSampleTypeList = async () => {
+    try {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
+        {},
+        {},
+        { component: "SearchBar" }
+      );
+      setSampleTypeList(resp?.data ?? []);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   // sub sub category list
   const getSubSubCategory = async (subCategoryIds: number) => {
     const resp = await fetchApi(
@@ -161,6 +336,8 @@ export default function SearchBar({
   useEffect(() => {
     getSubSubCategory(1);
     getCorporateMasterList();
+    getSampleTypeList();
+    getRoomTypeLists();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -237,107 +414,77 @@ export default function SearchBar({
     return activeButton === buttonName ? "text-white" : defaultColorClass;
   };
 
-  // buttons click
-  const allButtonClickHandler = () => {
-    setViewMode("test");
-    setActiveButton("allClicked");
-    onFilterButtonClick?.("allClicked");
+  // default storage key for favorite buttons
+  const defaultStorageKey = "labSampleManagementFavoriteButtons";
+
+  // lab sample management favorite buttons (persisted in localStorage, maximum 5 allowed)
+  const [favoriteButtons, setFavoriteButtons] = useState<string[]>(() => {
+    try {
+      const stored =
+        localStorage.getItem(storageKey || defaultStorageKey) ||
+        localStorage.getItem("labSampleManagementFavoriteButtons");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.slice(0, 5);
+        }
+      }
+    } catch {
+      // fallback to empty list
+    }
+    return [];
+  });
+
+  // favorite button click handler (toggle favorite; if 5 already exist, remove the last and add new)
+  const favButtonClickHandler = (e: MouseEvent, key: string) => {
+    e.stopPropagation();
+
+    setFavoriteButtons(prev => {
+      let updated: string[];
+      if (prev.includes(key)) {
+        updated = prev.filter(k => k !== key);
+      } else {
+        if (prev.length >= 5) {
+          // Remove the last favorite (5th item) and insert the new button
+          updated = [...prev.slice(0, 4), key];
+        } else {
+          updated = [...prev, key];
+        }
+      }
+
+      localStorage.setItem(storageKey || defaultStorageKey, JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  // buttons click
-  const collectionPendingClickHandler = () => {
+  // button click handler
+  const handleButtonClick = (buttonKey: string) => {
     setViewMode("test");
-
-    setActiveButton("collectionPendingClicked");
-    onFilterButtonClick?.("collectionPendingClicked");
+    setActiveButton(buttonKey);
+    onFilterButtonClick?.(buttonKey);
   };
 
-  // buttons click
-  const sampleCollectedClickHandler = () => {
-    setViewMode("test");
+  // ordered buttons: favorite buttons appear first, followed by remaining buttons
+  const orderedButtons = useMemo(() => {
+    const favSet = new Set(favoriteButtons);
+    const favButtons = favoriteButtons
+      .map(key =>
+        FILTER_BUTTONS.find(
+          btn =>
+            btn.key === key ||
+            (key === "departmentReceivedClicked" && btn.key === "departmentReceiveClicked")
+        )
+      )
+      .filter((btn): btn is FilterButtonConfig => Boolean(btn));
 
-    setActiveButton("sampleCollectedClicked");
-    onFilterButtonClick?.("sampleCollectedClicked");
-  };
+    const regularButtons = FILTER_BUTTONS.filter(btn => {
+      if (favSet.has(btn.key)) return false;
+      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked")) return false;
+      return true;
+    });
 
-  // buttons click
-  const sampleRejectedClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("sampleRejectedClicked");
-    onFilterButtonClick?.("sampleRejectedClicked");
-  };
-
-  // buttons click
-  const departmentReceivingPendingClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("departmentReceivingPendingClicked");
-    onFilterButtonClick?.("departmentReceivingPendingClicked");
-  };
-
-  // buttons click
-  const departmentReceivedClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("departmentReceiveClicked");
-    onFilterButtonClick?.("departmentReceiveClicked");
-  };
-
-  // buttons click
-  const resultPendingClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("resultPendingClicked");
-    onFilterButtonClick?.("resultPendingClicked");
-  };
-
-  // buttons click
-  const reportApprovalPendingClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("reportApprovalPendingClicked");
-    onFilterButtonClick?.("reportApprovalPendingClicked");
-  };
-
-  // buttons click
-  const holdClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("holdClicked");
-    onFilterButtonClick?.("holdClicked");
-  };
-
-  // buttons click
-  const dispatchedClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("dispatchedClicked");
-    onFilterButtonClick?.("dispatchedClicked");
-  };
-
-  const printedClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("printedClicked");
-    onFilterButtonClick?.("printedClicked");
-  };
-  const urgentClickHandler = () => {
-    setViewMode("test");
-
-    setActiveButton("urgentClicked");
-    onFilterButtonClick?.("urgentClicked");
-  };
-  const abnormalClickHandler = () => {
-    setViewMode("test");
-    setActiveButton("abnormalClicked");
-    onFilterButtonClick?.("abnormalClicked");
-  };
-  const approvedClickHandler = () => {
-    setViewMode("test");
-    setActiveButton("approvedClicked");
-    onFilterButtonClick?.("approvedClicked");
-  };
+    return [...favButtons, ...regularButtons];
+  }, [favoriteButtons]);
 
   // count values
   const getCountValues = useMemo(() => {
@@ -399,7 +546,7 @@ export default function SearchBar({
   return (
     <div className={`card mt-1`}>
       {/* Search button to open/close fields */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 -mt-2">
         <button
           type="button"
           onClick={() => setShowSearchInputs(!showSearchInputs)}
@@ -489,7 +636,6 @@ export default function SearchBar({
       {showSearchInputs && (
         <Animation>
           <div className="transition-all duration-300 ease-in-out space-y-3 mb-4 pt-2 border-t border-blue-200">
-            {/* ================= ROW 1 ================= */}
             <div className="form-grid-5">
               <InputField label="Patient Type">
                 <select
@@ -526,47 +672,60 @@ export default function SearchBar({
                 />
               </InputField>
 
+              <InputField label="IPD Number">
+                <input
+                  type="text"
+                  name="ipdNo"
+                  value={filters.ipdNo}
+                  onChange={handleChange}
+                  placeholder="Enter IPD Number"
+                  className="input-field"
+                />
+              </InputField>
+
               <InputField label="Sample Type">
                 <select
                   name="sampleType"
-                  value={filters.sampleType}
+                  value={filters?.sampleTypeId}
                   onChange={handleChange}
                   className="input-field"
                 >
-                  <option value="All">All</option>
-                  <option value="Blood (EDTA)">Blood (EDTA)</option>
-                  <option value="Serum">Serum</option>
-                  <option value="Urine">Urine</option>
+                  <option value={0}>All</option>
+                  {sampleTypeList?.map(s => (
+                    <option key={s?.sampleTypeId} value={s?.sampleTypeId}>
+                      {s?.sampleType}
+                    </option>
+                  ))}
                 </select>
               </InputField>
 
-              <InputField label="Status">
+              <InputField label="Priority">
                 <select
-                  name="status"
-                  value={filters.status}
+                  name="isUrgent"
+                  value={filters?.isUrgent}
                   onChange={handleChange}
                   className="input-field"
                 >
-                  <option value="All">All</option>
-                  <option value="Received">Received</option>
-                  <option value="Processing">Processing</option>
+                  <option value="">All</option>
+                  <option value="0">Normal</option>
+                  <option value="1">Urgent</option>
                 </select>
               </InputField>
 
               {/* ================= ROW 2 ================= */}
 
-              <InputField label="Priority">
-                <select
-                  name="priority"
-                  value={filters.priority}
-                  onChange={handleChange}
-                  className="input-field"
-                >
-                  <option value="All">All</option>
-                  <option value="Normal">Normal</option>
-                  <option value="High">High</option>
-                </select>
-              </InputField>
+              {/* <InputField label="Priority">
+                         <select
+                           name="priority"
+                           value={filters.priority}
+                           onChange={handleChange}
+                           className="input-field"
+                         >
+                           <option value="">All</option>
+                           <option value="0">Normal</option>
+                           <option value="1">Urgent</option>
+                         </select>
+                       </InputField> */}
 
               <InputField label=" Department">
                 <select
@@ -604,6 +763,22 @@ export default function SearchBar({
                 </select>
               </InputField>
 
+              <InputField label="Room Type">
+                <select
+                  name="roomTypeId"
+                  value={filters.roomTypeId}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value={0}>All</option>
+                  {roomTypeLists.map((r: RoomTypeItem) => (
+                    <option key={r.serviceItemId} value={r.roomTypeId}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-5 mt-3">
                 <button type="submit" onClick={handleSearch} className="save-btn !py-2">
                   <span>Search</span>
@@ -616,7 +791,7 @@ export default function SearchBar({
 
       {/* ================= ALWAYS VISIBLE STATUS PILL BADGES ================= */}
       <div
-        className="card mt-2 "
+        className="card -mt-3 "
         style={{
           backgroundColor: "transparent",
           border: "none",
@@ -626,176 +801,51 @@ export default function SearchBar({
       >
         {/* 1 */}
         <div className="flex items-center gap-3 text-xs font-semibold overflow-x-auto whitespace-nowrap py-2 [&::-webkit-scrollbar]:h-1.5">
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("allClicked")}`}
-            onClick={allButtonClickHandler}
-          >
-            <Layers size={14} className={getIconClass("allClicked", "text-purple-600")} />
-            <span>
-              All: <span>{getCountValues?.all}</span>
-            </span>
-          </div>
+          {orderedButtons.map(btn => {
+            const isFav =
+              favoriteButtons.includes(btn.key) ||
+              (btn.key === "departmentReceiveClicked" &&
+                favoriteButtons.includes("departmentReceivedClicked"));
+            const IconComponent = btn.icon;
+            const count = getCountValues?.[btn.countKey] ?? 0;
+            const isActive = activeButton === btn.key;
 
-          {/* 2 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("collectionPendingClicked")}`}
-            onClick={collectionPendingClickHandler}
-          >
-            <Hourglass
-              size={14}
-              className={getIconClass("collectionPendingClicked", "text-purple-600")}
-            />
-            <span>
-              CollectionPending: <span>{getCountValues?.collectionPending}</span>
-            </span>
-          </div>
-
-          {/* 3 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("sampleCollectedClicked")}`}
-            onClick={sampleCollectedClickHandler}
-          >
-            <TestTube
-              size={14}
-              className={getIconClass("sampleCollectedClicked", "text-amber-600")}
-            />
-            <span>
-              Sample Collected: <span>{getCountValues?.sampleCollected}</span>
-            </span>
-          </div>
-
-          {/* 4 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("sampleRejectedClicked")}`}
-            onClick={sampleRejectedClickHandler}
-          >
-            <Ban size={14} className={getIconClass("sampleRejectedClicked", "text-red-600")} />
-            <span>
-              Sample Rejected: <span>{getCountValues?.sampleRejected}</span>
-            </span>
-          </div>
-
-          {/* 5 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("departmentReceivingPendingClicked")}`}
-            onClick={departmentReceivingPendingClickHandler}
-          >
-            <Inbox
-              size={14}
-              className={getIconClass("departmentReceivingPendingClicked", "text-blue-500")}
-            />
-            <span>
-              Dept. Receiving Pending: <span>{getCountValues?.departmentReceivingPending}</span>
-            </span>
-          </div>
-
-          {/* 6 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("departmentReceivedClicked")}`}
-            onClick={departmentReceivedClickHandler}
-          >
-            <CheckCheck
-              size={14}
-              className={getIconClass("departmentReceivedClicked", "text-blue-500")}
-            />
-            <span>
-              Department Received: <span>{getCountValues?.departmentReceived}</span>
-            </span>
-          </div>
-
-          {/* 7 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("resultPendingClicked")}`}
-            onClick={resultPendingClickHandler}
-          >
-            <Activity size={14} className={getIconClass("resultPendingClicked", "text-pink-600")} />
-            <span>
-              Result Pending: <span>{getCountValues?.resultPending}</span>
-            </span>
-          </div>
-
-          {/* 8 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("reportApprovalPendingClicked")}`}
-            onClick={reportApprovalPendingClickHandler}
-          >
-            <FileText
-              size={14}
-              className={getIconClass("reportApprovalPendingClicked", "text-blue-500")}
-            />
-            <span>
-              Report Approval Pending: <span>{getCountValues?.reportApprovalPending}</span>
-            </span>
-          </div>
-
-          {/* 9 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("holdClicked")}`}
-            onClick={holdClickHandler}
-          >
-            <PauseCircle size={14} className={getIconClass("holdClicked", "text-amber-500")} />
-            <span>
-              Hold: <span>{getCountValues?.hold}</span>
-            </span>
-          </div>
-
-          {/* 10 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("approvedClicked")}`}
-            onClick={approvedClickHandler}
-          >
-            <CheckCircle
-              size={14}
-              className={getIconClass("approvedClicked", "text-emerald-600")}
-            />
-            <span>
-              Approved: <span>{getCountValues?.approved}</span>
-            </span>
-          </div>
-
-          {/* 11 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("dispatchedClicked")}`}
-            onClick={dispatchedClickHandler}
-          >
-            <Send size={14} className={getIconClass("dispatchedClicked", "text-emerald-700")} />
-            <span>
-              Dispatched: <span>{getCountValues?.dispatched}</span>
-            </span>
-          </div>
-
-          {/* 12 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("printedClicked")}`}
-            onClick={printedClickHandler}
-          >
-            <Printer size={14} className={getIconClass("printedClicked", "text-blue-600")} />
-            <span>
-              Printed: <span>{getCountValues?.printed}</span>
-            </span>
-          </div>
-
-          {/* 13 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("urgentClicked")}`}
-            onClick={urgentClickHandler}
-          >
-            <Zap size={14} className={getIconClass("urgentClicked", "text-blue-600")} />
-            <span>
-              Urgent: <span>{getCountValues?.urgent}</span>
-            </span>
-          </div>
-
-          {/* 14 */}
-          <div
-            className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass("abnormalClicked")}`}
-            onClick={abnormalClickHandler}
-          >
-            <AlertCircle size={14} className={getIconClass("abnormalClicked", "text-blue-600")} />
-            <span>
-              Abnormal: <span>{getCountValues?.abnormal}</span>
-            </span>
-          </div>
+            return (
+              <div
+                key={btn.key}
+                className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass(btn.key)}`}
+                onClick={() => handleButtonClick(btn.key)}
+              >
+                <IconComponent
+                  size={14}
+                  className={getIconClass(btn.key, btn.iconColor)}
+                />
+                <span className="flex items-center gap-1.5">
+                  <span>{btn.label}:</span>
+                  <span>{count}</span>
+                  <span
+                    className="cursor-pointer p-0.5 transition-transform hover:scale-110 active:scale-95 inline-flex items-center ml-0.5"
+                    onClick={e => favButtonClickHandler(e, btn.key)}
+                    title={isFav ? "Remove from favorites" : "Mark as favorite"}
+                  >
+                    <Star
+                      size={14}
+                      className={
+                        isFav
+                          ? isActive
+                            ? "text-yellow-300 fill-yellow-300"
+                            : "text-yellow-400 fill-yellow-400"
+                          : isActive
+                            ? "text-blue-200 hover:text-yellow-300"
+                            : "text-gray-400 hover:text-yellow-400"
+                      }
+                      fill={isFav ? "currentColor" : "none"}
+                    />
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
       {!!loading && <CustomLoader isLoading={loading} />}

@@ -177,15 +177,6 @@ export default function ProgressSteps({
       },
       {
         id: 3,
-        title: "Sample Received",
-        icon: Inbox,
-        date: sampleJourneyValue?.SampleReceivedByDepartmentOn || "",
-        by: sampleJourneyValue?.SampleReceivedBy || "",
-        isDone: isReceivedDone,
-        isVisible: isDepartmentReceivingRequired,
-      },
-      {
-        id: 4,
         title: "Sample Segregation",
         icon: Barcode,
         date: sampleJourneyValue?.SampleSegregationOn || "",
@@ -193,6 +184,16 @@ export default function ProgressSteps({
         isDone: isSegregationDone,
         isVisible: isSegregationRequired,
       },
+      {
+        id: 4,
+        title: "Department Received",
+        icon: Inbox,
+        date: sampleJourneyValue?.SampleReceivedByDepartmentOn || "",
+        by: sampleJourneyValue?.SampleReceivedBy || "",
+        isDone: isReceivedDone,
+        isVisible: isDepartmentReceivingRequired,
+      },
+
       {
         id: 5,
         title: "Result Entry & Validation",

@@ -1,155 +1,307 @@
-import { ArrowDown, ArrowUp, CheckCircle2, Clock, FlaskConical, XCircle } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  Ban,
+  CheckCheck,
+  CheckCircle,
+  FileText,
+  Hourglass,
+  Inbox,
+  Layers,
+  PauseCircle,
+  Printer,
+  Send,
+  Star,
+  TestTube,
+  Zap,
+} from "lucide-react";
+import { MouseEvent, useMemo, useState } from "react";
 import { StateValueProps } from "../types";
 
-export default function FilterBar({ statsValue }: { statsValue: StateValueProps }) {
-  console.log("statsValue", statsValue);
+interface CardConfig {
+  key: string;
+  name: string;
+  icon: typeof Layers;
+  valueKey: keyof StateValueProps;
+  bgClass: string;
+  borderClass: string;
+  iconBgClass: string;
+  iconColorClass: string;
+}
+
+const CARDS_CONFIG: CardConfig[] = [
+  {
+    key: "allClicked",
+    name: "All",
+    icon: Layers,
+    valueKey: "all",
+    bgClass: "bg-[#f1f9ff]",
+    borderClass: "border-[#dcecf7]",
+    iconBgClass: "bg-[#e1f2ff]",
+    iconColorClass: "text-[#0875d1]",
+  },
+  {
+    key: "collectionPendingClicked",
+    name: "CollectionPending",
+    icon: Hourglass,
+    valueKey: "collectionPending",
+    bgClass: "bg-[#faf5ff]",
+    borderClass: "border-[#f3e8ff]",
+    iconBgClass: "bg-[#ede9fe]",
+    iconColorClass: "text-purple-600",
+  },
+  {
+    key: "sampleCollectedClicked",
+    name: "Sample Collected",
+    icon: TestTube,
+    valueKey: "sampleCollected",
+    bgClass: "bg-[#fffbeb]",
+    borderClass: "border-[#fef3c7]",
+    iconBgClass: "bg-[#fde68a]",
+    iconColorClass: "text-amber-600",
+  },
+  {
+    key: "sampleRejectedClicked",
+    name: "Sample Rejected",
+    icon: Ban,
+    valueKey: "sampleRejected",
+    bgClass: "bg-[#fff1f2]",
+    borderClass: "border-[#fecdd3]",
+    iconBgClass: "bg-[#ffe4e6]",
+    iconColorClass: "text-red-600",
+  },
+  {
+    key: "departmentReceivingPendingClicked",
+    name: "Dept. Receiving Pending",
+    icon: Inbox,
+    valueKey: "departmentReceivingPending",
+    bgClass: "bg-[#eff6ff]",
+    borderClass: "border-[#bfdbfe]",
+    iconBgClass: "bg-[#dbeafe]",
+    iconColorClass: "text-blue-500",
+  },
+  {
+    key: "departmentReceiveClicked",
+    name: "Department Received",
+    icon: CheckCheck,
+    valueKey: "departmentReceived",
+    bgClass: "bg-[#eafaf6]",
+    borderClass: "border-[#d6eee8]",
+    iconBgClass: "bg-[#d8f3eb]",
+    iconColorClass: "text-[#159879]",
+  },
+  {
+    key: "resultPendingClicked",
+    name: "Result Pending",
+    icon: Activity,
+    valueKey: "resultPending",
+    bgClass: "bg-[#fdf2f8]",
+    borderClass: "border-[#fbcfe8]",
+    iconBgClass: "bg-[#fce7f3]",
+    iconColorClass: "text-pink-600",
+  },
+  {
+    key: "reportApprovalPendingClicked",
+    name: "Report Approval Pending",
+    icon: FileText,
+    valueKey: "reportApprovalPending",
+    bgClass: "bg-[#f0fdfa]",
+    borderClass: "border-[#ccfbf1]",
+    iconBgClass: "bg-[#ccfbf1]",
+    iconColorClass: "text-teal-600",
+  },
+  {
+    key: "holdClicked",
+    name: "Hold",
+    icon: PauseCircle,
+    valueKey: "hold",
+    bgClass: "bg-[#fffbeb]",
+    borderClass: "border-[#fde68a]",
+    iconBgClass: "bg-[#fef3c7]",
+    iconColorClass: "text-amber-500",
+  },
+  {
+    key: "approvedClicked",
+    name: "Approved",
+    icon: CheckCircle,
+    valueKey: "approved",
+    bgClass: "bg-[#ecfdf5]",
+    borderClass: "border-[#a7f3d0]",
+    iconBgClass: "bg-[#d1fae5]",
+    iconColorClass: "text-emerald-600",
+  },
+  {
+    key: "dispatchedClicked",
+    name: "Dispatched",
+    icon: Send,
+    valueKey: "dispatched",
+    bgClass: "bg-[#f5f3ff]",
+    borderClass: "border-[#ddd6fe]",
+    iconBgClass: "bg-[#ede9fe]",
+    iconColorClass: "text-emerald-700",
+  },
+  {
+    key: "printedClicked",
+    name: "Printed",
+    icon: Printer,
+    valueKey: "printed",
+    bgClass: "bg-[#f0f9ff]",
+    borderClass: "border-[#bae6fd]",
+    iconBgClass: "bg-[#e0f2fe]",
+    iconColorClass: "text-blue-600",
+  },
+  {
+    key: "urgentClicked",
+    name: "Urgent",
+    icon: Zap,
+    valueKey: "urgent",
+    bgClass: "bg-[#fff1f2]",
+    borderClass: "border-[#fecdd3]",
+    iconBgClass: "bg-[#fee2e2]",
+    iconColorClass: "text-rose-600",
+  },
+  {
+    key: "abnormalClicked",
+    name: "Abnormal",
+    icon: AlertCircle,
+    valueKey: "abnormal",
+    bgClass: "bg-[#fff7ed]",
+    borderClass: "border-[#ffedd5]",
+    iconBgClass: "bg-[#fed7aa]",
+    iconColorClass: "text-orange-600",
+  },
+];
+
+interface FilterBarProps {
+  statsValue: StateValueProps;
+  onCardClick?: (_buttonType: string) => void;
+  storageKey?: string;
+}
+
+const DEFAULT_STORAGE_KEY = "labSampleManagementFavoriteCards";
+
+export default function FilterBar({
+  statsValue,
+  onCardClick,
+  storageKey = DEFAULT_STORAGE_KEY,
+}: FilterBarProps) {
+  // Favorite cards (persisted in localStorage, up to 5 allowed)
+  const [favoriteCards, setFavoriteCards] = useState<string[]>(() => {
+    try {
+      const stored =
+        localStorage.getItem(storageKey) || localStorage.getItem(DEFAULT_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.slice(0, 5);
+        }
+      }
+    } catch {
+      // fallback to empty
+    }
+    return [];
+  });
+
+  // Favorite card click handler (toggle favorite, max 5 with FIFO replacement)
+  const favCardClickHandler = (e: MouseEvent, key: string) => {
+    e.stopPropagation();
+
+    setFavoriteCards(prev => {
+      let updated: string[];
+      if (prev.includes(key)) {
+        updated = prev.filter(k => k !== key);
+      } else {
+        if (prev.length >= 5) {
+          // Remove the 5th favorite and add the new one
+          updated = [...prev.slice(0, 4), key];
+        } else {
+          updated = [...prev, key];
+        }
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Ordered cards: favorite cards appear first, followed by remaining cards
+  const orderedCards = useMemo(() => {
+    const favSet = new Set(favoriteCards);
+    const favList = favoriteCards
+      .map(key =>
+        CARDS_CONFIG.find(
+          c => c.key === key || (key === "departmentReceivedClicked" && c.key === "departmentReceiveClicked")
+        )
+      )
+      .filter((c): c is CardConfig => Boolean(c));
+
+    const regularList = CARDS_CONFIG.filter(c => {
+      if (favSet.has(c.key)) return false;
+      if (c.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked")) return false;
+      return true;
+    });
+
+    return [...favList, ...regularList];
+  }, [favoriteCards]);
 
   return (
     <div className="card">
-      {/* ================= TOP HEADER ================= */}
+      <div className="flex flex-row overflow-x-auto gap-3 px-3 py-2 hide-scrollbar">
+        {orderedCards.map(card => {
+          const IconComponent = card.icon;
+          const count = statsValue?.[card.valueKey] ?? 0;
+          const isFav =
+            favoriteCards.includes(card.key) ||
+            (card.key === "departmentReceiveClicked" &&
+              favoriteCards.includes("departmentReceivedClicked"));
 
-      <div className="flex flex-row overflow-x-auto gap-3 px-3 py-2 hide-scrollbar ">
-        {/* =====================================================
-          1. TOTAL SAMPLES
-         ===================================================== */}
-        <div className="h-[80px] min-w-[220px] bg-[#f1f9ff] border border-[#dcecf7] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-[#e1f2ff] flex items-center justify-center shrink-0">
-              <FlaskConical size={30} strokeWidth={2.2} className="text-[#0875d1]" />
-            </div>
+          return (
+            <div
+              key={card.key}
+              onClick={() => onCardClick?.(card.key)}
+              className={`h-[80px] min-w-[220px] ${card.bgClass} border ${card.borderClass} rounded-lg px-3 py-2.5 flex items-center justify-between shrink-0 overflow-hidden relative ${
+                onCardClick
+                  ? "cursor-pointer transition-transform active:scale-95 hover:shadow-xs"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div
+                  className={`w-[50px] h-[50px] rounded-md ${card.iconBgClass} flex items-center justify-center shrink-0`}
+                >
+                  <IconComponent size={28} strokeWidth={2.2} className={card.iconColorClass} />
+                </div>
 
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Total Samples</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
-                {statsValue?.all}
+                <div className="min-w-0 flex flex-col pl-2 flex-1">
+                  <div className="text-[13px] font-bold text-gray-500 truncate" title={card.name}>
+                    {card.name}
+                  </div>
+                  <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
+                    {count}
+                  </div>
+                </div>
               </div>
+
+              {/* Star Favorite Button */}
+              <button
+                type="button"
+                onClick={e => favCardClickHandler(e, card.key)}
+                className="cursor-pointer p-1 transition-transform hover:scale-110 active:scale-95 shrink-0 self-start -mt-1 -mr-1"
+                title={isFav ? "Remove from favorites" : "Mark as favorite"}
+              >
+                <Star
+                  size={16}
+                  className={
+                    isFav
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300 hover:text-yellow-400"
+                  }
+                  fill={isFav ? "currentColor" : "none"}
+                />
+              </button>
             </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#079669] text-center justify-start pl-[60px]">
-            <ArrowUp size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">12%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from last week</span>
-          </div>
-        </div>
-
-        {/* =====================================================
-          2. collected
-         ===================================================== */}
-        <div className="h-[80px] min-w-[220px] bg-purple-200 border border-[#d6eee8] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-purple-150 flex items-center justify-center shrink-0">
-              <CheckCircle2 size={30} strokeWidth={2.2} className="text-purple-500" />
-            </div>
-
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Collected</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
-                {statsValue?.collected}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#079669] text-center justify-start pl-[60px]">
-            <ArrowUp size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">8%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
-          </div>
-        </div>
-
-        {/* =====================================================
-          2. RECEIVED
-         ===================================================== */}
-        <div className="h-[80px] min-w-[220px] bg-[#eafaf6] border border-[#d6eee8] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-[#d8f3eb] flex items-center justify-center shrink-0">
-              <CheckCircle2 size={30} strokeWidth={2.2} className="text-[#159879]" />
-            </div>
-
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Received</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
-                {statsValue?.received}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#079669] text-center justify-start pl-[60px]">
-            <ArrowUp size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">8%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
-          </div>
-        </div>
-
-        {/* =====================================================
-          3. PROCESSING
-         ===================================================== */}
-        {/* <div className="h-[80px] min-w-[220px] bg-[#fff7ed] border border-[#f4e4d2] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-[#ffecd4] flex items-center justify-center shrink-0">
-              <Cog size={30} strokeWidth={2.2} className="text-[#e08b00]" />
-            </div>
-
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Processing</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">74</div>
-            </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#079669] text-center justify-start pl-[60px]">
-            <ArrowUp size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">5%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
-          </div>
-        </div> */}
-
-        {/* =====================================================
-          4. PENDING
-         ===================================================== */}
-        <div className="h-[80px] min-w-[220px] bg-[#fffbeb] border border-[#fef3c7] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-[#fef3c7] flex items-center justify-center shrink-0">
-              <Clock size={30} strokeWidth={2.2} className="text-[#d97706]" />
-            </div>
-
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Pending</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
-                {statsValue?.pending}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#dc2626] text-center justify-start pl-[60px]">
-            <ArrowDown size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">3%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
-          </div>
-        </div>
-
-        {/* =====================================================
-          5. REJECTED
-         ===================================================== */}
-        <div className="h-[80px] min-w-[220px] bg-[#fff1f5] border border-[#f5dce5] rounded-lg px-3 py-2.5 flex flex-col justify-between shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-md bg-[#ffe0e8] flex items-center justify-center shrink-0">
-              <XCircle size={30} strokeWidth={2.2} className="text-[#e32655]" />
-            </div>
-
-            <div className="min-w-0 flex flex-col pl-2">
-              <div className="text-[13px] font-bold text-gray-500 truncate">Rejected</div>
-              <div className="text-[20px] font-extrabold text-[#123b70] mt-0.5 truncate">
-                {statsValue?.rejected}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center text-[12px] font-bold text-[#dc2626] text-center justify-start pl-[60px]">
-            <ArrowDown size={14} strokeWidth={2.7} className="mr-0.5 shrink-0" />
-            <span className="shrink-0">1%</span>
-            <span className="text-gray-400 font-medium ml-1 truncate">from yesterday</span>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

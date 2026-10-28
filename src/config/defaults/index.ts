@@ -162,7 +162,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_FIELD_BOY_MASTER: "Lab/createUpdateFieldBoyMaster",
   CREATE_UPDATE_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/createUpdateSampleRejectionRemarksMaster",
   GET_SAMPLE_REJECTION_REMARKS_MASTER: "Lab/getSampleRejectionRemarksMaster",
-
+  SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_DEPARTMENT_RECEIVING:
+    "Lab/searchPatientInvestigationForSampleDepartmentReceiving",
+  SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_SEGREGATION:
+    "Lab/searchPatientInvestigationForSampleSegregation",
   // lab investigation master
   GET_CATEGORY_LIST: "Home/getCategoryList",
   GET_SUB_CATEGORY_LIST: "Home/getSubCategoryList",

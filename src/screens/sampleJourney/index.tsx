@@ -54,7 +54,11 @@ const SampleJourney = () => {
             <button
               className="save-btn shrink-0 whitespace-nowrap"
               onClick={() => {
-                navigate("/lab-sample-management");
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate("/lab-sample-management");
+                }
               }}
             >
               <span className="sample-button-text">Back</span>
