@@ -371,7 +371,7 @@ export default function SearchBar({
   };
 
   // default storage key for favorite buttons
-  const defaultStorageKey = "labSampleManagementFavoriteButtons";
+  const defaultStorageKey = "resultEntryPathologyFavoriteButtons";
 
   // lab sample management favorite buttons (persisted in localStorage, maximum 5 allowed)
   const [favoriteButtons, setFavoriteButtons] = useState<string[]>(() => {

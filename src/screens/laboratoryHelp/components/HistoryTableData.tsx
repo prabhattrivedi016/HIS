@@ -294,34 +294,48 @@ export default function HistoryTableData() {
 
       {/* ================= TABLE CONTAINER (18 COLUMNS) ================= */}
       <div className="overflow-x-auto mt-2 overflow-y-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <table className="w-full min-w-[2000px] border-collapse text-left text-[11px]">
+        <table className="w-full border-collapse text-left text-[11px]">
           <thead>
             <tr className="bg-blue-50 text-gray-600 font-bold uppercase text-[10px] tracking-wider">
-              <th className="border border-gray-300 py-2.5 px-2 text-center w-[3%]">
+              <th className="border border-gray-300 py-2.5 px-2 text-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="rounded border-gray-300 text-blue-600 cursor-pointer w-3.5 h-3.5"
                 />
               </th>
-              <th className="border border-gray-300 py-2.5 px-2 text-center w-[3%]">S.No.</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[5%]">Barcode</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[4%]">Lab No</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[10%]">Bill Date</th>
-              <th className="border border-gray-300 py-2.5 px-3 text-center w-[5%]">Type</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[8%]">UHID</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[5%]">IPD No.</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[7%]">Ward/Bed No.</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[12%]">Patient Name</th>
-              <th className="border border-gray-300 py-2.5 px-3 text-center w-[7%]">Age/Gender</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[14%]">Investigation</th>
-              <th className="border border-gray-300 py-2.5 px-3 text-center w-[7%]">
+              <th className="border border-gray-300 py-2.5 px-2 text-center whitespace-nowrap">
+                S.No.
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Barcode</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Lab No</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Bill Date</th>
+              <th className="border border-gray-300 py-2.5 px-3 text-center whitespace-nowrap">
+                Type
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">UHID</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">IPD No.</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Ward/Bed No.</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Patient Name</th>
+              <th className="border border-gray-300 py-2.5 px-3 text-center whitespace-nowrap">
+                Age/Gender
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">
+                Investigation
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 text-center whitespace-nowrap">
                 Sample Status
               </th>
-              <th className="border border-gray-300 py-2.5 px-3 text-center w-[7%]">Outsource</th>
-              <th className="border border-gray-300 py-2.5 px-3 text-center w-[8%]">TAT</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[10%]">Dispatch</th>
-              <th className="border border-gray-300 py-2.5 px-3 w-[8%]">Report</th>
-              <th className="border border-gray-300 py-2.5 px-2 text-center w-[8%]">Action</th>
+              <th className="border border-gray-300 py-2.5 px-3 text-center whitespace-nowrap">
+                Outsource
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 text-center whitespace-nowrap">
+                TAT
+              </th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Dispatch</th>
+              <th className="border border-gray-300 py-2.5 px-3 whitespace-nowrap">Report</th>
+              <th className="border border-gray-300 py-2.5 px-2 text-center whitespace-nowrap">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">

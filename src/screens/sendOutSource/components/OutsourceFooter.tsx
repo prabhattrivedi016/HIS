@@ -28,10 +28,10 @@ export default function SendDetailsSection() {
         </div>
 
         {/* 6 Inputs Grid Layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+        <div className="grid grid-flow-col auto-cols-[200px] gap-3 mb-3 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* 1. Outsource Laboratory */}
           <div className="flex flex-col gap-1">
-            <InputField label="Outsource Laboratory *">
+            <InputField label="Outsource Laboratory *" className="whitespace-nowrap">
               <select
                 name="outsourceLaboratory"
                 value={formData.outsourceLaboratory}
@@ -60,7 +60,7 @@ export default function SendDetailsSection() {
 
           {/* 3. Courier / Transport Mode */}
           <div className="flex flex-col gap-1">
-            <InputField label="Courier / Transport Mode">
+            <InputField label="Courier / Transport Mode" className="whitespace-nowrap">
               <select
                 name="courierMode"
                 value={formData.courierMode}
@@ -116,7 +116,7 @@ export default function SendDetailsSection() {
         </div>
 
         {/* Remarks & Action Buttons Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center pt-2 border-t border-gray-200">
+        <div className="grid grid-flow-col auto-cols-[90px] gap-3 mb-3 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Remarks Field */}
           <div className="lg:col-span-7 flex flex-col gap-1">
             <InputField label="Remarks">

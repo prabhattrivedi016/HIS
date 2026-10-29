@@ -1,886 +1,331 @@
-import CustomDateInput from "@/components/customDateInput";
-import InputField from "@/components/customInputField";
 import CustomLoader from "@/components/customLoader";
-import SampleManagementPatientDocument from "@/components/SingledrawerAndPopup/components/SampleManagementPatientDocument";
-import SampleRemarks from "@/components/SingledrawerAndPopup/components/SampleRemarks";
 import { ENDPOINTS } from "@/config/defaults";
-import {
-  ResultEntryRadiologyButtons,
-  ResultEntryRadiologyTableHeader,
-} from "@/constants/tableHeaders";
-import { AuthContext } from "@/context/AuthContext";
+import { labSampleManagementButtonClicked } from "@/constants/constants";
+import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError, showInfo, showWarning } from "@/utils/alert";
-import { resultEntryRadiologySchema } from "@/validation/resultEntryRadiology";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { BriefcaseMedical } from "lucide-react";
-import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { NavLink, useNavigate } from "react-router-dom";
-import LabPatientInfo from "../../components/SingledrawerAndPopup/index";
-import { ButtonValue, RadiologyTableItem, SubSubCategoryItem } from "./types";
+import { showWarning } from "@/utils/alert";
+import { useContext, useEffect, useMemo, useState } from "react";
+import FilterBar from "./components/FilterBar";
+import SearchBar from "./components/SearchBar";
+import TableData from "./components/TableData";
+import {
+  FilterTypeItem,
+  GroupedDataResultEntryRadiology,
+  ResultEntryRadiologyItem,
+  SampleTypeItem,
+  ViewMode,
+} from "./types";
 
-const RADIOLOGY_RESULT_ENTRY_FILTERS_KEY = "radiologyResultEntryFilters";
+const filtersRef: { current: FilterTypeItem | null } = { current: null };
+const cachedDataRef: { current: ResultEntryRadiologyItem[] | null } = { current: null };
 
 const ResultEntryRadiology = () => {
-  const { loading, error, fetchApi } = useGlobalApi();
+  const { loading, fetchApi } = useGlobalApi();
   const currentDate = new Date().toISOString().split("T")[0];
+  const roleId = useContext(RoleContext)?.roleId ?? 0;
+  const branchId = useContext(BranchContext)?.branchId;
 
-  const navigate = useNavigate();
+  const [resultEntryRadiologyList, setResultEntryRadiologyList] = useState<
+    ResultEntryRadiologyItem[]
+  >(() => cachedDataRef.current || []);
+  const [updatedResultEntryRadiologyList, setUpdatedResultEntryRadiologyList] = useState<
+    ResultEntryRadiologyItem[]
+  >(() => cachedDataRef.current || []);
 
-  // branch
-  const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
-
-  // role
-  const roleId = useContext(RoleContext)?.roleId ?? 2;
-
-  const [subSubCategoryList, setSubSubCategoryList] = useState<SubSubCategoryItem[]>([]);
-
-  const [radiologyTableData, setRadiologyTableData] = useState<RadiologyTableItem[]>([]);
-  const [radiologyFilteredTableData, setRadiologyFilteredTableData] = useState<
-    RadiologyTableItem[]
+  const [uhidGroupedResultEntryRadiologyList, setUhidGroupedResultEntryRadiologyList] = useState<
+    GroupedDataResultEntryRadiology[]
   >([]);
 
-  const hasFetched = useRef(false);
+  const [sampleWiseGroupedResultEntryRadiologyList, setSampleWiseGroupedResultEntryRadiologyList] =
+    useState<GroupedDataResultEntryRadiology[]>([]);
 
-  const [testActiveBtn, setTestActiveBtn] = useState<string>("");
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [sampleType, setSampleType] = useState<SampleTypeItem[]>([]);
 
-  const [totalPatientCount, setTotalPatientCount] = useState(0);
-  const [totalTestCount, setTotalTestCount] = useState(0);
-  const [approvedTestCount, setApprovedTestCount] = useState(0);
-  const [pendingTestCount, setPendingTestCount] = useState(0);
-  const [selectedReportPatientInvestigationIds, setSelectedReportPatientInvestigationIds] =
-    useState<number[]>([]);
-  const [patientInvestigationIds, setPatientInvestigationIds] = useState<string>("");
-  const [isHeaderPng, setIsHeaderPng] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>("test");
 
-  const [openPatientInfoPopup, setOpenPatientInfoPopup] = useState<boolean>(false);
-  const [renderPatientInfoPopup, setRenderPatientInfoPopup] = useState<boolean>(false);
-  const [selectedPatient, setSelectedPatient] = useState<RadiologyTableItem | null>(null);
-
-  const [openRemarkPopup, setOpenRemarkPopup] = useState<boolean>(false);
-  const [renderRemarkPopup, setRenderRemarkPopup] = useState<boolean>(false);
-  const [remarkItem, setRemarkItem] = useState<RadiologyTableItem | null>(null);
-
-  const [openPatientDocuments, setOpenPatientDocuments] = useState<boolean>(false);
-  const [renderPatientDocument, setRenderPatientDocument] = useState<boolean>(false);
-  const [selectedPatientDocument, setSelectedPatientDocument] = useState<RadiologyTableItem | null>(
-    null
+  const [filters, setFilters] = useState<FilterTypeItem>(
+    () =>
+      filtersRef.current || {
+        branchId,
+        typeId: 0,
+        uhid: "",
+        ipdNo: "",
+        labNo: "",
+        fromDate: currentDate,
+        toDate: currentDate,
+        barCode: "",
+        subCategoryId: 0,
+        subSubCategoryId: 0,
+        investigationId: 0,
+        patientName: "",
+        roleId,
+        corporateId: 0,
+        statusId: 0,
+        canSampleCollect: 0,
+      }
   );
 
-  // form Data
-  const { register, handleSubmit, reset, getValues, control } = useForm({
-    resolver: yupResolver(resultEntryRadiologySchema),
-    defaultValues: {
-      branchId: branchId,
-      typeId: 0,
-      uhid: "",
-      ipdNo: "",
-      labNo: "",
-      fromDate: currentDate,
-      toDate: currentDate,
-      statusId: 0,
-      barcode: "",
-      patientName: "",
-      subCategoryId: 2,
-      subSubCategoryId: 0,
-      investigationId: 0,
-      roleId: roleId,
-      corporateId: 0,
-      canSampleCollect: 0,
-    },
-  });
-
-  const AllTestHandler = () => {
-    setRadiologyFilteredTableData(radiologyTableData ?? []);
-    setTestActiveBtn("all");
-  };
-  const xRayTestHandler = () => {
-    const filterXray = radiologyTableData.filter(d => d.Name.toLowerCase().includes("x-ray"));
-    setRadiologyFilteredTableData(filterXray);
-    setTestActiveBtn("xray");
-  };
-  const ctTestHandler = () => {
-    const filterCT = radiologyTableData.filter(d => d.Name.toLowerCase().includes("ct"));
-    setRadiologyFilteredTableData(filterCT);
-    setTestActiveBtn("ct");
-  };
-  const usTestHandler = () => {
-    const filterUS = radiologyTableData.filter(d => d.Name.toLowerCase().includes("us"));
-    setRadiologyFilteredTableData(filterUS);
-    setTestActiveBtn("us");
-  };
-  const mriTestHandler = () => {
-    const filterMRI = radiologyTableData.filter(d => d.Name.toLowerCase().includes("mri"));
-    setRadiologyFilteredTableData(filterMRI);
-    setTestActiveBtn("mri");
-  };
-
-  // sub sub category
-  const getSubSubCategoryList = async () => {
-    const resp = await fetchApi(
-      "GET",
-      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
-      {},
-      { params: { subCategoryIds: 2 } },
-      { component: "ResultEntryRadiology" }
-    );
-    setSubSubCategoryList(resp.data ?? []);
-  };
-
-  useEffect(() => {
-    getSubSubCategoryList();
-  }, []);
-
-  // fetch on mount on this page
-  const fetchRadiologyData = async (formData?: any) => {
-    if (!branchId || !roleId) return;
-
-    const payload = {
-      branchId,
-      roleId,
-      typeId: 0,
-      uhid: "",
-      ipdNo: "",
-      labNo: "",
-      fromDate: formData?.fromDate || getValues("fromDate"),
-      toDate: formData?.toDate || getValues("toDate"),
-      statusId: 0,
-      barcode: "",
-      patientName: "",
-      subCategoryId: 2,
-      subSubCategoryId: 0,
-      investigationId: 0,
-      ...(formData || {}),
-    };
-
+  // all sample  of patient investigation
+  const getResultEntryRadiologyList = async (customFilters?: FilterTypeItem) => {
+    const activeFilters = customFilters || filtersRef.current || filters;
+    filtersRef.current = activeFilters;
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_RADIOLOGY,
       {},
-      { params: payload },
+      { params: activeFilters },
       { component: "ResultEntryRadiology" }
     );
-    sessionStorage.setItem(RADIOLOGY_RESULT_ENTRY_FILTERS_KEY, JSON.stringify(payload));
-    setActiveIndex(0);
-    setTestActiveBtn("all");
-
     if (!resp?.result) {
-      showInfo("No data found!");
+      setUhidGroupedResultEntryRadiologyList([]);
+      setSampleWiseGroupedResultEntryRadiologyList([]);
+      setUpdatedResultEntryRadiologyList([]);
+      setResultEntryRadiologyList([]);
+      cachedDataRef.current = [];
+      showWarning(resp?.message ?? "No data found!");
       return;
     }
-    setRadiologyTableData(resp?.data ?? []);
-    setRadiologyFilteredTableData(resp?.data ?? []);
-    setSelectedReportPatientInvestigationIds([]);
-    setPatientInvestigationIds("");
-    setIsHeaderPng(0);
-
-    const totalPatient = new Set(resp?.data?.map((d: any) => d.UHID)).size;
-    setTotalPatientCount(totalPatient);
-    setTotalTestCount(resp?.data?.length ?? 0);
-    setApprovedTestCount(resp?.data?.filter((d: any) => d.IsReportApproved === 1)?.length ?? 0);
-    setPendingTestCount(resp?.data?.filter((d: any) => d.IsReportApproved === 0)?.length ?? 0);
+    const data = resp?.data ?? [];
+    cachedDataRef.current = data;
+    setResultEntryRadiologyList(data);
+    setUpdatedResultEntryRadiologyList(data);
   };
 
   useEffect(() => {
-    if (!branchId || !roleId) return;
+    getResultEntryRadiologyList(filtersRef.current || undefined);
+  }, []);
 
-    if (hasFetched.current) return;
+  // sample type
+  const getAllSampleType = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
+      {},
+      {},
+      { component: "SampleType", silent: true }
+    );
 
-    hasFetched.current = true;
-    const savedFiltersRaw = sessionStorage.getItem(RADIOLOGY_RESULT_ENTRY_FILTERS_KEY);
-    let savedFilters: Record<string, unknown> | null = null;
-    try {
-      savedFilters = savedFiltersRaw ? JSON.parse(savedFiltersRaw) : null;
-    } catch {
-      savedFilters = null;
-    }
-    if (savedFilters && typeof savedFilters === "object") {
-      const restoredFilters = {
-        ...savedFilters,
-        branchId,
-        roleId,
-      };
-
-      reset({
-        branchId,
-        typeId: Number(restoredFilters?.typeId) || 0,
-        uhid: String(restoredFilters?.uhid ?? ""),
-        ipdNo: String(restoredFilters?.ipdNo ?? ""),
-        labNo: String(restoredFilters?.labNo ?? ""),
-        fromDate: String(restoredFilters?.fromDate ?? currentDate),
-        toDate: String(restoredFilters?.toDate ?? currentDate),
-        statusId: Number(restoredFilters?.statusId) || 0,
-        barcode: String(restoredFilters?.barcode ?? ""),
-        patientName: String(restoredFilters?.patientName ?? ""),
-        subCategoryId: Number(restoredFilters?.subCategoryId) || 2,
-        subSubCategoryId: Number(restoredFilters?.subSubCategoryId) || 0,
-        investigationId: Number(restoredFilters?.investigationId) || 0,
-        roleId,
-        corporateId: Number(restoredFilters?.corporateId) || 0,
-        canSampleCollect: Number(restoredFilters?.canSampleCollect) || 0,
-      });
-      fetchRadiologyData(restoredFilters);
-      return;
-    }
-
-    fetchRadiologyData();
-  }, [branchId, roleId]);
-
-  const onSubmit = async (formData: any) => {
-    await fetchRadiologyData(formData);
+    setSampleType(resp?.data ?? []);
   };
 
-  // button count
-  const getButtonCount = (buttonName: string) => {
-    const data = radiologyFilteredTableData ?? [];
+  useEffect(() => {
+    getAllSampleType();
+  }, []);
 
-    switch (buttonName) {
-      case "all":
-        return data.length;
-      case "resultPending":
-        return data.filter(i => i.IsResultDone === 0).length;
-
-      case "hold":
-        return data.filter(i => i.IsReportHold === 1).length;
-
-      case "reportApprovedPending":
-        return data.filter(i => i.IsResultDone === 1 && i.IsReportApproved === 0).length;
-
-      case "approved":
-        return data.filter(i => i.IsReportApproved === 1).length;
-
-      case "printed":
-        return data.filter(i => i.isReportPrinted === 1).length;
-
-      case "dispatched":
-        return data.filter(i => i.IsDispatched === 1).length;
-
-      default:
-        return 0;
+  // search handler
+  const searchHandler = (customFilters?: FilterTypeItem) => {
+    if (customFilters) {
+      filtersRef.current = customFilters;
+      setFilters(customFilters);
     }
+    getResultEntryRadiologyList(customFilters);
   };
 
-  const visibleTableData = useMemo(() => {
-    const data = radiologyFilteredTableData ?? [];
-    const activeButton = ResultEntryRadiologyButtons[activeIndex]?.buttonName;
+  // stats
+  const statsValue = useMemo(() => {
+    let collectionPending = 0;
+    let sampleCollected = 0;
+    let sampleRejected = 0;
+    let departmentReceivingPending = 0;
+    let departmentReceived = 0;
+    let resultPending = 0;
+    let reportApprovalPending = 0;
+    let hold = 0;
+    let approved = 0;
+    let dispatched = 0;
+    let printed = 0;
+    let urgent = 0;
+    let abnormal = 0;
 
-    switch (activeButton) {
-      case "all":
-        return data;
-      case "resultPending":
-        return data.filter(i => i.IsResultDone === 0);
-      case "hold":
-        return data.filter(i => i.IsReportHold === 1);
-      case "reportApprovedPending":
-        return data.filter(i => i.IsResultDone === 1 && i.IsReportApproved === 0);
-      case "approved":
-        return data.filter(i => i.IsReportApproved === 1);
-      case "printed":
-        return data.filter(i => i.isReportPrinted === 1);
-      case "dispatched":
-        return data.filter(i => i.IsDispatched === 1);
-      case "rejected":
-        return data.filter(i => i.isSampleRejected === 1);
-      default:
-        return data;
-    }
-  }, [activeIndex, radiologyFilteredTableData]);
+    resultEntryRadiologyList.forEach(item => {
+      const isCollected = Number(item?.IsSampleCollected) === 1;
+      const isRejected = Number(item?.isSampleRejected) === 1;
 
-  // render buttons
-  const renderButton = (buttons: ButtonValue[]) => {
-    return buttons.map((b, idx) => {
-      const isActive = idx === activeIndex;
-
-      return (
-        <button
-          key={idx}
-          type="button"
-          onClick={() => setActiveIndex(idx)}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap 
-          text-sm font-medium border transition-all duration-200
-          ${isActive ? "shadow-md scale-95" : ""}
-        `}
-          style={{
-            backgroundColor: isActive ? b.color : "#fff",
-            borderColor: b.color,
-            color: isActive ? "#000" : "#333",
-          }}
-        >
-          {/* icon */}
-          <div style={{ backgroundColor: b.color }} className="p-1 rounded-md">
-            <BriefcaseMedical size={14} className="text-black" />
-          </div>
-
-          {/* label + count */}
-          <span>
-            {b.level} : {getButtonCount(b.buttonName)}
-          </span>
-        </button>
-      );
+      if (!isCollected && !isRejected) collectionPending++;
+      if (isCollected && !isRejected) sampleCollected++;
+      if (isRejected) sampleRejected++;
+      if (Number(item?.IsSampleReceivedByDepartment) === 0) departmentReceivingPending++;
+      if (Number(item?.IsSampleReceivedByDepartment) === 1) departmentReceived++;
+      if (Number(item?.IsResultDone) === 0) resultPending++;
+      if (Number(item?.IsReportApproved) === 0) reportApprovalPending++;
+      if (Number(item?.IsReportHold) === 1) hold++;
+      if (Number(item?.IsReportApproved) === 1) approved++;
+      if (Number(item?.IsDispatched) === 1) dispatched++;
+      if (Number(item?.isReportPrinted) === 1) printed++;
+      if (Number(item?.isUrgent) === 1) urgent++;
+      if (Number(item?.IsAbnormalResult) === 1) abnormal++;
     });
-  };
-
-  const getColorFromButton = (buttonName: string) =>
-    ResultEntryRadiologyButtons.find(btn => btn.buttonName === buttonName)?.color ?? "#8C8787";
-
-  const getInvestigationColor = (item: RadiologyTableItem) => {
-    if (item.IsReportHold === 1) return getColorFromButton("hold");
-    if (item.IsDispatched === 1) return getColorFromButton("dispatched");
-    if (item.IsReportApproved === 1) return getColorFromButton("approved");
-    if (item.IsResultDone === 1 && item.IsReportApproved === 0)
-      return getColorFromButton("reportApprovedPending");
-    if (item.isSampleRejected === 1) return getColorFromButton("rejected");
-
-    return getColorFromButton("resultPending");
-  };
-
-  // badge style
-
-  const getBadgeStyle = (item: RadiologyTableItem) => {
-    const color = getInvestigationColor(item);
 
     return {
-      backgroundColor: `${color}25`,
-      color: "#111",
-      padding: "4px 8px",
-      borderRadius: "6px",
-      fontWeight: 500,
-      display: "inline-block",
-      border: `1px solid ${color}`,
-      minWidth: "80px",
-      textAlign: "center" as const,
+      all: resultEntryRadiologyList.length,
+      collectionPending,
+      sampleCollected,
+      sampleRejected,
+      departmentReceivingPending,
+      departmentReceived,
+      resultPending,
+      reportApprovalPending,
+      hold,
+      approved,
+      dispatched,
+      printed,
+      urgent,
+      abnormal,
+      // backwards compatibility aliases
+      pending: collectionPending,
+      collected: sampleCollected,
+      received: departmentReceived,
+      rejected: sampleRejected,
     };
-  };
+  }, [resultEntryRadiologyList]);
 
-  // radiology result entry
-  const serviceNameHandler = (item: RadiologyTableItem) => {
-    navigate(`/investigation-result-entry/radiology/${item?.PatientInvestigationId}`, {
-      state: item,
-    });
-  };
-
-  // close patient info modal
-  const closePatientInvestigationInfo = useCallback(() => {
-    setOpenPatientInfoPopup(false);
-  }, []);
-
-  // patient Info handler
-  const patientInfoHandler = (data: RadiologyTableItem) => {
-    if (!data) {
-      setRenderPatientInfoPopup(true);
-      setOpenPatientInfoPopup(true);
-      setSelectedPatient(null);
-      return;
-    }
-
-    setSelectedPatient(data);
-    setRenderPatientInfoPopup(true);
-    setOpenPatientInfoPopup(true);
-  };
-
-  // remark handler
-  const remarkHandler = (item: RadiologyTableItem) => {
-    if (!item) return;
-    setRemarkItem(item);
-    setRenderRemarkPopup(true);
-    setOpenRemarkPopup(true);
-  };
-
-  const closeHandler = useCallback(() => {
-    setOpenRemarkPopup(false);
-  }, []);
-
-  const allReportPrintHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    const checkedValue = e.target.checked ? 1 : 0;
-    setIsHeaderPng(checkedValue);
-  };
-
-  const reportHeaderCheckboxHandler = (checked: boolean) => {
-    const eligibleReportIds = visibleTableData
-      .filter(item => Number(item?.IsReportApproved) === 1)
-      .map(item => Number(item?.PatientInvestigationId))
-      .filter(id => Number.isFinite(id) && id > 0);
-
-    if (checked) {
-      setSelectedReportPatientInvestigationIds(prev => {
-        const merged = Array.from(new Set([...prev, ...eligibleReportIds]));
-        setPatientInvestigationIds(merged.join(","));
-        return merged;
-      });
-      return;
-    }
-
-    const visibleEligibleSet = new Set(eligibleReportIds);
-    setSelectedReportPatientInvestigationIds(prev => {
-      const next = prev.filter(id => !visibleEligibleSet.has(id));
-      setPatientInvestigationIds(next.join(","));
-      return next;
-    });
-  };
-
-  const reportRowCheckboxHandler = (item: RadiologyTableItem, checked: boolean) => {
-    const id = Number(item?.PatientInvestigationId);
-    if (!Number.isFinite(id) || id <= 0) return;
-
-    setSelectedReportPatientInvestigationIds(prev => {
-      const next = checked ? Array.from(new Set([...prev, id])) : prev.filter(v => v !== id);
-      setPatientInvestigationIds(next.join(","));
-      return next;
-    });
-  };
-
-  const printBulkReportHandler = async () => {
-    if (!branchId) {
-      showWarning("Branch not found");
-      return;
-    }
-
-    if (!patientInvestigationIds.trim()) {
-      showWarning("Please select at least one approved report");
-      return;
-    }
-
-    try {
-      const resp = await fetchApi<Blob>(
-        "GET",
-        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
-        {},
-        {
-          params: {
-            BranchId: branchId,
-            IsHeaderPng: isHeaderPng,
-            PatientInvestigationIds: patientInvestigationIds,
-            Download: true,
-          },
-          responseType: "blob",
-        }
-      );
-
-      if (!resp) {
-        showWarning("Unable to generate report");
-        return;
+  // button click handler
+  const buttonClickHandler = (buttonType: string) => {
+    switch (buttonType) {
+      case labSampleManagementButtonClicked.ALL_CLICKED: {
+        setUpdatedResultEntryRadiologyList(resultEntryRadiologyList);
+        break;
       }
-
-      const pdfBlob = new Blob([resp], { type: "application/pdf" });
-      const pdfUrl = window.URL.createObjectURL(pdfBlob);
-      const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
-
-      setSelectedReportPatientInvestigationIds([]);
-      setPatientInvestigationIds("");
-      setIsHeaderPng(0);
-
-      if (!printWindow) {
-        window.URL.revokeObjectURL(pdfUrl);
-        return;
+      case labSampleManagementButtonClicked?.COLLECTION_PENDING_CLICKED: {
+        const samplepending = resultEntryRadiologyList.filter(
+          item => Number(item?.IsSampleCollected) === 0 && Number(item?.isSampleRejected) === 0
+        );
+        setUpdatedResultEntryRadiologyList(samplepending);
+        break;
       }
-
-      setTimeout(() => {
-        window.URL.revokeObjectURL(pdfUrl);
-      }, 60_000);
-    } catch {
-      showError("Unable to open report");
+      case labSampleManagementButtonClicked?.SAMPLE_COLLECTED_CLICKED: {
+        const sampleCollected = resultEntryRadiologyList.filter(
+          item => Number(item?.IsSampleCollected) === 1 && Number(item?.isSampleRejected) === 0
+        );
+        setUpdatedResultEntryRadiologyList(sampleCollected);
+        break;
+      }
+      case labSampleManagementButtonClicked.SAMPLE_REJECTED_CLICKED: {
+        const sampleRejected = resultEntryRadiologyList.filter(
+          item => Number(item?.isSampleRejected) === 1
+        );
+        setUpdatedResultEntryRadiologyList(sampleRejected);
+        break;
+      }
+      case labSampleManagementButtonClicked.DEPARTMENT_RECEIVING_PENDING_CLICKED: {
+        const departmentReceivingPending = resultEntryRadiologyList.filter(
+          item => Number(item?.IsSampleReceivedByDepartment) === 0
+        );
+        setUpdatedResultEntryRadiologyList(departmentReceivingPending);
+        break;
+      }
+      case labSampleManagementButtonClicked.DEPARTMENT_RECEIVE_CLICKED: {
+        const filteredDepartmentReceive = resultEntryRadiologyList.filter(
+          item =>
+            Number(item?.IsSampleReceivedByDepartment) === 1 &&
+            Number(item?.IsSampleCollected) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredDepartmentReceive);
+        break;
+      }
+      case labSampleManagementButtonClicked.RESULT_PENDING_CLICKED: {
+        const filteredSampleTested = resultEntryRadiologyList.filter(
+          item => Number(item?.IsResultDone) === 0
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleTested);
+        break;
+      }
+      case labSampleManagementButtonClicked.REPORT_APPROVAL_PENDING_CLICKED: {
+        const filteredSampleReportApprovalPending = resultEntryRadiologyList.filter(
+          item => Number(item?.IsReportApproved) === 0
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleReportApprovalPending);
+        break;
+      }
+      case labSampleManagementButtonClicked.HOLD_CLICKED: {
+        const filteredSampleHold = resultEntryRadiologyList.filter(
+          item => Number(item?.IsReportHold) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleHold);
+        break;
+      }
+      case labSampleManagementButtonClicked.APPROVED_CLICKED: {
+        const filteredSampleApproved = resultEntryRadiologyList.filter(
+          item => Number(item?.IsReportApproved) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleApproved);
+        break;
+      }
+      case labSampleManagementButtonClicked.DISPATCHED_CLICKED: {
+        const filteredSampleDispatched = resultEntryRadiologyList.filter(
+          item => Number(item?.IsDispatched) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleDispatched);
+        break;
+      }
+      case labSampleManagementButtonClicked.PRINTED_CLICKED: {
+        const filteredSamplePrinted = resultEntryRadiologyList.filter(
+          item => Number(item?.isReportPrinted) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSamplePrinted);
+        break;
+      }
+      case labSampleManagementButtonClicked.URGENT_CLICKED: {
+        const filteredSampleUrgent = resultEntryRadiologyList.filter(
+          item => Number(item?.isUrgent) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleUrgent);
+        break;
+      }
+      case labSampleManagementButtonClicked.ABNORMAL_CLICKED: {
+        const filteredSampleAbnormal = resultEntryRadiologyList.filter(
+          item => Number(item?.IsAbnormalResult) === 1
+        );
+        setUpdatedResultEntryRadiologyList(filteredSampleAbnormal);
+        break;
+      }
+      default:
+        setUpdatedResultEntryRadiologyList(resultEntryRadiologyList);
+        break;
     }
-  };
-
-  // close document handler
-  const closeDocumentHandler = useCallback(() => {
-    setOpenPatientDocuments(false);
-    setRenderPatientDocument(false);
-  }, []);
-
-  // patient document handler
-  const patientDocumentHandler = (item: RadiologyTableItem) => {
-    if (!item) return;
-    setSelectedPatientDocument(item);
-    setRenderPatientDocument(true);
-    setOpenPatientDocuments(true);
   };
 
   return (
     <div className="page-container">
-      <h1 className="page-heading">Radiology Result Entry </h1>
+      <div className="flex w-full items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="page-heading">Result Entry Radiology</h1>
 
-      <nav className="helper-text">
-        <NavLink to="/dashboard" className="hover:underline">
-          Home
-        </NavLink>
-        <span>››</span>
-        <span> Radiology Result Entry </span>
-      </nav>
-      <form className="card" onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-grid-4">
-          <InputField label="UHID" required>
-            <input
-              type="text"
-              className="input-field"
-              {...register("uhid")}
-              placeholder="Enter UHID "
-            />
-          </InputField>
-
-          <InputField label="Bar Code" required>
-            <input
-              type="text"
-              className="input-field"
-              {...register("barcode")}
-              placeholder="Enter Barcode"
-            />
-          </InputField>
-
-          <InputField label="Patient Name" required>
-            <input
-              type="text"
-              className="input-field"
-              {...register("patientName")}
-              placeholder="Enter patient name "
-            />
-          </InputField>
-
-          <InputField label="Type">
-            <select className="input-field" {...register("typeId")}>
-              <option value={0}>All</option>
-              <option value={1}>OPD</option>
-              <option value={2}>IPD</option>
-            </select>
-          </InputField>
-
-          <InputField label="IPD No" required>
-            <input
-              type="text"
-              className="input-field"
-              {...register("ipdNo")}
-              placeholder="Enter IPD number "
-            />
-          </InputField>
-
-          <InputField label="Lab No" required>
-            <input
-              type="text"
-              className="input-field"
-              {...register("labNo")}
-              placeholder="Enter lab number "
-            />
-          </InputField>
-
-          <InputField label="Department" required>
-            <select className="input-field" {...register("subSubCategoryId")}>
-              <option value={0}>All</option>
-              {subSubCategoryList.map(s => (
-                <option key={s.subSubCategoryId} value={s.subSubCategoryId}>
-                  {s.subSubCategoryName}
-                </option>
-              ))}
-            </select>
-          </InputField>
-
-          <InputField label="From Date" required>
-            <Controller
-              name="fromDate"
-              control={control}
-              render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
-            />
-          </InputField>
-
-          <InputField label="To Date">
-            <Controller
-              name="toDate"
-              control={control}
-              render={({ field }) => <CustomDateInput max={currentDate} {...field} />}
-            />
-          </InputField>
-        </div>
-
-        <div className="header-summary ">
-          {/* --------------------------left stats----------------------------- */}
-          <div className="header-summary-left-stats">
-            <div className="flex items-center">
-              <span className="name-header">Total Patient:</span>
-              <span className="ml-2">{totalPatientCount}</span>
-            </div>
-
-            <div className="flex items-center">
-              <span className="name-header">Total Test:</span>
-              <span className="ml-2">{totalTestCount}</span>
-            </div>
-
-            <div className="flex items-center">
-              <span className="name-header">Approved Test:</span>
-              <span className="ml-2">{approvedTestCount}</span>
-            </div>
-
-            <div className="flex items-center">
-              <span className="name-header">Pending Test:</span>
-              <span className="ml-2">{pendingTestCount}</span>
-            </div>
-          </div>
-
-          {/*-------------------- report filter buttons--------------------------- */}
-          <div className="header-summary-test-buttons">
-            <button
-              type="button"
-              className={`lab-page-header-buttons ${
-                testActiveBtn === "all" ? "lab-pages-active-btn" : "lab-pages-inactive-btn"
-              }`}
-              onClick={AllTestHandler}
-            >
-              All
-            </button>
-
-            <button
-              type="button"
-              className={`lab-page-header-buttons ${
-                testActiveBtn === "xray" ? "lab-pages-active-btn" : "lab-pages-inactive-btn"
-              }`}
-              onClick={xRayTestHandler}
-            >
-              X-Ray
-            </button>
-
-            <button
-              type="button"
-              className={`lab-page-header-buttons ${
-                testActiveBtn === "ct" ? "lab-pages-active-btn" : "lab-pages-inactive-btn"
-              }`}
-              onClick={ctTestHandler}
-            >
-              CT
-            </button>
-
-            <button
-              type="button"
-              className={`lab-page-header-buttons ${
-                testActiveBtn === "us" ? "lab-pages-active-btn" : "lab-pages-inactive-btn"
-              }`}
-              onClick={usTestHandler}
-            >
-              US
-            </button>
-
-            <button
-              type="button"
-              className={`lab-page-header-buttons ${
-                testActiveBtn === "mri" ? "lab-pages-active-btn" : "lab-pages-inactive-btn"
-              }`}
-              onClick={mriTestHandler}
-            >
-              MRI
-            </button>
-          </div>
-
-          {/*filter buttons*/}
-          {/* <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="headerType"
-                  value="proc"
-                  className="w-4 h-4 accent-blue-500"
-                />
-                <span className="font-bold">Proc Lab Header</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="headerType"
-                  value="login"
-                  className="w-4 h-4 accent-blue-500"
-                />
-                <span className="font-bold">Login Header</span>
-              </label>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <button type="button" className="save-btn w-full sm:w-auto">
-                Print
-              </button>
-
-              <button type="button" className="save-btn w-full sm:w-auto">
-                Search
-              </button>
-            </div>
-          </div> */}
-
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div>
-              <input
-                type="checkbox"
-                className="input-checkbox mt-3"
-                checked={isHeaderPng === 1}
-                onChange={allReportPrintHandler}
-              />
-              <span className="m-2 font-bold">IsHeader</span>
-            </div>
-            <button
-              type="button"
-              className="save-btn w-full sm:w-auto"
-              onClick={printBulkReportHandler}
-            >
-              Print
-            </button>
-
-            <button type="submit" className="save-btn w-full sm:w-auto">
-              Search
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {/* render buttons */}
-      <div className="flex lg:flex-row sm:flex-col gap-2 m-2 overflow-x-auto">
-        {renderButton(ResultEntryRadiologyButtons)}
-      </div>
-      {/* table*/}
-
-      {/* render table */}
-
-      <div className="table-container ">
-        <div className="table-scroll-wrapper ">
-          <div className="table-size lg:min-h-82 lg:max-h-82">
-            <table className="base-table ">
-              <thead className="table-head">
-                <tr>
-                  {ResultEntryRadiologyTableHeader.map((h, index) => {
-                    const isPrintHeader = h === "Print";
-                    const eligibleReportItems = visibleTableData.filter(
-                      item => Number(item?.IsReportApproved) === 1
-                    );
-                    const isAllReportChecked =
-                      eligibleReportItems.length > 0 &&
-                      eligibleReportItems.every(item =>
-                        selectedReportPatientInvestigationIds.includes(
-                          Number(item?.PatientInvestigationId)
-                        )
-                      );
-
-                    return (
-                      <th key={index} className="table-th ">
-                        {isPrintHeader ? (
-                          <span className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              className="input-checkbox"
-                              checked={isAllReportChecked}
-                              onChange={e => reportHeaderCheckboxHandler(e.target.checked)}
-                            />
-                            {h}
-                          </span>
-                        ) : (
-                          h
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleTableData.length === 0 ? (
-                  <tr>
-                    <td colSpan={17} className="text-center py-6 text-gray-500">
-                      No data found
-                    </td>
-                  </tr>
-                ) : (
-                  visibleTableData.map((item, idx) => (
-                    <tr key={idx} className="table-row">
-                      <td className="table-td">{idx + 1}</td>
-                      <td className="table-td">{item?.LabNo || "-"}</td>
-                      <td className="table-td">{item?.BillDate || "-"}</td>
-                      <td className="table-td">{item?.UHID || "-"}</td>
-                      <td className="table-td">{item?.IPDNo ?? 0}</td>
-                      <td className="table-td">{item?.PatientName || "-"}</td>
-                      <td className="table-td">
-                        {item?.CurrentAge || "-"} / {item?.Gender}
-                      </td>
-
-                      {/* <td className="table-td max-w-70">
-                        <span style={getBadgeStyle(item)}>{item?.Name || "-"}</span>
-                      </td> */}
-
-                      <td
-                        className={`table-td max-w-70 ${
-                          !item?.IsSampleCollected || !item?.IsSampleReceivedByDepartment
-                            ? "cursor-not-allowed opacity-80"
-                            : "cursor-pointer"
-                        }`}
-                        onClick={() => {
-                          serviceNameHandler(item);
-                        }}
-                      >
-                        <span className="service-btn cursor-pointer" style={getBadgeStyle(item)}>
-                          {item?.Name || "-"}
-                        </span>
-                      </td>
-                      <td className="table-td">{item?.Barcode ?? 0}</td>
-
-                      <td className="table-td">
-                        {item?.IsReportApproved ? (
-                          <input
-                            type="checkbox"
-                            className="input-checkbox"
-                            checked={selectedReportPatientInvestigationIds.includes(
-                              Number(item?.PatientInvestigationId)
-                            )}
-                            onChange={e => reportRowCheckboxHandler(item, e.target.checked)}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </td>
-                      <td className="table-td">{item?.ReportApprovedOn || "-"}</td>
-
-                      <td className="table-td cursor-pointer">
-                        <i
-                          className="fa-solid fa-file icon-color-button"
-                          onClick={() => patientDocumentHandler(item)}
-                        ></i>
-                      </td>
-                      <td className="table-td cursor-pointer" onClick={() => remarkHandler(item)}>
-                        <i className="fa-solid fa-plus icon-color-button"></i>
-                      </td>
-                      <td
-                        className="table-td cursor-pointer"
-                        onClick={() => patientInfoHandler(item)}
-                      >
-                        <i className="fa-solid fa-info icon-color-button"></i>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <nav className="helper-text">
+            Home
+            <span>››</span>
+            <span>Result Entry Radiology</span>
+          </nav>
         </div>
       </div>
 
-      {/* patient investigation details */}
-      {!!renderPatientInfoPopup && (
-        <LabPatientInfo
-          isOpen={openPatientInfoPopup}
-          onClose={closePatientInvestigationInfo}
-          data={selectedPatient}
-        />
-      )}
+      {/* data */}
 
-      {/* remark popup */}
-      {!!renderRemarkPopup && (
-        <SampleRemarks isOpen={openRemarkPopup} onClose={closeHandler} data={remarkItem} />
-      )}
+      <FilterBar statsValue={statsValue} onCardClick={buttonClickHandler} />
 
-      {/* investigation documents */}
-      {!!renderPatientDocument && (
-        <SampleManagementPatientDocument
-          isOpen={openPatientDocuments}
-          onClose={closeDocumentHandler}
-          data={selectedPatientDocument}
-        />
-      )}
+      <SearchBar
+        filters={filters}
+        setFilters={setFilters}
+        onClick={searchHandler}
+        onFilterButtonClick={buttonClickHandler}
+        setViewMode={setViewMode}
+        resultEntryRadiologyList={resultEntryRadiologyList}
+        updatedResultEntryRadiologyList={updatedResultEntryRadiologyList}
+      />
+
+      <TableData
+        updatedResultEntryRadiologyList={updatedResultEntryRadiologyList}
+        setUpdatedResultEntryRadiologyList={setUpdatedResultEntryRadiologyList}
+        sampleType={sampleType}
+        refetchSampleManagement={getResultEntryRadiologyList}
+        uhidGroupedResultEntryRadiologyList={uhidGroupedResultEntryRadiologyList}
+        sampleWiseGroupedResultEntryRadiologyList={sampleWiseGroupedResultEntryRadiologyList}
+        setUhidGroupedResultEntryRadiologyList={setUhidGroupedResultEntryRadiologyList}
+        setSampleWiseGroupedResultEntryRadiologyList={setSampleWiseGroupedResultEntryRadiologyList}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
 
       {!!loading && <CustomLoader isLoading={loading} />}
     </div>

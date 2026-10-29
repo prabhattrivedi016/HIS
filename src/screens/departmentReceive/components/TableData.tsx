@@ -868,97 +868,145 @@ export default function TableData({
     switch (col.tableHeaderName) {
       case "Time Line":
         return (
-          <th key={col.id} className="w-[5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Time Line
           </th>
         );
       case "Lab No":
         return (
-          <th key={col.id} className="w-[5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Lab No
           </th>
         );
       case "Bill Date":
         return (
-          <th key={col.id} className="w-[6%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Bill Date
           </th>
         );
       case "UHID":
         return (
-          <th key={col.id} className="w-[7.5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             UHID
           </th>
         );
       case "Patient Name":
         return (
-          <th key={col.id} className="w-[9%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Patient Name
           </th>
         );
       case "Age / Gender":
         return (
-          <th key={col.id} className="w-[8%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Age / Gender
           </th>
         );
       case "Corporate":
         return (
-          <th key={col.id} className="w-[9%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Corporate
           </th>
         );
       case "Test(s)":
         return (
-          <th key={col.id} className="w-[8%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Test(s)
           </th>
         );
       case "Sample Type":
         return (
-          <th key={col.id} className="w-[7%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Sample Type
           </th>
         );
       case "Barcode":
         return (
-          <th key={col.id} className="w-[5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Barcode
           </th>
         );
       case "Collection Time":
         return (
-          <th key={col.id} className="w-[6.5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Collection Time
           </th>
         );
       case "Segregation Time":
         return (
-          <th key={col.id} className="w-[6.5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Segregation Time
           </th>
         );
       case "Received Time":
         return (
-          <th key={col.id} className="w-[6.5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Received Time
           </th>
         );
       case "Priority":
         return (
-          <th key={col.id} className="w-[5%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Priority
           </th>
         );
       case "Status":
         return (
-          <th key={col.id} className="w-[6%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             Status
           </th>
         );
       case "IPD No/Beds":
         return (
-          <th key={col.id} className="w-[8%] border border-gray-300 px-1 py-2 text-center">
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
             IPD No/Beds
           </th>
         );
@@ -1213,24 +1261,32 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full  min-w-90  table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+              <table className="w-full border-collapse text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
-                    <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 px-1 text-center">
+                      #
+                    </th>
 
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
                       Bill Date
                     </th>
 
-                    <th className="w-[2%] border border-gray-300 py-2 text-center px-2">Lab No</th>
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">UHID</th>
-                    <th className="w-[5%] border border-gray-300 py-2  text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      Lab No
+                    </th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      UHID
+                    </th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2  text-center px-2">
                       Patient Name
                     </th>
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
                       Sample Type
                     </th>
-                    <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Test(s)</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      Test(s)
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
@@ -1288,11 +1344,11 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full min-w-400 table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+              <table className="w-full border-collapse text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
                     {/* Always-visible selection checkbox */}
-                    <th className="w-[3%] border border-gray-300 px-1 py-2 text-center">
+                    <th className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center">
                       <input
                         type="checkbox"
                         className="input-checkbox"
@@ -1308,9 +1364,13 @@ export default function TableData({
                       />
                     </th>
 
-                    <th className="w-[2%] border border-gray-300 py-1 px-2 text-center">#</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-1 px-2 text-center">
+                      #
+                    </th>
                     {visibleColumns.map(col => renderHeaderCell(col))}
-                    <th className="w-[9%] border border-gray-300 py-2 px-1 text-center">Action</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 px-1 text-center">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
@@ -1437,24 +1497,32 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full  min-w-90  table-fixed border-collapse text-left text-[10px] sm:text-[11px] ">
+              <table className="w-full   border-collapse text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
-                    <th className="w-[4%] border border-gray-300 py-2 px-1 text-center">#</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 px-1 text-center">
+                      #
+                    </th>
 
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
                       Bill Date
                     </th>
 
-                    <th className="w-[2%] border border-gray-300 py-2 text-center px-2">Lab No</th>
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">UHID</th>
-                    <th className="w-[5%] border border-gray-300 py-2  text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      Lab No
+                    </th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      UHID
+                    </th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2  text-center px-2">
                       Patient Name
                     </th>
-                    <th className="w-[4%] border border-gray-300 py-2 text-center px-2">
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
                       Sample Type
                     </th>
-                    <th className="w-[8%] border border-gray-300 py-2 text-center px-2">Test(s)</th>
+                    <th className="whitespace-nowrap border border-gray-300 py-2 text-center px-2">
+                      Test(s)
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">

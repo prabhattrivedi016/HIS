@@ -1,24 +1,66 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError } from "@/utils/alert";
 import { AlertTriangle, FileText, MoveLeft, MoveRight, Printer, User } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import CommentBox from "./components/CommentBox";
 import FooterButton from "./components/FooterButton";
+import FreeTextTableData from "./components/FreeTextTableData";
 import LabInfoFilterBar from "./components/LabInfoFilterBar";
 import LabInfoRightChart from "./components/LabInfoRightChart";
 import LabInfoSmallTable from "./components/LabInfoSmallTable";
 import LabInfoTableData from "./components/LabInfoTableData";
-import { PatientDetailsInvestigationItem } from "./types";
+import {
+  FreetextInvestigationValue,
+  PatientDetailsInvestigationItem,
+  SubInvetigationItem,
+} from "./types";
 
 const SampleResultEntry = () => {
   const { loading, fetchApi } = useGlobalApi();
-  const { uhid, visitId, labNo } = useParams();
+  const { department, uhid, visitId, labNo } = useParams();
   const [investigationLists, setInvestigationsLists] = useState<PatientDetailsInvestigationItem[]>(
     []
   );
-  const [selectedPatientInvestigation, setSelectedInvestigation] = useState<number>();
+  const [selectedInvestigation, setSelectedInvestigation] = useState<number>(0);
+
+  const [subInvestigationlists, setSubInvestigationLists] = useState<SubInvetigationItem[]>([]);
+  const [freeTextInvestigationResultvalue, setFreeTextInvestigResultValue] = useState<
+    FreetextInvestigationValue[]
+  >([]);
+
+  const [patientGeneralInfo, setPatientGeneralInfo] = useState({
+    uhid: "",
+    patientName: "",
+    age: "",
+    gender: "",
+    mobileNo: "",
+    visitNo: "",
+    department: "",
+    doctor: "",
+    ward: "",
+    bed: "",
+    admittedOn: "",
+    admissionTime: "",
+  });
+
+  const [investigationGeneralInfo, setInvestigationGeneralInfo] = useState({
+    sampleNo: "",
+    barcode: "",
+    sampleType: "",
+    priority: "",
+    collectionDate: "",
+    receivedDate: "",
+    ReportedDate: "",
+    tat: "",
+    clinicalNotes: "",
+    machineName: "",
+    connection: "",
+    qcStatus: "",
+    lastSync: "",
+  });
 
   const branchId = useContext(BranchContext)?.branchId;
 
@@ -34,9 +76,43 @@ const SampleResultEntry = () => {
       "GET",
       ENDPOINTS.GET_ALL_INVESTIGATION_NAME_OF_PATIENT,
       {},
-      { params: { labTypeId: 1, branchId, visitId, uhid, labNo } },
+      { params: { labTypeId: department === "pathology" ? 1 : 2, branchId, visitId, uhid, labNo } },
       { component: "SampleResultEntry" }
     );
+    if (!resp?.result) {
+      showError(resp?.messsage ?? "No investigation found!");
+      return;
+    }
+    setPatientGeneralInfo({
+      uhid: resp?.data[0]?.UHID,
+      patientName: resp?.data[0]?.PatientName,
+      age: resp?.data[0]?.CurrentAge,
+      gender: resp?.data[0]?.Gender,
+      mobileNo: resp?.data[0]?.ContactNumber,
+      visitNo: resp?.data[0]?.VisitNo,
+      department: resp?.data[0]?.DoctorDepartment,
+      doctor: resp?.data[0]?.DoctorName,
+      ward: resp?.data[0]?.WardName,
+      bed: resp?.data[0]?.BedNo,
+      admittedOn: resp?.data[0]?.AdmissionDate,
+      admissionTime: resp?.data[0]?.AdmissionTime,
+    });
+
+    setInvestigationGeneralInfo({
+      sampleNo: resp?.data[0]?.SampleNo,
+      barcode: resp?.data[0]?.BarCode,
+      sampleType: resp?.data[0]?.SampleType,
+      priority: resp?.data[0]?.Priority,
+      collectionDate: resp?.data[0]?.CollectionDate,
+      receivedDate: resp?.data[0]?.ReceivedDate,
+      ReportedDate: resp?.data[0]?.ReportedDate,
+      tat: resp?.data[0]?.TAT,
+      clinicalNotes: resp?.data[0]?.ClinicalNotes,
+      machineName: resp?.data[0]?.MachineName,
+      connection: resp?.data[0]?.Connection,
+      qcStatus: resp?.data[0]?.QcStatus,
+      lastSync: resp?.data[0]?.LastSync,
+    });
     setInvestigationsLists(resp?.data ?? []);
   };
 
@@ -50,15 +126,34 @@ const SampleResultEntry = () => {
       "GET",
       ENDPOINTS.GET_PATIENT_TABULAR_REPORT_FOR_RESULT_ENTRY,
       {},
-      { params: { patientInvestigationId: selectedPatientInvestigation } },
+      { params: { patientInvestigationId: selectedInvestigation } },
       { component: "SampleResultEntry" }
     );
-    setInvestigationsLists(resp?.data ?? []);
+    setSubInvestigationLists(resp?.data ?? []);
+  };
+
+  // patient free text report
+  // free text entry value
+  const getFreeTextResultEntryValue = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_FREE_TEXT_REPORT_FOR_RESULT_ENTRY,
+      {},
+      { params: { patientInvestigationId: selectedInvestigation } },
+      { component: "InvestigationResultEntry" }
+    );
+    setFreeTextInvestigResultValue(resp?.data);
   };
 
   useEffect(() => {
-    if (selectedPatientInvestigation) getPatientTabularReport();
-  }, [selectedPatientInvestigation]);
+    if (selectedInvestigation && department === "pathology") {
+      getPatientTabularReport();
+    } else if (selectedInvestigation && department === "radiology") {
+      getFreeTextResultEntryValue();
+    }
+  }, [selectedInvestigation, department]);
+
+  console.log("selectedInvestigation", selectedInvestigation);
 
   return (
     <>
@@ -152,22 +247,41 @@ const SampleResultEntry = () => {
         </div>
 
         {/* Filter and Table Data */}
-        <LabInfoFilterBar />
+        <LabInfoFilterBar
+          subInvestigationlists={subInvestigationlists}
+          patientGeneralInfo={patientGeneralInfo}
+          investigationGeneralInfo={investigationGeneralInfo}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start mt-3">
           {/* Left Column: Test List Sidebar */}
           <div className="lg:col-span-3 min-w-0">
-            <LabInfoSmallTable investigationLists={investigationLists} />
+            <LabInfoSmallTable
+              investigationLists={investigationLists}
+              setSelectedInvestigation={setSelectedInvestigation}
+            />
           </div>
 
           {/* Center Column: CBC Parameters Table & Comments (Expands to col-span-9 when isExpanded is true) */}
           <div
             className={`${isExpanded ? "lg:col-span-9" : "lg:col-span-7"} min-w-0 transition-all duration-300`}
           >
-            <LabInfoTableData
-              isExpanded={isExpanded}
-              onToggleExpand={() => setIsExpanded(!isExpanded)}
-            />
+            {/* render tables */}
+            {department === "pathology" ? (
+              <LabInfoTableData
+                isExpanded={isExpanded}
+                onToggleExpand={() => setIsExpanded(!isExpanded)}
+                subInvestigationlists={subInvestigationlists}
+                setSubInvestigationLists={setSubInvestigationLists}
+              />
+            ) : (
+              <FreeTextTableData
+                isExpanded={isExpanded}
+                onToggleExpand={() => setIsExpanded(!isExpanded)}
+                freeTextInvestigationResultvalue={freeTextInvestigationResultvalue}
+              />
+            )}
+
             <CommentBox />
           </div>
 
