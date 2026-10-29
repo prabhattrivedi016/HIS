@@ -76,8 +76,9 @@ const InvestigationResultEntry = () => {
   const [getTabularComment, setGetTabularComment] = useState<string>("");
   const [getIsAbnormal, setGetIsAbnormal] = useState<number>(0);
 
-  const [patientAllInvestigation, setPatientAllInvestigation] =
-    useState<InvestigationItem | PatientAllInvestigationItem | null>(null);
+  const [patientAllInvestigation, setPatientAllInvestigation] = useState<
+    InvestigationItem | PatientAllInvestigationItem | null
+  >(null);
 
   const [openPatientInfo, setOpenPatientInfo] = useState<boolean>(false);
   const [renderPatientInfo, setRenderPatientInfo] = useState<boolean>(false);
@@ -97,8 +98,9 @@ const InvestigationResultEntry = () => {
 
   const [openInvestigationDocuments, setOpenInvestigationDocuments] = useState<boolean>(false);
   const [renderInvestigationDocument, setRenderInvestigationDocument] = useState<boolean>(false);
-  const [selectedInvestigationDocument, setSelectedInvestigationDocument] =
-    useState<InvestigationItem | PatientAllInvestigationItem | null>(null);
+  const [selectedInvestigationDocument, setSelectedInvestigationDocument] = useState<
+    InvestigationItem | PatientAllInvestigationItem | null
+  >(null);
 
   // patient details
   const [patientDetails, setPatientDetails] = useState({

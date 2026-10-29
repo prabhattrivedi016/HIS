@@ -70,6 +70,7 @@ import PatientAdvance from "../patientAdvance";
 import PatientRegistration from "../patientRegistration";
 import PrintSettings from "../printSettings";
 import ProcedureMaster from "../procedureMaster";
+import RadiologyResultEntry from "../radiologyResultEntry";
 import RateListMaster from "../rateListMaster";
 import ReferDoctorMaster from "../referDoctorMaster";
 import ReferLabMaster from "../referLabMaster";
@@ -123,7 +124,7 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "no-page": <NoPage />,
   "sample-management": <SampleManagement />,
   "pathology-result-entry": <PathologyResultEntry />,
-  "result-entry-radiology": <ResultEntryRadiology />,
+  "radiology-result-entry": <RadiologyResultEntry />,
   "histo-result-entry": <HistoResultEntry />,
   "micro-result-entry": <MicroResultEntry />,
   "lab-work-sheet": <LabWorkSheet />,
@@ -199,4 +200,5 @@ export const authorizedRouteMap: Record<string, React.ReactNode> = {
   "bed-info": <BedInfo />,
   "sample-segregation": <SampleSegregation />,
   "result-entry-pathology": <ResultEntryPathology />,
+  "result-entry-radiology": <ResultEntryRadiology />,
 };
