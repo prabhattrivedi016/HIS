@@ -180,6 +180,7 @@ export default function OtSchedular({
   onSlotSelectRange,
   initialDate,
   initialOtId,
+  rescheduleBookingId,
 }: {
   hideSomeDetails?: boolean;
   onSlotSelectRange?: (
@@ -193,6 +194,7 @@ export default function OtSchedular({
   ) => void;
   initialDate?: string;
   initialOtId?: number;
+  rescheduleBookingId?: number;
 }) {
   const { loading, fetchApi } = useGlobalApi();
 
@@ -241,6 +243,7 @@ export default function OtSchedular({
   // validation toast state
   const [validationToast, setValidationToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const draggedEventRef = useRef<SchedulerEvent | null>(null);
 
   const showValidationToast = (msg: string) => {
     if (toastTimeoutRef.current) {
@@ -937,6 +940,109 @@ export default function OtSchedular({
     });
   };
 
+  const handleBookingDragStart = (e: React.DragEvent<HTMLDivElement>, event: SchedulerEvent) => {
+    draggedEventRef.current = event;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(event.id));
+  };
+
+  const handleBookingDrop = async (
+    e: React.DragEvent<HTMLElement>,
+    resource: ResourceItem,
+    date: string,
+    startTime: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const draggedEvent =
+      draggedEventRef.current ??
+      events.find(event => event.id === Number(e.dataTransfer.getData("text/plain")));
+    draggedEventRef.current = null;
+    if (!draggedEvent) return;
+
+    if (draggedEvent.resourceId !== resource.id) {
+      showValidationToast("A scheduled booking cannot be moved to another OT.");
+      return;
+    }
+
+    const startMinutes = timeToMinutes(startTime);
+    const duration = timeToMinutes(draggedEvent.endTime) - timeToMinutes(draggedEvent.startTime);
+    const endMinutes = startMinutes + duration;
+
+    if (duration <= 0 || endMinutes > 24 * 60) {
+      showValidationToast("This booking cannot be moved outside the available day.");
+      return;
+    }
+
+    const overlapsBooking = events.some(event => {
+      if (event.id === draggedEvent.id) return false;
+      if (event.resourceId !== resource.id || event.bookingDate !== date) return false;
+      return (
+        startMinutes < timeToMinutes(event.endTime) && timeToMinutes(event.startTime) < endMinutes
+      );
+    });
+    const overlapsBreak = breaks.some(
+      item =>
+        item.resourceId === resource.id &&
+        item.bookingDate === date &&
+        startMinutes < timeToMinutes(item.endTime) &&
+        timeToMinutes(item.startTime) < endMinutes
+    );
+
+    if (overlapsBooking || overlapsBreak) {
+      showValidationToast("This time overlaps another booking or OT break.");
+      return;
+    }
+
+    if (
+      draggedEvent.resourceId === resource.id &&
+      draggedEvent.bookingDate === date &&
+      timeToMinutes(draggedEvent.startTime) === startMinutes
+    ) {
+      return;
+    }
+
+    const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(
+      endMinutes % 60
+    ).padStart(2, "0")}`;
+
+    if (hideSomeDetails && onSlotSelectRange) {
+      onSlotSelectRange({
+        otId: resource.id,
+        otName: resource.name,
+        bookingDate: date,
+        startTime,
+        endTime,
+      });
+      return;
+    }
+
+    const payload = {
+      otBookingId: draggedEvent.id,
+      otId: resource.id,
+      otBookingDate: normalizeToYYYYMMDD(date),
+      otBookingFromTime: `${startTime}:00`,
+      otBookingToTime: `${endTime}:00`,
+    };
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.RESCHEDULE_OT_BOOKING,
+      payload,
+      {},
+      { component: "OtSchedular" }
+    );
+
+    if (!resp?.result) {
+      showError(resp?.message ?? "Failed to reschedule OT booking.");
+      return;
+    }
+
+    showSuccess(resp?.message ?? "OT booking rescheduled successfully.");
+    const toDate = viewMode === "week" ? addDays(selectedDate, 6) : selectedDate;
+    await getOtBookingSchedular(selectedDate, toDate);
+  };
+
   const handleInitiateCancel = (event: SchedulerEvent) => {
     setBookedOtContextMenu(null);
     setCancelModalEvent(event);
@@ -1023,9 +1129,16 @@ export default function OtSchedular({
 
   const renderEventCard = (event: SchedulerEvent, index: number = 0) => {
     const isClickable = Number(event.visitId) > 0;
+    const isDraggable =
+      isClickable && (hideSomeDetails ? Number(rescheduleBookingId) === Number(event.id) : true);
 
     return (
       <div
+        draggable={isDraggable}
+        onDragStart={isDraggable ? e => handleBookingDragStart(e, event) : undefined}
+        onDragEnd={() => {
+          draggedEventRef.current = null;
+        }}
         onDoubleClick={
           isClickable
             ? e => {
@@ -1037,7 +1150,7 @@ export default function OtSchedular({
         onContextMenu={e => handleEventContextMenu(e, event)}
         className={`group m-2 rounded-lg border p-3 shadow-sm transition-all duration-200 ${
           isClickable
-            ? "cursor-pointer border-slate-200 bg-white hover:-translate-y-[1px] hover:border-slate-300 hover:shadow-md"
+            ? `${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} border-slate-200 bg-white hover:-translate-y-[1px] hover:border-slate-300 hover:shadow-md`
             : "cursor-not-allowed border-slate-300 bg-slate-100"
         }`}
         title={`Booking ${event.bookingNo || event.id} (Right-click for options)`}
@@ -1334,6 +1447,8 @@ export default function OtSchedular({
                         <td
                           key={`${resource.id}-${time}`}
                           rowSpan={getRowSpan(event)}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => void handleBookingDrop(e, resource, selectedDate, time)}
                           className="w-full border-b border-r border-slate-200 bg-white align-top"
                         >
                           {renderEventCard(event)}
@@ -1349,6 +1464,8 @@ export default function OtSchedular({
                         <td
                           key={`break-${resource.id}-${time}`}
                           rowSpan={getBreakRowSpan(breakItem)}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => void handleBookingDrop(e, resource, selectedDate, time)}
                           className="w-full border-b border-r border-slate-200 bg-white align-top p-1"
                         >
                           {renderBreakCard(breakItem)}
@@ -1367,6 +1484,8 @@ export default function OtSchedular({
                     return (
                       <td
                         key={`${resource.id}-${time}`}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => void handleBookingDrop(e, resource, selectedDate, time)}
                         onClick={e => handleSlotClick(e, resource, time, selectedDate)}
                         onContextMenu={e => handleSlotContextMenu(e, resource, time, selectedDate)}
                         onDoubleClick={() => handleEmptyDayCellClick(resource, time)}

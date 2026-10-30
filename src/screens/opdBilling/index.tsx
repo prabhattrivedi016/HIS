@@ -150,24 +150,6 @@ const pickBookingValue = <T,>(
   return undefined;
 };
 
-// const resolveBoundPatientId = (details: Record<string, unknown>) =>
-//   Number(pickBookingValue(details, "PatientId", "patientId") ?? 0) || 0;
-
-// const resolvePatientDoctorId = (patientRecord: Record<string, unknown>) =>
-//   Number(
-//     pickBookingValue(
-//       patientRecord,
-//       "doctorId",
-//       "DoctorId",
-//       "defaultDoctorId",
-//       "DefaultDoctorId",
-//       "consultingDoctorId",
-//       "ConsultingDoctorId",
-//       "lastDoctorId",
-//       "LastDoctorId"
-//     ) ?? 0
-//   ) || 0;
-
 const getBookingItemsFromDetails = (
   booking: OpdBookingDetailsResponse | Record<string, unknown>
 ): OpdBookingItemResponse[] => {
@@ -527,6 +509,9 @@ const OpdBilling = () => {
   };
 
   const { rights: branchRights } = useAssignBranchRight();
+
+  console.log("branchRightsbranchRightsbranchRights", branchRights);
+
   const isDiscountApprovalRequired =
     Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
   const isSeparateCollectionCounterEnabled =
@@ -538,6 +523,9 @@ const OpdBilling = () => {
 
   const ispatientRegistartionChargeRequired =
     Number(branchRights?.IsPatientRegistrationChargeRequired) === 1 ? 1 : 0;
+
+  const isOPDBillingAllowedForIPDPatient =
+    Number(branchRights?.IsOPDBillingAllowedForIPDPatient) === 1 ? 1 : 0;
 
   const branchId = useContext(AuthContext)?.user?.branchId ?? 1;
   const userId = useContext(AuthContext)?.user?.userId ?? 0;
@@ -1701,12 +1689,15 @@ const OpdBilling = () => {
 
   const bindPatientToRegistration = useCallback(
     async (patientId: number) => {
+      const loaded = await patientDataRef.current?.loadPatientById(patientId);
+      if (!loaded) return false;
+
       if (activePatientId && activePatientId !== patientId) {
         resetBoundPatientContext();
       }
       setActivePatientId(patientId);
       setPatientTabError(false);
-      await patientDataRef.current?.loadPatientById(patientId);
+      return true;
     },
     [activePatientId, resetBoundPatientContext]
   );
@@ -1721,11 +1712,17 @@ const OpdBilling = () => {
       }
 
       setSearchPatientError("");
-      await bindPatientToRegistration(patientId);
+      const ipdNumber = String(item?.IPDNo ?? "").trim();
+      if (!isOPDBillingAllowedForIPDPatient && ipdNumber && ipdNumber !== "0") {
+        showWarning("This patient is not allowed for OPD booking.");
+        return true;
+      }
+
+      if (!(await bindPatientToRegistration(patientId))) return false;
       setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
       return true;
     },
-    [bindPatientToRegistration]
+    [bindPatientToRegistration, isOPDBillingAllowedForIPDPatient]
   );
 
   const handleUhidPatientSelect = useCallback(
@@ -1735,7 +1732,7 @@ const OpdBilling = () => {
         return false;
       }
 
-      await bindPatientToRegistration(patientId);
+      if (!(await bindPatientToRegistration(patientId))) return false;
       setActiveTab(OPDBillingTabName.PATIENT_DETAILS);
       return true;
     },
@@ -3955,6 +3952,7 @@ const OpdBilling = () => {
           key={`patient-data-${formResetKey}`}
           ref={patientDataRef}
           selectedPatientId={resolvedPatientId}
+          isOpdBillingAllowedForIpdPatient={Boolean(isOPDBillingAllowedForIPDPatient)}
           showRegistrationButton={showRegistrationButton}
           onPayloadChange={setPatientRegistrationDetails}
           onPatientLoaded={handlePatientLoadedFromUhid}

@@ -288,6 +288,7 @@ const RescheduleOtBooking: React.FC<RescheduleOtBookingProps> = ({
             onSlotSelectRange={setSelectedSlot}
             initialDate={initialDate}
             initialOtId={initialOtId}
+            rescheduleBookingId={Number(item?.OTBookingId)}
           />
         </div>
 
