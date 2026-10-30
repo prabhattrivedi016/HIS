@@ -1,472 +1,852 @@
+import Animation from "@/components/animation";
 import InputField from "@/components/customInputField";
-import { Printer, RotateCcw, Search, Share2, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import CustomLoader from "@/components/customLoader";
+import { ENDPOINTS } from "@/config/defaults";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { DateRangePicker } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
-export default function HistorySearchBar() {
-  const [activeTab, setActiveTab] = useState("Advanced Search");
-  const [filters, setFilters] = useState({
-    uhid: "",
-    ipdNo: "",
-    investigationName: "",
-    barcode: "",
-    labNo: "",
-    fromDate: "2026-09-29",
-    patientName: "",
-    department: "All",
-    toDate: "2026-09-29",
-    type: "All",
-    subDepartment: "All",
-    outsource: "All",
-  });
+import { SubSubCategoryItem } from "@/types";
+import {
+  AlertCircle,
+  Ban,
+  CheckCheck,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Hourglass,
+  Inbox,
+  Layers,
+  PauseCircle,
+  Printer,
+  Search,
+  Send,
+  Star,
+  TestTube,
+  Zap,
+} from "lucide-react";
+import {
+  Activity,
+  Dispatch,
+  MouseEvent,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  CorporateItem,
+  FilterTypeItem,
+  RoomTypeItem,
+  SampleManagementItem,
+  SampleTypeItem,
+  ViewMode,
+} from "../types";
 
-  const [statuses, setStatuses] = useState({
-    urgent: false,
-    stat: false,
-    routine: false,
-    collectionPending: false,
-    sampleCollected: false,
-    inLaboratory: false,
-    approved: false,
-    dispatched: false,
-    outsourcePending: false,
-    outsourceDispatched: false,
-    outsourceReceived: false,
-    reportPending: false,
-  });
+export interface FilterButtonConfig {
+  key: string;
+  label: string;
+  icon: typeof Layers;
+  iconColor: string;
+  countKey:
+    | "all"
+    | "collectionPending"
+    | "sampleCollected"
+    | "sampleRejected"
+    | "departmentReceivingPending"
+    | "departmentReceived"
+    | "resultPending"
+    | "reportApprovalPending"
+    | "hold"
+    | "approved"
+    | "dispatched"
+    | "printed"
+    | "urgent"
+    | "abnormal";
+}
 
-  const handleChange = e => {
+export const FILTER_BUTTONS: FilterButtonConfig[] = [
+  {
+    key: "allClicked",
+    label: "All",
+    icon: Layers,
+    iconColor: "text-purple-600",
+    countKey: "all",
+  },
+  {
+    key: "collectionPendingClicked",
+    label: "CollectionPending",
+    icon: Hourglass,
+    iconColor: "text-purple-600",
+    countKey: "collectionPending",
+  },
+  {
+    key: "sampleCollectedClicked",
+    label: "Sample Collected",
+    icon: TestTube,
+    iconColor: "text-amber-600",
+    countKey: "sampleCollected",
+  },
+  {
+    key: "sampleRejectedClicked",
+    label: "Sample Rejected",
+    icon: Ban,
+    iconColor: "text-red-600",
+    countKey: "sampleRejected",
+  },
+  {
+    key: "departmentReceivingPendingClicked",
+    label: "Dept. Receiving Pending",
+    icon: Inbox,
+    iconColor: "text-blue-500",
+    countKey: "departmentReceivingPending",
+  },
+  {
+    key: "departmentReceiveClicked",
+    label: "Department Received",
+    icon: CheckCheck,
+    iconColor: "text-blue-500",
+    countKey: "departmentReceived",
+  },
+  {
+    key: "resultPendingClicked",
+    label: "Result Pending",
+    icon: Activity,
+    iconColor: "text-pink-600",
+    countKey: "resultPending",
+  },
+  {
+    key: "reportApprovalPendingClicked",
+    label: "Report Approval Pending",
+    icon: FileText,
+    iconColor: "text-blue-500",
+    countKey: "reportApprovalPending",
+  },
+  {
+    key: "holdClicked",
+    label: "Hold",
+    icon: PauseCircle,
+    iconColor: "text-amber-500",
+    countKey: "hold",
+  },
+  {
+    key: "approvedClicked",
+    label: "Approved",
+    icon: CheckCircle,
+    iconColor: "text-emerald-600",
+    countKey: "approved",
+  },
+  {
+    key: "dispatchedClicked",
+    label: "Dispatched",
+    icon: Send,
+    iconColor: "text-emerald-700",
+    countKey: "dispatched",
+  },
+  {
+    key: "printedClicked",
+    label: "Printed",
+    icon: Printer,
+    iconColor: "text-blue-600",
+    countKey: "printed",
+  },
+  {
+    key: "urgentClicked",
+    label: "Urgent",
+    icon: Zap,
+    iconColor: "text-blue-600",
+    countKey: "urgent",
+  },
+  {
+    key: "abnormalClicked",
+    label: "Abnormal",
+    icon: AlertCircle,
+    iconColor: "text-blue-600",
+    countKey: "abnormal",
+  },
+];
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+    .format(date)
+    .replace(/ /g, "-");
+
+const formatToYYYYMMDD = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const parseDateString = (dateStr?: string) => {
+  if (!dateStr) return new Date();
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [y, m, d] = parts.map(Number);
+      return new Date(y, m - 1, d);
+    } else {
+      const [d, m, y] = parts.map(Number);
+      return new Date(y, m - 1, d);
+    }
+  }
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+export default function HistorySearchBar({
+  filters,
+  setFilters,
+  onClick,
+  onFilterButtonClick,
+  setViewMode,
+  sampleManagementList,
+  updatedSampleManagementList,
+}: {
+  filters: FilterTypeItem;
+  setFilters: Dispatch<SetStateAction<FilterTypeItem>>;
+  onClick?: (customFilters?: FilterTypeItem) => void;
+  onFilterButtonClick: (buttonType: string) => void;
+  setViewMode: Dispatch<SetStateAction<ViewMode>>;
+  sampleManagementList?: SampleManagementItem[];
+  updatedSampleManagementList?: SampleManagementItem[];
+  storageKey?: string;
+}) {
+  const { loading, fetchApi } = useGlobalApi();
+  const [subSubCategoryList, setSubSubCategoryList] = useState<SubSubCategoryItem[]>([]);
+  const [corporateMasterList, setCorporateMasterList] = useState<CorporateItem[]>([]);
+  const [showSearchInputs, setShowSearchInputs] = useState(false);
+
+  const [activeButton, setActiveButton] = useState("allClicked");
+
+  const calendarContainerRef = useRef<HTMLDivElement>(null);
+
+  const [appliedRange, setAppliedRange] = useState(() => ({
+    startDate: parseDateString(filters?.fromDate),
+    endDate: parseDateString(filters?.toDate),
+    key: "selection",
+  }));
+
+  const [tempRange, setTempRange] = useState(appliedRange);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(() => parseDateString(filters?.fromDate));
+
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+
+  const [sampleTypeList, setSampleTypeList] = useState<SampleTypeItem[]>([]);
+
+  const [roomTypeLists, setRoomTypeLists] = useState([]);
+
+  useEffect(() => {
+    if (filters?.fromDate && filters?.toDate) {
+      const start = parseDateString(filters.fromDate);
+      const end = parseDateString(filters.toDate);
+      const currentStartFormatted = formatToYYYYMMDD(appliedRange.startDate);
+      const currentEndFormatted = formatToYYYYMMDD(appliedRange.endDate);
+
+      if (filters.fromDate !== currentStartFormatted || filters.toDate !== currentEndFormatted) {
+        const range = { startDate: start, endDate: end, key: "selection" };
+        setAppliedRange(range);
+        setTempRange(range);
+        setSelectedDate(start);
+      }
+    }
+  }, [filters?.fromDate, filters?.toDate]);
+
+  useEffect(() => {
+    if (!showFullCalendar) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        calendarContainerRef.current &&
+        !calendarContainerRef.current.contains(event.target as Node)
+      ) {
+        setTempRange(appliedRange);
+        setShowFullCalendar(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFullCalendar, appliedRange]);
+
+  // room type lists
+  const getRoomTypeLists = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SERVICE_ITEM_LIST,
+      {},
+      { params: { categoryTypeId: 10, isActive: 1 } },
+      { component: "HistorySearchBar" }
+    );
+    setRoomTypeLists(resp?.data ?? []);
+
+    console.log("room type lists", resp?.data);
+  };
+
+  // sample type list
+  const getSampleTypeList = async () => {
+    try {
+      const resp = await fetchApi(
+        "GET",
+        ENDPOINTS.GET_ALL_SAMPLE_TYPE_MASTER,
+        {},
+        {},
+        { component: "HistorySearchBar" }
+      );
+      setSampleTypeList(resp?.data ?? []);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // sub sub category list
+  const getSubSubCategory = async (subCategoryIds: number) => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
+      {},
+      { params: { subCategoryIds } },
+      { component: "HistorySearchBar" }
+    );
+    setSubSubCategoryList(resp?.data ?? []);
+  };
+
+  // corporate master list
+  const getCorporateMasterList = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_CORPORATE_MASTER_LIST,
+      {},
+      { params: { isActive: 1 } },
+      { component: "HistorySearchBar" }
+    );
+    setCorporateMasterList(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getSubSubCategory(1);
+    getCorporateMasterList();
+    getSampleTypeList();
+    getRoomTypeLists();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev: FilterTypeItem) => ({ ...prev, [name]: value }));
   };
 
-  const handleStatusChange = key => {
-    setStatuses(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onClick?.(filters);
   };
+
+  const changeDay = (direction: "prev" | "next") => {
+    const newDate = new Date(selectedDate);
+    if (direction === "prev") newDate.setDate(selectedDate.getDate() - 1);
+    else newDate.setDate(selectedDate.getDate() + 1);
+
+    setSelectedDate(newDate);
+    const range = { startDate: newDate, endDate: newDate, key: "selection" };
+    setAppliedRange(range);
+    setTempRange(range);
+
+    const formatted = formatToYYYYMMDD(newDate);
+    const updatedFilters = {
+      ...filters,
+      fromDate: formatted,
+      toDate: formatted,
+    };
+    setFilters(updatedFilters);
+    onClick?.(updatedFilters);
+  };
+
+  const handleSelect = (ranges: any) => {
+    setTempRange(ranges.selection);
+  };
+
+  const applyHandler = () => {
+    setAppliedRange(tempRange);
+    setSelectedDate(tempRange.startDate);
+    setShowFullCalendar(false);
+
+    const fromDate = formatToYYYYMMDD(tempRange.startDate);
+    const toDate = formatToYYYYMMDD(tempRange.endDate);
+
+    const updatedFilters = {
+      ...filters,
+      fromDate,
+      toDate,
+    };
+    setFilters(updatedFilters);
+    onClick?.(updatedFilters);
+  };
+
+  const cancelHandler = () => {
+    setTempRange(appliedRange);
+    setShowFullCalendar(false);
+  };
+
+  const displayText =
+    appliedRange.startDate.toDateString() === appliedRange.endDate.toDateString()
+      ? formatDate(appliedRange.startDate)
+      : `${formatDate(appliedRange.startDate)} - ${formatDate(appliedRange.endDate)}`;
+
+  const getButtonClass = buttonName => {
+    const isActive = activeButton === buttonName;
+    return `flex items-center gap-2 transition-transform cursor-pointer active:scale-95 border rounded-sm px-2 py-1 ${
+      isActive
+        ? "bg-[#0B5394] border-blue-900 text-white"
+        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+    }`;
+  };
+
+  const getIconClass = (buttonName, defaultColorClass) => {
+    return activeButton === buttonName ? "text-white" : defaultColorClass;
+  };
+
+  // default storage key for favorite buttons
+  const defaultStorageKey = "labSampleManagementFavoriteButtons";
+
+  // lab sample management favorite buttons (persisted in localStorage, maximum 5 allowed)
+  const [favoriteButtons, setFavoriteButtons] = useState<string[]>(() => {
+    try {
+      const stored =
+        localStorage.getItem(storageKey || defaultStorageKey) ||
+        localStorage.getItem("labSampleManagementFavoriteButtons");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.slice(0, 5);
+        }
+      }
+    } catch {
+      // fallback to empty list
+    }
+    return [];
+  });
+
+  // favorite button click handler (toggle favorite; if 5 already exist, remove the last and add new)
+  const favButtonClickHandler = (e: MouseEvent, key: string) => {
+    e.stopPropagation();
+
+    setFavoriteButtons(prev => {
+      let updated: string[];
+      if (prev.includes(key)) {
+        updated = prev.filter(k => k !== key);
+      } else {
+        if (prev.length >= 5) {
+          // Remove the last favorite (5th item) and insert the new button
+          updated = [...prev.slice(0, 4), key];
+        } else {
+          updated = [...prev, key];
+        }
+      }
+
+      localStorage.setItem(storageKey || defaultStorageKey, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // button click handler
+  const handleButtonClick = (buttonKey: string) => {
+    setViewMode("test");
+    setActiveButton(buttonKey);
+    onFilterButtonClick?.(buttonKey);
+  };
+
+  // ordered buttons: favorite buttons appear first, followed by remaining buttons
+  const orderedButtons = useMemo(() => {
+    const favSet = new Set(favoriteButtons);
+    const favButtons = favoriteButtons
+      .map(key =>
+        FILTER_BUTTONS.find(
+          btn =>
+            btn.key === key ||
+            (key === "departmentReceivedClicked" && btn.key === "departmentReceiveClicked")
+        )
+      )
+      .filter((btn): btn is FilterButtonConfig => Boolean(btn));
+
+    const regularButtons = FILTER_BUTTONS.filter(btn => {
+      if (favSet.has(btn.key)) return false;
+      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked"))
+        return false;
+      return true;
+    });
+
+    return [...favButtons, ...regularButtons];
+  }, [favoriteButtons]);
+
+  // count values
+  const getCountValues = useMemo(() => {
+    let collectionPending = 0;
+    let sampleCollected = 0;
+    let sampleRejected = 0;
+    let departmentReceivingPending = 0;
+    let departmentReceived = 0;
+    let resultPending = 0;
+    let reportApprovalPending = 0;
+    let hold = 0;
+    let dispatched = 0;
+    let printed = 0;
+    let urgent = 0;
+    let abnormal = 0;
+    let approved = 0;
+
+    const list = sampleManagementList?.length
+      ? sampleManagementList
+      : updatedSampleManagementList || [];
+
+    list.forEach(item => {
+      const isCollected = Number(item?.IsSampleCollected) === 1;
+      const isRejected = Number(item?.isSampleRejected) === 1;
+
+      if (!isCollected && !isRejected) collectionPending++;
+      if (isCollected && !isRejected) sampleCollected++;
+      if (isRejected) sampleRejected++;
+      if (Number(item?.IsSampleReceivedByDepartment) === 0) departmentReceivingPending++;
+      if (Number(item?.IsSampleReceivedByDepartment) === 1) departmentReceived++;
+      if (Number(item?.IsResultDone) === 0) resultPending++;
+      if (Number(item?.IsReportApproved) === 0) reportApprovalPending++;
+      if (Number(item?.IsReportHold) === 1) hold++;
+      if (Number(item?.IsReportApproved) === 1) approved++;
+      if (Number(item?.IsDispatched) === 1) dispatched++;
+      if (Number(item?.isReportPrinted) === 1) printed++;
+      if (Number(item?.isUrgent) === 1) urgent++;
+      if (Number(item?.IsAbnormalResult) === 1) abnormal++;
+    });
+
+    return {
+      all: list.length,
+      collectionPending,
+      sampleCollected,
+      sampleRejected,
+      departmentReceivingPending,
+      departmentReceived,
+      resultPending,
+      reportApprovalPending,
+      hold,
+      dispatched,
+      printed,
+      urgent,
+      abnormal,
+      approved,
+    };
+  }, [sampleManagementList, updatedSampleManagementList]);
 
   return (
-    <div className="card mt-2">
-      {/* Main Grid Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left Side: Tabs + Search Inputs */}
-        <div
-          className={`flex flex-col gap-3 ${activeTab === "Advanced Search" ? "lg:col-span-9 lg:border-r lg:border-gray-300 lg:pr-4 lg:shadow-[4px_0_2px_-1px_rgba(0,0,0,0.08)]" : "lg:col-span-12"}`}
+    <div className={`card mt-1`}>
+      {/* Search button to open/close fields */}
+      <div className="flex flex-wrap items-center justify-between gap-2 -mt-2">
+        <button
+          type="button"
+          onClick={() => setShowSearchInputs(!showSearchInputs)}
+          className="flex gap-1.5 items-center save-btn lg:max-h-8"
         >
-          {/* Top Tabs: Quick Search & Advanced Search */}
-          <div className="flex items-center justify-between pb-2 border-b border-blue-200 bg-blue-50 px-2 py-2.5 rounded-t-lg">
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setActiveTab("Quick Search")}
-                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  activeTab === "Quick Search"
-                    ? "bg-blue-900 text-white shadow-xs"
-                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200"
-                }`}
-              >
-                <Search size={13} />
-                <span>Quick Search</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("Advanced Search")}
-                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  activeTab === "Advanced Search"
-                    ? "bg-blue-900 text-white shadow-xs"
-                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200"
-                }`}
-              >
-                <SlidersHorizontal size={13} />
-                <span>Advanced Search</span>
-              </button>
+          <Search size={14} />
+          <span>{showSearchInputs ? "Hide Search Filters" : "Open Search Filters"}</span>
+        </button>
+
+        <form className="flex items-center gap-2" onSubmit={handleSearch}>
+          <InputField>
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+
+              <input
+                type="text"
+                name="barCode"
+                // value={filters.barCode}
+                // onChange={handleChange}
+                placeholder="Search using barcode.. "
+                className="input-field max-h-9 pl-4 pr-9"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    // handleSearch?.();
+                  }
+                }}
+              />
             </div>
-          </div>
+          </InputField>
 
-          {/* Search Inputs Container - Visible ONLY when Advanced Search is active */}
-          {activeTab === "Advanced Search" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Row 1 */}
-              <div className="flex flex-col">
-                <InputField label="UHID">
-                  <input
-                    type="text"
-                    name="uhid"
-                    value={filters.uhid}
-                    onChange={handleChange}
-                    placeholder="Enter UHID"
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Barcode">
-                  <input
-                    type="text"
-                    name="barcode"
-                    value={filters.barcode}
-                    onChange={handleChange}
-                    placeholder="Scan / Enter Barcode No."
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Patient Name">
-                  <input
-                    type="text"
-                    name="patientName"
-                    value={filters.patientName}
-                    onChange={handleChange}
-                    placeholder="Enter Patient Name"
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Type">
-                  <select
-                    name="type"
-                    value={filters.type}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    <option value="All">All</option>
-                    <option value="OPD">OPD</option>
-                    <option value="IPD">IPD</option>
-                    <option value="Emergency">Emergency</option>
-                  </select>
-                </InputField>
-              </div>
-
-              {/* Row 2 */}
-              <div className="flex flex-col">
-                <InputField label="IPD No">
-                  <input
-                    type="text"
-                    name="ipdNo"
-                    value={filters.ipdNo}
-                    onChange={handleChange}
-                    placeholder="Enter IPD No"
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Lab No">
-                  <input
-                    type="text"
-                    name="labNo"
-                    value={filters.labNo}
-                    onChange={handleChange}
-                    placeholder="Enter Lab No"
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Department">
-                  <select
-                    name="department"
-                    value={filters.department}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    <option value="All">--All--</option>
-                    <option value="Hematology">Hematology</option>
-                    <option value="Biochemistry">Biochemistry</option>
-                    <option value="Pathology">Pathology</option>
-                  </select>
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Sub Department">
-                  <select
-                    name="subDepartment"
-                    value={filters.subDepartment}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    <option value="All">--All--</option>
-                    <option value="Routine Hematology">Routine Hematology</option>
-                    <option value="Clinical Pathology">Clinical Pathology</option>
-                  </select>
-                </InputField>
-              </div>
-
-              {/* Row 3 */}
-              <div className="flex flex-col">
-                <InputField label="Investigation Name">
-                  <input
-                    type="text"
-                    name="investigationName"
-                    value={filters.investigationName}
-                    onChange={handleChange}
-                    placeholder="Enter Investigation Name"
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="From Date">
-                  <input
-                    type="date"
-                    name="fromDate"
-                    value={filters.fromDate}
-                    onChange={handleChange}
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="To Date">
-                  <input
-                    type="date"
-                    name="toDate"
-                    value={filters.toDate}
-                    onChange={handleChange}
-                    className="input-field"
-                  />
-                </InputField>
-              </div>
-
-              <div className="flex flex-col">
-                <InputField label="Outsource">
-                  <select
-                    name="outsource"
-                    value={filters.outsource}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    <option value="All">All</option>
-                    <option value="In House">In House</option>
-                    <option value="Metropolis">Metropolis</option>
-                  </select>
-                </InputField>
-              </div>
+          {/* Compact date navigator */}
+          <div
+            ref={calendarContainerRef}
+            className="relative flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-1 py-1"
+          >
+            <button
+              type="button"
+              onClick={() => changeDay("prev")}
+              className="p-1.5 rounded-md hover:bg-gray-200 active:scale-95 transition-all text-gray-600 cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div
+              className="min-w-[140px] text-center text-xs font-semibold text-gray-700 cursor-pointer hover:text-blue-600 py-1 px-2 rounded-md hover:bg-blue-50 transition-all select-none"
+              onClick={() => setShowFullCalendar(prev => !prev)}
+            >
+              {displayText}
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => changeDay("next")}
+              className="p-1.5 rounded-md hover:bg-gray-200 active:scale-95 transition-all text-gray-600 cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
 
-        {/* Right Side: Sample Status Section - Visible ONLY when Advanced Search is active */}
-        {activeTab === "Advanced Search" && (
-          <div className="lg:col-span-3 flex flex-col">
-            <div className="flex items-center pb-2 mb-3 border-b border-blue-200 bg-blue-50 px-2 py-3.5 rounded-t-lg">
-              <div className="text-[15px] font-bold text-blue-900">Sample Status</div>
-            </div>
-
-            <div className="bg-white p-3 flex flex-col justify-between shadow-2xs flex-1">
-              <div>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-5 text-[13px] font-semibold text-gray-700">
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.urgent}
-                      onChange={() => handleStatusChange("urgent")}
-                      className="rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-red-600">Urgent</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.approved}
-                      onChange={() => handleStatusChange("approved")}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-emerald-700">Approved</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.stat}
-                      onChange={() => handleStatusChange("stat")}
-                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-orange-500">STAT</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.dispatched}
-                      onChange={() => handleStatusChange("dispatched")}
-                      className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-green-500">Dispatched</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.routine}
-                      onChange={() => handleStatusChange("routine")}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-blue-700">Routine</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.outsourcePending}
-                      onChange={() => handleStatusChange("outsourcePending")}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-purple-700">Outsource Pending</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.collectionPending}
-                      onChange={() => handleStatusChange("collectionPending")}
-                      className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-pink-500">Collection Pending</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.outsourceDispatched}
-                      onChange={() => handleStatusChange("outsourceDispatched")}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-purple-800">Outsource Dispatched</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.sampleCollected}
-                      onChange={() => handleStatusChange("sampleCollected")}
-                      className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-yellow-600">Sample Collected</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.outsourceReceived}
-                      onChange={() => handleStatusChange("outsourceReceived")}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-purple-600">Outsource Received</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.inLaboratory}
-                      onChange={() => handleStatusChange("inLaboratory")}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-blue-700">In Laboratory</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={statuses.reportPending}
-                      onChange={() => handleStatusChange("reportPending")}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span className="text-gray-700">Report Pending</span>
-                  </label>
+            {showFullCalendar && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-white shadow-xl rounded-xl p-3 border border-gray-100">
+                <DateRangePicker
+                  ranges={[tempRange]}
+                  onChange={handleSelect}
+                  months={2}
+                  direction="horizontal"
+                  showMonthAndYearPickers={true}
+                  staticRanges={[]}
+                  inputRanges={[]}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button type="button" onClick={cancelHandler} className="cancel-button">
+                    Cancel
+                  </button>
+                  <button type="button" onClick={applyHandler} className="save-btn">
+                    Apply
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </form>
       </div>
 
-      {/* Bottom Filter Options & Action Buttons Bar - Visible ONLY when Advanced Search is active */}
-      {activeTab === "Advanced Search" && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-3 border-t border-gray-200 text-xs font-semibold text-gray-700">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>More Filters</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Show Only My Department</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Include Cancelled</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Show Remark</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Group By Patient</span>
-            </label>
-            <div className="relative">
-              <select className="input-field">
-                <option value="All Sources">All Sources</option>
-              </select>
+      {/* Collapsible search fields */}
+      {showSearchInputs && (
+        <Animation>
+          <div className="transition-all duration-300 ease-in-out space-y-3 mb-4 pt-2 border-t border-blue-200">
+            <div className="form-grid-5">
+              <InputField label="Patient Type">
+                <select
+                  className="input-field"
+                  value={filters?.typeId}
+                  onChange={handleChange}
+                  name="typeId"
+                >
+                  <option value={0}>All</option>
+                  <option value={1}>OPD</option>
+                  <option value={2}>IPD</option>
+                </select>
+              </InputField>
+
+              <InputField label="Patient Name">
+                <input
+                  type="text"
+                  name="patientName"
+                  value={filters.patientName}
+                  onChange={handleChange}
+                  placeholder="Enter name"
+                  className="input-field"
+                />
+              </InputField>
+
+              <InputField label="UHID">
+                <input
+                  type="text"
+                  name="uhid"
+                  value={filters.uhid}
+                  onChange={handleChange}
+                  placeholder="Enter UHID"
+                  className="input-field"
+                />
+              </InputField>
+
+              <InputField label="IPD Number">
+                <input
+                  type="text"
+                  name="ipdNo"
+                  value={filters.ipdNo}
+                  onChange={handleChange}
+                  placeholder="Enter IPD Number"
+                  className="input-field"
+                />
+              </InputField>
+
+              <InputField label="Sample Type">
+                <select
+                  name="sampleType"
+                  value={filters?.sampleTypeId}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value={0}>All</option>
+                  {sampleTypeList?.map(s => (
+                    <option key={s?.sampleTypeId} value={s?.sampleTypeId}>
+                      {s?.sampleType}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
+              <InputField label="Priority">
+                <select
+                  name="isUrgent"
+                  value={filters?.isUrgent}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value="">All</option>
+                  <option value="0">Normal</option>
+                  <option value="1">Urgent</option>
+                </select>
+              </InputField>
+
+              {/* ================= ROW 2 ================= */}
+
+              {/* <InputField label="Priority">
+                         <select
+                           name="priority"
+                           value={filters.priority}
+                           onChange={handleChange}
+                           className="input-field"
+                         >
+                           <option value="">All</option>
+                           <option value="0">Normal</option>
+                           <option value="1">Urgent</option>
+                         </select>
+                       </InputField> */}
+
+              <InputField label=" Department">
+                <select
+                  className="input-field"
+                  name="subSubCategoryId"
+                  value={filters?.subSubCategoryId}
+                  onChange={handleChange}
+                >
+                  <option value={0}>All</option>
+
+                  {subSubCategoryList.map(subSubCategory => (
+                    <option
+                      key={subSubCategory.subSubCategoryId}
+                      value={subSubCategory.subSubCategoryId}
+                    >
+                      {subSubCategory.subSubCategoryName}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
+              <InputField label="Corporate">
+                <select
+                  name="corporateId"
+                  value={filters.corporateId}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value={0}>All</option>
+                  {corporateMasterList.map((c: CorporateItem) => (
+                    <option key={c.corporateId} value={c.corporateId}>
+                      {c.corporateName}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
+              <InputField label="Room Type">
+                <select
+                  name="roomTypeId"
+                  value={filters.roomTypeId}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value={0}>All</option>
+                  {roomTypeLists.map((r: RoomTypeItem) => (
+                    <option key={r.serviceItemId} value={r.roomTypeId}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-5 mt-3">
+                <button type="submit" onClick={handleSearch} className="save-btn !py-2">
+                  <span>Search</span>
+                </button>
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => alert("Cleared filters")}
-              className="save-btn flex items-center justify-center gap-1.5 w-[90px] relative"
-            >
-              <RotateCcw size={13} />
-              <span>Clear</span>
-            </button>
-            <button
-              onClick={() => alert("Print initiated")}
-              className="save-btn flex items-center justify-center gap-1.5 w-[90px] relative"
-            >
-              <Printer size={13} />
-              <span>Print</span>
-            </button>
-            <button
-              onClick={() => alert("Export initiated")}
-              className="save-btn flex items-center justify-center gap-1.5 w-[90px] relative"
-            >
-              <Share2 size={13} />
-              <span>Export</span>
-            </button>
-            <button
-              onClick={() => alert("Search initiated")}
-              className="save-btn flex items-center justify-center gap-1.5 w-[90px] relative"
-            >
-              <Search size={13} />
-              <span>Search</span>
-            </button>
-          </div>
-        </div>
+        </Animation>
       )}
+
+      {/* ================= ALWAYS VISIBLE STATUS PILL BADGES ================= */}
+      <div
+        className="card -mt-3 "
+        style={{
+          backgroundColor: "transparent",
+          border: "none",
+          boxShadow: "none",
+          paddingBottom: 0,
+        }}
+      >
+        {/* 1 */}
+        <div className="flex items-center gap-3 text-xs font-semibold overflow-x-auto whitespace-nowrap py-2 [&::-webkit-scrollbar]:h-1.5">
+          {orderedButtons.map(btn => {
+            const isFav =
+              favoriteButtons.includes(btn.key) ||
+              (btn.key === "departmentReceiveClicked" &&
+                favoriteButtons.includes("departmentReceivedClicked"));
+            const IconComponent = btn.icon;
+            const count = getCountValues?.[btn.countKey] ?? 0;
+            const isActive = activeButton === btn.key;
+
+            return (
+              <div
+                key={btn.key}
+                className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass(btn.key)}`}
+                onClick={() => handleButtonClick(btn.key)}
+              >
+                <IconComponent size={14} className={getIconClass(btn.key, btn.iconColor)} />
+                <span className="flex items-center gap-1.5">
+                  <span>{btn.label}:</span>
+                  <span>{count}</span>
+                  <span
+                    className="cursor-pointer p-0.5 transition-transform hover:scale-110 active:scale-95 inline-flex items-center ml-0.5"
+                    onClick={e => favButtonClickHandler(e, btn.key)}
+                    title={isFav ? "Remove from favorites" : "Mark as favorite"}
+                  >
+                    <Star
+                      size={14}
+                      className={
+                        isFav
+                          ? isActive
+                            ? "text-yellow-300 fill-yellow-300"
+                            : "text-yellow-400 fill-yellow-400"
+                          : isActive
+                            ? "text-blue-200 hover:text-yellow-300"
+                            : "text-gray-400 hover:text-yellow-400"
+                      }
+                      fill={isFav ? "currentColor" : "none"}
+                    />
+                  </span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {!!loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 }

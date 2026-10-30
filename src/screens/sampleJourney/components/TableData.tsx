@@ -181,20 +181,24 @@ export default function TableData({
       {/* ================= CONTENT CONTAINER ================= */}
       {activeTab === "Journey Details" ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] lg:min-h-102 border-collapse text-left text-[11px]">
+          <table className="w-full  border-collapse text-left text-[11px]">
             <thead>
               <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-                <th className="border border-gray-300 text-center py-2.5 px-2 text-center w-[6%]">
+                <th className="border border-gray-300 py-2.5 px-2 text-center whitespace-nowrap">
                   #
                 </th>
-                <th className="border border-gray-300 text-center py-2.5 px-3 w-[22%]">Stage</th>
-                <th className="border border-gray-300  text-center py-2.5 px-3 w-[18%]">
+                <th className="border border-gray-300 text-center py-2.5 px-3 whitespace-nowrap">
+                  Stage
+                </th>
+                <th className="border border-gray-300  text-center py-2.5 px-3 whitespace-nowrap">
                   Date & Time
                 </th>
-                <th className="border border-gray-300 text-center py-2.5 px-3 w-[18%]">
+                <th className="border border-gray-300 text-center py-2.5 px-3 whitespace-nowrap">
                   Performed By
                 </th>
-                <th className="border border-gray-300 text-center py-2.5 px-3 w-[19%]">Remarks</th>
+                <th className="border border-gray-300 text-center py-2.5 px-3 whitespace-nowrap">
+                  Remarks
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">

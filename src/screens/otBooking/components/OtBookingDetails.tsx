@@ -427,7 +427,7 @@ const OtBookingDetails = ({
           serviceName: item?.name,
           otBookingFromTime: convertTo24HourFormat(payloadValue?.otBookingFromTime),
           otBookingToTime: convertTo24HourFormat(payloadValue?.otBookingToTime),
-          isMainSurgery: isMainSurgery,
+          isMainSurgery: prev.length === 0 ? 1 : isMainSurgery,
           date: formatToDDMMYYYY(new Date().toISOString().split("T")[0]),
         },
       ];
@@ -468,37 +468,11 @@ const OtBookingDetails = ({
   };
 
   // time change handler
-  const timeChangeHandler = (value: string, name: string) => {
-    setPayloadValue((prev: PaylaodValueItem) => {
-      const newPayload = { ...prev, [name]: value };
-
-      if (newPayload.otBookingFromTime && newPayload.otBookingToTime) {
-        const parseTime = (timeStr: string) => {
-          if (!timeStr) return 0;
-          const [time, period] = timeStr.split(" ");
-          if (!time || !period) return 0;
-          let [h, m] = time.split(":").map(Number);
-          if (period === "PM" && h !== 12) h += 12;
-          if (period === "AM" && h === 12) h = 0;
-          return h * 60 + m;
-        };
-
-        const start = parseTime(newPayload.otBookingFromTime);
-        const end = parseTime(newPayload.otBookingToTime);
-
-        if (start > 0 && end > 0 && end < start) {
-          showWarning("End time cannot be less than start time");
-          setTimeout(() => {
-            setPayloadValue((p: PaylaodValueItem) => ({
-              ...p,
-              otBookingToTime: p.otBookingFromTime,
-            }));
-          }, 0);
-        }
-      }
-
-      return newPayload;
-    });
+  const timeChangeHandler = (value: string, name: "otBookingFromTime" | "otBookingToTime") => {
+    setPayloadValue(prev => ({ ...prev, [name]: value }));
+    setServiceTableItemList(prev =>
+      prev.map(item => ({ ...item, [name]: convertTo24HourFormat(value) }))
+    );
   };
 
   // text change handler

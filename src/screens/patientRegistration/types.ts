@@ -131,6 +131,7 @@ type SearchedPatientItem = {
 type PatientDataProps = {
   selectedPatientId?: number | null;
   showRegistrationButton?: boolean;
+  isOpdBillingAllowedForIpdPatient?: boolean;
   onPayloadChange?: (payload: PatientDataEditItem | null) => void;
   onPatientLoaded?: (source: "uhid") => void;
   onRegistrationSuccess?: () => void;
@@ -138,7 +139,7 @@ type PatientDataProps = {
 
 type PatientDataHandle = {
   validateForm: () => Promise<boolean>;
-  loadPatientById: (patientId: number) => Promise<void>;
+  loadPatientById: (patientId: number) => Promise<boolean>;
   applyApiFieldErrors: (errors: Record<string, string[] | string>) => void;
   prefillPatientDetails: (details: Record<string, any>) => Promise<void>;
 };

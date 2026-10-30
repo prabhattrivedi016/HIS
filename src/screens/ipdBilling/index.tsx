@@ -560,7 +560,7 @@ const IpdBilling = () => {
                 ) : (
                   ipdPatientList.map((item: IpdPatientItem) => {
                     const isSelected =
-                      selectedPatient !== null && selectedPatient.PatientId === item.PatientId;
+                      selectedPatient !== null && selectedPatient?.IPDNo === item?.IPDNo;
 
                     return (
                       <div

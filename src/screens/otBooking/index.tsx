@@ -254,7 +254,7 @@ const OtBooking = () => {
     }
   };
 
-  // maximum and minimum booking time
+  // Keep the booking range aligned with the earliest and latest service times.
   useEffect(() => {
     const minBookingFromTime =
       serviceTableItemList

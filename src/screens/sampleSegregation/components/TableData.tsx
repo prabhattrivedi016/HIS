@@ -408,7 +408,6 @@ export default function TableData({
   }, []);
 
   // sample type change handler
-  // sample type change handler
   const sampleChangeHandlerRowWise = useCallback(
     (e: ChangeEvent<HTMLSelectElement>, row: SampleManagementItem) => {
       const selectedValue = e.target.value;
@@ -512,11 +511,11 @@ export default function TableData({
   const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
     const isChecked = e.target.checked;
     const updatedList = updatedSampleManagementList.map(item =>
-      Number(item.IsSampleCollected) === 1 ? item : { ...item, isSampleSelected: isChecked }
+      Number(item?.IsSampleSegregated) === 1 ? item : { ...item, isSampleSelected: isChecked }
     );
     setUpdatedSampleManagementList(updatedList);
     setCheckedSample(
-      isChecked ? updatedList.filter(item => Number(item.IsSampleCollected) !== 1) : []
+      isChecked ? updatedList.filter(item => Number(item?.IsSampleSegregated) !== 1) : []
     );
   };
 

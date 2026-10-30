@@ -512,11 +512,13 @@ export default function TableData({
   const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
     const isChecked = e.target.checked;
     const updatedList = updatedSampleManagementList.map(item =>
-      Number(item.IsSampleCollected) === 1 ? item : { ...item, isSampleSelected: isChecked }
+      Number(item?.IsSampleReceivedByDepartment) === 1
+        ? item
+        : { ...item, isSampleSelected: isChecked }
     );
     setUpdatedSampleManagementList(updatedList);
     setCheckedSample(
-      isChecked ? updatedList.filter(item => Number(item.IsSampleCollected) !== 1) : []
+      isChecked ? updatedList.filter(item => Number(item?.IsSampleReceivedByDepartment) !== 1) : []
     );
   };
 

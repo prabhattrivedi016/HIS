@@ -96,6 +96,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
     {
       showRegistrationButton = true,
       selectedPatientId: selectedPatientIdFromProps = null,
+      isOpdBillingAllowedForIpdPatient,
       onPayloadChange,
       onPatientLoaded,
       onRegistrationSuccess,
@@ -738,12 +739,18 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
 
       if (!resp?.result) {
         showWarning(resp?.message ?? "Failed to get patient data");
-        return;
+        return false;
       }
 
       const data = resp?.data?.[0] as PatientDataEditItem;
+      const ipdNumber = String(data?.ipdNo ?? "").trim();
 
-      if (!data) return;
+      if (!data) return false;
+
+      if (isOpdBillingAllowedForIpdPatient === false && ipdNumber && ipdNumber !== "0") {
+        showWarning("This patient is not allowed for OPD booking.");
+        return false;
+      }
 
       setDocumentFileStore({});
       setPatientDocumentPayload([]);
@@ -866,6 +873,7 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         : {};
 
       emitPatientPayload(methods.getValues() as Record<string, unknown>);
+      return true;
     };
 
     useEffect(() => {
@@ -935,8 +943,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
       setShowPopup(false);
       const patientId = Number(patient?.PatientId ?? (patient as any)?.patientId ?? 0);
       if (patientId) {
-        await getEditPatientData(patientId);
-        onPatientLoaded?.("uhid");
+        if (await getEditPatientData(patientId)) {
+          onPatientLoaded?.("uhid");
+        }
       }
     };
 
@@ -964,8 +973,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         return;
       }
 
-      await getEditPatientData(patientId);
-      onPatientLoaded?.("uhid");
+      if (await getEditPatientData(patientId)) {
+        onPatientLoaded?.("uhid");
+      }
     };
 
     useEffect(() => {
@@ -1079,8 +1089,9 @@ const PatientData = forwardRef<PatientDataHandle, PatientDataProps>(
         },
         loadPatientById: async (patientId: number) => {
           if (patientId > 0) {
-            await getEditPatientData(patientId);
+            return await getEditPatientData(patientId);
           }
+          return false;
         },
         applyApiFieldErrors: (errors: Record<string, string[] | string>) => {
           Object.entries(errors).forEach(([field, messages]) => {
