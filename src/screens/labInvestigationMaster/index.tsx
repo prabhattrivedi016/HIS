@@ -39,7 +39,7 @@ const LabInvestigationMaster = () => {
   }, [investigation]);
 
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number>(3);
 
   const categoryName = useMemo(() => {
     if (!categoryId || !categoryList?.length) return "";
@@ -257,6 +257,9 @@ const LabInvestigationMaster = () => {
     const value = Number(e.target.value);
     setCategoryId(value);
   };
+
+  console.log("categoryListcategoryListcategoryList", categoryList);
+
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -280,12 +283,10 @@ const LabInvestigationMaster = () => {
 
       {/* Investigation Form */}
       <div className="card mb-1">
-        <h2 className="card-title">Investigation Details</h2>
-
         <div className="form-grid-4">
           <InputField label="Category" required>
-            <select className="input-field" onChange={categorySelectHandler}>
-              <option value="0">--Select--</option>
+            <select className="input-field" value={3} onChange={categorySelectHandler}>
+              <option value={0}>--Select--</option>
               {categoryList?.map((item: CategoryItem) => (
                 <option key={item?.categoryId} value={item?.categoryId}>
                   {item?.categoryName}

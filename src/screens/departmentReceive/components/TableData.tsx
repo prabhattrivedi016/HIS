@@ -570,12 +570,12 @@ export default function TableData({
 
   // set view mode handler
   const setViewModeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    localStorage.setItem("labSampleManagementSelectedViewMode", JSON.stringify(e.target.value));
+    localStorage.setItem("departmentReceiveSelectedViewMode", JSON.stringify(e.target.value));
     setViewMode(e.target.value as ViewMode);
   };
 
   useEffect(() => {
-    const savedViewMode = localStorage.getItem("labSampleManagementSelectedViewMode");
+    const savedViewMode = localStorage.getItem("departmentReceiveSelectedViewMode");
     if (savedViewMode) {
       setViewMode(JSON.parse(savedViewMode));
     }
@@ -801,7 +801,7 @@ export default function TableData({
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("labSampleManagementColumnsVisiblity");
+      const stored = localStorage.getItem("departmentReceiveColumnsVisiblity");
 
       if (stored) {
         const parsed = JSON.parse(stored) as ColumnItem[];
@@ -819,7 +819,7 @@ export default function TableData({
         setColumnVisibilityTable([...orderedSaved, ...missing]);
       }
     } catch {
-      localStorage.removeItem("labSampleManagementColumnsVisiblity");
+      localStorage.removeItem("departmentReceiveColumnsVisiblity");
     }
   }, []);
 
@@ -841,7 +841,7 @@ export default function TableData({
       if (oldIndex === -1 || newIndex === -1) return prev;
 
       const reordered = arrayMove(prev, oldIndex, newIndex);
-      localStorage.setItem("labSampleManagementColumnsVisiblity", JSON.stringify(reordered));
+      localStorage.setItem("departmentReceiveColumnsVisiblity", JSON.stringify(reordered));
       return reordered;
     });
   };
@@ -860,7 +860,7 @@ export default function TableData({
         item.id === col.id ? { ...item, isChecked: checked } : item
       );
 
-      localStorage.setItem("labSampleManagementColumnsVisiblity", JSON.stringify(updated));
+      localStorage.setItem("departmentReceiveColumnsVisiblity", JSON.stringify(updated));
 
       return updated;
     });

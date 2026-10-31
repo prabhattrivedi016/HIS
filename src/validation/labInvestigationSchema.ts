@@ -59,6 +59,7 @@ export const addLabInvestigationSchema = yup.object().shape({
   forGenderId: yup.number().nullable(),
   forGender: yup.string().nullable(),
   isDepartmentReceivingRequired: yup.number().nullable(),
+  isSampleSegregationRequired: yup.number().nullable(),
   sampleVolume: yup.string().nullable(),
   tatInMin: yup.string().required("TAT is required"),
   isOutSource: yup.number().nullable(),

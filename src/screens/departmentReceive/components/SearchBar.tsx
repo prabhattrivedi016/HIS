@@ -420,9 +420,7 @@ export default function SearchBar({
   // favorite buttons (persisted in localStorage, maximum 5 allowed)
   const [favoriteButtons, setFavoriteButtons] = useState<string[]>(() => {
     try {
-      const stored =
-        localStorage.getItem(storageKey || defaultStorageKey) ||
-        localStorage.getItem("labSampleManagementFavoriteButtons");
+      const stored = localStorage.getItem(defaultStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -452,7 +450,7 @@ export default function SearchBar({
         }
       }
 
-      localStorage.setItem(storageKey || defaultStorageKey, JSON.stringify(updated));
+      localStorage.setItem(defaultStorageKey, JSON.stringify(updated));
       return updated;
     });
   };
@@ -479,7 +477,8 @@ export default function SearchBar({
 
     const regularButtons = FILTER_BUTTONS.filter(btn => {
       if (favSet.has(btn.key)) return false;
-      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked")) return false;
+      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked"))
+        return false;
       return true;
     });
 
@@ -816,10 +815,7 @@ export default function SearchBar({
                 className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass(btn.key)}`}
                 onClick={() => handleButtonClick(btn.key)}
               >
-                <IconComponent
-                  size={14}
-                  className={getIconClass(btn.key, btn.iconColor)}
-                />
+                <IconComponent size={14} className={getIconClass(btn.key, btn.iconColor)} />
                 <span className="flex items-center gap-1.5">
                   <span>{btn.label}:</span>
                   <span>{count}</span>

@@ -10,8 +10,6 @@ export default function LabInfoSmallTable({
 }) {
   const [selectedTest, setSelectedTest] = useState("currTest");
 
-  console.log("selectedTestselectedTest", selectedTest);
-
   return (
     <div className="card    p-3 space-y-2.5 w-full  lg:h-[850px]">
       {/* ================= TOP ACTION TABS ================= */}
@@ -85,7 +83,7 @@ export default function LabInfoSmallTable({
                 <tr
                   key={t?.InvestigationId}
                   onDoubleClick={() => setSelectedInvestigation(t?.PatientInvestigationId)}
-                  className={`cursor-pointer transition-colors ${isSelected ? "bg-blue-50/80 text-blue-900" : "hover:bg-slate-50"}`}
+                  className={`cursor-pointer active:scale-98 transition-colors ${isSelected ? "bg-blue-50/80 text-blue-900" : "hover:bg-slate-50"}`}
                 >
                   <td className="py-2 px-2 text-center text-gray-500">{idx + 1}</td>
                   <td className="py-2 px-2 font-bold whitespace-nowrap">{t?.Name}</td>

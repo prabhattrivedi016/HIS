@@ -55,6 +55,7 @@ const DEFAULT_FORM_VALUES: AddLabInvestigationFormData = {
   forGenderId: 1,
   forGender: "",
   isDepartmentReceivingRequired: 1,
+  isSampleSegregationRequired: 1,
   sampleVolume: "",
   tatInMin: "",
   isOutSource: 1,
@@ -545,6 +546,8 @@ const AddLabInvestigation = ({
       forGender: data?.forGender ?? "",
 
       isDepartmentReceivingRequired: data?.isDepartmentReceivingRequired ?? 1,
+
+      isSampleSegregationRequired: data?.isSampleSegregationRequired ?? 1,
 
       sampleVolume: matchedSampleVolume?.label ?? String(data?.sampleVolume ?? ""),
       tatInMin:
@@ -1067,6 +1070,17 @@ const AddLabInvestigation = ({
                     className={` ${disabled ? "disabled-input-field" : "input-field"}`}
                     defaultValue={Status?.INACTIVE}
                     disabled={disabled}
+                  >
+                    <option value={1}>Yes</option>
+                    <option value={0}>No</option>
+                  </select>
+                </InputField>
+
+                <InputField label="Sample Segregation">
+                  <select
+                    {...register("isSampleSegregationRequired")}
+                    className="input-field"
+                    value={1}
                   >
                     <option value={1}>Yes</option>
                     <option value={0}>No</option>

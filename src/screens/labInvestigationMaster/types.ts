@@ -76,6 +76,7 @@ type InvestigationTableItem = {
   snomedCode?: string;
   isRequiredSeparatePerformingDoctor?: number;
   doctorDepartmentIds?: string;
+  isSampleSegregationRequired?: number;
 };
 type PickMasterOption = {
   key: string;

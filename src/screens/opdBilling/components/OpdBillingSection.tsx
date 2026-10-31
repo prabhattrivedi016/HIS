@@ -483,7 +483,13 @@ const OpdBillingSection = ({
                           <tr
                             key={idx}
                             className={`table-row ${rowBgClass}`}
-                            onDoubleClick={() => {
+                            onDoubleClick={e => {
+                              if (
+                                e.target instanceof HTMLElement &&
+                                e.target.closest("input, textarea, select, button")
+                              ) {
+                                return;
+                              }
                               if (!isBookingServiceLocked) {
                                 deleteHandler(idx);
                               }
