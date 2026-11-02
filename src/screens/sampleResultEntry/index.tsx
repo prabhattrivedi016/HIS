@@ -1,8 +1,8 @@
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
+import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
-import { showError } from "@/utils/alert";
-import { AlertTriangle, FileText, MoveLeft, MoveRight, Printer, User } from "lucide-react";
+import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import CommentBox from "./components/CommentBox";
@@ -20,16 +20,31 @@ import {
 
 const SampleResultEntry = () => {
   const { loading, fetchApi } = useGlobalApi();
+
+  const roleId = useContext(RoleContext)?.roleId;
+  const branchId = useContext(BranchContext)?.branchId;
+  const currentDate = new Date().toISOString().split("T")[0];
+
   const { department, uhid, visitId, labNo } = useParams();
   const [investigationLists, setInvestigationsLists] = useState<PatientDetailsInvestigationItem[]>(
     []
   );
   const [selectedInvestigation, setSelectedInvestigation] = useState<number>(0);
 
+  const [allInvestigationListsOfPatient, setAllInvestigationListsOfPatient] = useState<
+    PatientDetailsInvestigationItem[]
+  >([]);
+
   const [subInvestigationlists, setSubInvestigationLists] = useState<SubInvetigationItem[]>([]);
   const [freeTextInvestigationResultvalue, setFreeTextInvestigResultValue] = useState<
     FreetextInvestigationValue[]
   >([]);
+  const [freeTextFormData, setFreeTextFormData] = useState({
+    resultValue: "",
+    templateId: 0,
+    investigationComments: "",
+    isAbnormalResult: 0,
+  });
 
   const [patientGeneralInfo, setPatientGeneralInfo] = useState({
     uhid: "",
@@ -61,8 +76,6 @@ const SampleResultEntry = () => {
     qcStatus: "",
     lastSync: "",
   });
-
-  const branchId = useContext(BranchContext)?.branchId;
 
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -142,7 +155,14 @@ const SampleResultEntry = () => {
       { params: { patientInvestigationId: selectedInvestigation } },
       { component: "InvestigationResultEntry" }
     );
-    setFreeTextInvestigResultValue(resp?.data);
+    const data = resp?.data ?? [];
+    setFreeTextInvestigResultValue(data);
+    setFreeTextFormData({
+      resultValue: data[0]?.ResultValue ?? "",
+      templateId: data[0]?.TemplateId ?? 0,
+      investigationComments: data[0]?.InvestigationComment ?? "",
+      isAbnormalResult: data[0]?.IsAbnormalResult ?? 0,
+    });
   };
 
   useEffect(() => {
@@ -153,7 +173,112 @@ const SampleResultEntry = () => {
     }
   }, [selectedInvestigation, department]);
 
-  console.log("selectedInvestigation", selectedInvestigation);
+  // save button click handler
+  const saveButtonClickHandler = async () => {
+    if (department === "radiology") {
+      if (!selectedInvestigation) {
+        showWarning("Select an investigation before saving");
+        return;
+      }
+      if (!freeTextFormData.resultValue.trim()) {
+        showWarning("Result value is required");
+        return;
+      }
+
+      const selected = investigationLists.find(
+        item => Number(item.PatientInvestigationId) === selectedInvestigation
+      );
+      const payload = {
+        patientInvestigationId: selected?.PatientInvestigationId ?? selectedInvestigation,
+        investigationId:
+          selected?.InvestigationId ?? freeTextInvestigationResultvalue[0]?.InvestigationId ?? 0,
+        ...freeTextFormData,
+      };
+      const resp = await fetchApi(
+        "POST",
+        ENDPOINTS.SAVE_PATIENT_FREE_TEXT_REPORT,
+        payload,
+        {},
+        { component: "SampleResultEntry" }
+      );
+      if (!resp?.result) {
+        showError(resp?.message ?? "Unable to save result");
+        return;
+      }
+
+      showSuccess(resp?.message ?? "Data saved successfully");
+      await getFreeTextResultEntryValue();
+      return;
+    }
+
+    if (department !== "pathology") return;
+    if (!selectedInvestigation || !subInvestigationlists.length) {
+      showWarning("Select an investigation before saving");
+      return;
+    }
+
+    const selected = investigationLists.find(
+      item => Number(item.PatientInvestigationId) === selectedInvestigation
+    );
+    const payload = {
+      patientInvestigationId: selected?.PatientInvestigationId ?? selectedInvestigation,
+      investigationId: selected?.InvestigationId ?? subInvestigationlists[0]?.InvestigationId ?? 0,
+      investigationComments: subInvestigationlists[0]?.InvestigationComment ?? "",
+      isAbnormalResult:
+        selected?.IsAbnormalResult ?? subInvestigationlists[0]?.IsAbnormalResult ?? 0,
+      tabularReport: subInvestigationlists.map(item => ({
+        observationId: item.ObservationId ?? 0,
+        resultValue: item.ResultValue ?? "",
+        minValue: item.MinValue ?? "",
+        maxValue: item.MaxValue ?? "",
+        displayRange: item.DisplayRange ?? "",
+        unit: item.Unit ?? "",
+        machineResult: item.MachineResult ?? "",
+        machineDisplayRange: item.MachineDisplayRange ?? "",
+        machineUnit: item.MachineUnit ?? "",
+        sampleRemark: item.SampleRemark ?? "",
+        isHeader: item.IsHeader ? 1 : 0,
+        isResultBold: item.IsResultBold ? 1 : 0,
+      })),
+    };
+
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_TABULAR_REPORT,
+      payload,
+      {},
+      { component: "SampleResultEntry" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Unable to save result");
+      return;
+    }
+
+    showSuccess(resp?.message ?? "Data saved successfully");
+    await getPatientTabularReport();
+  };
+
+  // all invetigation lists of a patient
+  const getAllInvestigationListsOfPatient = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_PATHOLOGY,
+      {},
+      { params: { branchId, roleId, uhid, fromDate: currentDate, toDate: currentDate } },
+      { component: "SampleResultEntry" }
+    );
+
+    console.log("getAllInvestigationListsOfPatient", resp?.data);
+    if (!resp?.result) {
+      showError(resp?.messsage ?? "No investigation found!");
+      return;
+    }
+    setAllInvestigationListsOfPatient(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getAllInvestigationListsOfPatient();
+  }, [branchId, roleId, uhid, currentDate]);
 
   return (
     <>
@@ -170,7 +295,7 @@ const SampleResultEntry = () => {
           </div>
 
           {/* Search Bar between Header and Buttons (Matching Image) */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1.5 shadow-2xs">
+          {/* <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1.5 shadow-2xs">
             <div className="relative flex items-center">
               <select className="bg-transparent text-xs text-gray-700 font-semibold focus:outline-none pr-2 border-r border-gray-200 cursor-pointer">
                 <option value="sampleNo">Sample No</option>
@@ -184,64 +309,64 @@ const SampleResultEntry = () => {
               className="bg-transparent text-xs text-gray-800 placeholder-gray-400 focus:outline-none px-2 lg:w-[130px]  "
             />
             <button onClick={() => handleActionClick("Search Sample")}></button>
-          </div>
+          </div> */}
 
           {/* Action Buttons Toolbar */}
           <div className="flex justify-end flex-1">
             <div className="flex justify-between flex-wrap items-center gap-2">
               {/* Previous Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("Previous")}
                 className="flex items-center gap-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 hover:bg-gray-50 cursor-pointer"
               >
                 <MoveLeft size={14} strokeWidth={2.5} />
                 <span>Previous</span>
-              </button>
+              </button> */}
 
               {/* Next Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("Next")}
                 className="flex items-center gap-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 hover:bg-gray-50 cursor-pointer"
               >
                 <span>Next</span>
                 <MoveRight size={14} strokeWidth={2.5} />
-              </button>
+              </button> */}
 
               {/* Result Entry Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("Result Entry")}
                 className="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <FileText size={14} strokeWidth={2.5} />
                 <span>Result Entry</span>
-              </button>
+              </button> */}
 
               {/* Urgent Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("Urgent")}
                 className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <AlertTriangle size={14} strokeWidth={2.5} />
                 <span>Urgent</span>
-              </button>
+              </button> */}
 
               {/* STAT Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("STAT")}
                 className="flex items-center gap-1.5 bg-white hover:bg-blue-50 text-blue-900 border border-blue-900 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <User size={14} strokeWidth={2.5} />
                 <span>STAT</span>
-              </button>
+              </button> */}
 
               {/* Print Label Button */}
-              <button
+              {/* <button
                 onClick={() => handleActionClick("Print Label")}
                 className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <Printer size={14} strokeWidth={2} className="text-blue-900" />
                 <span>Print Label</span>
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -253,12 +378,13 @@ const SampleResultEntry = () => {
           investigationGeneralInfo={investigationGeneralInfo}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start mt-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 items-start mt-1">
           {/* Left Column: Test List Sidebar */}
           <div className="lg:col-span-3 min-w-0">
             <LabInfoSmallTable
               investigationLists={investigationLists}
               setSelectedInvestigation={setSelectedInvestigation}
+              allInvestigationListsOfPatient={allInvestigationListsOfPatient}
             />
           </div>
 
@@ -279,6 +405,8 @@ const SampleResultEntry = () => {
                 isExpanded={isExpanded}
                 onToggleExpand={() => setIsExpanded(!isExpanded)}
                 freeTextInvestigationResultvalue={freeTextInvestigationResultvalue}
+                freeTextFormData={freeTextFormData}
+                setFreeTextFormData={setFreeTextFormData}
               />
             )}
 
@@ -288,11 +416,11 @@ const SampleResultEntry = () => {
           {/* Right Column: Graphical Trend, Reference Details & Alerts (Hidden when isExpanded is true) */}
           {!isExpanded && (
             <div className="lg:col-span-2 min-w-0 space-y-3">
-              <LabInfoRightChart />
+              <LabInfoRightChart subInvestigationlists={subInvestigationlists} />
             </div>
           )}
         </div>
-        <FooterButton />
+        <FooterButton onSaveButtonClick={saveButtonClickHandler} />
       </div>
     </>
   );

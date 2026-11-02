@@ -1,18 +1,35 @@
 import TextEditor from "@/components/ckEditor";
 import InputField from "@/components/customInputField";
 import { Settings } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 import { FreetextInvestigationValue } from "../types";
 
 interface Props {
   isExpanded: boolean;
   onToggleExpand: () => void;
   freeTextInvestigationResultvalue: FreetextInvestigationValue[];
+  freeTextFormData: {
+    resultValue: string;
+    templateId: number;
+    investigationComments: string;
+    isAbnormalResult: number;
+  };
+  setFreeTextFormData: Dispatch<
+    SetStateAction<{
+      resultValue: string;
+      templateId: number;
+      investigationComments: string;
+      isAbnormalResult: number;
+    }>
+  >;
 }
 
 export default function FreeTextTableData({
   isExpanded,
   onToggleExpand,
   freeTextInvestigationResultvalue,
+  freeTextFormData,
+  setFreeTextFormData,
 }: Props) {
   console.log("freeTextInvestigationResultvalue", freeTextInvestigationResultvalue?.[0]);
 
@@ -67,8 +84,13 @@ export default function FreeTextTableData({
                   <InputField label="Select Template">
                     <select
                       className="input-field w-full"
-                      // {...register("templateId", { valueAsNumber: true })}
-                      // onChange={templateChangeHandler}
+                      value={freeTextFormData.templateId}
+                      onChange={e =>
+                        setFreeTextFormData(prev => ({
+                          ...prev,
+                          templateId: Number(e.target.value),
+                        }))
+                      }
                     >
                       <option value={0}>Select</option>
                       {[]?.map(t => (
@@ -114,9 +136,10 @@ export default function FreeTextTableData({
               {/* Editor */}
               <div className="mx-1  w-full overflow-hidden rounded-lg">
                 <TextEditor
-                // key={editorInstanceKey}
-                // onChange={textEditorChangeHandler}
-                // value={textEditorValue}
+                  onChange={value =>
+                    setFreeTextFormData(prev => ({ ...prev, resultValue: value ?? "" }))
+                  }
+                  value={freeTextFormData.resultValue}
                 />
               </div>
             </div>
@@ -130,21 +153,12 @@ export default function FreeTextTableData({
               <textarea
                 rows={2}
                 className="input-field w-full resize-y"
-                // value={investigationCommentsValue ?? ""}
+                value={freeTextFormData.investigationComments}
                 onChange={e => {
-                  const nextComment = e.target.value;
-
-                  // setValue("investigationComments", nextComment);
-                  // const selectedTemplateId = Number(
-                  //   getValues("templateId") || 0
-                  // );
-
-                  // if (selectedTemplateId > 0) {
-                  //   setTemplateCommentById((prev) => ({
-                  //     ...prev,
-                  //     [selectedTemplateId]: nextComment,
-                  //   }));
-                  // }
+                  setFreeTextFormData(prev => ({
+                    ...prev,
+                    investigationComments: e.target.value,
+                  }));
                 }}
               />
             </InputField>
@@ -154,7 +168,13 @@ export default function FreeTextTableData({
             <InputField label="Abnormal Report">
               <select
                 className="input-field w-full"
-                // {...register("isAbnormalResult", { valueAsNumber: true })}
+                value={freeTextFormData.isAbnormalResult}
+                onChange={e =>
+                  setFreeTextFormData(prev => ({
+                    ...prev,
+                    isAbnormalResult: Number(e.target.value),
+                  }))
+                }
               >
                 <option value={0}>No</option>
                 <option value={1}>yes</option>
