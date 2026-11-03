@@ -7,7 +7,17 @@ import { showSuccess, showWarning } from "@/utils/alert";
 import React, { ChangeEvent, FormEvent, useState } from "react";
 
 const HoldInvestigationResult = React.memo(
-  ({ isOpen, onClose, pId }: { isOpen: boolean; onClose: () => void; pId: number }) => {
+  ({
+    isOpen,
+    onClose,
+    pId,
+    onSuccess,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    pId: number;
+    onSuccess?: () => Promise<void> | void;
+  }) => {
     const { loading, fetchApi } = useGlobalApi();
 
     const [holdReason, setHoldReason] = useState<string>("");
@@ -73,9 +83,10 @@ const HoldInvestigationResult = React.memo(
         setHoldReason("");
         setInputError("");
 
+        await onSuccess?.();
         onClose();
         showSuccess(resp?.message ?? "Data saved successfully");
-      } catch (error) {
+      } catch {
         showWarning("Something went wrong");
       } finally {
         setIsSubmitting(false);

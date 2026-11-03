@@ -18,8 +18,9 @@ type Investigation = PatientDetailsInvestigationItem & {
 
 type Props = {
   investigationLists: PatientDetailsInvestigationItem[];
-  setSelectedInvestigation: (id: number) => void;
+  setSelectedInvestigation: (investigation: PatientDetailsInvestigationItem) => void;
   allInvestigationListsOfPatient: Investigation[];
+  selectedInvestigation?: PatientDetailsInvestigationItem | null;
 };
 
 type Status =
@@ -107,6 +108,7 @@ export default function LabInfoSmallTable({
   investigationLists = [],
   setSelectedInvestigation,
   allInvestigationListsOfPatient = [],
+  selectedInvestigation,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"current" | "old">("current");
 
@@ -182,10 +184,15 @@ export default function LabInfoSmallTable({
     });
   };
 
-  const handleSelectInvestigation = (id: number) => {
-    if (!Number.isFinite(id) || id <= 0) return;
+  const handleSelectInvestigation = (investigation: Investigation) => {
+    if (
+      !Number.isFinite(investigation.PatientInvestigationId) ||
+      investigation.PatientInvestigationId <= 0
+    ) {
+      return;
+    }
 
-    setSelectedInvestigation(id);
+    setSelectedInvestigation(investigation);
   };
 
   const renderStatus = (test: Investigation) => {
@@ -200,31 +207,51 @@ export default function LabInfoSmallTable({
     );
   };
 
-  const renderInvestigationRow = (test: Investigation, idx: number, showDate = false) => (
-    <tr
-      key={test.PatientInvestigationId}
-      onClick={() => handleSelectInvestigation(test.PatientInvestigationId)}
-      className="cursor-pointer transition-colors hover:bg-blue-50/70"
-      title="Click to open investigation"
-    >
-      <td className="px-2 py-2 text-center text-gray-500">{idx + 1}</td>
+  const renderInvestigationRow = (test: Investigation, idx: number, showDate = false) => {
+    const isSelected =
+      Number(selectedInvestigation?.PatientInvestigationId) === Number(test.PatientInvestigationId);
+    const selectedCellClass = isSelected ? "bg-gray-100 text-blue-950" : "";
 
-      {showDate && <td className="px-2 py-2 whitespace-nowrap text-gray-500">{test.BillDate}</td>}
+    return (
+      <tr
+        key={test.PatientInvestigationId}
+        onClick={() => handleSelectInvestigation(test)}
+        aria-selected={isSelected}
+        className={`cursor-pointer transition-colors ${
+          isSelected ? "hover:bg-gray-200" : "hover:bg-blue-50/70"
+        }`}
+        title="Click to open investigation"
+      >
+        <td
+          className={`px-2 py-2 text-center ${
+            isSelected ? "border-l-4 border-l-gray-500" : ""
+          } ${selectedCellClass || "text-gray-500"}`}
+        >
+          {idx + 1}
+        </td>
 
-      <td className="px-2 py-2 font-bold whitespace-nowrap">{test.Name || "Unnamed Test"}</td>
-
-      <td className="px-2 py-2 whitespace-nowrap">{renderStatus(test)}</td>
-
-      <td className="px-2 py-2 whitespace-nowrap">
-        {Number(test.isUrgent) === 1 ? (
-          <span className="font-bold text-red-600">Urgent</span>
-        ) : (
-          <span className="text-gray-500">Normal</span>
+        {showDate && (
+          <td className={`px-2 py-2 whitespace-nowrap ${selectedCellClass || "text-gray-500"}`}>
+            {test.BillDate}
+          </td>
         )}
-      </td>
-    </tr>
-  );
 
+        <td className={`px-2 py-2 font-bold whitespace-nowrap ${selectedCellClass}`}>
+          {test.Name || "Unnamed Test"}
+        </td>
+
+        <td className={`px-2 py-2 whitespace-nowrap ${selectedCellClass}`}>{renderStatus(test)}</td>
+
+        <td className={`px-2 py-2 whitespace-nowrap ${selectedCellClass}`}>
+          {Number(test.isUrgent) === 1 ? (
+            <span className="font-bold text-red-600">Urgent</span>
+          ) : (
+            <span className="text-gray-500">Normal</span>
+          )}
+        </td>
+      </tr>
+    );
+  };
   return (
     <div className="card w-full space-y-3 p-3 flex flex-col min-h-[555px] overflow-hidden">
       {/* TOP TABS */}

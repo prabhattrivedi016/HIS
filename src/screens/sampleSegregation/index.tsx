@@ -5,7 +5,6 @@ import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showWarning } from "@/utils/alert";
-import { Barcode, Building2, ChevronDown, Download, Plus, Upload } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FilterBar from "./components/FilterBar";
@@ -334,61 +333,22 @@ const SampleSegregation = () => {
         {/* action button */}
         <div className="flex shrink-0 items-center justify-end">
           <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
-            {/* Choose Center */}
-            <button
-              type="button"
-              onClick={() => handleActionClick("Select Center")}
-              className="save-btn flex shrink-0 items-center gap-1"
-            >
-              <Building2 size={15} strokeWidth={2.5} />
-
-              <span>Center</span>
-            </button>
-
-            {/* New Sample */}
-            <button
-              type="button"
-              onClick={() => handleActionClick("New Sample")}
-              className="save-btn flex shrink-0 items-center gap-1"
-            >
-              <Plus size={15} strokeWidth={2.5} />
-
-              <span>New Sample</span>
-            </button>
-
-            {/* Scan Barcode */}
-            <button
-              type="button"
-              onClick={() => handleActionClick("Scan Barcode")}
-              className="save-btn flex shrink-0 items-center gap-1"
-            >
-              <Barcode size={16} strokeWidth={2} />
-
-              <span>Scan Barcode</span>
-            </button>
-
             {/* Bulk Receive */}
+
             <button
               type="button"
-              onClick={() => navigate("/bulk-receive")}
+              onClick={() => navigate("/lab-sample-management")}
               className="save-btn flex shrink-0 items-center gap-1"
             >
-              <Upload size={15} strokeWidth={2} />
-
-              <span>Bulk Receive</span>
+              <span>Sample Collection</span>
             </button>
 
-            {/* Export */}
             <button
               type="button"
-              onClick={() => handleActionClick("Export")}
+              onClick={() => navigate("/department-receive")}
               className="save-btn flex shrink-0 items-center gap-1"
             >
-              <Download size={15} strokeWidth={2} />
-
-              <span>Export</span>
-
-              <ChevronDown size={13} />
+              <span>Department Receive</span>
             </button>
           </div>
         </div>

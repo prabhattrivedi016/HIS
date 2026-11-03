@@ -85,6 +85,7 @@ type SampleManagementItem = {
   expectedTat?: string | number;
   targetTat?: string | number;
   [key: string]: unknown;
+  SampleSegregationDepartmentId?: number | null;
 };
 
 type GroupedDataSampleManagement = {
@@ -227,9 +228,18 @@ type StateValueProps = {
   rejected?: number;
 };
 
+type DepartmentItem = {
+  subCategoryId: number;
+  subSubCategoryId: number;
+  subSubCategoryName: string;
+  printGroupId: number;
+  departmentId: null | number;
+};
+
 export type {
   ColumnItem,
   CorporateItem,
+  DepartmentItem,
   DocumentNameItem,
   FilterTypeItem,
   GroupedDataSampleManagement,

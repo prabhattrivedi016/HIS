@@ -5,7 +5,15 @@ import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { SampleManagementItem } from "../types";
+
+type RejectableSample = {
+  PatientInvestigationId: number;
+  UHID?: string;
+  Name?: string;
+  PatientName?: string;
+  Barcode?: string;
+  BarCode?: string;
+};
 
 const RejectSamplePopup = React.memo(
   ({
@@ -16,7 +24,7 @@ const RejectSamplePopup = React.memo(
   }: {
     isOpen: boolean;
     onClose: () => void;
-    data: SampleManagementItem | null;
+    data: RejectableSample | null;
     refreshSampleReject?: () => Promise<void> | void;
   }) => {
     const { loading, fetchApi } = useGlobalApi();
@@ -94,8 +102,8 @@ const RejectSamplePopup = React.memo(
         showSuccess(resp?.message ?? "Sample rejected successfully");
 
         await refreshSampleReject?.();
-      } catch (error: any) {
-        showError(error?.message ?? "Something went wrong");
+      } catch (error: unknown) {
+        showError(error instanceof Error ? error.message : "Something went wrong");
       } finally {
         setIsSubmitting(false);
       }
@@ -129,7 +137,7 @@ const RejectSamplePopup = React.memo(
 
               <div className="flex flex-row">
                 <h1 className="name-header">Bar Code:</h1>
-                <span className="ml-2">{data?.Barcode}</span>
+                <span className="ml-2">{data?.Barcode ?? data?.BarCode}</span>
               </div>
             </div>
           )}

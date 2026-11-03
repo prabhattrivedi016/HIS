@@ -1,3 +1,4 @@
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
@@ -5,9 +6,12 @@ import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import ApproveUnapproveInvestigationResult from "../InvestigationResultEntry/components/ApproveUnapproveInvestigationResuilt";
+import RejectSamplePopup from "../labSampleManagement/components/RejectSamplePopup";
 import CommentBox from "./components/CommentBox";
 import FooterButton from "./components/FooterButton";
 import FreeTextTableData from "./components/FreeTextTableData";
+import HoldInvestigationResult from "./components/HoldInvestigationResult";
 import LabInfoFilterBar from "./components/LabInfoFilterBar";
 import LabInfoRightChart from "./components/LabInfoRightChart";
 import LabInfoSmallTable from "./components/LabInfoSmallTable";
@@ -25,11 +29,39 @@ const SampleResultEntry = () => {
   const branchId = useContext(BranchContext)?.branchId;
   const currentDate = new Date().toISOString().split("T")[0];
 
-  const { department, uhid, visitId, labNo } = useParams();
+  const { department, uhid, visitId, labNo, pId } = useParams();
   const [investigationLists, setInvestigationsLists] = useState<PatientDetailsInvestigationItem[]>(
     []
   );
-  const [selectedInvestigation, setSelectedInvestigation] = useState<number>(0);
+  const [selectedInvestigation, setSelectedInvestigation] =
+    useState<PatientDetailsInvestigationItem | null>(null);
+  const [approvedDoctorId, setApprovedDoctorId] = useState(0);
+  const [isHoldOpen, setIsHoldOpen] = useState(false);
+  const [isUnapproveOpen, setIsUnapproveOpen] = useState(false);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const isFreeTextResult =
+    department === "radiology" ||
+    (department === "pathology" && Number(selectedInvestigation?.ReportTypeId) === 2);
+
+  console.log("selectedInvestigationselectedInvestigation", selectedInvestigation);
+
+  //auto selected investigation
+  useEffect(() => {
+    if (investigationLists.length > 0 && pId) {
+      const selected = investigationLists.find(
+        inv => Number(inv.PatientInvestigationId) === Number(pId)
+      );
+      if (selected) {
+        setSelectedInvestigation(selected);
+      }
+    }
+  }, [investigationLists, pId]);
+
+  useEffect(() => {
+    setApprovedDoctorId(
+      Number(selectedInvestigation?.referDoctorId ?? selectedInvestigation?.ReferDoctorId ?? 0)
+    );
+  }, [selectedInvestigation]);
 
   const [allInvestigationListsOfPatient, setAllInvestigationListsOfPatient] = useState<
     PatientDetailsInvestigationItem[]
@@ -77,11 +109,7 @@ const SampleResultEntry = () => {
     lastSync: "",
   });
 
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const handleActionClick = actionName => {
-    alert(`${actionName} clicked`);
-  };
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // get all investigation details
   const getAllInvestigationDetailsOfPatient = async () => {
@@ -126,7 +154,15 @@ const SampleResultEntry = () => {
       qcStatus: resp?.data[0]?.QcStatus,
       lastSync: resp?.data[0]?.LastSync,
     });
-    setInvestigationsLists(resp?.data ?? []);
+    const investigations: PatientDetailsInvestigationItem[] = resp?.data ?? [];
+    setInvestigationsLists(investigations);
+    setSelectedInvestigation(current => {
+      const selectedId = current?.PatientInvestigationId ?? Number(pId);
+      return (
+        investigations.find(item => Number(item.PatientInvestigationId) === Number(selectedId)) ??
+        current
+      );
+    });
   };
 
   useEffect(() => {
@@ -139,7 +175,7 @@ const SampleResultEntry = () => {
       "GET",
       ENDPOINTS.GET_PATIENT_TABULAR_REPORT_FOR_RESULT_ENTRY,
       {},
-      { params: { patientInvestigationId: selectedInvestigation } },
+      { params: { patientInvestigationId: selectedInvestigation?.PatientInvestigationId } },
       { component: "SampleResultEntry" }
     );
     setSubInvestigationLists(resp?.data ?? []);
@@ -152,7 +188,7 @@ const SampleResultEntry = () => {
       "GET",
       ENDPOINTS.GET_PATIENT_FREE_TEXT_REPORT_FOR_RESULT_ENTRY,
       {},
-      { params: { patientInvestigationId: selectedInvestigation } },
+      { params: { patientInvestigationId: selectedInvestigation?.PatientInvestigationId } },
       { component: "InvestigationResultEntry" }
     );
     const data = resp?.data ?? [];
@@ -166,16 +202,57 @@ const SampleResultEntry = () => {
   };
 
   useEffect(() => {
-    if (selectedInvestigation && department === "pathology") {
-      getPatientTabularReport();
-    } else if (selectedInvestigation && department === "radiology") {
+    if (selectedInvestigation && isFreeTextResult) {
       getFreeTextResultEntryValue();
+    } else if (selectedInvestigation && department === "pathology") {
+      getPatientTabularReport();
     }
-  }, [selectedInvestigation, department]);
+  }, [selectedInvestigation, department, isFreeTextResult]);
+
+  const approveButtonClickHandler = async () => {
+    if (!selectedInvestigation) {
+      showWarning("Select an investigation before approving");
+      return;
+    }
+
+    if (Number(selectedInvestigation.IsReportApproved) === 1) {
+      setIsUnapproveOpen(true);
+      return;
+    }
+
+    if (!branchId || !approvedDoctorId) {
+      showWarning("Select approved by before approving");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi(
+        "PATCH",
+        ENDPOINTS.UPDATE_REPORT_APPROVAL,
+        {
+          patientInvestigationIds: [selectedInvestigation.PatientInvestigationId],
+          branchId,
+          approvedByDoctorId: approvedDoctorId,
+        },
+        {},
+        { component: "SampleResultEntry" }
+      );
+
+      if (!resp?.result) {
+        showWarning(resp?.message ?? "Unable to approve report");
+        return;
+      }
+
+      showSuccess(resp?.message ?? "Approved successfully");
+      await getAllInvestigationDetailsOfPatient();
+    } catch {
+      showWarning("Unable to approve report");
+    }
+  };
 
   // save button click handler
   const saveButtonClickHandler = async () => {
-    if (department === "radiology") {
+    if (isFreeTextResult) {
       if (!selectedInvestigation) {
         showWarning("Select an investigation before saving");
         return;
@@ -185,13 +262,12 @@ const SampleResultEntry = () => {
         return;
       }
 
-      const selected = investigationLists.find(
-        item => Number(item.PatientInvestigationId) === selectedInvestigation
-      );
       const payload = {
-        patientInvestigationId: selected?.PatientInvestigationId ?? selectedInvestigation,
+        patientInvestigationId: selectedInvestigation.PatientInvestigationId,
         investigationId:
-          selected?.InvestigationId ?? freeTextInvestigationResultvalue[0]?.InvestigationId ?? 0,
+          selectedInvestigation.InvestigationId ??
+          freeTextInvestigationResultvalue[0]?.InvestigationId ??
+          0,
         ...freeTextFormData,
       };
       const resp = await fetchApi(
@@ -208,24 +284,23 @@ const SampleResultEntry = () => {
 
       showSuccess(resp?.message ?? "Data saved successfully");
       await getFreeTextResultEntryValue();
+      await getAllInvestigationDetailsOfPatient();
       return;
     }
 
-    if (department !== "pathology") return;
+    if (department !== "pathology" || Number(selectedInvestigation?.ReportTypeId) !== 1) return;
     if (!selectedInvestigation || !subInvestigationlists.length) {
       showWarning("Select an investigation before saving");
       return;
     }
 
-    const selected = investigationLists.find(
-      item => Number(item.PatientInvestigationId) === selectedInvestigation
-    );
     const payload = {
-      patientInvestigationId: selected?.PatientInvestigationId ?? selectedInvestigation,
-      investigationId: selected?.InvestigationId ?? subInvestigationlists[0]?.InvestigationId ?? 0,
+      patientInvestigationId: selectedInvestigation.PatientInvestigationId,
+      investigationId:
+        selectedInvestigation.InvestigationId ?? subInvestigationlists[0]?.InvestigationId ?? 0,
       investigationComments: subInvestigationlists[0]?.InvestigationComment ?? "",
       isAbnormalResult:
-        selected?.IsAbnormalResult ?? subInvestigationlists[0]?.IsAbnormalResult ?? 0,
+        selectedInvestigation.IsAbnormalResult ?? subInvestigationlists[0]?.IsAbnormalResult ?? 0,
       tabularReport: subInvestigationlists.map(item => ({
         observationId: item.ObservationId ?? 0,
         resultValue: item.ResultValue ?? "",
@@ -256,6 +331,7 @@ const SampleResultEntry = () => {
 
     showSuccess(resp?.message ?? "Data saved successfully");
     await getPatientTabularReport();
+    await getAllInvestigationDetailsOfPatient();
   };
 
   // all invetigation lists of a patient
@@ -296,7 +372,6 @@ const SampleResultEntry = () => {
     <>
       <div className="page-container">
         <div className="flex items-center justify-between w-full flex-col xl:flex-row">
-          {/* Header Title & Breadcrumb */}
           <div className="flex-1">
             <h1 className="page-heading">Sample Result Entry</h1>
             <nav className="helper-text">
@@ -306,80 +381,9 @@ const SampleResultEntry = () => {
             </nav>
           </div>
 
-          {/* Search Bar between Header and Buttons (Matching Image) */}
-          {/* <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1.5 shadow-2xs">
-            <div className="relative flex items-center">
-              <select className="bg-transparent text-xs text-gray-700 font-semibold focus:outline-none pr-2 border-r border-gray-200 cursor-pointer">
-                <option value="sampleNo">Sample No</option>
-                <option value="uhid">UHID</option>
-                <option value="barcode">Barcode</option>
-              </select>
-            </div>
-            <input
-              type="text"
-              placeholder="Scan Barcode / Enter Sample No / UHID"
-              className="bg-transparent text-xs text-gray-800 placeholder-gray-400 focus:outline-none px-2 lg:w-[130px]  "
-            />
-            <button onClick={() => handleActionClick("Search Sample")}></button>
-          </div> */}
-
           {/* Action Buttons Toolbar */}
           <div className="flex justify-end flex-1">
-            <div className="flex justify-between flex-wrap items-center gap-2">
-              {/* Previous Button */}
-              {/* <button
-                onClick={() => handleActionClick("Previous")}
-                className="flex items-center gap-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 hover:bg-gray-50 cursor-pointer"
-              >
-                <MoveLeft size={14} strokeWidth={2.5} />
-                <span>Previous</span>
-              </button> */}
-
-              {/* Next Button */}
-              {/* <button
-                onClick={() => handleActionClick("Next")}
-                className="flex items-center gap-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 hover:bg-gray-50 cursor-pointer"
-              >
-                <span>Next</span>
-                <MoveRight size={14} strokeWidth={2.5} />
-              </button> */}
-
-              {/* Result Entry Button */}
-              {/* <button
-                onClick={() => handleActionClick("Result Entry")}
-                className="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
-              >
-                <FileText size={14} strokeWidth={2.5} />
-                <span>Result Entry</span>
-              </button> */}
-
-              {/* Urgent Button */}
-              {/* <button
-                onClick={() => handleActionClick("Urgent")}
-                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
-              >
-                <AlertTriangle size={14} strokeWidth={2.5} />
-                <span>Urgent</span>
-              </button> */}
-
-              {/* STAT Button */}
-              {/* <button
-                onClick={() => handleActionClick("STAT")}
-                className="flex items-center gap-1.5 bg-white hover:bg-blue-50 text-blue-900 border border-blue-900 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
-              >
-                <User size={14} strokeWidth={2.5} />
-                <span>STAT</span>
-              </button> */}
-
-              {/* Print Label Button */}
-              {/* <button
-                onClick={() => handleActionClick("Print Label")}
-                className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-2xs transition-all duration-200 active:scale-95 cursor-pointer"
-              >
-                <Printer size={14} strokeWidth={2} className="text-blue-900" />
-                <span>Print Label</span>
-              </button> */}
-            </div>
+            <div className="flex justify-between flex-wrap items-center gap-2"></div>
           </div>
         </div>
 
@@ -397,15 +401,15 @@ const SampleResultEntry = () => {
               investigationLists={investigationLists}
               setSelectedInvestigation={setSelectedInvestigation}
               allInvestigationListsOfPatient={allInvestigationListsOfPatient}
+              selectedInvestigation={selectedInvestigation}
             />
           </div>
 
-          {/* Center Column: CBC Parameters Table & Comments (Expands to col-span-9 when isExpanded is true) */}
           <div
             className={`${isExpanded ? "lg:col-span-9" : "lg:col-span-7"} min-w-0 transition-all duration-300`}
           >
             {/* render tables */}
-            {department === "pathology" ? (
+            {!isFreeTextResult ? (
               <>
                 <LabInfoTableData
                   isExpanded={isExpanded}
@@ -417,11 +421,10 @@ const SampleResultEntry = () => {
               </>
             ) : (
               <FreeTextTableData
-                isExpanded={isExpanded}
-                onToggleExpand={() => setIsExpanded(!isExpanded)}
                 freeTextInvestigationResultvalue={freeTextInvestigationResultvalue}
                 freeTextFormData={freeTextFormData}
                 setFreeTextFormData={setFreeTextFormData}
+                selectedInvestigation={selectedInvestigation}
               />
             )}
           </div>
@@ -433,7 +436,43 @@ const SampleResultEntry = () => {
             </div>
           )}
         </div>
-        <FooterButton onSaveButtonClick={saveButtonClickHandler} />
+        <FooterButton
+          onSaveButtonClick={saveButtonClickHandler}
+          onApproveButtonClick={approveButtonClickHandler}
+          onHoldButtonClick={() => setIsHoldOpen(true)}
+          onRejectButtonClick={() => {
+            if (!selectedInvestigation) {
+              showWarning("Select an investigation before rejecting");
+              return;
+            }
+            setIsRejectOpen(true);
+          }}
+          isApproved={Number(selectedInvestigation?.IsReportApproved) === 1}
+          isResultDone={Number(selectedInvestigation?.IsResultDone) === 1}
+          approvedDoctorId={approvedDoctorId}
+          onApprovedDoctorChange={setApprovedDoctorId}
+        />
+
+        <HoldInvestigationResult
+          isOpen={isHoldOpen}
+          onClose={() => setIsHoldOpen(false)}
+          pId={Number(selectedInvestigation?.PatientInvestigationId ?? 0)}
+          onSuccess={getAllInvestigationDetailsOfPatient}
+        />
+        <ApproveUnapproveInvestigationResult
+          isOpen={isUnapproveOpen}
+          onClose={() => setIsUnapproveOpen(false)}
+          pId={Number(selectedInvestigation?.PatientInvestigationId ?? 0)}
+          onSuccess={getAllInvestigationDetailsOfPatient}
+        />
+        <RejectSamplePopup
+          isOpen={isRejectOpen}
+          onClose={() => setIsRejectOpen(false)}
+          data={selectedInvestigation}
+          refreshSampleReject={getAllInvestigationDetailsOfPatient}
+        />
+
+        {loading && <CustomLoader isLoading={loading} />}
       </div>
     </>
   );

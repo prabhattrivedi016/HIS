@@ -315,7 +315,6 @@ export default function LabInfoTableData({
 
       {/* ================= FULL-WIDTH CENTER BIG TABLE ================= */}
       <div className="w-full bg-white border border-gray-200 rounded-xl p-2 overflow-x-auto shadow-2xs overflow-y-auto">
-        {/* <div className="w-full bg-white border border-gray-200 rounded-xl p-2 overflow-x-auto shadow-2xs "> */}
         <table className="w-full text-left text-[11px] lg:min-h-68 ">
           <thead>
             <tr className="bg-blue-50/80 text-gray-600 font-bold text-[10px] uppercase">
