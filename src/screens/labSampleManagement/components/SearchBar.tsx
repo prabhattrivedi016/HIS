@@ -289,8 +289,6 @@ export default function SearchBar({
       { component: "SearchBar" }
     );
     setRoomTypeLists(resp?.data ?? []);
-
-    console.log("room type lists", resp?.data);
   };
 
   // sample type list
@@ -479,7 +477,8 @@ export default function SearchBar({
 
     const regularButtons = FILTER_BUTTONS.filter(btn => {
       if (favSet.has(btn.key)) return false;
-      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked")) return false;
+      if (btn.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked"))
+        return false;
       return true;
     });
 
@@ -816,10 +815,7 @@ export default function SearchBar({
                 className={`inline-flex items-center gap-2 shrink-0 cursor-pointer ${getButtonClass(btn.key)}`}
                 onClick={() => handleButtonClick(btn.key)}
               >
-                <IconComponent
-                  size={14}
-                  className={getIconClass(btn.key, btn.iconColor)}
-                />
+                <IconComponent size={14} className={getIconClass(btn.key, btn.iconColor)} />
                 <span className="flex items-center gap-1.5">
                   <span>{btn.label}:</span>
                   <span>{count}</span>

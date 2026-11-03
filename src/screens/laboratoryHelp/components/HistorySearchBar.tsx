@@ -289,8 +289,6 @@ export default function HistorySearchBar({
       { component: "HistorySearchBar" }
     );
     setRoomTypeLists(resp?.data ?? []);
-
-    console.log("room type lists", resp?.data);
   };
 
   // sample type list

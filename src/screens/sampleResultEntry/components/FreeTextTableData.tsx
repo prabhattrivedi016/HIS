@@ -1,12 +1,9 @@
 import TextEditor from "@/components/ckEditor";
 import InputField from "@/components/customInputField";
-import { Settings } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { FreetextInvestigationValue } from "../types";
 
 interface Props {
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   freeTextInvestigationResultvalue: FreetextInvestigationValue[];
   freeTextFormData: {
     resultValue: string;
@@ -25,16 +22,12 @@ interface Props {
 }
 
 export default function FreeTextTableData({
-  isExpanded,
-  onToggleExpand,
   freeTextInvestigationResultvalue,
   freeTextFormData,
   setFreeTextFormData,
 }: Props) {
-  console.log("freeTextInvestigationResultvalue", freeTextInvestigationResultvalue?.[0]);
-
   return (
-    <div className="card">
+    <div className="card ">
       {/* Investigation Header Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
         <div className="flex items-center">
@@ -44,21 +37,21 @@ export default function FreeTextTableData({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+          {/* <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
             <span>Method :</span>
             <span className="rounded border border-gray-200 bg-white px-2 py-1 font-bold text-gray-900 shadow-sm">
               Automated Analyzer
             </span>
-          </div>
+          </div> */}
 
-          <button
+          {/* <button
             type="button"
             className="shrink-0 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-950"
           >
             Auto Fill
-          </button>
+          </button> */}
 
-          <button
+          {/* <button
             type="button"
             onClick={onToggleExpand}
             className={`shrink-0 rounded-lg border p-1.5 shadow-sm transition ${
@@ -69,17 +62,17 @@ export default function FreeTextTableData({
             title="Toggle Right Panel"
           >
             <Settings size={14} />
-          </button>
+          </button> */}
         </div>
       </div>
 
       {/* Full-Width Table */}
-      <div className=" flex flex-col gap-4 overflow-hidden">
+      <div className=" flex flex-col  overflow-hidden hide-scrollbar">
         <div className="table-container mt-1">
           <div className="table-scroll-wrapper">
-            <div className="table-size min-h-[320px]">
+            <div className="table-size min-h-[320px] hide-scrollbar">
               {/* Template */}
-              <div className="m-2 grid grid-cols-1 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <div className="m-2 grid grid-cols-1 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] hide-scrollbar">
                 <div className="min-w-0">
                   <InputField label="Select Template">
                     <select

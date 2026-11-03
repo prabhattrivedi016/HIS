@@ -32,11 +32,6 @@ const OtNoteTemplate = ({
 
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
 
-  console.log(
-    "templateEntriesByTemplateIdtemplateEntriesByTemplateIdtemplateEntriesByTemplateIdtemplateEntriesByTemplateId",
-    templateEntriesByTemplateId
-  );
-
   const [printTemplateContext, setPrintTemplateContext] = useState<{
     name: string;
     entries: EmrSectionAnswerEntry[];
@@ -116,8 +111,6 @@ const OtNoteTemplate = ({
     const payload = {
       otNotesHeadersData: consultationHeadersDataPayloadData(),
     };
-
-    console.log("payload", payload);
 
     const resp = await fetchApi(
       "POST",

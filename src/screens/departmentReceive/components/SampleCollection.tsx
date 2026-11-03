@@ -107,8 +107,6 @@ const SampleCollection = ({
     }
   };
 
-  console.log("checkedSample", checkedSample);
-
   // Payload
   const generatePayload = () => {
     return {

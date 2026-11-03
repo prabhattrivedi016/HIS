@@ -268,16 +268,28 @@ const SampleResultEntry = () => {
       { component: "SampleResultEntry" }
     );
 
-    console.log("getAllInvestigationListsOfPatient", resp?.data);
-    if (!resp?.result) {
-      showError(resp?.messsage ?? "No investigation found!");
-      return;
-    }
+    // if (!resp?.result) {
+    //   showError(resp?.messsage ?? "No investigation found!");
+    //   return;
+    // }
+    setAllInvestigationListsOfPatient(resp?.data ?? []);
+  };
+
+  // all radiology investigation lists of a patient
+  const getAllRadiologyInvestigationListsOfPatient = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.SEARCH_PATIENT_INVESTIGATION_FOR_SAMPLE_PROCESSING_RADIOLOGY,
+      {},
+      { params: { branchId, roleId, uhid, fromDate: currentDate, toDate: currentDate } },
+      { component: "SampleResultEntry" }
+    );
     setAllInvestigationListsOfPatient(resp?.data ?? []);
   };
 
   useEffect(() => {
-    getAllInvestigationListsOfPatient();
+    if (department === "pathology") getAllInvestigationListsOfPatient();
+    else if (department === "radiology") getAllRadiologyInvestigationListsOfPatient();
   }, [branchId, roleId, uhid, currentDate]);
 
   return (
@@ -394,12 +406,15 @@ const SampleResultEntry = () => {
           >
             {/* render tables */}
             {department === "pathology" ? (
-              <LabInfoTableData
-                isExpanded={isExpanded}
-                onToggleExpand={() => setIsExpanded(!isExpanded)}
-                subInvestigationlists={subInvestigationlists}
-                setSubInvestigationLists={setSubInvestigationLists}
-              />
+              <>
+                <LabInfoTableData
+                  isExpanded={isExpanded}
+                  onToggleExpand={() => setIsExpanded(!isExpanded)}
+                  subInvestigationlists={subInvestigationlists}
+                  setSubInvestigationLists={setSubInvestigationLists}
+                />
+                <CommentBox />
+              </>
             ) : (
               <FreeTextTableData
                 isExpanded={isExpanded}
@@ -409,12 +424,10 @@ const SampleResultEntry = () => {
                 setFreeTextFormData={setFreeTextFormData}
               />
             )}
-
-            <CommentBox />
           </div>
 
           {/* Right Column: Graphical Trend, Reference Details & Alerts (Hidden when isExpanded is true) */}
-          {!isExpanded && (
+          {!isExpanded && department === "pathology" && (
             <div className="lg:col-span-2 min-w-0 space-y-3">
               <LabInfoRightChart subInvestigationlists={subInvestigationlists} />
             </div>

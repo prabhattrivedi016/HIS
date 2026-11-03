@@ -157,10 +157,24 @@ type FreetextInvestigationValue = {
   PatientId: number;
   isUrgent: number;
 };
+type InvestigationHistoryItem = {
+  LabNo: number;
+  BarCode: string;
+  BillDate: string;
+  ObservationName: string;
+  ObservationId: number;
+  ResultValue: string;
+  MinValue: string;
+  MaxValue: string;
+  DisplayRange: string;
+  Unit: string;
+  MethodName: string;
+};
 
 export type {
   FreetextInvestigationValue,
   InvestigationGeneralInfo,
+  InvestigationHistoryItem,
   PatientDetailsInvestigationItem,
   PatientGeneralInfo,
   SubInvetigationItem,
