@@ -27,8 +27,6 @@ const OtProcess = ({ patient }: { patient: IpdPatientItem }) => {
   const { loading, fetchApi } = useGlobalApi();
   const branchId = useContext(BranchContext)?.branchId ?? 1;
 
-  console.log("patientpatientpatientpatient", patient);
-
   const { updatedIpdPatientDetails } = useContext(IpdPatientDetailsContext)! ?? {};
 
   const [isOtInitiated, setIsOtInitiated] = useState<boolean>(false);

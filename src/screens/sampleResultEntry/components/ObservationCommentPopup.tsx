@@ -20,8 +20,6 @@ const ObservationCommentPopup = ({
 }: ObservationCommentPopupProps) => {
   const [editorValue, setEditorValue] = useState(data?.SampleRemark ?? "");
 
-  console.log("datadatadatadatadatadatadata", data);
-
   // bind existing comment when popup opens / autofills data in text editor when it has some sample remarks
   useEffect(() => {
     if (isOpen) {

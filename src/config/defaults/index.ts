@@ -177,6 +177,7 @@ const ENDPOINTS = {
   UPDATE_SERVICE_ITEM_MASTER_STATUS: "Home/updateServiceItemMasterStatus",
   CREATE_UPDATE_SAMPLE_REMARKS_MASTER: "/Lab/createUpdateSampleRemarksMaster",
   GET_SAMPLE_REMARKS_MASTER: "Lab/getSampleRemarksMaster",
+  GET_PATIENT_TABULAR_RESULT_ENTRY_HISTORY: "Lab/getPatientTabularResultEntryHistory",
 
   // investigation observation mapping
   CREATE_UPDATE_OBSERVATION_MASTER: "Lab/createUpdateObservationMaster",

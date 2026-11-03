@@ -510,8 +510,6 @@ const OpdBilling = () => {
 
   const { rights: branchRights } = useAssignBranchRight();
 
-  console.log("branchRightsbranchRightsbranchRights", branchRights);
-
   const isDiscountApprovalRequired =
     Number(branchRights?.IsOPDBillingDiscountApprovalRequired) === 1 ? 1 : 0;
   const isSeparateCollectionCounterEnabled =

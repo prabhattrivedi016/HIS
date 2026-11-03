@@ -289,8 +289,6 @@ export default function SearchBar({
       { component: "SearchBar" }
     );
     setRoomTypeLists(resp?.data ?? []);
-
-    console.log("room type lists", resp?.data);
   };
 
   // sample type list

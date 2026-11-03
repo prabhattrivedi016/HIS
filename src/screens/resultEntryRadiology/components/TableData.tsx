@@ -1140,7 +1140,6 @@ export default function TableData({
   // result entry select handler
   const resultEntryPathologySelectHandler = (row: ResultEntryRadiologyItem) => {
     if (!row?.UHID || !row?.VisitId || !row?.LabNo) {
-      console.log("Missing navigation data:", row);
       return;
     }
 

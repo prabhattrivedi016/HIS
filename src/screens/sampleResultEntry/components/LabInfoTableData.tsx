@@ -1,8 +1,9 @@
-import { MessageSquare, Settings } from "lucide-react";
+import { FileClock, MessageSquare, Settings } from "lucide-react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useCallback, useState } from "react";
 import { SubInvetigationItem } from "../types";
 import ObservationCommentPopup from "./ObservationCommentPopup";
+import ResultHistoryPopup from "./ResultHistoryPopup";
 
 interface Props {
   isExpanded: boolean;
@@ -21,6 +22,11 @@ export default function LabInfoTableData({
     useState<SubInvetigationItem | null>(null);
   const [openObservationComment, setOpenObservationComment] = useState(false);
   const [renderObservationComment, setRenderObservationComment] = useState(false);
+
+  const [openPreviousResultsHistory, setOpenPreviousResultsHistory] = useState(false);
+  const [renderPreviousResultsHistory, setRenderPreviousResultsHistory] = useState(false);
+  const [selectedSubInvestigationForResultHistory, setSelectedSubInvestigationForResultHistory] =
+    useState<SubInvetigationItem | null>(null);
 
   // add comment handler
   const addCommentHandler = (row: SubInvetigationItem) => {
@@ -254,6 +260,26 @@ export default function LabInfoTableData({
     updateSubInvestigationField(row, { ResultValue: value });
   };
 
+  // result history click handler
+  const resultHistoryClickHandler = (row: SubInvetigationItem) => {
+    if (!row) {
+      setSelectedSubInvestigationForResultHistory(null);
+      setOpenPreviousResultsHistory(false);
+      setRenderPreviousResultsHistory(false);
+      return;
+    }
+    setSelectedSubInvestigationForResultHistory(row);
+    setOpenPreviousResultsHistory(true);
+    setRenderPreviousResultsHistory(true);
+  };
+
+  // close result history popup
+  const closeResultHistory = useCallback(() => {
+    setOpenPreviousResultsHistory(false);
+    setRenderPreviousResultsHistory(false);
+    setSelectedSubInvestigationForResultHistory(null);
+  }, []);
+
   return (
     <div className="card space-y-2 min-h-[390px]">
       {/* ================= INVESTIGATION HEADER TOOLBAR ================= */}
@@ -290,7 +316,7 @@ export default function LabInfoTableData({
       {/* ================= FULL-WIDTH CENTER BIG TABLE ================= */}
       <div className="w-full bg-white border border-gray-200 rounded-xl p-2 overflow-x-auto shadow-2xs overflow-y-auto">
         {/* <div className="w-full bg-white border border-gray-200 rounded-xl p-2 overflow-x-auto shadow-2xs "> */}
-        <table className="w-full text-left text-[11px]  ">
+        <table className="w-full text-left text-[11px] lg:min-h-68 ">
           <thead>
             <tr className="bg-blue-50/80 text-gray-600 font-bold text-[10px] uppercase">
               <th className="border border-gray-200 text-center py-2 px-1 whitespace-nowrap">#</th>
@@ -468,8 +494,13 @@ export default function LabInfoTableData({
                           onChange={e => rowWiseUnitChangeHandler(e, item)}
                         />
                       </td>
-                      <td className="border border-gray-200 py-1.5 px-2 text-center text-gray-600">
-                        {item?.prev || "-"}
+                      <td className="border border-gray-200 py-1.5 px-2">
+                        <div
+                          className="flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                          onClick={() => resultHistoryClickHandler(item)}
+                        >
+                          <FileClock size={18} className="text-blue-500" />
+                        </div>
                       </td>
                       <td className="border border-gray-200 py-1.5 px-2">
                         {/* <input
@@ -549,6 +580,15 @@ export default function LabInfoTableData({
           onClose={closeObservationComment}
           data={selectedSubInvestigation}
           rowWiseCommentChangeHandler={rowWiseCommentChangeHandler}
+        />
+      )}
+
+      {/* previous result history */}
+      {renderPreviousResultsHistory && (
+        <ResultHistoryPopup
+          isOpen={openPreviousResultsHistory}
+          onClose={closeResultHistory}
+          selectedSubInvestigationForResultHistory={selectedSubInvestigationForResultHistory}
         />
       )}
     </div>

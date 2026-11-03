@@ -258,8 +258,6 @@ const LabInvestigationMaster = () => {
     setCategoryId(value);
   };
 
-  console.log("categoryListcategoryListcategoryList", categoryList);
-
   return (
     <div className="page-container">
       {/* Page Header */}

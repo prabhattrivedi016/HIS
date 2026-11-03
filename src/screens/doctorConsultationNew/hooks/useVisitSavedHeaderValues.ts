@@ -19,8 +19,6 @@ export const useVisitSavedHeaderValues = (
   const { fetchApi } = useGlobalApi();
   const [savedHeaderRows, setSavedHeaderRows] = useState<RawConsultationHeaderRow[]>([]);
 
-  console.log("templateCodetemplateCodetemplateCodetemplateCodetemplateCode", templateCode);
-
   useEffect(() => {
     if (!enabled || visitId == null) {
       setSavedHeaderRows([]);
