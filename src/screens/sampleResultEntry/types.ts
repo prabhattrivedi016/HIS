@@ -44,6 +44,8 @@ type PatientDetailsInvestigationItem = {
   ResultDoneBy: string;
   ApprovedDate: string;
   ReportApprovedBy: string;
+  referDoctorId?: number;
+  ReferDoctorId?: number;
   PatientInvestigationId: number;
   InvestigationId: number;
   ReportTypeId: number;

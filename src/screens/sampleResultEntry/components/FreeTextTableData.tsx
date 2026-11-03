@@ -1,7 +1,7 @@
 import TextEditor from "@/components/ckEditor";
 import InputField from "@/components/customInputField";
 import type { Dispatch, SetStateAction } from "react";
-import { FreetextInvestigationValue } from "../types";
+import { FreetextInvestigationValue, PatientDetailsInvestigationItem } from "../types";
 
 interface Props {
   freeTextInvestigationResultvalue: FreetextInvestigationValue[];
@@ -19,20 +19,28 @@ interface Props {
       isAbnormalResult: number;
     }>
   >;
+  selectedInvestigation: PatientDetailsInvestigationItem | null;
 }
 
 export default function FreeTextTableData({
   freeTextInvestigationResultvalue,
   freeTextFormData,
   setFreeTextFormData,
+  selectedInvestigation,
 }: Props) {
+  console.log(
+    "selectedInvestigationselectedInvestigationselectedInvestigation",
+    selectedInvestigation
+  );
   return (
     <div className="card ">
       {/* Investigation Header Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
         <div className="flex items-center">
           <span className="text-xs font-extrabold text-blue-900">
-            Investigation : {freeTextInvestigationResultvalue?.[0]?.InvestigationName}
+            Investigation :{" "}
+            {freeTextInvestigationResultvalue?.[0]?.InvestigationName ||
+              selectedInvestigation?.Name}
           </span>
         </div>
 

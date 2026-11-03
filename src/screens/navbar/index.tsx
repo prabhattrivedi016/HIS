@@ -92,7 +92,7 @@ const Navbar = () => {
           />
 
           <Route
-            path="/sample-result-entry/:department/:uhid/:visitId/:labNo"
+            path="/sample-result-entry/:department/:uhid/:visitId/:labNo/:pId"
             element={
               hasAccess("sample-result-entry", response) ? (
                 <SampleResultEntry />

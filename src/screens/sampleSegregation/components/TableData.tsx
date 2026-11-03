@@ -32,6 +32,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   ColumnItem,
+  DepartmentItem,
   GroupedDataSampleManagement,
   SampleManagementItem,
   SampleTypeItem,
@@ -97,6 +98,7 @@ const columnVisibilityTableValue = [
   { isChecked: true, tableHeaderName: "Priority", id: 14 },
   { isChecked: true, tableHeaderName: "Status", id: 15 },
   { isChecked: true, tableHeaderName: "IPD No/Beds", id: 16 },
+  { isChecked: true, tableHeaderName: "Department", id: 17 },
 ];
 
 // value match search helper
@@ -326,6 +328,25 @@ export default function TableData({
   const [openSampleCollect, setOpenSampleCollect] = useState<boolean>(false);
   const [renderSampleCollect, setRenderSampleCollect] = useState<boolean>(false);
 
+  const [departmentLists, setDepartmentLists] = useState<DepartmentItem[]>([]);
+
+  // department lists
+  const getDepartmentLists = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_SUB_SUB_CATEGORY_LIST,
+      {},
+      { params: { subCategoryIds: 1 } },
+      { component: "TableData" }
+    );
+
+    setDepartmentLists(resp?.data ?? []);
+  };
+
+  useEffect(() => {
+    getDepartmentLists();
+  }, []);
+
   // patient view details
   const handlePatientViewDetails = (row: SampleManagementItem) => {
     if (!row) return;
@@ -445,6 +466,36 @@ export default function TableData({
     [updatedSampleManagementList, sampleType, setUpdatedSampleManagementList]
   );
 
+  // department change handler
+  const departmentChangeHandlerRowWise = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>, row: SampleManagementItem) => {
+      const selectedValue = Number(e.target.value) || null;
+
+      const updatedList = updatedSampleManagementList.map(item =>
+        Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+          ? {
+              ...item,
+              SampleSegregationDepartmentId: selectedValue,
+            }
+          : item
+      );
+
+      setCheckedSample(prevList =>
+        prevList.map(item =>
+          Number(item.PatientInvestigationId) === Number(row.PatientInvestigationId)
+            ? {
+                ...item,
+                SampleSegregationDepartmentId: selectedValue,
+              }
+            : item
+        )
+      );
+
+      setUpdatedSampleManagementList(updatedList);
+    },
+    [updatedSampleManagementList, setUpdatedSampleManagementList]
+  );
+
   // rowWiseBarcodeChangeHandler;
 
   const rowWiseBarcodeChangeHandler = useCallback(
@@ -529,9 +580,11 @@ export default function TableData({
         statusId: 2,
         defaultSampleTypeId: c.DefaultSampleTypeId,
         labNo: c?.LabNo,
+        departmentId: c?.SampleSegregationDepartmentId,
       })),
     };
   };
+
   // handle sample collected
   const handleSampleCollectetion = async () => {
     if (checkedSample.length === 0) {
@@ -941,7 +994,7 @@ export default function TableData({
         return (
           <th
             key={col.id}
-            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+            className="whitespace-nowrap border border-gray-300 px-3 py-2 text-center"
           >
             Sample Type
           </th>
@@ -1009,6 +1062,16 @@ export default function TableData({
             className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
           >
             IPD No/Beds
+          </th>
+        );
+
+      case "Department":
+        return (
+          <th
+            key={col.id}
+            className=" border border-gray-300 whitespace-nowrap px-3 py-2 text-center"
+          >
+            Department
           </th>
         );
       default:
@@ -1218,6 +1281,30 @@ export default function TableData({
             {row?.IPDNo || "-"} / {row?.BedNo || "-"}
           </td>
         );
+
+      case "Department":
+        // return (
+        //   <td key={col.id} className="border border-gray-300 px-2 py-2 text-center">
+        //     {row?.SampleSegregationDepartmentId || "-"}
+        //   </td>
+        // );
+        return (
+          <td key={col.id} className="border border-gray-300 px-1 py-1 text-center">
+            <select
+              value={Number(row?.SampleSegregationDepartmentId || 0)}
+              className="input-field lg:h-8.5"
+              onChange={e => departmentChangeHandlerRowWise(e, row)}
+              disabled={!!row?.IsSampleSegregated}
+            >
+              <option value={0}>Select</option>
+              {departmentLists.map((item: DepartmentItem) => (
+                <option key={item?.subSubCategoryId} value={item?.subSubCategoryId}>
+                  {item.subSubCategoryName}
+                </option>
+              ))}
+            </select>
+          </td>
+        );
       default:
         return null;
     }
@@ -1263,7 +1350,7 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full   border-collapse text-left text-[11px] ">
+              <table className="w-full    text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
                     <th className="whitespace-nowrap border border-gray-300 py-2 px-1 text-center">
@@ -1346,7 +1433,7 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full border-collapse text-left text-[11px] ">
+              <table className="w-full  text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
                     {/* Always-visible selection checkbox */}
@@ -1499,7 +1586,7 @@ export default function TableData({
         return (
           <>
             <div className="overflow-x-auto lg:max-h-186">
-              <table className="w-full   border-collapse text-left text-[11px] ">
+              <table className="w-full    text-left text-[11px] ">
                 <thead>
                   <tr className="bg-blue-50 text-gray-500 font-bold uppercase text-[9px] sm:text-[10px] tracking-wider">
                     <th className="whitespace-nowrap border border-gray-300 py-2 px-1 text-center">

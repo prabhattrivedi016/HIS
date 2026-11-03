@@ -105,7 +105,9 @@ const AddLabInvestigation = ({
 
   const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const disabled = selectSubCategory?.label?.toLowerCase?.() === Radiology?.RADIOLOGY;
+  const disabled = selectSubCategory?.label?.toLowerCase() === Radiology?.RADIOLOGY;
+
+  console.log("disableddisableddisableddisableddisabled", disabled);
 
   const [renderInterpretation, setRenderInterpretation] = useState<boolean>(false);
   const [openInterpretation, setOpenInterpretation] = useState<boolean>(false);
@@ -133,6 +135,27 @@ const AddLabInvestigation = ({
     reValidateMode: "onSubmit",
     context: { isRadiology: disabled },
   });
+
+  // make disbled and No incase of radiology
+  useEffect(() => {
+    if (!disabled) return;
+
+    setValue("isSampleRequired", 0, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+
+    setValue("isDepartmentReceivingRequired", 0, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+
+    setValue("isSampleSegregationRequired", 0, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+  }, [disabled, setValue]);
+
   const buttonTitle = data ? "Update" : "Create";
   const editRowId = data?.serviceItemId ?? null;
   const isRequiredPerformingDoctor = Number(watch("isRequiredSeparatePerformingDoctor")) === 1;
@@ -196,6 +219,9 @@ const AddLabInvestigation = ({
   const defaultReportType = labReport?.pickMasterValue?.find(
     l => l?.key === Radiology?.DEFAULT_REPORT_TYPE
   );
+
+  // const disabled =
+  // selectSubCategory?.label?.toLowerCase?.() === Radiology?.RADIOLOGY;
 
   useEffect(() => {
     if (disabled && defaultReportType?.key) {
@@ -1058,7 +1084,11 @@ const AddLabInvestigation = ({
                 </InputField>
 
                 <InputField label="Sample Required">
-                  <select className="input-field" {...register("isSampleRequired")}>
+                  <select
+                    {...register("isSampleRequired")}
+                    className={disabled ? "disabled-input-field" : "input-field"}
+                    disabled={disabled}
+                  >
                     <option value={1}>Yes</option>
                     <option value={0}>No</option>
                   </select>
@@ -1067,8 +1097,7 @@ const AddLabInvestigation = ({
                 <InputField label="Department Receiving">
                   <select
                     {...register("isDepartmentReceivingRequired")}
-                    className={` ${disabled ? "disabled-input-field" : "input-field"}`}
-                    defaultValue={Status?.INACTIVE}
+                    className={disabled ? "disabled-input-field" : "input-field"}
                     disabled={disabled}
                   >
                     <option value={1}>Yes</option>
@@ -1079,8 +1108,8 @@ const AddLabInvestigation = ({
                 <InputField label="Sample Segregation">
                   <select
                     {...register("isSampleSegregationRequired")}
-                    className="input-field"
-                    value={1}
+                    className={disabled ? "disabled-input-field" : "input-field"}
+                    disabled={disabled}
                   >
                     <option value={1}>Yes</option>
                     <option value={0}>No</option>

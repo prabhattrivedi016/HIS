@@ -1144,7 +1144,7 @@ export default function TableData({
     }
 
     navigate(
-      `/sample-result-entry/${"radiology"}/${encodeURIComponent(row.UHID)}/${row.VisitId}/${row.LabNo}`
+      `/sample-result-entry/radiology/${encodeURIComponent(row.UHID)}/${row.VisitId}/${row.LabNo}/${row.PatientInvestigationId}`
     );
   };
 
