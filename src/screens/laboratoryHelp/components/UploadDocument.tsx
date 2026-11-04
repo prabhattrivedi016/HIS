@@ -31,8 +31,6 @@ const UploadDocument = React.memo(
   }) => {
     const { loading, fetchApi } = useGlobalApi();
 
-    console.log("datadatadatadata", data);
-
     const [openPatientDocumentName, setOpenPatientDocumentName] = useState<boolean>(false);
     const [renderPatientDocumentName, setRenderPatientDocumentName] = useState<boolean>(false);
 

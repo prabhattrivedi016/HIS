@@ -1,4 +1,5 @@
 import CentralPopup from "@/components/centralPopup";
+import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import React, { useEffect } from "react";
@@ -100,6 +101,7 @@ const ResultHistoryPopup = ({
             </table>
           </div>
         </div>
+        {loading && <CustomLoader isLoading={loading} />}
       </div>
     </CentralPopup>
   );

@@ -78,7 +78,7 @@ export const FILTER_BUTTONS: FilterButtonConfig[] = [
   },
   {
     key: "collectionPendingClicked",
-    label: "CollectionPending",
+    label: "Collection Pending",
     icon: Hourglass,
     iconColor: "text-purple-600",
     countKey: "collectionPending",

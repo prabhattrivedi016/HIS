@@ -43,8 +43,6 @@ const SampleResultEntry = () => {
     department === "radiology" ||
     (department === "pathology" && Number(selectedInvestigation?.ReportTypeId) === 2);
 
-  console.log("selectedInvestigationselectedInvestigation", selectedInvestigation);
-
   //auto selected investigation
   useEffect(() => {
     if (investigationLists.length > 0 && pId) {
@@ -94,7 +92,7 @@ const SampleResultEntry = () => {
   });
 
   const [investigationGeneralInfo, setInvestigationGeneralInfo] = useState({
-    sampleNo: "",
+    labNo: "",
     barcode: "",
     sampleType: "",
     priority: "",
@@ -124,36 +122,7 @@ const SampleResultEntry = () => {
       showError(resp?.messsage ?? "No investigation found!");
       return;
     }
-    setPatientGeneralInfo({
-      uhid: resp?.data[0]?.UHID,
-      patientName: resp?.data[0]?.PatientName,
-      age: resp?.data[0]?.CurrentAge,
-      gender: resp?.data[0]?.Gender,
-      mobileNo: resp?.data[0]?.ContactNumber,
-      visitNo: resp?.data[0]?.VisitNo,
-      department: resp?.data[0]?.DoctorDepartment,
-      doctor: resp?.data[0]?.DoctorName,
-      ward: resp?.data[0]?.WardName,
-      bed: resp?.data[0]?.BedNo,
-      admittedOn: resp?.data[0]?.AdmissionDate,
-      admissionTime: resp?.data[0]?.AdmissionTime,
-    });
 
-    setInvestigationGeneralInfo({
-      sampleNo: resp?.data[0]?.SampleNo,
-      barcode: resp?.data[0]?.BarCode,
-      sampleType: resp?.data[0]?.SampleType,
-      priority: resp?.data[0]?.Priority,
-      collectionDate: resp?.data[0]?.CollectionDate,
-      receivedDate: resp?.data[0]?.ReceivedDate,
-      ReportedDate: resp?.data[0]?.ReportedDate,
-      tat: resp?.data[0]?.TAT,
-      clinicalNotes: resp?.data[0]?.ClinicalNotes,
-      machineName: resp?.data[0]?.MachineName,
-      connection: resp?.data[0]?.Connection,
-      qcStatus: resp?.data[0]?.QcStatus,
-      lastSync: resp?.data[0]?.LastSync,
-    });
     const investigations: PatientDetailsInvestigationItem[] = resp?.data ?? [];
     setInvestigationsLists(investigations);
     setSelectedInvestigation(current => {
@@ -165,12 +134,52 @@ const SampleResultEntry = () => {
     });
   };
 
+  // patient general info
+  useEffect(() => {
+    if (selectedInvestigation) {
+      setPatientGeneralInfo({
+        uhid: selectedInvestigation?.UHID ?? "",
+        patientName: selectedInvestigation?.PatientName ?? "",
+        age: selectedInvestigation?.CurrentAge ?? "",
+        gender: selectedInvestigation?.Gender ?? "",
+        mobileNo: selectedInvestigation?.ContactNumber ?? "",
+        visitNo: selectedInvestigation?.VisitNo ?? "",
+        department: selectedInvestigation?.DoctorDepartment ?? "",
+        doctor: selectedInvestigation?.DoctorName ?? "",
+        ward: selectedInvestigation?.WardName ?? "",
+        bed: selectedInvestigation?.BedNo ?? "",
+        admittedOn: selectedInvestigation?.AdmissionDate ?? "",
+        admissionTime: selectedInvestigation?.AdmissionTime ?? "",
+      });
+
+      setInvestigationGeneralInfo({
+        labNo: String(selectedInvestigation?.LabNo ?? ""),
+        barcode: selectedInvestigation?.BarCode ?? "",
+        sampleType: selectedInvestigation?.SampleType ?? "",
+        priority: selectedInvestigation?.isUrgent === 1 ? `Urgent` : "Normal",
+        collectionDate: selectedInvestigation?.SampleCollectedOn ?? "",
+        receivedDate: selectedInvestigation?.SampleReceivedByDepartmentOn ?? "",
+        ReportedDate: selectedInvestigation?.ReportedDate ?? "",
+        tat:
+          selectedInvestigation?.ActualTATInMin != null
+            ? `${selectedInvestigation.ActualTATInMin} min`
+            : "",
+        clinicalNotes: selectedInvestigation?.ClinicalNotes ?? "",
+        machineName: selectedInvestigation?.MachineName ?? "",
+        connection: selectedInvestigation?.Connection ?? "",
+        qcStatus: selectedInvestigation?.QcStatus ?? "",
+        lastSync: selectedInvestigation?.LastSync ?? "",
+      });
+    }
+  }, [selectedInvestigation]);
+
   useEffect(() => {
     getAllInvestigationDetailsOfPatient();
   }, [branchId, uhid, visitId, labNo]);
 
   // patient tabular report
   const getPatientTabularReport = async () => {
+    setSubInvestigationLists([]);
     const resp = await fetchApi(
       "GET",
       ENDPOINTS.GET_PATIENT_TABULAR_REPORT_FOR_RESULT_ENTRY,
@@ -202,6 +211,7 @@ const SampleResultEntry = () => {
   };
 
   useEffect(() => {
+    setSubInvestigationLists([]);
     if (selectedInvestigation && isFreeTextResult) {
       getFreeTextResultEntryValue();
     } else if (selectedInvestigation && department === "pathology") {
@@ -432,7 +442,10 @@ const SampleResultEntry = () => {
           {/* Right Column: Graphical Trend, Reference Details & Alerts (Hidden when isExpanded is true) */}
           {!isExpanded && department === "pathology" && (
             <div className="lg:col-span-2 min-w-0 space-y-3">
-              <LabInfoRightChart subInvestigationlists={subInvestigationlists} />
+              <LabInfoRightChart
+                subInvestigationlists={subInvestigationlists}
+                selectedInvestigationId={selectedInvestigation?.PatientInvestigationId}
+              />
             </div>
           )}
         </div>

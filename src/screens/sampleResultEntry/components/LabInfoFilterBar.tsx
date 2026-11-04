@@ -75,15 +75,15 @@ export default function LabInfoFilterBar({
 
         {/* Column 3: Sample Details */}
         <div className="grid grid-cols-[max-content_12px_1fr] items-center gap-x-1.5 gap-y-1.5 lg:px-3 py-3 lg:py-0">
-          <span className="text-gray-500 font-medium">Sample No.</span>
+          <span className="text-gray-500 font-medium">Lab No.</span>
           <span className="font-bold text-gray-900">:</span>
           <span className="font-bold text-gray-900 break-all">
-            {investigationGeneralInfo?.sampleNo}
+            {investigationGeneralInfo?.labNo}
           </span>
 
           <span className="text-gray-500 font-medium">Barcode</span>
           <span className="font-bold text-gray-900">:</span>
-          <div className="font-mono text-[10px] px-1.5 py-0.5 rounded text-gray-900 font-bold truncate">
+          <div className="font-mono  text-gray-900 font-bold truncate">
             {investigationGeneralInfo?.barcode}
           </div>
 

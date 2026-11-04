@@ -1,4 +1,5 @@
-import { FileClock, MessageSquare, Settings } from "lucide-react";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { Activity, FileClock, MessageSquare } from "lucide-react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useCallback, useState } from "react";
 import { SubInvetigationItem } from "../types";
@@ -18,6 +19,7 @@ export default function LabInfoTableData({
   subInvestigationlists,
   setSubInvestigationLists,
 }: Props) {
+  const { loading, fetchApi } = useGlobalApi();
   const [selectedSubInvestigation, setSelectedSubInvestigation] =
     useState<SubInvetigationItem | null>(null);
   const [openObservationComment, setOpenObservationComment] = useState(false);
@@ -27,6 +29,10 @@ export default function LabInfoTableData({
   const [renderPreviousResultsHistory, setRenderPreviousResultsHistory] = useState(false);
   const [selectedSubInvestigationForResultHistory, setSelectedSubInvestigationForResultHistory] =
     useState<SubInvetigationItem | null>(null);
+
+  const [showVitalInsights, setShowVitalInsights] = useState<boolean>(false);
+
+  console.log("subInvestigationlistssubInvestigationlists", subInvestigationlists);
 
   // add comment handler
   const addCommentHandler = (row: SubInvetigationItem) => {
@@ -280,6 +286,45 @@ export default function LabInfoTableData({
     setSelectedSubInvestigationForResultHistory(null);
   }, []);
 
+  // // observation chart of previous history
+  // const getPreviousHistory = async (
+  //   investigationId: number,
+  //   patientId: number,
+  //   observationId: number
+  // ) => {
+  //   try {
+  //     const resp = await fetchApi(
+  //       "GET",
+  //       ENDPOINTS.GET_PATIENT_TABULAR_RESULT_ENTRY_HISTORY,
+  //       {},
+  //       {
+  //         params: { investigationId, patientId },
+  //       },
+  //       { component: "LabInfoRightChart" }
+  //     );
+
+  //     const historyData = (resp?.data ?? [])
+  //       .filter((f: InvestigationHistoryItem) => Number(f?.ObservationId) === Number(observationId))
+  //       .map((t: InvestigationHistoryItem) => ({
+  //         vitalName: t?.ObservationName,
+  //       }));
+
+  //     setResultHistory(historyData);
+  //   } catch (error) {
+  //     console.error("Error fetching previous history:", error);
+  //     setResultHistory([]);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (selectedSubInvestigationForResultHistory)
+  //     getPreviousHistory(
+  //       selectedSubInvestigationForResultHistory?.PatientId,
+  //       selectedSubInvestigationForResultHistory?.ObservationId,
+  //       selectedSubInvestigationForResultHistory?.InvestigationId
+  //     );
+  // }, [selectedSubInvestigationForResultHistory]);
+
   return (
     <div className="card space-y-2 min-h-[390px]">
       {/* ================= INVESTIGATION HEADER TOOLBAR ================= */}
@@ -299,7 +344,7 @@ export default function LabInfoTableData({
           {/* <button className="bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0">
             Auto Fill
           </button> */}
-          <button
+          {/* <button
             onClick={onToggleExpand}
             className={`p-1 border rounded-lg shadow-2xs transition-all cursor-pointer shrink-0 ${
               isExpanded
@@ -309,6 +354,15 @@ export default function LabInfoTableData({
             title="Toggle Right Panel"
           >
             <Settings size={14} />
+          </button> */}
+
+          <button
+            type="button"
+            onClick={() => setShowVitalInsights(true)}
+            title="View vitals insights"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-linear-to-br from-rose-500 via-pink-500 to-fuchsia-500 text-white shrink-0 shadow-md active:scale-95 transition-all"
+          >
+            <Activity size={14} />
           </button>
         </div>
       </div>

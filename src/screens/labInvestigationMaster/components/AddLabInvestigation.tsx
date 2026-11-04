@@ -107,8 +107,6 @@ const AddLabInvestigation = ({
 
   const disabled = selectSubCategory?.label?.toLowerCase() === Radiology?.RADIOLOGY;
 
-  console.log("disableddisableddisableddisableddisabled", disabled);
-
   const [renderInterpretation, setRenderInterpretation] = useState<boolean>(false);
   const [openInterpretation, setOpenInterpretation] = useState<boolean>(false);
 

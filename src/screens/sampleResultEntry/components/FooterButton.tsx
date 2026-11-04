@@ -93,7 +93,9 @@ const FooterButton = ({
               <button
                 onClick={onApproveButtonClick}
                 className={`flex items-center gap-1 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer ${
-                  isApproved ? "bg-orange-600 hover:bg-orange-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  isApproved
+                    ? "bg-orange-600 hover:bg-orange-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
                 }`}
               >
                 {isApproved ? "Un-Approve" : "Approve"}
@@ -111,7 +113,8 @@ const FooterButton = ({
 
           <button
             onClick={onRejectButtonClick}
-            className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
+            disabled={isApproved}
+            className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
           >
             <X size={14} /> Reject Sample
           </button>
