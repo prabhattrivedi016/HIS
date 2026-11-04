@@ -42,7 +42,7 @@ const CARDS_CONFIG: CardConfig[] = [
   },
   {
     key: "collectionPendingClicked",
-    name: "CollectionPending",
+    name: "Collection Pending",
     icon: Hourglass,
     valueKey: "collectionPending",
     bgClass: "bg-[#faf5ff]",
@@ -188,8 +188,7 @@ export default function FilterBar({
   // Favorite cards (persisted in localStorage, up to 5 allowed)
   const [favoriteCards, setFavoriteCards] = useState<string[]>(() => {
     try {
-      const stored =
-        localStorage.getItem(storageKey) || localStorage.getItem(DEFAULT_STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey) || localStorage.getItem(DEFAULT_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -230,14 +229,17 @@ export default function FilterBar({
     const favList = favoriteCards
       .map(key =>
         CARDS_CONFIG.find(
-          c => c.key === key || (key === "departmentReceivedClicked" && c.key === "departmentReceiveClicked")
+          c =>
+            c.key === key ||
+            (key === "departmentReceivedClicked" && c.key === "departmentReceiveClicked")
         )
       )
       .filter((c): c is CardConfig => Boolean(c));
 
     const regularList = CARDS_CONFIG.filter(c => {
       if (favSet.has(c.key)) return false;
-      if (c.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked")) return false;
+      if (c.key === "departmentReceiveClicked" && favSet.has("departmentReceivedClicked"))
+        return false;
       return true;
     });
 

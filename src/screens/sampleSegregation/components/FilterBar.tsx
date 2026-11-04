@@ -42,7 +42,7 @@ const CARDS_CONFIG: CardConfig[] = [
   },
   {
     key: "collectionPendingClicked",
-    name: "CollectionPending",
+    name: "Collection Pending",
     icon: Hourglass,
     valueKey: "collectionPending",
     bgClass: "bg-[#faf5ff]",

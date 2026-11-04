@@ -320,7 +320,7 @@ export const IpdBillingTableHeader = [
 
 export const LabInvestigationTableHeader = [
   "#",
-  "Item Type",
+  "Report Type",
   "Investigation Name",
   "Test Code",
   "TAT",

@@ -78,7 +78,7 @@ export const FILTER_BUTTONS: FilterButtonConfig[] = [
   },
   {
     key: "collectionPendingClicked",
-    label: "CollectionPending",
+    label: "Collection Pending",
     icon: Hourglass,
     iconColor: "text-purple-600",
     countKey: "collectionPending",
@@ -418,9 +418,7 @@ export default function SearchBar({
   // lab sample management favorite buttons (persisted in localStorage, maximum 5 allowed)
   const [favoriteButtons, setFavoriteButtons] = useState<string[]>(() => {
     try {
-      const stored =
-        localStorage.getItem(storageKey || defaultStorageKey) ||
-        localStorage.getItem("labSampleManagementFavoriteButtons");
+      const stored = localStorage.getItem(defaultStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -450,7 +448,7 @@ export default function SearchBar({
         }
       }
 
-      localStorage.setItem(storageKey || defaultStorageKey, JSON.stringify(updated));
+      localStorage.setItem(defaultStorageKey, JSON.stringify(updated));
       return updated;
     });
   };

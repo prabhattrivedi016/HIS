@@ -28,10 +28,6 @@ export default function FreeTextTableData({
   setFreeTextFormData,
   selectedInvestigation,
 }: Props) {
-  console.log(
-    "selectedInvestigationselectedInvestigationselectedInvestigation",
-    selectedInvestigation
-  );
   return (
     <div className="card ">
       {/* Investigation Header Toolbar */}

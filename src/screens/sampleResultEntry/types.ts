@@ -124,7 +124,7 @@ type PatientGeneralInfo = {
 };
 
 type InvestigationGeneralInfo = {
-  sampleNo: string;
+  labNo: string;
   barcode: string;
   sampleType: string;
   priority: string;
