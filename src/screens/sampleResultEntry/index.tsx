@@ -4,8 +4,9 @@ import { BranchContext } from "@/context/BranchContext";
 import { RoleContext } from "@/context/RoleContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
+import { ArrowLeft } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ApproveUnapproveInvestigationResult from "../InvestigationResultEntry/components/ApproveUnapproveInvestigationResuilt";
 import RejectSamplePopup from "../labSampleManagement/components/RejectSamplePopup";
 import CommentBox from "./components/CommentBox";
@@ -28,6 +29,8 @@ const SampleResultEntry = () => {
   const roleId = useContext(RoleContext)?.roleId;
   const branchId = useContext(BranchContext)?.branchId;
   const currentDate = new Date().toISOString().split("T")[0];
+
+  const navigate = useNavigate();
 
   const { department, uhid, visitId, labNo, pId } = useParams();
   const [investigationLists, setInvestigationsLists] = useState<PatientDetailsInvestigationItem[]>(
@@ -393,7 +396,22 @@ const SampleResultEntry = () => {
 
           {/* Action Buttons Toolbar */}
           <div className="flex justify-end flex-1">
-            <div className="flex justify-between flex-wrap items-center gap-2"></div>
+            <div className="flex justify-between flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="save-btn flex items-center gap-2"
+                onClick={() =>
+                  navigate(
+                    department === "pathology"
+                      ? "/result-entry-pathology"
+                      : "/result-entry-radiology"
+                  )
+                }
+              >
+                <ArrowLeft size={16} />
+                Back
+              </button>
+            </div>
           </div>
         </div>
 
@@ -427,7 +445,7 @@ const SampleResultEntry = () => {
                   subInvestigationlists={subInvestigationlists}
                   setSubInvestigationLists={setSubInvestigationLists}
                 />
-                <CommentBox />
+                <CommentBox selectedInvestigation={selectedInvestigation} />
               </>
             ) : (
               <FreeTextTableData

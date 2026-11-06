@@ -1,5 +1,6 @@
 import CustomLoader from "@/components/customLoader";
 import { ENDPOINTS } from "@/config/defaults";
+import { BranchContext } from "@/context/BranchContext";
 import useGlobalApi from "@/hooks/useGlobalApi";
 import { showError, showSuccess, showWarning } from "@/utils/alert";
 import { encryptRouteId } from "@/utils/routeEncryption";
@@ -24,6 +25,7 @@ import {
   Dispatch,
   SetStateAction,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -97,6 +99,7 @@ const columnVisibilityTableValue = [
   { isChecked: true, tableHeaderName: "Priority", id: 14 },
   { isChecked: true, tableHeaderName: "Status", id: 15 },
   { isChecked: true, tableHeaderName: "IPD No/Beds", id: 16 },
+  { isChecked: true, tableHeaderName: "Print", id: 17 },
 ];
 
 // value match search helper
@@ -297,11 +300,15 @@ export default function TableData({
   setViewMode: Dispatch<SetStateAction<ViewMode>>;
 }) {
   const { loading, fetchApi } = useGlobalApi();
+  const branchId = useContext(BranchContext)?.branchId;
   const navigate = useNavigate();
 
   const [searchValue, setSearchValue] = useState<string>("");
 
   const [checkedSample, setCheckedSample] = useState<SampleManagementItem[]>([]);
+  const [checkedPrintInvestigationIds, setCheckedPrintInvestigationIds] = useState<Set<number>>(
+    () => new Set()
+  );
 
   const [selectedSampleData, setSelelectedSampleData] = useState<SampleManagementItem | null>(null);
 
@@ -357,8 +364,100 @@ export default function TableData({
     setSelelectedSampleData(null);
   }, []);
 
-  const handlePrintClick = sampleId => {
-    alert(`Print clicked for sample: ${sampleId}`);
+  const handlePrintClick = async (row: SampleManagementItem) => {
+    if (Number(row?.IsReportApproved) !== 1) {
+      showWarning("Report is not approved yet!");
+      return;
+    }
+
+    const patientInvestigationId = Number(row?.PatientInvestigationId);
+    if (!Number.isFinite(patientInvestigationId) || patientInvestigationId <= 0) {
+      showWarning("Unable to identify this investigation");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: 0,
+            PatientInvestigationIds: String(patientInvestigationId),
+            Download: true,
+          },
+          responseType: "blob",
+        },
+        { component: "LabSampleManagement" }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      const pdfUrl = window.URL.createObjectURL(new Blob([resp], { type: "application/pdf" }));
+      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+      if (!newTab) {
+        window.URL.revokeObjectURL(pdfUrl);
+        return;
+      }
+      window.setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
+  };
+
+  const printSelectedReports = async () => {
+    if (!branchId) {
+      showWarning("Branch not found");
+      return;
+    }
+
+    const patientInvestigationIds = [...checkedPrintInvestigationIds].filter(
+      id => Number.isFinite(id) && id > 0
+    );
+    if (patientInvestigationIds.length === 0) {
+      showWarning("Please select at least one report to print");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi<Blob>(
+        "GET",
+        ENDPOINTS.PRINT_PATIENT_INVESTIGATION_REPORT,
+        {},
+        {
+          params: {
+            BranchId: branchId,
+            IsHeaderPng: 0,
+            PatientInvestigationIds: patientInvestigationIds.join(","),
+            Download: true,
+          },
+          responseType: "blob",
+        },
+        { component: "LabSampleManagement" }
+      );
+
+      if (!resp) {
+        showWarning("Unable to generate report");
+        return;
+      }
+
+      setCheckedPrintInvestigationIds(new Set());
+      const pdfUrl = window.URL.createObjectURL(new Blob([resp], { type: "application/pdf" }));
+      const newTab = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+      if (!newTab) {
+        window.URL.revokeObjectURL(pdfUrl);
+        return;
+      }
+
+      window.setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 60_000);
+    } catch {
+      showError("Unable to open report");
+    }
   };
 
   // handle upload document
@@ -1010,6 +1109,24 @@ export default function TableData({
             IPD No/Beds
           </th>
         );
+      case "Print":
+        return (
+          <th
+            key={col.id}
+            className="whitespace-nowrap border border-gray-300 px-1 py-2 text-center"
+          >
+            <div className="flex items-center justify-center gap-1">
+              <input
+                type="checkbox"
+                className="input-checkbox"
+                checked={allVisiblePrintRowsChecked}
+                onChange={handlePrintSelectAll}
+                aria-label="Select all printable investigations"
+              />
+              <span className="">Print</span>
+            </div>
+          </th>
+        );
       default:
         return null;
     }
@@ -1215,6 +1332,23 @@ export default function TableData({
             {row?.IPDNo || "-"} / {row?.BedNo || "-"}
           </td>
         );
+
+      case "Print":
+        return (
+          <td key={col.id} className="border border-gray-300 px-2 py-2 text-center">
+            {Number(row?.IsReportApproved) === 1 ? (
+              <input
+                type="checkbox"
+                className="input-checkbox"
+                checked={checkedPrintInvestigationIds.has(Number(row.PatientInvestigationId))}
+                onChange={event => handlePrintRowChange(event, row)}
+                aria-label={`Select ${row.PatientName} investigation for printing`}
+              />
+            ) : (
+              <></>
+            )}
+          </td>
+        );
       default:
         return null;
     }
@@ -1252,6 +1386,40 @@ export default function TableData({
     () => sampleWiseGroupedSampleManagementList.filter(row => matchesSearch(row, searchValue)),
     [sampleWiseGroupedSampleManagementList, searchValue]
   );
+
+  // print report
+  const printableFilteredRows = filteredTestData.filter(row => Number(row.IsReportApproved) === 1);
+  const allVisiblePrintRowsChecked =
+    printableFilteredRows.length > 0 &&
+    printableFilteredRows.every(row =>
+      checkedPrintInvestigationIds.has(Number(row.PatientInvestigationId))
+    );
+
+  const handlePrintSelectAll = (event: ChangeEvent<HTMLInputElement>) => {
+    const shouldCheck = event.target.checked;
+    setCheckedPrintInvestigationIds(previous => {
+      const next = new Set(previous);
+      printableFilteredRows.forEach(row => {
+        const id = Number(row.PatientInvestigationId);
+        if (shouldCheck) next.add(id);
+        else next.delete(id);
+      });
+      return next;
+    });
+  };
+
+  const handlePrintRowChange = (
+    event: ChangeEvent<HTMLInputElement>,
+    row: SampleManagementItem
+  ) => {
+    const id = Number(row.PatientInvestigationId);
+    setCheckedPrintInvestigationIds(previous => {
+      const next = new Set(previous);
+      if (event.target.checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   // render table
   const renderTable = (viewMode: string) => {
@@ -1428,7 +1596,7 @@ export default function TableData({
 
                           <button
                             type="button"
-                            onClick={() => handlePrintClick(row?.isReportPrinted)}
+                            onClick={() => handlePrintClick(row)}
                             className="cursor-pointer p-1 text-gray-500 hover:text-emerald-600"
                             title="Print Sample"
                           >
@@ -1474,8 +1642,10 @@ export default function TableData({
 
                 {/* Print Button */}
                 <button
-                  onClick={() => alert("Print clicked")}
-                  className="border border-blue-600 text-blue-600  text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95"
+                  type="button"
+                  onClick={printSelectedReports}
+                  disabled={loading}
+                  className="border border-blue-600 text-blue-600 text-xs font-semibold px-4 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Print
                 </button>

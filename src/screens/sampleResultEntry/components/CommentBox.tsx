@@ -1,36 +1,54 @@
-import { useState } from "react";
-
-const QUICK_TAGS = [
-  {
-    name: "Normal Study",
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-  },
-  {
-    name: "Suggestive of Infection",
-    color: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-  },
-  {
-    name: "Correlate Clinically",
-    color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-  },
-  {
-    name: "Repeat Sample",
-    color: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
-  },
-  {
-    name: "Insufficient Sample",
-    color: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100",
-  },
-  {
-    name: "Hemolysed Sample",
-    color: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
-  },
-];
+import InputField from "@/components/customInputField";
+import CustomLoader from "@/components/customLoader";
+import EditIconButton from "@/components/globalButtons/EditIconButton";
+import RemoveIconButton from "@/components/globalButtons/RemoveIconButton";
+import { ENDPOINTS } from "@/config/defaults";
+import useGlobalApi from "@/hooks/useGlobalApi";
+import { showError, showSuccess } from "@/utils/alert";
+import {
+  TechnicalNotesFormData,
+  technicalNotesSchema,
+} from "@/validation/sampleJourneyValidationSchema";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { PatientDetailsInvestigationItem, TechnicalNotesItem } from "../types";
 
 const TABS = ["Comments & Interpretation", "Predefined Comments", "Technical Notes"];
 
-const CommentBox = () => {
+const CommentBox = ({
+  selectedInvestigation,
+}: {
+  selectedInvestigation: PatientDetailsInvestigationItem;
+}) => {
+  const { loading, fetchApi } = useGlobalApi();
+  const [technicalNotesList, setTechnicalNotesLists] = useState<TechnicalNotesItem[]>([]);
+
   const [activeTab, setActiveTab] = useState(TABS[0]);
+
+  const {
+    register,
+    reset,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(technicalNotesSchema),
+    defaultValues: {
+      id: 0,
+      investigationId: selectedInvestigation?.InvestigationId,
+      technicalNote: "",
+    },
+  });
+
+  useEffect(() => {
+    reset({
+      id: 0,
+      investigationId: selectedInvestigation?.InvestigationId ?? 0,
+      technicalNote: "",
+    });
+  }, [selectedInvestigation?.InvestigationId, reset]);
+
+  console.log("selectedInvestigationselectedInvestigation of comment", selectedInvestigation);
 
   const [techComment, setTechComment] = useState("Sample is adequate. Result verified.");
 
@@ -38,20 +56,71 @@ const CommentBox = () => {
     "CBC shows elevated TLC with neutrophilia, suggestive of infection. Correlate clinically."
   );
 
-  // Append a quick tag without adding duplicate tags.
-  const handleTagClick = tag => {
-    setTechComment(prev => {
-      const sentence = `${tag}.`;
+  // get all technical note
+  const getAllTechnicalNotes = async () => {
+    const resp = await fetchApi(
+      "GET",
+      ENDPOINTS.GET_PATIENT_INVESTIGATION_TECHNICAL_NOTE,
+      {},
+      { params: { investigationId: selectedInvestigation?.InvestigationId } },
+      { component: "CommentBox" }
+    );
+    setTechnicalNotesLists(resp?.data ?? []);
+  };
 
-      if (prev.includes(sentence)) return prev;
+  useEffect(() => {
+    getAllTechnicalNotes();
+  }, [activeTab === "Technical Notes"]);
 
-      return prev.trim() ? `${prev.trim()} ${sentence}` : sentence;
+  // technical notes submit handler
+  const technicalNotesSubmitHandler = async (formData: TechnicalNotesFormData) => {
+    const resp = await fetchApi(
+      "POST",
+      ENDPOINTS.SAVE_PATIENT_INVESTIGATION_TECHNICAL_NOTE,
+      formData,
+      {},
+      { component: "CommentBox" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while saving technical notes");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    await getAllTechnicalNotes();
+    reset({
+      id: 0,
+      investigationId: selectedInvestigation?.InvestigationId,
+      technicalNote: "",
     });
   };
 
-  const handleClearComments = () => {
-    setTechComment("");
-    setPathoComment("");
+  // edit technical notes
+  const editHandler = (row: TechnicalNotesItem) => {
+    if (!row) return;
+    reset({
+      id: row?.Id,
+      investigationId: row?.InvestigationId,
+      technicalNote: row?.TechnicalNote,
+    });
+  };
+
+  // remove technical notes handler
+  const removeTechnicalNotesHandler = async (row: TechnicalNotesItem) => {
+    if (!row) return;
+    const resp = await fetchApi(
+      "PATCH",
+      ENDPOINTS.DELETE_PATIENT_INVESTIGATION_TECHNICAL_NOTE,
+      {},
+      { params: { id: row?.Id } },
+
+      { component: "CommentBox" }
+    );
+    if (!resp?.result) {
+      showError(resp?.message ?? "Error while saving technical notes");
+      return;
+    }
+    showSuccess(resp?.message ?? "Data saved successfully");
+    await getAllTechnicalNotes();
   };
 
   return (
@@ -122,10 +191,73 @@ const CommentBox = () => {
 
       {/* Technical Notes */}
       {activeTab === "Technical Notes" && (
-        <div className="text-xs text-gray-500 py-4 text-center">
-          Technical notes can be configured here.
-        </div>
+        <>
+          <div className="form-grid-2">
+            <InputField label="Technical Notes">
+              <textarea className="input-field w-full " {...register("technicalNote")} />
+              {errors.technicalNote && (
+                <p className="input-field-error">{errors.technicalNote.message}</p>
+              )}
+            </InputField>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full lg:col-start-4 mt-4">
+              <button className="save-btn" onClick={handleSubmit(technicalNotesSubmitHandler)}>
+                Save
+              </button>
+            </div>
+          </div>
+          <div className="table-container ">
+            <div className="table-scroll-wrapper ">
+              <div className="table-size lg:min-h-40 lg:max-h-40">
+                <table className="base-table ">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="table-th">#</th>
+                      <th className="table-th p-2">Technical Note</th>
+                      <th className="table-th">Created By</th>
+                      <th className="table-th">Created On</th>
+                      <th className="table-th">Last Modified By</th>
+                      <th className="table-th">Last Modified On</th>
+                      <th className="table-th">Edit</th>
+                      <th className="table-th">Delete</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {technicalNotesList?.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="table-empty">
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+
+                    {technicalNotesList.map((item, idx) => (
+                      <tr key={idx} className="table-row">
+                        <td className="table-td">{idx + 1}</td>
+                        <td className="table-td">{item?.TechnicalNote || "-"}</td>
+
+                        <td className="table-td">{item?.CreatedBy || "-"}</td>
+                        <td className="table-td">{item?.CreatedOn || "-"}</td>
+                        <td className="table-td">{item?.LastModifiedBy || "-"}</td>
+                        <td className="table-td">{item?.LastModifiedOn || "-"}</td>
+                        <td className="table-td">
+                          <EditIconButton onClick={() => editHandler(item)} />
+                        </td>
+                        <td className="table-td">
+                          <RemoveIconButton onClick={() => removeTechnicalNotesHandler(item)} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
       )}
+
+      {loading && <CustomLoader isLoading={loading} />}
     </div>
   );
 };

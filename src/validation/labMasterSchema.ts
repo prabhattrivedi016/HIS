@@ -35,3 +35,14 @@ export const sampleRemarksSchema = yup.object().shape({
 });
 
 export type SampleRemarkFormData = yup.InferType<typeof sampleRemarksSchema>;
+
+export const investigationCommentSchema = yup.object().shape({
+  id: yup.number().nullable(),
+  investigationId: yup.number().required("Investigation Name is required"),
+  investigationName: yup.string().required("Investigation Name is required"),
+  commentName: yup.string().required("Comment Name is required"),
+  commentValue: yup.string().required("Comment Value is required"),
+  isActive: yup.number().required("Status is required"),
+});
+
+export type InvestigationCommentFormData = yup.InferType<typeof investigationCommentSchema>;

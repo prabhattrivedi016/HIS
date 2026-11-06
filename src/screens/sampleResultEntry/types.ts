@@ -173,6 +173,16 @@ type InvestigationHistoryItem = {
   MethodName: string;
 };
 
+type TechnicalNotesItem = {
+  Id: number;
+  InvestigationId: number;
+  TechnicalNote: string;
+  CreatedBy: string;
+  CreatedOn: string;
+  LastModifiedBy: string | null;
+  LastModifiedOn: string | null;
+};
+
 export type {
   FreetextInvestigationValue,
   InvestigationGeneralInfo,
@@ -180,4 +190,5 @@ export type {
   PatientDetailsInvestigationItem,
   PatientGeneralInfo,
   SubInvetigationItem,
+  TechnicalNotesItem,
 };
