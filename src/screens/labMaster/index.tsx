@@ -2,6 +2,7 @@ import { LabMasterTabName } from "@/constants/constants";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import FieldBoy from "./components/FieldBoy";
+import InvestigationComment from "./components/InvestigationComment";
 import SampleRejection from "./components/SampleRejection";
 import SampleRemarks from "./components/SampleRemarks";
 import SampleType from "./components/SampleType";
@@ -26,6 +27,9 @@ const LabMaster = () => {
       }
       case LabMasterTabName?.FIELD_BOY: {
         return <FieldBoy />;
+      }
+      case LabMasterTabName?.INVESTIGATION_COMMENT: {
+        return <InvestigationComment />;
       }
       default:
         return <></>;
@@ -112,6 +116,20 @@ const LabMaster = () => {
                   `}
         >
           {LabMasterTabName?.FIELD_BOY}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab(LabMasterTabName?.INVESTIGATION_COMMENT)}
+          className={`px-4 py-2 text-md font-semibold transition
+                    ${
+                      activeTab === LabMasterTabName?.INVESTIGATION_COMMENT
+                        ? "tab-btn-active"
+                        : "tab-btn-inactive"
+                    }
+                  `}
+        >
+          {LabMasterTabName?.INVESTIGATION_COMMENT}
         </button>
       </div>
 

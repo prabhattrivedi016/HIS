@@ -107,6 +107,10 @@ const ENDPOINTS = {
   CREATE_UPDATE_DOCTOR_SIGNATURE_MASTER: "Admin/createUpdateDoctorSignatureMaster",
   GET_DOCTOR_MASTER_LIST_BY_BRANCH_ID: "Home/getDoctorMasterListByBranchId",
 
+  // lab print settings
+  GET_LAB_REPORT_PRINT_SETTING: "Lab/getLabReportPrintSetting",
+  SAVE_LAB_REPORT_PRINT_SETTING: "Lab/saveLabReportPrintSetting",
+
   //bank master
   GET_BANK_LIST: "Admin/getBankList",
   CREATE_UPDATE_BANK_MASTER: "Admin/createUpdateBankMaster",
@@ -284,7 +288,7 @@ const ENDPOINTS = {
   SAVE_PATIENT_FREE_TEXT_REPORT: "Lab/savePatientFreeTextReport",
   GET_ALL_INVESTIGATION_NAME_OF_PATIENT: "Lab/getAllInvestigationNameOfPatient",
   UPDATE_REPORT_APPROVAL: "Lab/updateReportApproval",
-  PRINT_PATIENT_INVESTIGATION_REPORT: "Home/printPatientInvestigationReport",
+  PRINT_PATIENT_INVESTIGATION_REPORT: "Lab/printPatientInvestigationReport",
 
   // investigation interpretation template master
   CREATE_UPDATE_INVESTIGATION_TEMPLATE_COMMENT_MASTER:
@@ -749,6 +753,13 @@ const ENDPOINTS = {
   RESCHEDULE_OT_BOOKING: "IPD/rescheduleOTBooking",
   GET_OT_BOOKING_ITEM_DETAILS: "IPD/getOTBookingItemDetails",
   ADD_BREAK_IN_OT_BOOKING: "IPD/addBreakInOTBooking",
+
+  SAVE_PATIENT_INVESTIGATION_TECHNICAL_NOTE: "Lab/savePatientInvestigationTechnicalNote",
+  GET_PATIENT_INVESTIGATION_TECHNICAL_NOTE: "Lab/getPatientInvestigationTechnicalNote",
+  DELETE_PATIENT_INVESTIGATION_TECHNICAL_NOTE: "Lab/deletePatientInvestigationTechnicalNote",
+  CREATE_UPDATE_INVESTIGATION_RESULT_ENTRY_COMMENT:
+    "Lab/createUpdateInvestigationResultEntryComment",
+  GET_INVESTIGATION_RESULT_ENTRY_COMMENT_MASTER: "Lab/getInvestigationResultEntryCommentMaster",
 };
 
 export { ENDPOINTS };

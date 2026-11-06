@@ -56,25 +56,25 @@ const FooterButton = ({
     <div>
       {/* ================= FIXED BOTTOM ACTION BUTTONS BAR ================= */}
       <div className="flex w-full items-center justify-end gap-2 overflow-x-auto rounded-xl border border-gray-200 bg-white p-3 shadow-sm mt-1">
-        {/* <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            defaultChecked
-            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-          />
-          <span>Print Report After Authorization</span>
-        </label> */}
-
         <div className="flex min-w-max flex-nowrap items-center justify-end gap-2">
           <button
             onClick={onSaveButtonClick}
-            className="flex items-center gap-1 bg-[#0B5394] hover:bg-blue-950 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
+            disabled={isApproved}
+            className="flex items-center gap-1 bg-[#0B5394] hover:bg-blue-950 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#0B5394]"
           >
             Save
           </button>
 
           {isResultDone && (
             <>
+              <button
+                onClick={onHoldButtonClick}
+                disabled={isApproved}
+                className="flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Hold Result
+              </button>
+
               {!isApproved && (
                 <select
                   className="input-field !h-9 !w-44 !min-w-0 shrink-0 !py-1 text-xs"
@@ -99,14 +99,6 @@ const FooterButton = ({
                 }`}
               >
                 {isApproved ? "Un-Approve" : "Approve"}
-              </button>
-
-              <button
-                onClick={onHoldButtonClick}
-                disabled={isApproved}
-                className="flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Hold Result
               </button>
             </>
           )}

@@ -37,7 +37,7 @@ export enum HeaderFooterTabName {
   LETTER = "Letter Head",
   FOOTER_REMARK = "Footer Remark",
   NABL_LOGO = "NABL Logo",
-  QR_CODE_BARCODE = "QR Code/Barcode",
+  LAB_REPORT_PRINT_SETTINGS = "Lab Report Print Settings",
   OTHER_PRINT_SETTINGS = "Other Print Settings",
 }
 
@@ -59,6 +59,11 @@ export enum MicroReportMasterTabName {
 export enum BankMasterTabName {
   BANK_MASTER = "Bank Master",
   BANK_DETAILS = "Bank Details",
+}
+
+export enum ObservationInsightsTabName {
+  OBSERVATION_HISTORY = "Observation  History",
+  OBSERVATION_GRAPH = "Observation Graph",
 }
 
 export enum PatientAdvanceTabName {
@@ -88,6 +93,7 @@ export enum LabMasterTabName {
   SAMPLE_REJECTION = "Sample Rejection",
   SAMPLE_REMARKS = "Sample Remarks",
   FIELD_BOY = "Field Boy",
+  INVESTIGATION_COMMENT = "Investigation Comment",
 }
 
 export enum ImportTariffsTabName {
@@ -238,6 +244,19 @@ export const SampleTypeMasterTableHeader = [
 export const FieldBoyMasterTableHeader = [
   "#",
   "Field Boy",
+  "Status",
+  "Created By",
+  "Created On",
+  "Last ModifiedBy",
+  "Last ModifiedOn",
+  "Edit",
+];
+
+export const InvestigationCommentTableHeaderOfLabMaster = [
+  "#",
+  "Investigation Name",
+  "Comment Name",
+  "Comment Value",
   "Status",
   "Created By",
   "Created On",

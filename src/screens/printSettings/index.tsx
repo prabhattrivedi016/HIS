@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { HeaderFooterTabName } from "../../constants/constants";
 import DoctorSignature from "./components/DoctorSignature";
 import HeaderFooter from "./components/HeaderFooter";
+import LabReportPrintSettings from "./components/LabReportPrintSettings";
 import LetterHead from "./components/LetterHead";
 import NablLogo from "./components/NablLogo";
-import OtherPrintSettings from "./components/OtherPrintSettings";
-import QrCodeBarCode from "./components/QrCodeBarCode";
 import ReportFooterRemark from "./components/ReportFooterRemark";
 import SequenceMapping from "./components/SequenceMapping";
 
+const PRINT_SETTING_ACTIVE_TAB_KEY = "printSettingsActiveTab";
+
 const PrintSettings = () => {
-  const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(HeaderFooterTabName?.HEADER);
+  const [activeTab, setActiveTab] = useState<HeaderFooterTabName>(() => {
+    const savedTab = localStorage.getItem(PRINT_SETTING_ACTIVE_TAB_KEY);
+    return Object.values(HeaderFooterTabName).includes(savedTab as HeaderFooterTabName)
+      ? (savedTab as HeaderFooterTabName)
+      : HeaderFooterTabName.HEADER;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(PRINT_SETTING_ACTIVE_TAB_KEY, activeTab);
+  }, [activeTab]);
 
   const renderComponent = (tabName: string) => {
     switch (tabName) {
@@ -34,12 +44,10 @@ const PrintSettings = () => {
       case HeaderFooterTabName?.NABL_LOGO: {
         return <NablLogo />;
       }
-      case HeaderFooterTabName?.QR_CODE_BARCODE: {
-        return <QrCodeBarCode />;
+      case HeaderFooterTabName?.LAB_REPORT_PRINT_SETTINGS: {
+        return <LabReportPrintSettings />;
       }
-      case HeaderFooterTabName?.OTHER_PRINT_SETTINGS: {
-        return <OtherPrintSettings />;
-      }
+
       default:
         return <></>;
     }
@@ -142,16 +150,16 @@ const PrintSettings = () => {
 
         <button
           type="button"
-          onClick={() => setActiveTab(HeaderFooterTabName?.QR_CODE_BARCODE)}
-          className={`px-4 py-2 text-md font-semibold transition
+          onClick={() => setActiveTab(HeaderFooterTabName?.LAB_REPORT_PRINT_SETTINGS)}
+          className={`px-4 py-2 text-md font-semibold transition 
                         ${
-                          activeTab === HeaderFooterTabName?.QR_CODE_BARCODE
+                          activeTab === HeaderFooterTabName?.LAB_REPORT_PRINT_SETTINGS
                             ? "tab-btn-active"
                             : "tab-btn-inactive"
                         }
                       `}
         >
-          {HeaderFooterTabName?.QR_CODE_BARCODE}
+          {HeaderFooterTabName?.LAB_REPORT_PRINT_SETTINGS}
         </button>
 
         <button

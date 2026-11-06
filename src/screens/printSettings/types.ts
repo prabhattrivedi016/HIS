@@ -172,9 +172,51 @@ type InvestigationItem = {
   tatInMin: number;
   isActive: number;
 };
+type DefaultPrintSettingItemValue = {
+  BranchId: number;
+  MarginLeft: number;
+  PageWidth: number;
+  BrowserWidth: number;
+  HeaderHeight: number;
+  XHeader: number;
+  YHeader: number;
+  HeaderBrowserWidth: number;
+  TopLine: number;
+  BottomLine: number;
+  FooterHeight: number;
+  XFooter: number;
+  YFooter: number;
+  FooterBrowserWidth: number;
+  FooterTopLine: number;
+  ShowDigitalSignature: number;
+  XSignature: number;
+  YSignature: number;
+  IsActiveBarcode: number;
+  XBarcode: number;
+  YBarcode: number;
+  BarcodeHeight: number;
+  BarcodeWidth: number;
+  BarcodePosition: number;
+  RotateBarcode90Degree: number;
+  IsActiveQRCode: number;
+  XQRCode: number;
+  YQRCode: number;
+  QRHeight: number;
+  QRWidth: number;
+  QRCodePosition: number;
+  PrintDateTime: number;
+  PreparedBy: number;
+  PrintedBy: number;
+  PageNumbering: number;
+  HideTestNameForSingleTest: number;
+  PrintDepartmentSeparate: number;
+  SendEmail: number;
+  SendWhatsAppMessage: number;
+};
 
 export type {
   BranchItem,
+  DefaultPrintSettingItemValue,
   DoctorItem,
   DoctorTableItem,
   HeaderFooterFormData,
